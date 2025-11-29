@@ -1,5 +1,4 @@
 import Link from "next/link";
-import React from "react";
 
 export default function Footer() {
   return (
@@ -11,7 +10,7 @@ export default function Footer() {
               <div className="col-span-2">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                   Công Ty In Ấm 
+                   Công Ty In Ấn 
                   </h2>
 
                   <p className="mt-4 text-gray-500">
