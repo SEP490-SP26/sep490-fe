@@ -1,9 +1,12 @@
-"use client";
+'use client';
 import { useProduction } from "@/context/ProductionContext";
-import React, { useState } from "react";
+import { useState } from "react";
 
-export default function Page() {
-  const { products } = useProduction();
+export default function CreateOrderPage() {
+  const {
+    products,
+    addOrder,
+  } = useProduction();
 
   const [formData, setFormData] = useState({
     product_id: "",
@@ -24,6 +27,14 @@ export default function Page() {
       alert("Vui lòng điền đầy đủ thông tin");
       return;
     }
+
+    const orderId = addOrder({
+      product_id: formData.product_id,
+      quantity: parseInt(formData.quantity),
+      delivery_date: formData.delivery_date,
+      customer_name: formData.customer_name,
+    });
+
     // Reset form
     setFormData({
       product_id: "",
@@ -31,12 +42,16 @@ export default function Page() {
       delivery_date: "",
       customer_name: "",
     });
+
+    alert("Đơn hàng đã được tạo thành công!");
   };
 
   return (
-    <div className="bg-white mx-auto rounded-lg border border-gray-200 p-6">
-      <div className="flex flex-col items-center w-300 mx-auto px-2 py-4  min-h-screen">
-        <h2 className="mb-6">Tạo đơn hàng mới</h2>
+    <div>
+      <h1 className="mb-8">Tạo Đơn Hàng Mới</h1>
+
+      <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-2xl mx-auto">
+        <h2 className="mb-6">Thông tin đơn hàng</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -47,6 +62,7 @@ export default function Page() {
                 setFormData({ ...formData, product_id: e.target.value })
               }
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
             >
               <option value="">Chọn sản phẩm</option>
               {products.map((product) => (
@@ -68,6 +84,7 @@ export default function Page() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Nhập số lượng"
               min="1"
+              required
             />
           </div>
 
@@ -80,6 +97,7 @@ export default function Page() {
                 setFormData({ ...formData, delivery_date: e.target.value })
               }
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
             />
           </div>
 
@@ -93,6 +111,7 @@ export default function Page() {
               }
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Nhập tên khách hàng"
+              required
             />
           </div>
 

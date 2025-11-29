@@ -11,7 +11,7 @@ export default function Footer() {
               <div className="col-span-2">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    Board Game Impact
+                   Công Ty In Ấm 
                   </h2>
 
                   <p className="mt-4 text-gray-500">

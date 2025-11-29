@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import React from 'react'
-import { BiCalendar, BiPackage } from 'react-icons/bi';
-import { FaShoppingCart, FaWarehouse } from 'react-icons/fa';
+import React from 'react';
+import { BiPackage } from 'react-icons/bi';
+import { FaShoppingCart } from 'react-icons/fa';
 import { LuLayoutDashboard } from 'react-icons/lu';
 
 export default function layoutManager({ children }: { children: React.ReactNode }) {
@@ -18,12 +18,12 @@ export default function layoutManager({ children }: { children: React.ReactNode 
     //   label: "QL và theo dõi NVL",
     //   icon: Calendar,
     // },
-    {
-      path: "/production",
-      label: "Sản xuất",
-      icon: BiCalendar,
-    },
-    { path: "/inventory", label: "Kho", icon: FaWarehouse },
+    // {
+    //   path: "/production",
+    //   label: "Sản xuất",
+    //   icon: BiCalendar,
+    // },
+    // { path: "/inventory", label: "Kho", icon: FaWarehouse },
   ];
   return (
      <div className="min-h-screen bg-gray-50">

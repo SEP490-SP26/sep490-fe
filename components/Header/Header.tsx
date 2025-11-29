@@ -34,7 +34,7 @@ export default function Header() {
         </Suspense>
 
         {/* Icon hiển thị bình thường ở sm trở lên, ẩn trên mobile */}
-        <div className="hidden sm:flex justify-items-center items-centerBoardgame space-x-6 lg:space-x-10">
+        <div className="hidden sm:flex justify-items-center items-center space-x-6 lg:space-x-10">
           <Link href="/login">
             <BsPersonCircle className="size-8 fill-green-700" />
           </Link>
