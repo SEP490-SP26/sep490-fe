@@ -15,6 +15,7 @@ export default function layoutManager({
     },
     { path: "/", label: "Đăng xuất", icon: FiLogOut },
   ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -26,17 +27,14 @@ export default function layoutManager({
         <nav className="px-4">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = false;
+            
+            const href = item.path === "/" ? "/" : "/consultant" + item.path;
 
             return (
               <Link
-                href={"/consultant" + item.path}
-                key={item.path}
-                className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
+                href={href}
+                key={item.label}
+                className="flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
