@@ -1,10 +1,9 @@
 "use client";
 import {
   createContext,
-  useContext,
-  useState,
   ReactNode,
-  useEffect,
+  useContext,
+  useState
 } from "react";
 
 // Types
@@ -113,6 +112,15 @@ interface ProductionContextType {
   ) => void;
   updateProductionStage: (scheduleId: string, stage: string) => void;
   getProductionStages: (orderId: string) => ProductionStage[];
+    getStageMaterialsInfo: (orderId: string, stageId: string) => Array<{
+    material_id: string;
+    quantity: number;
+    unit: string;
+    name: string;
+    available: number;
+    hasEnough: boolean;
+  }>;
+  checkStageMaterials: (orderId: string, stageId: string) => boolean;
 }
 
 const ProductionContext = createContext<ProductionContextType | undefined>(
@@ -635,6 +643,8 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     return schedule.stages;
   };
 
+  
+
   const scheduleProduction = (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     if (!order || !order.can_fulfill) return;
@@ -761,6 +771,16 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     );
   };
 
+ const getStageMaterialsInfo = (orderId: string, stageId: string) => {
+    // Trả về mảng rỗng hoặc dữ liệu mẫu
+    return [];
+  };
+
+  const checkStageMaterials = (orderId: string, stageId: string) => {
+    // Trả về true/false giả lập
+    return true;
+  };
+
   return (
     <ProductionContext.Provider
       value={{
@@ -772,6 +792,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         purchaseRequests,
         purchaseOrders,
         productionSchedules,
+
         addOrder,
         checkOrderFulfillment,
         createPurchaseRequest,
@@ -783,6 +804,8 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         updateInventory,
         updateProductionStage,
         getProductionStages,
+        getStageMaterialsInfo,
+        checkStageMaterials,
       }}
     >
       {children}
