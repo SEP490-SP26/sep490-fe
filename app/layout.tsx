@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import React from "react";
 import { ProductionProvider } from "@/context/ProductionContext";
+import { AntdRegistry } from '@ant-design/nextjs-registry';
+import type { Metadata } from "next";
+import React from "react";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SEP490",
@@ -15,9 +16,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <ProductionProvider>
-        <body>{children}</body>
-      </ProductionProvider>
+      <body>
+        <AntdRegistry> 
+          <ProductionProvider>
+            {children}
+          </ProductionProvider>
+        </AntdRegistry>
+      </body>
     </html>
   );
 }
