@@ -1,19 +1,10 @@
 'use client';
 import { useProduction } from "@/context/ProductionContext";
 import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  Calendar,
-  Package,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-  Scissors,
-  Printer,
-  Layers,
-  Zap,
-  Glue,
-} from "lucide-react";
+import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
+import { BsArrowLeft, BsClock, BsLayers, BsPrinter, BsScissors } from "react-icons/bs";
+import { FiAlertTriangle } from "react-icons/fi";
+
 
 export default function ProductionDetailPage() {
   const params = useParams();
@@ -53,14 +44,14 @@ export default function ProductionDetailPage() {
   }
 
   const productionStages = [
-    { id: 'ralo', name: 'Ralo', icon: Scissors, color: 'bg-blue-100 text-blue-700' },
-    { id: 'cut', name: 'Cắt', icon: Scissors, color: 'bg-purple-100 text-purple-700' },
-    { id: 'print', name: 'In', icon: Printer, color: 'bg-green-100 text-green-700' },
-    { id: 'laminate', name: 'Cán màng', icon: Layers, color: 'bg-yellow-100 text-yellow-700' },
-    { id: 'corrugate', name: 'Bồi sóng', icon: Package, color: 'bg-orange-100 text-orange-700' },
-    { id: 'crease', name: 'Bể', icon: Zap, color: 'bg-red-100 text-red-700' },
-    { id: 'diecut', name: 'Dứt', icon: Scissors, color: 'bg-pink-100 text-pink-700' },
-    { id: 'glue', name: 'Dán', icon: Glue, color: 'bg-indigo-100 text-indigo-700' },
+    { id: 'ralo', name: 'Ralo', icon: BsScissors, color: 'bg-blue-100 text-blue-700' },
+    { id: 'cut', name: 'Cắt', icon: BsScissors, color: 'bg-purple-100 text-purple-700' },
+    { id: 'print', name: 'In', icon: BsPrinter, color: 'bg-green-100 text-green-700' },
+    { id: 'laminate', name: 'Cán màng', icon: BsLayers, color: 'bg-yellow-100 text-yellow-700' },
+    { id: 'corrugate', name: 'Bồi sóng', icon: BiPackage, color: 'bg-orange-100 text-orange-700' },
+    { id: 'crease', name: 'Bể', icon: BiSolidZap, color: 'bg-red-100 text-red-700' },
+    { id: 'diecut', name: 'Dứt', icon: BsScissors, color: 'bg-pink-100 text-pink-700' },
+    { id: 'glue', name: 'Dán', icon: BiBook, color: 'bg-indigo-100 text-indigo-700' },
   ];
 
   const handleUpdateStage = (stageId: string) => {
@@ -91,7 +82,7 @@ export default function ProductionDetailPage() {
             onClick={() => router.back()}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <BsArrowLeft className="w-5 h-5" />
             Quay lại
           </button>
           
@@ -147,7 +138,7 @@ export default function ProductionDetailPage() {
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-500" />
+                <BsClock className="w-5 h-5 text-blue-500" />
                 Tiến độ sản xuất
               </h2>
 
@@ -204,7 +195,7 @@ export default function ProductionDetailPage() {
                       {stageMaterials.length > 0 && (
                         <div className="mt-4 p-3 bg-white rounded-lg border">
                           <h4 className="font-medium text-sm text-gray-700 mb-2 flex items-center gap-2">
-                            <Package className="w-4 h-4" />
+                            <BiPackage className="w-4 h-4" />
                             Vật tư cần thiết
                           </h4>
                           <div className="space-y-2">
@@ -221,7 +212,7 @@ export default function ProductionDetailPage() {
                                     {material.quantity} {material.unit}
                                   </span>
                                   {!material.hasEnough && (
-                                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                                    <FiAlertTriangle className="w-4 h-4 text-red-500" />
                                   )}
                                 </div>
                               </div>
@@ -235,9 +226,9 @@ export default function ProductionDetailPage() {
                           }`}>
                             <div className="flex items-center gap-2">
                               {hasEnoughMaterials ? (
-                                <CheckCircle className="w-4 h-4" />
+                                <BiCheckCircle className="w-4 h-4" />
                               ) : (
-                                <AlertTriangle className="w-4 h-4" />
+                                <FiAlertTriangle className="w-4 h-4" />
                               )}
                               {hasEnoughMaterials 
                                 ? 'Đủ vật tư cho công đoạn này' 
@@ -253,7 +244,7 @@ export default function ProductionDetailPage() {
                           onClick={() => handleUpdateStage(stage.id)}
                           className="w-full mt-3 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                         >
-                          <CheckCircle className="w-4 h-4" />
+                          <BiCheckCircle className="w-4 h-4" />
                           Bắt đầu công đoạn
                         </button>
                       )}
@@ -263,7 +254,7 @@ export default function ProductionDetailPage() {
                           disabled
                           className="w-full mt-3 bg-gray-400 text-white py-2 px-4 rounded-lg cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          <AlertTriangle className="w-4 h-4" />
+                          <FiAlertTriangle className="w-4 h-4" />
                           Thiếu vật tư
                         </button>
                       )}

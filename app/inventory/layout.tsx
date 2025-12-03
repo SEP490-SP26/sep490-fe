@@ -23,7 +23,6 @@ export default function layoutManager({ children }: { children: React.ReactNode 
       label: "Sản xuất",
       icon: BiCalendar,
     },
-    { path: "/inventory", label: "Kho", icon: FaWarehouse },
   ];
   return (
      <div className="min-h-screen bg-gray-50">

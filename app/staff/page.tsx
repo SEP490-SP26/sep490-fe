@@ -1,5 +1,6 @@
 "use client";
 import { useProduction } from "@/context/ProductionContext";
+import { showInfoToast } from "@/utils/toastService";
 import Link from "next/link";
 import { useState } from "react";
 import { BiPackage } from "react-icons/bi";
@@ -157,6 +158,7 @@ export default function ProductionScheduling() {
   const handleUpdateStage = (scheduleId: string, stage: string) => {
     if (confirm(`Chuyển sang công đoạn ${stage}?`)) {
       updateProductionStage(scheduleId, stage);
+      showInfoToast(`Đã chuyển sang công đoạn ${stage}`);
     }
   };
 

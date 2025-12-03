@@ -139,9 +139,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 max-w-7xl 2xl:max-w-screen-2xl">
           <div className="py-8"> </div>
 
-          {/* <div className="pb-8">
-            <HotDeal category="Sản phẩm mới về" />
-          </div> */}
+
         </div>
       </main>
     </div>

@@ -298,14 +298,6 @@ const getInitialPurchaseRequests = (): PurchaseRequest[] => {
   const now = new Date();
   return [
     {
-      id: "pr-sample-1",
-      order_id: "ord-sample-3",
-      material_id: "m2",
-      quantity_needed: 200,
-      status: "pending",
-      created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
       id: "pr-sample-2",
       order_id: "ord-sample-6",
       material_id: "m4",
@@ -430,7 +422,7 @@ const getInitialProductionSchedules = (): ProductionSchedule[] => {
 
 const getInitialInventory = (): Inventory[] => {
   return [
-    { material_id: "m1", on_hand: 500, reserved: 300 }, // Đã dự trữ cho đơn hàng đang sản xuất
+    { material_id: "m1", on_hand: 500, reserved: 300 },
     { material_id: "m2", on_hand: 1000, reserved: 400 },
     { material_id: "m3", on_hand: 20, reserved: 10 },
     { material_id: "m4", on_hand: 50, reserved: 0 },

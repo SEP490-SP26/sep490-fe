@@ -3,6 +3,7 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
+import { ToastContainer } from "react-toastify";
 
 export const metadata: Metadata = {
   title: "SEP490",
@@ -20,6 +21,7 @@ export default function RootLayout({
         <AntdRegistry> 
           <ProductionProvider>
             {children}
+            <ToastContainer />
           </ProductionProvider>
         </AntdRegistry>
       </body>
