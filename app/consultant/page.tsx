@@ -2,37 +2,38 @@
 
 import { useProduction } from '@/context/ProductionContext';
 import {
+  BgColorsOutlined,
   CalculatorOutlined,
   ClockCircleOutlined,
   CodeSandboxOutlined,
-  ExperimentOutlined, // Icon cho lấy màu
-  BgColorsOutlined,   // Icon cho chấm màu
+  DeleteOutlined,
+  ExperimentOutlined,
+  FileImageOutlined,
   InboxOutlined,
   MinusCircleOutlined,
   PlusOutlined,
   ThunderboltFilled,
-  UserOutlined,
-  FileImageOutlined
+  UserOutlined
 } from '@ant-design/icons';
+import type { UploadFile, UploadProps } from 'antd';
 import {
   Alert,
+  Image as AntImage,
   Button,
   Card, Checkbox,
   Col,
   ColorPicker,
   DatePicker,
   Divider,
+  Empty,
   Form, Input, InputNumber,
   message,
   Row,
   Select,
-  Space, Tag, Typography,
-  Upload,
-  Image as AntImage,
+  Space, Tag,
   Tooltip,
-  List
+  Upload
 } from 'antd';
-import type { UploadFile, UploadProps } from 'antd';
 import dayjs from 'dayjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -107,6 +108,13 @@ const PRODUCT_SUGGESTIONS = [
 const RUSH_FEE_LOW = 500000;
 const RUSH_FEE_HIGH = 2000000;
 
+interface DesignItem {
+    id: string;
+    file: UploadFile | null;
+    previewUrl: string;
+    colors: string[];
+}
+
 // --- COMPONENT CHÍNH ---
 function ConsultantForm() {
   const [form] = Form.useForm();
@@ -117,11 +125,7 @@ function ConsultantForm() {
   const orderId = searchParams.get('orderId'); 
   const [loading, setLoading] = useState(false);
   
-  // State quản lý danh sách file
-  const [fileList, setFileList] = useState<UploadFile[]>([]); 
-  
-  // State ảnh đang được chọn để phân tích màu
-  const [previewImage, setPreviewImage] = useState<string>('');
+  const [designItems, setDesignItems] = useState<DesignItem[]>([]);
 
   const [estimate, setEstimate] = useState<{
     baseCost: number;
@@ -148,25 +152,21 @@ function ConsultantForm() {
           width: existingOrder.specs?.height || 0,
           height: existingOrder.specs?.length || 0,
           paperType: existingOrder.specs?.paper_id,
-          colors: existingOrder.specs?.colors,
+          // colors: existingOrder.specs?.colors, // Bỏ dòng này vì đã load vào designItems
           processing: existingOrder.specs?.processing,
         });
 
-        // Xử lý File cũ (Giả sử DB lưu chuỗi các URL phân cách bằng dấu phẩy)
+        // Xử lý File cũ
         if (existingOrder.design_file_url) {
             const urls = existingOrder.design_file_url.split(',');
-            const initialFiles = urls.map((url, index) => ({
-                uid: `-${index}`,
-                name: `File thiết kế ${index + 1}`,
-                status: 'done',
-                url: url.trim(),
-            })) as UploadFile[];
-            
-            setFileList(initialFiles);
-            // Mặc định chọn file đầu tiên để preview nếu có
-            if (initialFiles.length > 0 && initialFiles[0].url) {
-                setPreviewImage(initialFiles[0].url);
-            }
+            const loadedItems: DesignItem[] = urls.map((url, idx) => ({
+                id: `design-${idx}`,
+                file: { uid: `-${idx}`, name: `File ${idx+1}`, status: 'done', url: url.trim() } as UploadFile,
+                previewUrl: url.trim(),
+                // Tạm thời gán màu cũ vào mẫu đầu tiên
+                colors: idx === 0 ? (existingOrder.specs?.colors || []) : [] 
+            }));
+            setDesignItems(loadedItems);
         }
 
         handleCalculate(
@@ -181,78 +181,63 @@ function ConsultantForm() {
     }
   }, [orderId, orders, form]);
 
-  // Xử lý thay đổi file
-  const handleFileChange: UploadProps['onChange'] = ({ fileList: newFileList }) => {
-    setFileList(newFileList);
-    
-    // Nếu vừa upload file mới và chưa có preview nào, set luôn
-    const lastFile = newFileList[newFileList.length - 1];
-    if (lastFile && lastFile.originFileObj && !previewImage) {
-         // Create blob URL
-         const objectUrl = URL.createObjectURL(lastFile.originFileObj);
-         setPreviewImage(objectUrl);
-    }
-  };
+  const handleUploadChange: UploadProps['onChange'] = ({ fileList: newFileList }) => {
+      const latestFile = newFileList[newFileList.length - 1];
+      if (!latestFile) return;
 
-  // Hàm xử lý khi bấm vào nút "Xem/Phân tích" của một file
-  const handleSelectPreview = async (file: UploadFile) => {
-      if (!file.url && !file.preview) {
-        file.preview = await getBase64(file.originFileObj as File);
+      const exists = designItems.some(item => item.file?.uid === latestFile.uid);
+      if (!exists && latestFile.originFileObj) {
+          const objectUrl = URL.createObjectURL(latestFile.originFileObj);
+          const newItem: DesignItem = {
+              id: `design-${Date.now()}`,
+              file: latestFile,
+              previewUrl: objectUrl,
+              colors: ['#000000'] // Mặc định 1 màu đen
+          };
+          setDesignItems(prev => [...prev, newItem]);
       }
-      setPreviewImage(file.url || (file.preview as string));
   };
 
-  const getBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
+  const removeDesignItem = (id: string) => {
+      setDesignItems(prev => prev.filter(item => item.id !== id));
+  };
 
-
+  const updateItemColors = (id: string, newColors: string[]) => {
+      setDesignItems(prev => prev.map(item => 
+          item.id === id ? { ...item, colors: newColors } : item
+      ));
+  };
+  
   // --- TÍNH NĂNG MÀU SẮC ---
-  const handleAutoExtractColors = async () => {
-    if (!previewImage) return message.warning("Vui lòng chọn một ảnh để phân tích!");
-    try {
-        message.loading({ content: "Đang phân tích ảnh...", key: 'extracting' });
-        const colors = await getDominantColors(previewImage);
-        
-        // Logic: Giữ màu cũ, thêm màu mới (không trùng)
-        const currentColors = form.getFieldValue('colors') || [];
-        const newColors = [...new Set([...currentColors, ...colors])].slice(0, 8); // Giới hạn max 8 màu
-        
-        form.setFieldValue('colors', newColors);
-        message.success({ content: `Đã trích xuất thêm ${colors.length} màu!`, key: 'extracting' });
-    } catch (error) {
-        console.error(error);
-        message.error({ content: "Lỗi phân tích ảnh (định dạng không hỗ trợ).", key: 'extracting' });
-    }
+  const handleAutoExtract = async (id: string, previewUrl: string) => {
+      try {
+          message.loading({ content: 'Đang quét màu...', key: 'extract' });
+          const colors = await getDominantColors(previewUrl, 5);
+          updateItemColors(id, colors);
+          message.success({ content: 'Đã lấy màu xong!', key: 'extract' });
+      } catch (e) {
+          message.error('Lỗi khi đọc ảnh');
+      }
   };
 
-  const handleEyeDropper = async () => {
-    if (!window.EyeDropper) {
-        return message.error("Trình duyệt không hỗ trợ EyeDropper (Dùng Chrome/Edge).");
-    }
+  const handleEyeDropper = async (id: string) => {
+    if (!window.EyeDropper) return message.error("Trình duyệt không hỗ trợ!");
     try {
         const eyeDropper = new window.EyeDropper();
         const result = await eyeDropper.open();
-        const hexColor = result.sRGBHex;
-
-        const currentColors = form.getFieldValue('colors') || [];
-        if (!currentColors.includes(hexColor)) {
-            form.setFieldValue('colors', [...currentColors, hexColor]);
-            message.success(`Đã thêm màu: ${hexColor}`);
+        const hex = result.sRGBHex;
+        
+        const item = designItems.find(i => i.id === id);
+        if (item && !item.colors.includes(hex)) {
+            updateItemColors(id, [...item.colors, hex]);
         }
-    } catch (e) {
-        // User hủy bỏ
-    }
+    } catch (e) {}
   };
 
 
-  // --- LOGIC TÍNH TOÁN & SUBMIT (Giữ nguyên logic cũ) ---
+  // --- LOGIC TÍNH TOÁN & SUBMIT ---
   const handleCalculate = (changedValues: any, allValues: any) => {
-    const { quantity, paperType, desiredDate } = allValues;
+    const { quantity, desiredDate } = allValues;
 
     if (!quantity) return;
     const baseCost = (quantity * 2500) + 3000000; 
@@ -292,13 +277,18 @@ function ConsultantForm() {
   const onFinish = (values: any) => {
     setLoading(true);
     
-    const colors = values.colors?.map((c: any) => typeof c === 'string' ? c : c?.toHexString()) || [];
+    // Gộp tất cả màu lại để lưu vào specs (để tính toán tổng quan)
+    const allUniqueColors = Array.from(new Set(designItems.flatMap(i => i.colors)));
     
-    // Xử lý nhiều file: Nối URL thành chuỗi (vì Backend hiện tại dùng string)
-    // Trong thực tế nên sửa backend thành mảng string[]
-    const fileUrls = fileList
-        .map(f => f.url || 'new-file-url-placeholder')
-        .join(',');
+    // Tạo ghi chú chi tiết
+    const colorDetailNote = designItems.map((item, idx) => 
+        `[Mẫu ${idx+1}]: ${item.colors.join(', ')}`
+    ).join('; ');
+
+    const finalNote = values.notes ? `${values.notes}. Chi tiết màu: ${colorDetailNote}` : `Chi tiết màu: ${colorDetailNote}`;
+    
+    // Nối link ảnh
+    const fileUrls = designItems.map(i => i.file?.url || 'new-file').join(',');
 
     const orderData = {
       product_name: Array.isArray(values.productName) ? values.productName[0] : values.productName,
@@ -310,30 +300,22 @@ function ConsultantForm() {
       process_status: 'consultant_verified' as const, 
       final_price: estimate?.finalCost,
       rush_fee: estimate?.rushFee,
-      design_file_url: fileUrls, // Lưu chuỗi nối
+      
+      design_file_url: fileUrls,
       specs: {
           width: values.width, height: values.height, length: values.length,
           paper_id: values.paperType,
-          colors: colors,
+          colors: allUniqueColors,
           processing: values.processing
       },
-      note: values.notes
+      note: finalNote
     };
 
     setTimeout(() => {
-      if (orderId) {
-        updateOrder(orderId, orderData);
-        message.success('Đã cập nhật đơn hàng!');
-      } else {
-        addOrder({
-            product_id: 'custom-prod',
-            ...orderData
-        });
-        message.success('Đã tạo đơn mới!');
-      }
-      
-      setLoading(false);
-      router.push('/consultant/orders'); 
+        if (orderId) { updateOrder(orderId, orderData); message.success('Đã cập nhật đơn hàng!'); } 
+        else { addOrder({ product_id: 'custom-prod', ...orderData }); message.success('Đã tạo đơn mới!'); }
+        setLoading(false);
+        router.push('/consultant/orders'); 
     }, 1000);
   };
 
@@ -410,89 +392,97 @@ function ConsultantForm() {
                   </Col>
                 </Row>
 
-                 {/* --- KHU VỰC QUẢN LÝ NHIỀU FILE & MÀU SẮC --- */}
-                 <div className="mb-4 p-4 border border-dashed rounded bg-gray-50">
-                    <Row gutter={16}>
-                        {/* Cột trái: Upload nhiều file */}
-                        <Col span={10} className="border-r">
-                             <div className="font-semibold mb-2 flex items-center gap-2">
-                                <FileImageOutlined /> Danh sách File
-                             </div>
-                             <Upload 
-                                listType="picture"
-                                fileList={fileList} 
-                                onChange={handleFileChange}
-                                beforeUpload={() => false} 
-                                multiple // Cho phép chọn nhiều file
-                                className="upload-list-inline"
-                                onPreview={handleSelectPreview} // Bấm vào mắt/ảnh để chọn phân tích
-                             >
-                                <Button icon={<InboxOutlined />} block>Tải file lên</Button>
-                             </Upload>
-                             <div className="text-gray-400 text-xs mt-2 italic">
-                                * Gợi ý: Bấm vào tên file hoặc ảnh để chọn phân tích màu.
-                             </div>
-                        </Col>
+                <Divider titlePlacement="left">Quản Lý File & Màu Sắc (Theo từng mẫu)</Divider>
 
-                        {/* Cột phải: Preview ảnh đang chọn & Công cụ */}
-                        <Col span={14}>
-                            <div className="flex flex-col h-full justify-between">
-                                <div>
-                                    <div className="font-semibold mb-2 flex justify-between items-center">
-                                        <span>Phân tích màu</span>
-                                        <Space>
-                                            <Tooltip title="Tự động tìm 5 màu chủ đạo trong ảnh này">
-                                                <Button size="small" type="primary" ghost icon={<ExperimentOutlined />} onClick={handleAutoExtractColors} disabled={!previewImage}>
+                <div className="bg-gray-50 p-4 rounded border mb-4">
+                    {/* Nút Upload */}
+                    <div className="mb-4 text-center">
+                        <Upload 
+                            showUploadList={false}
+                            beforeUpload={() => false}
+                            onChange={handleUploadChange}
+                            multiple
+                        >
+                            <Button type="dashed" icon={<InboxOutlined />} size="large" className="w-full">
+                                + Thêm Mẫu Thiết Kế Mới (Upload Ảnh)
+                            </Button>
+                        </Upload>
+                    </div>
+
+                    {/* Danh sách các mẫu đã thêm */}
+                    <div className="space-y-4">
+                        {designItems.length === 0 && <Empty description="Chưa có mẫu nào. Hãy upload ảnh." image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                        
+                        {designItems.map((item, index) => (
+                            <div key={item.id} className="bg-white p-3 rounded shadow-sm border flex gap-4 items-start relative hover:border-blue-400 transition-colors">
+                                {/* STT & Nút Xóa */}
+                                <div className="absolute top-0 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-br">
+                                    Mẫu #{index + 1}
+                                </div>
+                                <div className="absolute top-2 right-2">
+                                    <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeDesignItem(item.id)} />
+                                </div>
+
+                                {/* Ảnh Preview */}
+                                <div className="w-32 h-32 flex-shrink-0 border rounded bg-gray-100 flex items-center justify-center overflow-hidden mt-2">
+                                    {item.previewUrl ? (
+                                        <AntImage src={item.previewUrl} height="100%" className="object-contain" />
+                                    ) : <FileImageOutlined className="text-2xl text-gray-300" />}
+                                </div>
+
+                                {/* Khu vực chọn màu riêng */}
+                                <div className="flex-1 mt-2">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-semibold text-gray-700">Màu sắc in ấn cho mẫu này:</span>
+                                        <Space size="small">
+                                            <Tooltip title="Tự động tìm màu trong ảnh này">
+                                                <Button size="small" type="primary" ghost icon={<ExperimentOutlined />} onClick={() => handleAutoExtract(item.id, item.previewUrl)}>
                                                     Auto
                                                 </Button>
                                             </Tooltip>
-                                            <Tooltip title="Chấm màu thủ công">
-                                                <Button size="small" icon={<BgColorsOutlined />} onClick={handleEyeDropper}>
+                                            <Tooltip title="Chấm màu trên màn hình">
+                                                <Button size="small" icon={<BgColorsOutlined />} onClick={() => handleEyeDropper(item.id)}>
                                                     Chấm màu
                                                 </Button>
                                             </Tooltip>
                                         </Space>
                                     </div>
-                                    
-                                    <div className="flex justify-center items-center bg-gray-200 rounded h-40 overflow-hidden relative border">
-                                        {previewImage ? (
-                                            <AntImage 
-                                                src={previewImage} 
-                                                height="100%" 
-                                                className="object-contain"
-                                                alt="Preview Analysis"
-                                            />
-                                        ) : (
-                                            <span className="text-gray-400 text-xs">Chưa chọn ảnh nào để soi</span>
-                                        )}
+
+                                    {/* List màu */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {item.colors.map((color, cIdx) => (
+                                            <div key={cIdx} className="flex items-center bg-gray-50 border rounded pl-1 pr-2 py-1">
+                                                <div style={{ width: 16, height: 16, backgroundColor: color, borderRadius: 4, marginRight: 8, border: '1px solid #ddd' }}></div>
+                                                <span className="text-xs font-mono">{color}</span>
+                                                <MinusCircleOutlined 
+                                                    className="ml-2 text-gray-400 hover:text-red-500 cursor-pointer"
+                                                    onClick={() => {
+                                                        const newColors = item.colors.filter((_, i) => i !== cIdx);
+                                                        updateItemColors(item.id, newColors);
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                        {/* Nút thêm màu thủ công */}
+                                        <ColorPicker 
+                                            value="#1677ff"
+                                            onChangeComplete={(c) => {
+                                                if(!item.colors.includes(c.toHexString())) {
+                                                    updateItemColors(item.id, [...item.colors, c.toHexString()]);
+                                                }
+                                            }}
+                                        >
+                                            <Button size="small" type="dashed" icon={<PlusOutlined />}>Thêm</Button>
+                                        </ColorPicker>
                                     </div>
                                 </div>
                             </div>
-                        </Col>
-                    </Row>
-                 </div>
-
-                {/* Màu sắc */}
-                <Form.Item label="Màu sắc">
-                  <Form.List name="colors" initialValue={['#1677ff']}>
-                    {(fields, { add, remove }) => (
-                      <div className="flex flex-wrap gap-2">
-                        {fields.map((field) => (
-                          <Space key={field.key} className="bg-white p-1 rounded border shadow-sm">
-                            <Form.Item {...field} noStyle>
-                              <ColorPicker showText size="small" />
-                            </Form.Item>
-                            {fields.length > 1 && <MinusCircleOutlined onClick={() => remove(field.name)} className="text-red-500 cursor-pointer" />}
-                          </Space>
                         ))}
-                        <Button type="dashed" size="small" onClick={() => add()} icon={<PlusOutlined />}>Thêm</Button>
-                      </div>
-                    )}
-                  </Form.List>
-                </Form.Item>
+                    </div>
+                </div>
 
                 {/* Gia công */}
-                <Form.Item name="processing" label="Gia công">
+                <Form.Item name="processing" label="Gia Công">
                   <Checkbox.Group options={PROCESSING_OPTS} />
                 </Form.Item>
 
@@ -534,7 +524,7 @@ function ConsultantForm() {
             </Card>
           </Col>
 
-          {/* CỘT PHẢI: LOGIC (Giữ nguyên) */}
+          {/* CỘT PHẢI: LOGIC */}
           <Col span={9}>
             <div className="sticky top-6 space-y-4">
               <Card title={<><ClockCircleOutlined /> Phân tích tiến độ</>} className="shadow-sm border-blue-100">
