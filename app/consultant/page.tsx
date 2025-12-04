@@ -1,100 +1,152 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+'use client';
 
-import { useProduction } from "@/context/ProductionContext";
-import { showSuccessToast } from "@/utils/toastService";
+import { useProduction } from '@/context/ProductionContext';
 import {
   CalculatorOutlined,
+  ClockCircleOutlined,
   CodeSandboxOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+  MinusCircleOutlined,
+  PlusOutlined,
+  ThunderboltFilled,
+  UserOutlined
+} from '@ant-design/icons';
 import {
   Alert,
   Button,
-  Card,
-  Checkbox,
+  Card, Checkbox,
   Col,
+  ColorPicker,
   DatePicker,
   Divider,
-  Form,
-  Input,
-  InputNumber,
+  Form, Input, InputNumber,
   message,
   Row,
   Select,
-  Space,
-  Statistic,
-  Steps,
-} from "antd";
-import Link from "next/link";
-import { useState } from "react";
-import { BiPlus, BiRightArrow } from "react-icons/bi";
+  Space, Tag, Typography
+} from 'antd';
+import dayjs from 'dayjs';
+import { useState } from 'react';
 
-// --- 1. DATA GIẢ ĐỊNH ---
+const { Text } = Typography;
+
+// --- DỮ LIỆU MẪU ---
 const PAPER_TYPES = [
-  { label: "Giấy Duplex 250 (Khổ 650)", value: "VT00008", stock: 30437 },
-  { label: "Giấy Ivory 300 (Khổ 79x109)", value: "VT00012", stock: 1200 },
-  { label: "Giấy Couche 150", value: "VT00020", stock: 5000 },
-  { label: "Giấy Kraft", value: "VT00030", stock: 0 },
+  { label: 'Giấy Duplex 250 (Khổ 650)', value: 'VT00008', stock: 30437 },
+  { label: 'Giấy Ivory 300 (Khổ 79x109)', value: 'VT00012', stock: 1200 },
+  { label: 'Giấy Couche 150', value: 'VT00020', stock: 5000 },
 ];
 
 const PROCESSING_OPTS = [
-  { label: "Cán màng (Bóng/Mờ)", value: "can_mang" },
-  { label: "Phủ UV/Varnish", value: "phu_uv" },
-  { label: "Bế (Die-cut)", value: "be" },
-  { label: "Dán máy", value: "dan_may" },
-  { label: "Bồi sóng", value: "boi_song" },
+  { label: 'Cán màng', value: 'can_mang' },
+  { label: 'Phủ UV', value: 'phu_uv' },
+  { label: 'Bế', value: 'be' },
+  { label: 'Dán', value: 'dan_may' },
 ];
+
+const PRODUCT_SUGGESTIONS = [
+  "Hộp bánh trung thu cao cấp", "Hộp thuốc tây", "Tờ rơi A4", "Catalogue 32 trang", "Hộp carton sóng E"
+];
+
+// --- CẤU HÌNH PHÍ GẤP ---
+const RUSH_FEE_LOW = 500000;   // Xưởng Rảnh
+const RUSH_FEE_HIGH = 2000000; // Xưởng Bận
 
 export default function ConsultantPage() {
   const [form] = Form.useForm();
-  const { products, addOrder } = useProduction();
+  const { addOrder, isBusy } = useProduction(); 
   const [loading, setLoading] = useState(false);
-
+  
+  // State tính toán
   const [estimate, setEstimate] = useState<{
-    paperNeeded: number;
-    approxCost: number;
-    isStockEnough: boolean;
+    baseCost: number;
+    rushFee: number;
+    daysEarly: number;
+    finalCost: number;
+    systemDate: string;
+    caseType: 1 | 2 | 3;
   } | null>(null);
 
-  const handleCalculate = () => {
-    const values = form.getFieldsValue();
-    const { quantity, paperType } = values;
+  // --- LOGIC TÍNH TOÁN (CORE) ---
+  const handleCalculate = (changedValues: any, allValues: any) => {
+    const { quantity, desiredDate } = allValues;
 
-    if (!quantity || !paperType) {
-      message.warning("Vui lòng nhập số lượng và chọn loại giấy!");
-      return;
+    if (!quantity) return;
+
+    // 1. Tính giá cơ bản
+    const baseCost = (quantity * 2500) + 3000000; 
+
+    // 2. Tính ngày hệ thống đề xuất (2000sp/ngày + 2 ngày setup)
+    const productionDays = Math.ceil(quantity / 2000) + 2;
+    const today = dayjs();
+    const systemDateObj = today.add(productionDays, 'day');
+    const systemDateStr = systemDateObj.format('YYYY-MM-DD');
+
+    // **TÍNH NĂNG MỚI**: Nếu thay đổi số lượng, tự động cập nhật ngày gợi ý vào ô DatePicker
+    // Chỉ cập nhật nếu người dùng chưa chọn ngày, hoặc đang thao tác trên trường 'quantity'
+    if ('quantity' in changedValues) {
+        form.setFieldValue('desiredDate', systemDateObj);
     }
 
-    // Logic tính toán giả định
-    const itemsPerSheet = 4;
-    const paperCount = Math.ceil((quantity / itemsPerSheet) * 1.05);
+    // 3. Logic 3 Case (Dựa trên ngày hiện tại trong ô DatePicker)
+    // Lấy ngày thực tế đang chọn (có thể là systemDateObj vừa set, hoặc ngày user tự sửa)
+    const currentDesiredDate = desiredDate || systemDateObj; 
 
-    const selectedPaper = PAPER_TYPES.find((p) => p.value === paperType);
-    const isEnough = selectedPaper ? selectedPaper.stock >= paperCount : false;
+    let rushFee = 0;
+    let daysEarly = 0;
+    let caseType: 1 | 2 | 3 = 1;
 
-    const cost = paperCount * 2000 + 5000000;
+    if (currentDesiredDate.isBefore(systemDateObj, 'day')) {
+      // Khách muốn sớm hơn hệ thống tính
+      daysEarly = systemDateObj.diff(currentDesiredDate, 'day');
+      
+      if (!isBusy) {
+        // Case 2: Gấp - Xưởng Rảnh
+        rushFee = daysEarly * RUSH_FEE_LOW;
+        caseType = 2;
+      } else {
+        // Case 3: Gấp - Xưởng Bận (Deal giá)
+        rushFee = daysEarly * RUSH_FEE_HIGH;
+        caseType = 3;
+      }
+    }
 
     setEstimate({
-      paperNeeded: paperCount,
-      approxCost: cost,
-      isStockEnough: isEnough,
+      baseCost, rushFee, daysEarly,
+      finalCost: baseCost + rushFee,
+      systemDate: systemDateStr,
+      caseType
     });
   };
 
   const onFinish = (values: any) => {
     setLoading(true);
+    
+    // Lấy danh sách màu (HEX string)
+    const colors = values.colors?.map((c: any) => 
+      typeof c === 'string' ? c : c?.toHexString()
+    ) || [];
+
     setTimeout(() => {
       addOrder({
-        product_id: values.paperType,
+        product_id: 'custom-prod',
+        product_name: values.productName,
         quantity: values.quantity,
-        delivery_date: values.deliveryDate.format("YYYY-MM-DD"),
+        delivery_date: values.desiredDate.format('YYYY-MM-DD'),
+        system_delivery_date: estimate?.systemDate,
         customer_name: values.customerName,
+        process_status: 'consultant_verified',
+        final_price: estimate?.finalCost,
+        rush_fee: estimate?.rushFee,
+        specs: {
+            width: values.width, height: values.height, length: values.length,
+            paper_id: values.paperType,
+            colors: colors, 
+            processing: values.processing
+        },
+        note: values.notes
       });
-
-      showSuccessToast(
-        "Đã tạo đơn hàng thành công! Chuyển sang bộ phận Kế hoạch."
-      );
+      
+      message.success('Đã gửi đơn hàng cho Manager duyệt!');
       setLoading(false);
       form.resetFields();
       setEstimate(null);
@@ -103,287 +155,174 @@ export default function ConsultantPage() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800 uppercase">
-          Tạo đơn hàng mới
-        </h1>
-        <div className="flex gap-3">
-          <Link
-            href="/manager/orders"
-            className="text-blue-600 hover:underline flex items-center gap-1"
-          >
-            Chuyển đến Quản lý đơn hàng
-            <BiRightArrow />
-          </Link>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6 flex justify-between items-center bg-white p-4 rounded shadow-sm">
+          <h1 className="text-xl font-bold m-0 uppercase">Tạo Đơn Hàng</h1>
+          <Tag color={isBusy ? "red" : "green"} className="text-base py-1 px-4">
+            {isBusy ? "🔥 Xưởng Bận (High Load)" : "✅ Xưởng Rảnh (Low Load)"}
+          </Tag>
         </div>
-      </div>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        {/* <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 uppercase">
-            Tạo đơn hàng mới
-          </h1>
-          <Link
-            href="/consultant/orders"
-            className="text-blue-600 hover:underline"
-          >
-            Xem danh sách đơn hàng đã tạo
-          </Link>
-        </div> */}
 
         <Row gutter={24}>
-          {/* CỘT TRÁI: FORM NHẬP LIỆU */}
-          <Col span={16}>
-            <Card
-              title={
-                <>
-                  <CodeSandboxOutlined /> Thông tin đơn hàng
-                </>
-              }
-              className="shadow-sm"
-            >
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                initialValues={{ quantity: 1000, colors: 4 }}
-              >
-                {/* 1. Khách hàng */}
+          {/* CỘT TRÁI: FORM */}
+          <Col span={15}>
+            <Card title={<><CodeSandboxOutlined /> Thông Tin Đơn Hàng</>} className="shadow-sm">
+              <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={handleCalculate}>
+                
+                {/* Khách hàng */}
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item
-                      name="customerName"
-                      label="Tên khách hàng"
-                      rules={[{ required: true }]}
-                    >
-                      <Input
-                        prefix={<UserOutlined />}
-                        placeholder="Ví dụ: Công ty Dược phẩm A"
-                      />
+                    <Form.Item name="customerName" label="Khách Hàng" rules={[{ required: true }]}>
+                      <Input prefix={<UserOutlined />} placeholder="Tên khách..." />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item
-                      name="deliveryDate"
-                      label="Ngày giao hàng (Dự kiến)"
-                      rules={[{ required: true }]}
-                    >
-                      <DatePicker className="w-full" format="DD/MM/YYYY" />
+                    <Form.Item name="phone" label="SĐT">
+                      <Input style={{ textAlign: 'right' }} placeholder="09..." />
                     </Form.Item>
                   </Col>
                 </Row>
 
-                <Divider
-                  style={{ borderColor: "#d9d9d9" }}
-                  titlePlacement="left"
-                >
-                  Thông số sản phẩm
-                </Divider>
+                <Divider titlePlacement="left">Thông Số Kỹ Thuật</Divider>
 
-                {/* 2. Kích thước & Loại */}
+                {/* Sản phẩm & Kích thước (Layout mới: Tên dài, Kích thước gọn) */}
                 <Row gutter={16}>
-                  <Col span={8}>
-                    <Form.Item
-                      name="productName"
-                      label="Tên sản phẩm"
-                      rules={[{ required: true }]}
-                    >
-                      <Input placeholder="VD: Hộp thuốc ho 100ml" />
+                  <Col span={12}>
+                    <Form.Item name="productName" label="Tên Sản Phẩm" rules={[{ required: true }]}>
+                      <Select
+                        showSearch
+                        placeholder="Chọn hoặc nhập mới"
+                        optionFilterProp="children"
+                        options={PRODUCT_SUGGESTIONS.map(name => ({ label: name, value: name }))}
+                        mode="tags"
+                        maxCount={1}
+                      />
                     </Form.Item>
                   </Col>
-                  <Col span={16}>
-                    <Form.Item
-                      label="Kích thước (Dài x Rộng x Cao) mm"
-                      required
-                    >
+                  <Col span={12}>
+                    <Form.Item label="Kích thước (Dài - Rộng - Cao)" required tooltip="Đơn vị: mm">
                       <Space.Compact block>
-                        <Form.Item name="length" noStyle>
-                          <InputNumber
-                            style={{ width: "33%" }}
-                            placeholder="Dài"
-                          />
-                        </Form.Item>
-                        <Form.Item name="width" noStyle>
-                          <InputNumber
-                            style={{ width: "33%" }}
-                            placeholder="Rộng"
-                          />
-                        </Form.Item>
-                        <Form.Item name="height" noStyle>
-                          <InputNumber
-                            style={{ width: "34%" }}
-                            placeholder="Cao"
-                          />
-                        </Form.Item>
+                        <Form.Item name="length" noStyle><InputNumber style={{ width: '33%', textAlign: 'right' }} placeholder="D" min={0} /></Form.Item>
+                        <Form.Item name="width" noStyle><InputNumber style={{ width: '33%', textAlign: 'right' }} placeholder="R" min={0} /></Form.Item>
+                        <Form.Item name="height" noStyle><InputNumber style={{ width: '34%', textAlign: 'right' }} placeholder="C" min={0} /></Form.Item>
                       </Space.Compact>
                     </Form.Item>
                   </Col>
                 </Row>
 
-                {/* 3. Chất liệu & In ấn */}
+                {/* Giấy & Số lượng (Số canh phải) */}
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item
-                      name="paperType"
-                      // label="Loại giấy & Định lượng"
-                      label="Loại sản phẩm"
-                      rules={[{ required: true }]}
-                    >
-                      <Select
-                        placeholder="Chọn sản phẩm"
-                        options={products.map((prod) => ({
-                          label: prod.name,
-                          value: prod.id,
-                        }))}
-                        onChange={handleCalculate}
-                      />
-                      {/* <Select
-                        placeholder="Chọn chất liệu giấy"
-                        options={PAPER_TYPES}
-                        onChange={handleCalculate}
-                      /> */}
+                    <Form.Item name="paperType" label="Loại Giấy" rules={[{ required: true }]}>
+                      <Select showSearch options={PAPER_TYPES} placeholder="Chọn giấy" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item
-                      name="quantity"
-                      label="Số lượng đặt"
-                      rules={[{ required: true }]}
-                    >
-                      <InputNumber
-                        className="w-full"
-                        formatter={(value) =>
-                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                        }
-                        onChange={() => setTimeout(handleCalculate, 500)}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={6}>
-                    <Form.Item name="colors" label="Số màu in">
-                      <InputNumber
-                        min={1}
-                        max={8}
-                        className="w-full"
-                        suffix="Màu"
-                      />
+                  <Col span={12}>
+                    <Form.Item name="quantity" label="Số Lượng" rules={[{ required: true }]}>
+                      <InputNumber className="w-full" style={{ textAlign: 'right' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
                     </Form.Item>
                   </Col>
                 </Row>
 
-                {/* 4. Gia công */}
-                <Form.Item name="processing" label="Yêu cầu gia công sau in">
+                {/* --- CHỌN MÀU (Color Picker & Add More) --- */}
+                <Form.Item label="Màu sắc">
+                  <Form.List name="colors" initialValue={['#1677ff']}>
+                    {(fields, { add, remove }) => (
+                      <div className="flex flex-wrap gap-2">
+                        {fields.map((field) => (
+                          <Space key={field.key} className="bg-gray-50 p-1 rounded border">
+                            <Form.Item {...field} noStyle>
+                              <ColorPicker showText />
+                            </Form.Item>
+                            {fields.length > 1 && (
+                                <MinusCircleOutlined onClick={() => remove(field.name)} className="text-red-500 cursor-pointer" />
+                            )}
+                          </Space>
+                        ))}
+                        <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />}>Thêm màu</Button>
+                      </div>
+                    )}
+                  </Form.List>
+                </Form.Item>
+
+                {/* Gia công */}
+                <Form.Item name="processing" label="Gia Công">
                   <Checkbox.Group options={PROCESSING_OPTS} />
                 </Form.Item>
 
-                <Form.Item name="notes" label="Ghi chú">
-                  <Input.TextArea rows={2} />
+                {/* Ghi chú */}
+                <Form.Item name="notes" label="Ghi Chú"><Input.TextArea rows={1} /></Form.Item>
+
+                {/* Ngày giao (Xuống cuối) */}
+                <Form.Item 
+                    name="desiredDate" 
+                    label="Ngày Giao Hàng Dự Kiến" 
+                    rules={[{ required: true }]}
+                    help={estimate ? <span className="text-blue-600 font-medium">Hệ thống đề xuất: {dayjs(estimate.systemDate).format('DD/MM/YYYY')}</span> : ""}
+                >
+                    <DatePicker className="w-full" format="DD/MM/YYYY" placeholder="Chọn ngày giao" />
                 </Form.Item>
 
-                <Form.Item>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    size="large"
-                    loading={loading}
-                    block
-                    className="bg-blue-600"
+                {/* Nút Submit (Thay đổi theo Case) */}
+                <Form.Item className="mt-4">
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    size="large" 
+                    loading={loading} 
+                    block 
+                    className={`h-12 font-bold ${
+                      estimate?.caseType === 3 ? 'bg-red-600 hover:bg-red-700' : 
+                      estimate?.caseType === 2 ? 'bg-orange-500 hover:bg-orange-600' : 
+                      'bg-blue-600'
+                    }`}
                   >
-                    Tạo đơn hàng
+                    {estimate?.caseType === 3 ? "CHỐT GIÁ & GỬI DUYỆT" : 
+                     estimate?.caseType === 2 ? "XÁC NHẬN & GỬI DUYỆT" : 
+                     "XÁC NHẬN & GỬI DUYỆT"}
                   </Button>
                 </Form.Item>
               </Form>
             </Card>
           </Col>
 
-          {/* CỘT PHẢI: TÍNH TOÁN SƠ BỘ */}
-          <Col span={8}>
-            <Card
-              title={
-                <>
-                  <CalculatorOutlined /> Ước tính & Tồn kho
-                </>
-              }
-              className="shadow-sm sticky top-6"
-              extra={
-                <Button size="small" onClick={handleCalculate}>
-                  Tính ngay
-                </Button>
-              }
-            >
-              {!estimate ? (
-                <div className="text-center py-8 text-gray-400">
-                  Nhập thông số để xem ước tính vật tư
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <Alert
-                    title={
-                      estimate.isStockEnough
-                        ? "Đủ nguyên vật liệu"
-                        : "Thiếu nguyên vật liệu"
-                    }
-                    description={
-                      estimate.isStockEnough
-                        ? "Kho hiện có đủ giấy để sản xuất đơn hàng này."
-                        : "Cần tạo yêu cầu mua hàng để bổ sung giấy in còn thiếu."
-                    }
-                    type={estimate.isStockEnough ? "success" : "error"}
-                    showIcon
-                  />
+          {/* CỘT PHẢI: LOGIC PHÂN TÍCH */}
+          <Col span={9}>
+            <div className="sticky top-6 space-y-4">
+              <Card title={<><ClockCircleOutlined /> Phân Tích & Hành Động</>} className="shadow-sm border-blue-100">
+                {!estimate ? <div className="text-gray-400 text-center py-4">Nhập liệu để phân tích</div> : (
+                  <div className="flex flex-col gap-3">
+                    {estimate.caseType === 1 && (
+                      <Alert title="Case 1: Hợp lý" description="Yêu cầu phù hợp với năng lực. Gọi xác nhận với khách hàng và gửi manager." type="success" showIcon />
+                    )}
+                    {estimate.caseType === 2 && (
+                      <Alert title="Case 2: In gấp (xưởng rảnh)" description={`Khách cần sớm ${estimate.daysEarly} ngày. Xưởng trống nên có thể nhận.`} type="warning" showIcon />
+                    )}
+                    {estimate.caseType === 3 && (
+                      <Alert title="Case 3: In gấp (xưởng bận)" description={`Khách cần sớm ${estimate.daysEarly} ngày khi quá tải. Cần thương lượng lại với khách hàng.`} type="error" showIcon />
+                    )}
+                  </div>
+                )}
+              </Card>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <Statistic
-                      title="Giấy in ước tính (đã bù hao)"
-                      value={estimate.paperNeeded}
-                      suffix="tờ"
-                      groupSeparator=","
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      (Bình trang giả định: 4 hộp/tờ + 5% hao hụt)
+              <Card title={<><CalculatorOutlined /> Chi Phí</>} className="shadow-sm">
+                {estimate && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between"><span>Giá gốc:</span> <b>{estimate.baseCost.toLocaleString()} ₫</b></div>
+                    {estimate.rushFee > 0 && (
+                      <div className="flex justify-between text-red-600 bg-red-50 p-2 rounded">
+                        <span><ThunderboltFilled /> Phí in gấp ({estimate.daysEarly} ngày):</span> <b>+{estimate.rushFee.toLocaleString()} ₫</b>
+                      </div>
+                    )}
+                    <Divider className="my-2" />
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-700">{estimate.finalCost.toLocaleString()} ₫</div>
+                      {estimate.rushFee > 0 && <div className="text-xs text-red-500">(Đã gồm phí ưu tiên)</div>}
                     </div>
                   </div>
-
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <Statistic
-                      title="Chi phí sản xuất sơ bộ"
-                      value={estimate.approxCost}
-                      suffix="₫"
-                      precision={0}
-                      styles={{
-                        content: { color: "#108ee9", fontWeight: "bold" },
-                      }}
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      (Bao gồm Giấy + Kẽm + Công in + Gia công)
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold text-gray-700 mb-2">
-                      Tiến độ dự kiến:
-                    </h4>
-                    <Steps
-                      orientation="vertical"
-                      size="small"
-                      current={1}
-                      items={[
-                        // data giả định tính toán ngày giao hàng dự kiến sau này có thể xem xét thêm sau
-                        { title: "Tạo đơn", content: "Hôm nay" },
-                        {
-                          title: "Chuẩn bị vật tư",
-                          content: estimate.isStockEnough
-                            ? "Có sẵn"
-                            : "3-5 ngày (Đặt hàng)",
-                        },
-                        { title: "Sản xuất", content: "2 ngày" },
-                        { title: "Giao hàng", content: "Dự kiến sau 3-7 ngày" },
-                      ]}
-                    />
-                  </div>
-                </div>
-              )}
-            </Card>
+                )}
+              </Card>
+            </div>
           </Col>
         </Row>
       </div>

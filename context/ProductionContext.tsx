@@ -28,16 +28,34 @@ export interface BOMItem {
 export interface Order {
   id: string;
   product_id: string;
+  product_name?: string;
   quantity: number;
   delivery_date: string;
+  system_delivery_date?: string;
   customer_name: string;
+  customer_phone?: string;
+  customer_email?: string;
+  design_file_url?: string;
   status: "pending" | "scheduled" | "in_production" | "completed";
+  process_status: 'pending_consultant' | 'consultant_verified' | 'manager_approved' | 'rejected';
+  specs?: {
+    width: number;
+    height: number;
+    length: number;
+    paper_id: string;
+    colors: string[];
+    processing: string[];
+  };
   can_fulfill?: boolean;
   missing_materials?: {
     material_id: string;
     needed: number;
     available: number;
   }[];
+  base_price?: number; 
+  rush_fee?: number;
+  final_price?: number;
+  note?: string;
   created_at: string;
 }
 
@@ -90,10 +108,12 @@ interface ProductionContextType {
   bom: BOMItem[];
   orders: Order[];
   inventory: Inventory[];
+  currentProductionLoad: number; 
+  isBusy: boolean;
   purchaseRequests: PurchaseRequest[];
   purchaseOrders: PurchaseOrder[];
   productionSchedules: ProductionSchedule[];
-  addOrder: (order: Omit<Order, "id" | "status" | "created_at">) => string;
+  addOrder: (order: Omit<Order, "id" | "status" | "created_at" | "process_status"> & { process_status?: Order["process_status"] }) => string;
   checkOrderFulfillment: (orderId: string) => boolean;
   createPurchaseRequest: (orderId: string) => void;
   createPurchaseOrder: (
@@ -235,6 +255,7 @@ const getInitialOrders = (): Order[] => {
       delivery_date: in7Days.toISOString().split("T")[0],
       customer_name: "Công ty TNHH Bất động sản Vinhomes",
       status: "in_production",
+      process_status: "manager_approved",
       can_fulfill: true,
       created_at: yesterday.toISOString(),
     },
@@ -245,6 +266,7 @@ const getInitialOrders = (): Order[] => {
       delivery_date: in10Days.toISOString().split("T")[0],
       customer_name: "Tập đoàn FPT",
       status: "scheduled",
+      process_status: "manager_approved",
       can_fulfill: true,
       created_at: yesterday.toISOString(),
     },
@@ -255,6 +277,7 @@ const getInitialOrders = (): Order[] => {
       delivery_date: in5Days.toISOString().split("T")[0],
       customer_name: "Ngân hàng Vietcombank",
       status: "pending",
+      process_status: "manager_approved",
       can_fulfill: false,
       missing_materials: [{ material_id: "m2", needed: 400, available: 200 }],
       created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
@@ -266,6 +289,7 @@ const getInitialOrders = (): Order[] => {
       delivery_date: in3Days.toISOString().split("T")[0],
       customer_name: "Công ty Luật TNHH Minh Khuê",
       status: "completed",
+      process_status: "manager_approved",
       can_fulfill: true,
       created_at: new Date(
         now.getTime() - 5 * 24 * 60 * 60 * 1000
@@ -278,6 +302,7 @@ const getInitialOrders = (): Order[] => {
       delivery_date: in5Days.toISOString().split("T")[0],
       customer_name: "Công ty CP Mỹ phẩm Cocoon",
       status: "pending",
+      process_status: "manager_approved",
       can_fulfill: true,
       created_at: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
     },
@@ -288,6 +313,7 @@ const getInitialOrders = (): Order[] => {
       delivery_date: in7Days.toISOString().split("T")[0],
       customer_name: "Khách sạn Sheraton Saigon",
       status: "pending",
+      process_status: "manager_approved",
       can_fulfill: true,
       created_at: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
     },
@@ -452,14 +478,17 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
   const [productionSchedules, setProductionSchedules] = useState<
     ProductionSchedule[]
   >(getInitialProductionSchedules());
+  const [currentProductionLoad] = useState<number>(30);  //thay đổi chỗ này nếu muốn thử test case xưởng rảnh
+  const isBusy = currentProductionLoad > 80; //Xưởng bận khi >80%
 
   const addOrder = (
-    orderData: Omit<Order, "id" | "status" | "created_at">
+    orderData: Omit<Order, "id" | "status" | "created_at" | "process_status"> & { process_status?: Order["process_status"] }
   ): string => {
     const newOrder: Order = {
       ...orderData,
       id: `ord-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       status: "pending",
+      process_status: orderData.process_status || 'pending_consultant',
       created_at: new Date().toISOString(),
     };
     setOrders((prev) => [...prev, newOrder]);
@@ -784,7 +813,8 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         purchaseRequests,
         purchaseOrders,
         productionSchedules,
-
+        currentProductionLoad,
+        isBusy,
         addOrder,
         checkOrderFulfillment,
         createPurchaseRequest,
