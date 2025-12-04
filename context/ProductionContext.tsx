@@ -113,6 +113,7 @@ interface ProductionContextType {
   purchaseRequests: PurchaseRequest[];
   purchaseOrders: PurchaseOrder[];
   productionSchedules: ProductionSchedule[];
+  updateOrder: (id: string, updates: Partial<Order>) => void;
   addOrder: (order: Omit<Order, "id" | "status" | "created_at" | "process_status"> & { process_status?: Order["process_status"] }) => string;
   checkOrderFulfillment: (orderId: string) => boolean;
   createPurchaseRequest: (orderId: string) => void;
@@ -495,6 +496,12 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     return newOrder.id;
   };
 
+  const updateOrder = (id: string, updates: Partial<Order>) => {
+    setOrders(prev => prev.map(order => 
+      order.id === id ? { ...order, ...updates } : order
+    ));
+  };
+
   const checkOrderFulfillment = (orderId: string): boolean => {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return false;
@@ -828,6 +835,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         getProductionStages,
         getStageMaterialsInfo,
         checkStageMaterials,
+        updateOrder,
       }}
     >
       {children}
