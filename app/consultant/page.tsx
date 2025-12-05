@@ -1,392 +1,576 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+'use client';
 
-import { useProduction } from "@/context/ProductionContext";
-import { showSuccessToast } from "@/utils/toastService";
+import { useProduction } from '@/context/ProductionContext';
 import {
+  BgColorsOutlined,
   CalculatorOutlined,
+  ClockCircleOutlined,
   CodeSandboxOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+  DeleteOutlined,
+  ExperimentOutlined,
+  FileImageOutlined,
+  InboxOutlined,
+  MinusCircleOutlined,
+  PlusOutlined,
+  ThunderboltFilled,
+  UserOutlined
+} from '@ant-design/icons';
+import type { UploadFile, UploadProps } from 'antd';
 import {
   Alert,
+  Image as AntImage,
   Button,
-  Card,
-  Checkbox,
+  Card, Checkbox,
   Col,
+  ColorPicker,
   DatePicker,
   Divider,
-  Form,
-  Input,
-  InputNumber,
+  Empty,
+  Form, Input, InputNumber,
   message,
   Row,
   Select,
-  Space,
-  Statistic,
-  Steps,
-} from "antd";
-import Link from "next/link";
-import { useState } from "react";
-import { BiPlus, BiRightArrow } from "react-icons/bi";
+  Space, Tag,
+  Tooltip,
+  Upload
+} from 'antd';
+import dayjs from 'dayjs';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
-// --- 1. DATA GIẢ ĐỊNH ---
+// --- UTILS: HÀM XỬ LÝ MÀU TỪ ẢNH (CANVAS API) ---
+const getDominantColors = (imageSrc: string, count: number = 5): Promise<string[]> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = imageSrc;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return reject("Canvas context error");
+
+            canvas.width = 100;
+            canvas.height = 100 * (img.height / img.width);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            const colorCounts: { [key: string]: number } = {};
+            
+            for (let i = 0; i < imageData.length; i += 4 * 5) {
+                const r = imageData[i];
+                const g = imageData[i + 1];
+                const b = imageData[i + 2];
+                const alpha = imageData[i + 3];
+                if (alpha < 128 || (r > 240 && g > 240 && b > 240) || (r < 15 && g < 15 && b < 15)) continue;
+
+                const rRound = Math.round(r / 20) * 20;
+                const gRound = Math.round(g / 20) * 20;
+                const bRound = Math.round(b / 20) * 20;
+                
+                const rgb = `rgb(${rRound},${gRound},${bRound})`;
+                colorCounts[rgb] = (colorCounts[rgb] || 0) + 1;
+            }
+
+            const sortedColors = Object.entries(colorCounts)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, count)
+                .map(([color]) => {
+                    const [r, g, b] = color.match(/\d+/g)!.map(Number);
+                    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+                });
+            
+            resolve(sortedColors);
+        };
+        img.onerror = (e) => reject(e);
+    });
+};
+
+// --- DỮ LIỆU MẪU ---
 const PAPER_TYPES = [
-  { label: "Giấy Duplex 250 (Khổ 650)", value: "VT00008", stock: 30437 },
-  { label: "Giấy Ivory 300 (Khổ 79x109)", value: "VT00012", stock: 1200 },
-  { label: "Giấy Couche 150", value: "VT00020", stock: 5000 },
-  { label: "Giấy Kraft", value: "VT00030", stock: 0 },
+  { label: 'Giấy Duplex 250 (Khổ 650)', value: 'VT00008', stock: 30437 },
+  { label: 'Giấy Ivory 300 (Khổ 79x109)', value: 'VT00012', stock: 1200 },
+  { label: 'Giấy Couche 150', value: 'VT00020', stock: 5000 },
+  { label: 'Giấy Kraft', value: 'VT00030', stock: 0 }, 
 ];
 
 const PROCESSING_OPTS = [
-  { label: "Cán màng (Bóng/Mờ)", value: "can_mang" },
-  { label: "Phủ UV/Varnish", value: "phu_uv" },
-  { label: "Bế (Die-cut)", value: "be" },
-  { label: "Dán máy", value: "dan_may" },
-  { label: "Bồi sóng", value: "boi_song" },
+  { label: 'Cán màng (Bóng/Mờ)', value: 'can_mang' },
+  { label: 'Phủ UV/Varnish', value: 'phu_uv' },
+  { label: 'Bế (Die-cut)', value: 'be' },
+  { label: 'Dán máy', value: 'dan_may' },
+  { label: 'Bồi sóng', value: 'boi_song' },
 ];
 
-export default function ConsultantPage() {
+const PRODUCT_SUGGESTIONS = [
+  "Hộp bánh trung thu cao cấp", "Hộp thuốc tây", "Tờ rơi A4", "Catalogue 32 trang", "Hộp carton sóng E"
+];
+
+const RUSH_FEE_LOW = 500000;
+const RUSH_FEE_HIGH = 2000000;
+
+interface DesignItem {
+    id: string;
+    file: UploadFile | null;
+    previewUrl: string;
+    colors: string[];
+}
+
+// --- COMPONENT CHÍNH ---
+function ConsultantForm() {
   const [form] = Form.useForm();
-  const { products, addOrder } = useProduction();
+  const { addOrder, updateOrder, orders, isBusy } = useProduction(); 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const orderId = searchParams.get('orderId'); 
   const [loading, setLoading] = useState(false);
+  
+  const [designItems, setDesignItems] = useState<DesignItem[]>([]);
 
   const [estimate, setEstimate] = useState<{
-    paperNeeded: number;
-    approxCost: number;
-    isStockEnough: boolean;
+    baseCost: number;
+    rushFee: number;
+    daysEarly: number;
+    finalCost: number;
+    systemDate: string;
+    caseType: 1 | 2 | 3;
   } | null>(null);
 
-  const handleCalculate = () => {
-    const values = form.getFieldsValue();
-    const { quantity, paperType } = values;
+  // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU ---
+  useEffect(() => {
+    if (orderId) {
+      const existingOrder = orders.find(o => o.id === orderId);
+      if (existingOrder) {
+        form.setFieldsValue({
+          customerName: existingOrder.customer_name,
+          phone: existingOrder.customer_phone,
+          productName: existingOrder.product_name ? [existingOrder.product_name] : [],
+          quantity: existingOrder.quantity,
+          desiredDate: existingOrder.delivery_date ? dayjs(existingOrder.delivery_date) : null,
+          notes: existingOrder.note,
+          length: existingOrder.specs?.width || 0,
+          width: existingOrder.specs?.height || 0,
+          height: existingOrder.specs?.length || 0,
+          paperType: existingOrder.specs?.paper_id,
+          // colors: existingOrder.specs?.colors, // Bỏ dòng này vì đã load vào designItems
+          processing: existingOrder.specs?.processing,
+        });
 
-    if (!quantity || !paperType) {
-      message.warning("Vui lòng nhập số lượng và chọn loại giấy!");
-      return;
+        // Xử lý File cũ
+        if (existingOrder.design_file_url) {
+            const urls = existingOrder.design_file_url.split(',');
+            const loadedItems: DesignItem[] = urls.map((url, idx) => ({
+                id: `design-${idx}`,
+                file: { uid: `-${idx}`, name: `File ${idx+1}`, status: 'done', url: url.trim() } as UploadFile,
+                previewUrl: url.trim(),
+                // Tạm thời gán màu cũ vào mẫu đầu tiên
+                colors: idx === 0 ? (existingOrder.specs?.colors || []) : [] 
+            }));
+            setDesignItems(loadedItems);
+        }
+
+        handleCalculate(
+          { quantity: existingOrder.quantity }, 
+          { 
+            quantity: existingOrder.quantity, 
+            desiredDate: existingOrder.delivery_date ? dayjs(existingOrder.delivery_date) : null,
+            paperType: existingOrder.specs?.paper_id
+          }
+        );
+      }
+    }
+  }, [orderId, orders, form]);
+
+  const handleUploadChange: UploadProps['onChange'] = ({ fileList: newFileList }) => {
+      const latestFile = newFileList[newFileList.length - 1];
+      if (!latestFile) return;
+
+      const exists = designItems.some(item => item.file?.uid === latestFile.uid);
+      if (!exists && latestFile.originFileObj) {
+          const objectUrl = URL.createObjectURL(latestFile.originFileObj);
+          const newItem: DesignItem = {
+              id: `design-${Date.now()}`,
+              file: latestFile,
+              previewUrl: objectUrl,
+              colors: ['#000000'] // Mặc định 1 màu đen
+          };
+          setDesignItems(prev => [...prev, newItem]);
+      }
+  };
+
+  const removeDesignItem = (id: string) => {
+      setDesignItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateItemColors = (id: string, newColors: string[]) => {
+      setDesignItems(prev => prev.map(item => 
+          item.id === id ? { ...item, colors: newColors } : item
+      ));
+  };
+  
+  // --- TÍNH NĂNG MÀU SẮC ---
+  const handleAutoExtract = async (id: string, previewUrl: string) => {
+      try {
+          message.loading({ content: 'Đang quét màu...', key: 'extract' });
+          const colors = await getDominantColors(previewUrl, 5);
+          updateItemColors(id, colors);
+          message.success({ content: 'Đã lấy màu xong!', key: 'extract' });
+      } catch (e) {
+          message.error('Lỗi khi đọc ảnh');
+      }
+  };
+
+  const handleEyeDropper = async (id: string) => {
+    if (!window.EyeDropper) return message.error("Trình duyệt không hỗ trợ!");
+    try {
+        const eyeDropper = new window.EyeDropper();
+        const result = await eyeDropper.open();
+        const hex = result.sRGBHex;
+        
+        const item = designItems.find(i => i.id === id);
+        if (item && !item.colors.includes(hex)) {
+            updateItemColors(id, [...item.colors, hex]);
+        }
+    } catch (e) {}
+  };
+
+
+  // --- LOGIC TÍNH TOÁN & SUBMIT ---
+  const handleCalculate = (changedValues: any, allValues: any) => {
+    const { quantity, desiredDate } = allValues;
+
+    if (!quantity) return;
+    const baseCost = (quantity * 2500) + 3000000; 
+    const productionDays = Math.ceil(quantity / 2000) + 2; 
+    const today = dayjs();
+    const systemDateObj = today.add(productionDays, 'day');
+    const systemDateStr = systemDateObj.format('YYYY-MM-DD');
+
+    if (!orderId && 'quantity' in changedValues && !desiredDate) {
+        form.setFieldValue('desiredDate', systemDateObj);
     }
 
-    // Logic tính toán giả định
-    const itemsPerSheet = 4;
-    const paperCount = Math.ceil((quantity / itemsPerSheet) * 1.05);
+    const currentDesiredDate = desiredDate || systemDateObj;
+    let rushFee = 0;
+    let daysEarly = 0;
+    let caseType: 1 | 2 | 3 = 1;
 
-    const selectedPaper = PAPER_TYPES.find((p) => p.value === paperType);
-    const isEnough = selectedPaper ? selectedPaper.stock >= paperCount : false;
-
-    const cost = paperCount * 2000 + 5000000;
+    if (currentDesiredDate.isBefore(systemDateObj, 'day')) {
+      daysEarly = systemDateObj.diff(currentDesiredDate, 'day');
+      if (!isBusy) {
+        rushFee = daysEarly * RUSH_FEE_LOW;
+        caseType = 2;
+      } else {
+        rushFee = daysEarly * RUSH_FEE_HIGH;
+        caseType = 3;
+      }
+    }
 
     setEstimate({
-      paperNeeded: paperCount,
-      approxCost: cost,
-      isStockEnough: isEnough,
+      baseCost, rushFee, daysEarly,
+      finalCost: baseCost + rushFee,
+      systemDate: systemDateStr,
+      caseType
     });
   };
 
   const onFinish = (values: any) => {
     setLoading(true);
-    setTimeout(() => {
-      addOrder({
-        product_id: values.paperType,
-        quantity: values.quantity,
-        delivery_date: values.deliveryDate.format("YYYY-MM-DD"),
-        customer_name: values.customerName,
-      });
+    
+    // Gộp tất cả màu lại để lưu vào specs (để tính toán tổng quan)
+    const allUniqueColors = Array.from(new Set(designItems.flatMap(i => i.colors)));
+    
+    // Tạo ghi chú chi tiết
+    const colorDetailNote = designItems.map((item, idx) => 
+        `[Mẫu ${idx+1}]: ${item.colors.join(', ')}`
+    ).join('; ');
 
-      showSuccessToast(
-        "Đã tạo đơn hàng thành công! Chuyển sang bộ phận Kế hoạch."
-      );
-      setLoading(false);
-      form.resetFields();
-      setEstimate(null);
+    const finalNote = values.notes ? `${values.notes}. Chi tiết màu: ${colorDetailNote}` : `Chi tiết màu: ${colorDetailNote}`;
+    
+    // Nối link ảnh
+    const fileUrls = designItems.map(i => i.file?.url || 'new-file').join(',');
+
+    const orderData = {
+      product_name: Array.isArray(values.productName) ? values.productName[0] : values.productName,
+      quantity: values.quantity,
+      delivery_date: values.desiredDate.format('YYYY-MM-DD'),
+      system_delivery_date: estimate?.systemDate,
+      customer_name: values.customerName,
+      customer_phone: values.phone,
+      process_status: 'consultant_verified' as const, 
+      final_price: estimate?.finalCost,
+      rush_fee: estimate?.rushFee,
+      
+      design_file_url: fileUrls,
+      specs: {
+          width: values.width, height: values.height, length: values.length,
+          paper_id: values.paperType,
+          colors: allUniqueColors,
+          processing: values.processing
+      },
+      note: finalNote
+    };
+
+    setTimeout(() => {
+        if (orderId) { updateOrder(orderId, orderData); message.success('Đã cập nhật đơn hàng!'); } 
+        else { addOrder({ product_id: 'custom-prod', ...orderData }); message.success('Đã tạo đơn mới!'); }
+        setLoading(false);
+        router.push('/consultant/orders'); 
     }, 1000);
   };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800 uppercase">
-          Tạo đơn hàng mới
-        </h1>
-        <div className="flex gap-3">
-          <Link
-            href="/manager/orders"
-            className="text-blue-600 hover:underline flex items-center gap-1"
-          >
-            Chuyển đến Quản lý đơn hàng
-            <BiRightArrow />
-          </Link>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6 flex justify-between items-center bg-white p-4 rounded shadow-sm">
+          <div>
+            <h1 className="text-xl font-bold m-0 uppercase">
+              {orderId ? `Xử Lý Đơn Hàng #${orderId.split('-')[1] || orderId}` : 'Tạo Đơn Hàng Mới'}
+            </h1>
+            <span className="text-gray-500 text-sm">
+              {orderId ? 'Kiểm tra thông tin khách gửi và chốt phương án' : 'Nhập thông tin yêu cầu sản xuất'}
+            </span>
+          </div>
+          <Tag color={isBusy ? "red" : "green"} className="text-base py-1 px-4">
+            {isBusy ? "🔥 Xưởng Bận (High Load)" : "✅ Xưởng Rảnh (Low Load)"}
+          </Tag>
         </div>
-      </div>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        {/* <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 uppercase">
-            Tạo đơn hàng mới
-          </h1>
-          <Link
-            href="/consultant/orders"
-            className="text-blue-600 hover:underline"
-          >
-            Xem danh sách đơn hàng đã tạo
-          </Link>
-        </div> */}
 
         <Row gutter={24}>
-          {/* CỘT TRÁI: FORM NHẬP LIỆU */}
-          <Col span={16}>
-            <Card
-              title={
-                <>
-                  <CodeSandboxOutlined /> Thông tin đơn hàng
-                </>
-              }
-              className="shadow-sm"
-            >
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                initialValues={{ quantity: 1000, colors: 4 }}
-              >
-                {/* 1. Khách hàng */}
+          <Col span={15}>
+            <Card title={<><CodeSandboxOutlined /> Thông Tin Đơn Hàng</>} className="shadow-sm">
+              <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={handleCalculate}>
+                
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item
-                      name="customerName"
-                      label="Tên khách hàng"
-                      rules={[{ required: true }]}
-                    >
-                      <Input
-                        prefix={<UserOutlined />}
-                        placeholder="Ví dụ: Công ty Dược phẩm A"
+                    <Form.Item name="customerName" label="Khách Hàng" rules={[{ required: true }]}>
+                      <Input prefix={<UserOutlined />} placeholder="Tên khách..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="phone" label="SĐT">
+                      <Input style={{ textAlign: 'right' }} placeholder="09..." />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Divider titlePlacement="left">Thông Số Kỹ Thuật</Divider>
+
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="productName" label="Tên Sản Phẩm" rules={[{ required: true }]}>
+                      <Select
+                        showSearch
+                        placeholder="Chọn hoặc nhập mới"
+                        options={PRODUCT_SUGGESTIONS.map(name => ({ label: name, value: name }))}
+                        mode="tags"
+                        maxCount={1}
                       />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item
-                      name="deliveryDate"
-                      label="Ngày giao hàng (Dự kiến)"
+                    <Form.Item label="Kích thước (D - R - C)" required>
+                      <Space.Compact block>
+                        <Form.Item name="length" noStyle><InputNumber style={{ width: '33%', textAlign: 'right' }} placeholder="D" /></Form.Item>
+                        <Form.Item name="width" noStyle><InputNumber style={{ width: '33%', textAlign: 'right' }} placeholder="R" /></Form.Item>
+                        <Form.Item name="height" noStyle><InputNumber style={{ width: '34%', textAlign: 'right' }} placeholder="C" /></Form.Item>
+                      </Space.Compact>
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="paperType" label="Loại Giấy" rules={[{ required: true }]}>
+                      <Select options={PAPER_TYPES} placeholder="Chọn giấy" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="quantity" label="Số Lượng" rules={[{ required: true }]}>
+                      <InputNumber className="w-full" style={{ textAlign: 'right' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Divider titlePlacement="left">Quản Lý File & Màu Sắc (Theo từng mẫu)</Divider>
+
+                <div className="bg-gray-50 p-4 rounded border mb-4">
+                    {/* Nút Upload */}
+                    <div className="mb-4 text-center">
+                        <Upload 
+                            showUploadList={false}
+                            beforeUpload={() => false}
+                            onChange={handleUploadChange}
+                            multiple
+                        >
+                            <Button type="dashed" icon={<InboxOutlined />} size="large" className="w-full">
+                                + Thêm Mẫu Thiết Kế Mới (Upload Ảnh)
+                            </Button>
+                        </Upload>
+                    </div>
+
+                    {/* Danh sách các mẫu đã thêm */}
+                    <div className="space-y-4">
+                        {designItems.length === 0 && <Empty description="Chưa có mẫu nào. Hãy upload ảnh." image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                        
+                        {designItems.map((item, index) => (
+                            <div key={item.id} className="bg-white p-3 rounded shadow-sm border flex gap-4 items-start relative hover:border-blue-400 transition-colors">
+                                {/* STT & Nút Xóa */}
+                                <div className="absolute top-0 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-br">
+                                    Mẫu #{index + 1}
+                                </div>
+                                <div className="absolute top-2 right-2">
+                                    <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeDesignItem(item.id)} />
+                                </div>
+
+                                {/* Ảnh Preview */}
+                                <div className="w-32 h-32 flex-shrink-0 border rounded bg-gray-100 flex items-center justify-center overflow-hidden mt-2">
+                                    {item.previewUrl ? (
+                                        <AntImage src={item.previewUrl} height="100%" className="object-contain" />
+                                    ) : <FileImageOutlined className="text-2xl text-gray-300" />}
+                                </div>
+
+                                {/* Khu vực chọn màu riêng */}
+                                <div className="flex-1 mt-2">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-semibold text-gray-700">Màu sắc in ấn cho mẫu này:</span>
+                                        <Space size="small">
+                                            <Tooltip title="Tự động tìm màu trong ảnh này">
+                                                <Button size="small" type="primary" ghost icon={<ExperimentOutlined />} onClick={() => handleAutoExtract(item.id, item.previewUrl)}>
+                                                    Auto
+                                                </Button>
+                                            </Tooltip>
+                                            <Tooltip title="Chấm màu trên màn hình">
+                                                <Button size="small" icon={<BgColorsOutlined />} onClick={() => handleEyeDropper(item.id)}>
+                                                    Chấm màu
+                                                </Button>
+                                            </Tooltip>
+                                        </Space>
+                                    </div>
+
+                                    {/* List màu */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {item.colors.map((color, cIdx) => (
+                                            <div key={cIdx} className="flex items-center bg-gray-50 border rounded pl-1 pr-2 py-1">
+                                                <div style={{ width: 16, height: 16, backgroundColor: color, borderRadius: 4, marginRight: 8, border: '1px solid #ddd' }}></div>
+                                                <span className="text-xs font-mono">{color}</span>
+                                                <MinusCircleOutlined 
+                                                    className="ml-2 text-gray-400 hover:text-red-500 cursor-pointer"
+                                                    onClick={() => {
+                                                        const newColors = item.colors.filter((_, i) => i !== cIdx);
+                                                        updateItemColors(item.id, newColors);
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                        {/* Nút thêm màu thủ công */}
+                                        <ColorPicker 
+                                            value="#1677ff"
+                                            onChangeComplete={(c) => {
+                                                if(!item.colors.includes(c.toHexString())) {
+                                                    updateItemColors(item.id, [...item.colors, c.toHexString()]);
+                                                }
+                                            }}
+                                        >
+                                            <Button size="small" type="dashed" icon={<PlusOutlined />}>Thêm</Button>
+                                        </ColorPicker>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Gia công */}
+                <Form.Item name="processing" label="Gia Công">
+                  <Checkbox.Group options={PROCESSING_OPTS} />
+                </Form.Item>
+
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="notes" label="Ghi Chú"><Input.TextArea rows={1} /></Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item 
+                      name="desiredDate" 
+                      label="Ngày Giao Dự Kiến" 
                       rules={[{ required: true }]}
+                      help={estimate ? <span className="text-blue-500 text-xs">Hệ thống tính: {dayjs(estimate.systemDate).format('DD/MM/YYYY')}</span> : ""}
                     >
                       <DatePicker className="w-full" format="DD/MM/YYYY" />
                     </Form.Item>
                   </Col>
                 </Row>
 
-                <Divider
-                  style={{ borderColor: "#d9d9d9" }}
-                  titlePlacement="left"
-                >
-                  Thông số sản phẩm
-                </Divider>
-
-                {/* 2. Kích thước & Loại */}
-                <Row gutter={16}>
-                  <Col span={8}>
-                    <Form.Item
-                      name="productName"
-                      label="Tên sản phẩm"
-                      rules={[{ required: true }]}
-                    >
-                      <Input placeholder="VD: Hộp thuốc ho 100ml" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={16}>
-                    <Form.Item
-                      label="Kích thước (Dài x Rộng x Cao) mm"
-                      required
-                    >
-                      <Space.Compact block>
-                        <Form.Item name="length" noStyle>
-                          <InputNumber
-                            style={{ width: "33%" }}
-                            placeholder="Dài"
-                          />
-                        </Form.Item>
-                        <Form.Item name="width" noStyle>
-                          <InputNumber
-                            style={{ width: "33%" }}
-                            placeholder="Rộng"
-                          />
-                        </Form.Item>
-                        <Form.Item name="height" noStyle>
-                          <InputNumber
-                            style={{ width: "34%" }}
-                            placeholder="Cao"
-                          />
-                        </Form.Item>
-                      </Space.Compact>
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                {/* 3. Chất liệu & In ấn */}
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="paperType"
-                      // label="Loại giấy & Định lượng"
-                      label="Loại sản phẩm"
-                      rules={[{ required: true }]}
-                    >
-                      <Select
-                        placeholder="Chọn sản phẩm"
-                        options={products.map((prod) => ({
-                          label: prod.name,
-                          value: prod.id,
-                        }))}
-                        onChange={handleCalculate}
-                      />
-                      {/* <Select
-                        placeholder="Chọn chất liệu giấy"
-                        options={PAPER_TYPES}
-                        onChange={handleCalculate}
-                      /> */}
-                    </Form.Item>
-                  </Col>
-                  <Col span={6}>
-                    <Form.Item
-                      name="quantity"
-                      label="Số lượng đặt"
-                      rules={[{ required: true }]}
-                    >
-                      <InputNumber
-                        className="w-full"
-                        formatter={(value) =>
-                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                        }
-                        onChange={() => setTimeout(handleCalculate, 500)}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={6}>
-                    <Form.Item name="colors" label="Số màu in">
-                      <InputNumber
-                        min={1}
-                        max={8}
-                        className="w-full"
-                        suffix="Màu"
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                {/* 4. Gia công */}
-                <Form.Item name="processing" label="Yêu cầu gia công sau in">
-                  <Checkbox.Group options={PROCESSING_OPTS} />
-                </Form.Item>
-
-                <Form.Item name="notes" label="Ghi chú">
-                  <Input.TextArea rows={2} />
-                </Form.Item>
-
-                <Form.Item>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    size="large"
-                    loading={loading}
-                    block
-                    className="bg-blue-600"
+                <Form.Item className="mt-4">
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    size="large" 
+                    loading={loading} 
+                    block 
+                    className={`h-12 font-bold ${
+                      estimate?.caseType === 3 ? 'bg-red-600 hover:bg-red-700' : 
+                      estimate?.caseType === 2 ? 'bg-orange-500 hover:bg-orange-600' : 
+                      'bg-blue-600'
+                    }`}
                   >
-                    Tạo đơn hàng
+                    {estimate?.caseType === 3 ? "CHỐT DEAL GIÁ & GỬI DUYỆT" : 
+                     estimate?.caseType === 2 ? "XÁC NHẬN ƯU TIÊN & GỬI DUYỆT" : 
+                     "XÁC NHẬN & GỬI DUYỆT"}
                   </Button>
                 </Form.Item>
               </Form>
             </Card>
           </Col>
 
-          {/* CỘT PHẢI: TÍNH TOÁN SƠ BỘ */}
-          <Col span={8}>
-            <Card
-              title={
-                <>
-                  <CalculatorOutlined /> Ước tính & Tồn kho
-                </>
-              }
-              className="shadow-sm sticky top-6"
-              extra={
-                <Button size="small" onClick={handleCalculate}>
-                  Tính ngay
-                </Button>
-              }
-            >
-              {!estimate ? (
-                <div className="text-center py-8 text-gray-400">
-                  Nhập thông số để xem ước tính vật tư
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <Alert
-                    title={
-                      estimate.isStockEnough
-                        ? "Đủ nguyên vật liệu"
-                        : "Thiếu nguyên vật liệu"
-                    }
-                    description={
-                      estimate.isStockEnough
-                        ? "Kho hiện có đủ giấy để sản xuất đơn hàng này."
-                        : "Cần tạo yêu cầu mua hàng để bổ sung giấy in còn thiếu."
-                    }
-                    type={estimate.isStockEnough ? "success" : "error"}
-                    showIcon
-                  />
+          {/* CỘT PHẢI: LOGIC */}
+          <Col span={9}>
+            <div className="sticky top-6 space-y-4">
+              <Card title={<><ClockCircleOutlined /> Phân tích tiến độ</>} className="shadow-sm border-blue-100">
+                {!estimate ? <div className="text-gray-400 text-center py-4">Nhập liệu để phân tích</div> : (
+                  <div className="flex flex-col gap-3">
+                    {estimate.caseType === 1 && <Alert message="Case 1: Hợp Lý" description="Tiến độ chuẩn." type="success" showIcon />}
+                    {estimate.caseType === 2 && <Alert message="Case 2: Gấp - Xưởng Rảnh" description={`Sớm ${estimate.daysEarly} ngày. Xưởng trống.`} type="warning" showIcon />}
+                    {estimate.caseType === 3 && <Alert message="Case 3: Gấp - Xưởng Bận" description={`Sớm ${estimate.daysEarly} ngày khi quá tải. Cần thương lượng kĩ với khách hàng.`} type="error" showIcon />}
+                  </div>
+                )}
+              </Card>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <Statistic
-                      title="Giấy in ước tính (đã bù hao)"
-                      value={estimate.paperNeeded}
-                      suffix="tờ"
-                      groupSeparator=","
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      (Bình trang giả định: 4 hộp/tờ + 5% hao hụt)
+              <Card title={<><CalculatorOutlined /> Chi Phí</>} className="shadow-sm">
+                {estimate && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between"><span>Giá gốc:</span> <b>{estimate.baseCost.toLocaleString()} ₫</b></div>
+                    {estimate.rushFee > 0 && (
+                      <div className="flex justify-between text-red-600 bg-red-50 p-2 rounded">
+                        <span><ThunderboltFilled /> Phí gấp:</span> <b>+{estimate.rushFee.toLocaleString()} ₫</b>
+                      </div>
+                    )}
+                    <Divider className="my-2" />
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-700">{estimate.finalCost.toLocaleString()} ₫</div>
                     </div>
                   </div>
-
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <Statistic
-                      title="Chi phí sản xuất sơ bộ"
-                      value={estimate.approxCost}
-                      suffix="₫"
-                      precision={0}
-                      styles={{
-                        content: { color: "#108ee9", fontWeight: "bold" },
-                      }}
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      (Bao gồm Giấy + Kẽm + Công in + Gia công)
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold text-gray-700 mb-2">
-                      Tiến độ dự kiến:
-                    </h4>
-                    <Steps
-                      orientation="vertical"
-                      size="small"
-                      current={1}
-                      items={[
-                        // data giả định tính toán ngày giao hàng dự kiến sau này có thể xem xét thêm sau
-                        { title: "Tạo đơn", content: "Hôm nay" },
-                        {
-                          title: "Chuẩn bị vật tư",
-                          content: estimate.isStockEnough
-                            ? "Có sẵn"
-                            : "3-5 ngày (Đặt hàng)",
-                        },
-                        { title: "Sản xuất", content: "2 ngày" },
-                        { title: "Giao hàng", content: "Dự kiến sau 3-7 ngày" },
-                      ]}
-                    />
-                  </div>
-                </div>
-              )}
-            </Card>
+                )}
+              </Card>
+            </div>
           </Col>
         </Row>
       </div>
     </div>
+  );
+}
+
+declare global {
+    interface Window {
+        EyeDropper: any;
+    }
+}
+
+export default function ConsultantPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConsultantForm />
+    </Suspense>
   );
 }

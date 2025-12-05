@@ -9,10 +9,15 @@ export default function layoutManager({
 }) {
   const navItems = [
     {
-      path: "/",
+      path: "",
       label: "Tạo đơn hàng",
       icon: FiShoppingCart,
     },
+    {
+    path: "/orders",
+    label: "Danh sách đơn hàng",
+    icon: FiShoppingCart,
+  },
     { path: "/", label: "Đăng xuất", icon: FiLogOut },
   ];
 
