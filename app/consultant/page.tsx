@@ -3,8 +3,7 @@
 import { useProduction } from '@/context/ProductionContext';
 import {
   BgColorsOutlined,
-  CalculatorOutlined,
-  ClockCircleOutlined,
+  CalculatorOutlined, // Icon cho tiến độ
   CodeSandboxOutlined,
   DeleteOutlined,
   ExperimentOutlined,
@@ -30,7 +29,15 @@ import {
   message,
   Row,
   Select,
-  Space, Tag,
+  Space,
+  Statistic, // [MỚI] Thêm statistic
+  Steps // [MỚI] Thêm steps
+  ,
+
+
+
+
+  Tag,
   Tooltip,
   Upload
 } from 'antd';
@@ -127,6 +134,7 @@ function ConsultantForm() {
   
   const [designItems, setDesignItems] = useState<DesignItem[]>([]);
 
+  // [CẬP NHẬT] State estimate thêm các trường mới: paperNeeded, isStockEnough
   const [estimate, setEstimate] = useState<{
     baseCost: number;
     rushFee: number;
@@ -134,6 +142,10 @@ function ConsultantForm() {
     finalCost: number;
     systemDate: string;
     caseType: 1 | 2 | 3;
+    paperNeeded: number;
+    isStockEnough: boolean;
+    productionDays: number;
+    effectiveDate: string;
   } | null>(null);
 
   // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU ---
@@ -152,7 +164,6 @@ function ConsultantForm() {
           width: existingOrder.specs?.height || 0,
           height: existingOrder.specs?.length || 0,
           paperType: existingOrder.specs?.paper_id,
-          // colors: existingOrder.specs?.colors, // Bỏ dòng này vì đã load vào designItems
           processing: existingOrder.specs?.processing,
         });
 
@@ -163,7 +174,6 @@ function ConsultantForm() {
                 id: `design-${idx}`,
                 file: { uid: `-${idx}`, name: `File ${idx+1}`, status: 'done', url: url.trim() } as UploadFile,
                 previewUrl: url.trim(),
-                // Tạm thời gán màu cũ vào mẫu đầu tiên
                 colors: idx === 0 ? (existingOrder.specs?.colors || []) : [] 
             }));
             setDesignItems(loadedItems);
@@ -192,7 +202,7 @@ function ConsultantForm() {
               id: `design-${Date.now()}`,
               file: latestFile,
               previewUrl: objectUrl,
-              colors: ['#000000'] // Mặc định 1 màu đen
+              colors: ['#000000'] 
           };
           setDesignItems(prev => [...prev, newItem]);
       }
@@ -208,7 +218,6 @@ function ConsultantForm() {
       ));
   };
   
-  // --- TÍNH NĂNG MÀU SẮC ---
   const handleAutoExtract = async (id: string, previewUrl: string) => {
       try {
           message.loading({ content: 'Đang quét màu...', key: 'extract' });
@@ -236,33 +245,58 @@ function ConsultantForm() {
 
 
   // --- LOGIC TÍNH TOÁN & SUBMIT ---
+  // --- LOGIC TÍNH TOÁN & SUBMIT ---
   const handleCalculate = (changedValues: any, allValues: any) => {
-    const { quantity, desiredDate } = allValues;
+    const { quantity, paperType, desiredDate } = allValues;
 
     if (!quantity) return;
+    
+    // 1. Tính chi phí cơ bản
     const baseCost = (quantity * 2500) + 3000000; 
-    const productionDays = Math.ceil(quantity / 2000) + 2; 
+    
+    // 2. Kiểm tra tồn kho trước
+    const paperNeeded = Math.ceil((quantity / 4) * 1.05); // Bình 4 + 5% hao hụt
+    const selectedPaper = PAPER_TYPES.find(p => p.value === paperType);
+    // Mặc định là đủ nếu chưa chọn giấy
+    const isStockEnough = selectedPaper ? selectedPaper.stock >= paperNeeded : true;
+
+    // 3. Tính toán thời gian (Logic thông minh hơn)
+    const productionDays = Math.ceil(quantity / 2000) + 2; // Thời gian sản xuất
+    
+    // [QUAN TRỌNG] Nếu thiếu giấy, cộng thêm 4 ngày nhập hàng
+    const materialLeadTime = isStockEnough ? 0 : 4; 
+    
+    const totalSystemDays = productionDays + materialLeadTime;
+    
     const today = dayjs();
-    const systemDateObj = today.add(productionDays, 'day');
+    const systemDateObj = today.add(totalSystemDays, 'day');
     const systemDateStr = systemDateObj.format('YYYY-MM-DD');
 
+    // Tự động điền ngày nếu chưa có
     if (!orderId && 'quantity' in changedValues && !desiredDate) {
         form.setFieldValue('desiredDate', systemDateObj);
     }
 
-    const currentDesiredDate = desiredDate || systemDateObj;
+    // 4. Logic độ gấp (Rush)
+    const currentDesiredDate = desiredDate || systemDateObj; 
     let rushFee = 0;
     let daysEarly = 0;
     let caseType: 1 | 2 | 3 = 1;
 
+    // So sánh ngày khách chọn với (Ngày sản xuất + Ngày nhập giấy)
     if (currentDesiredDate.isBefore(systemDateObj, 'day')) {
       daysEarly = systemDateObj.diff(currentDesiredDate, 'day');
-      if (!isBusy) {
-        rushFee = daysEarly * RUSH_FEE_LOW;
-        caseType = 2;
+      
+      // Nếu thiếu giấy mà khách muốn lấy sớm hơn thời gian nhập -> Chắc chắn là Case 3 (Rủi ro cao)
+      if (!isStockEnough) {
+          rushFee = daysEarly * RUSH_FEE_HIGH * 1.5; // Phạt nặng hơn vì phải giục NCC vật tư
+          caseType = 3;
+      } else if (!isBusy) {
+          rushFee = daysEarly * RUSH_FEE_LOW;
+          caseType = 2; 
       } else {
-        rushFee = daysEarly * RUSH_FEE_HIGH;
-        caseType = 3;
+          rushFee = daysEarly * RUSH_FEE_HIGH;
+          caseType = 3; 
       }
     }
 
@@ -270,24 +304,22 @@ function ConsultantForm() {
       baseCost, rushFee, daysEarly,
       finalCost: baseCost + rushFee,
       systemDate: systemDateStr,
-      caseType
+      caseType,
+      paperNeeded,
+      isStockEnough,
+      productionDays, 
+      effectiveDate: currentDesiredDate.format('YYYY-MM-DD') 
     });
   };
 
   const onFinish = (values: any) => {
     setLoading(true);
     
-    // Gộp tất cả màu lại để lưu vào specs (để tính toán tổng quan)
     const allUniqueColors = Array.from(new Set(designItems.flatMap(i => i.colors)));
-    
-    // Tạo ghi chú chi tiết
     const colorDetailNote = designItems.map((item, idx) => 
         `[Mẫu ${idx+1}]: ${item.colors.join(', ')}`
     ).join('; ');
-
     const finalNote = values.notes ? `${values.notes}. Chi tiết màu: ${colorDetailNote}` : `Chi tiết màu: ${colorDetailNote}`;
-    
-    // Nối link ảnh
     const fileUrls = designItems.map(i => i.file?.url || 'new-file').join(',');
 
     const orderData = {
@@ -317,6 +349,61 @@ function ConsultantForm() {
         setLoading(false);
         router.push('/consultant/orders'); 
     }, 1000);
+  };
+
+  // Hàm helper để render thông báo trạng thái
+  const renderStatusAlert = () => {
+      if (!estimate) return null;
+
+      // Ưu tiên 1: Hết giấy
+      if (!estimate.isStockEnough) {
+          return (
+              <Alert
+                  message="Thiếu nguyên vật liệu"
+                  description="Kho không đủ giấy. Cần tạo phiếu Yêu Cầu Vật Tư sau khi tạo đơn."
+                  type="error"
+                  showIcon
+                  className="mb-4"
+              />
+          );
+      }
+
+      // Ưu tiên 2: Đơn gấp + Xưởng bận
+      if (estimate.caseType === 3) {
+           return (
+              <Alert
+                  message="GẤP & QUÁ TẢI"
+                  description={`Khách cần sớm ${estimate.daysEarly} ngày. Xưởng đang bận. Đã tính phí gấp cao.`}
+                  type="error"
+                  showIcon
+                  className="mb-4"
+              />
+           );
+      }
+
+      // Ưu tiên 3: Đơn gấp (Xưởng rảnh)
+      if (estimate.caseType === 2) {
+            return (
+              <Alert
+                  title="Đơn hàng ưu tiên (Gấp)"
+                  description={`Khách cần sớm ${estimate.daysEarly} ngày. Đã tính phí ưu tiên.`}
+                  type="warning"
+                  showIcon
+                  className="mb-4"
+              />
+           );
+      }
+
+      // Mặc định: Bình thường
+      return (
+          <Alert
+              title="Đủ điều kiện sản xuất"
+              description="Kho đủ giấy & Tiến độ phù hợp."
+              type="success"
+              showIcon
+              className="mb-4"
+          />
+      );
   };
 
   return (
@@ -395,7 +482,6 @@ function ConsultantForm() {
                 <Divider titlePlacement="left">Quản Lý File & Màu Sắc (Theo từng mẫu)</Divider>
 
                 <div className="bg-gray-50 p-4 rounded border mb-4">
-                    {/* Nút Upload */}
                     <div className="mb-4 text-center">
                         <Upload 
                             showUploadList={false}
@@ -409,13 +495,11 @@ function ConsultantForm() {
                         </Upload>
                     </div>
 
-                    {/* Danh sách các mẫu đã thêm */}
                     <div className="space-y-4">
                         {designItems.length === 0 && <Empty description="Chưa có mẫu nào. Hãy upload ảnh." image={Empty.PRESENTED_IMAGE_SIMPLE} />}
                         
                         {designItems.map((item, index) => (
                             <div key={item.id} className="bg-white p-3 rounded shadow-sm border flex gap-4 items-start relative hover:border-blue-400 transition-colors">
-                                {/* STT & Nút Xóa */}
                                 <div className="absolute top-0 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-br">
                                     Mẫu #{index + 1}
                                 </div>
@@ -423,14 +507,12 @@ function ConsultantForm() {
                                     <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeDesignItem(item.id)} />
                                 </div>
 
-                                {/* Ảnh Preview */}
                                 <div className="w-32 h-32 flex-shrink-0 border rounded bg-gray-100 flex items-center justify-center overflow-hidden mt-2">
                                     {item.previewUrl ? (
                                         <AntImage src={item.previewUrl} height="100%" className="object-contain" />
                                     ) : <FileImageOutlined className="text-2xl text-gray-300" />}
                                 </div>
 
-                                {/* Khu vực chọn màu riêng */}
                                 <div className="flex-1 mt-2">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="font-semibold text-gray-700">Màu sắc in ấn cho mẫu này:</span>
@@ -448,7 +530,6 @@ function ConsultantForm() {
                                         </Space>
                                     </div>
 
-                                    {/* List màu */}
                                     <div className="flex flex-wrap gap-2">
                                         {item.colors.map((color, cIdx) => (
                                             <div key={cIdx} className="flex items-center bg-gray-50 border rounded pl-1 pr-2 py-1">
@@ -463,7 +544,6 @@ function ConsultantForm() {
                                                 />
                                             </div>
                                         ))}
-                                        {/* Nút thêm màu thủ công */}
                                         <ColorPicker 
                                             value="#1677ff"
                                             onChangeComplete={(c) => {
@@ -481,7 +561,6 @@ function ConsultantForm() {
                     </div>
                 </div>
 
-                {/* Gia công */}
                 <Form.Item name="processing" label="Gia Công">
                   <Checkbox.Group options={PROCESSING_OPTS} />
                 </Form.Item>
@@ -524,35 +603,80 @@ function ConsultantForm() {
             </Card>
           </Col>
 
-          {/* CỘT PHẢI: LOGIC */}
+          {/* CỘT PHẢI: LOGIC TÍNH TOÁN & ƯỚC TÍNH (Đã cập nhật giao diện mới) */}
           <Col span={9}>
-            <div className="sticky top-6 space-y-4">
-              <Card title={<><ClockCircleOutlined /> Phân tích tiến độ</>} className="shadow-sm border-blue-100">
-                {!estimate ? <div className="text-gray-400 text-center py-4">Nhập liệu để phân tích</div> : (
-                  <div className="flex flex-col gap-3">
-                    {estimate.caseType === 1 && <Alert message="Case 1: Hợp Lý" description="Tiến độ chuẩn." type="success" showIcon />}
-                    {estimate.caseType === 2 && <Alert message="Case 2: Gấp - Xưởng Rảnh" description={`Sớm ${estimate.daysEarly} ngày. Xưởng trống.`} type="warning" showIcon />}
-                    {estimate.caseType === 3 && <Alert message="Case 3: Gấp - Xưởng Bận" description={`Sớm ${estimate.daysEarly} ngày khi quá tải. Cần thương lượng kĩ với khách hàng.`} type="error" showIcon />}
-                  </div>
-                )}
-              </Card>
+            <div className="sticky top-6">
+                <Card title={<><CalculatorOutlined /> Ước Tính & Tồn Kho</>} className="shadow-sm border-blue-100">
+                    {!estimate ? (
+                        <div className="text-center py-8 text-gray-400">
+                            Nhập thông số để xem ước tính
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* [MỚI] Hiển thị trạng thái (kết hợp Tồn kho + Gấp) */}
+                            {renderStatusAlert()}
 
-              <Card title={<><CalculatorOutlined /> Chi Phí</>} className="shadow-sm">
-                {estimate && (
-                  <div className="space-y-4">
-                    <div className="flex justify-between"><span>Giá gốc:</span> <b>{estimate.baseCost.toLocaleString()} ₫</b></div>
-                    {estimate.rushFee > 0 && (
-                      <div className="flex justify-between text-red-600 bg-red-50 p-2 rounded">
-                        <span><ThunderboltFilled /> Phí gấp:</span> <b>+{estimate.rushFee.toLocaleString()} ₫</b>
-                      </div>
+                            {/* [MỚI] Thống kê giấy in */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <Statistic 
+                                    title="Giấy in ước tính (đã bù hao)" 
+                                    value={estimate.paperNeeded} 
+                                    suffix="tờ" 
+                                    groupSeparator=","
+                                />
+                                <div className="text-xs text-gray-500 mt-1">
+                                    (Bình trang giả định: 4 hộp/tờ + 5% hao hụt)
+                                </div>
+                            </div>
+
+                            {/* [MỚI] Chi phí sơ bộ */}
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <Statistic 
+                                    title="Chi phí sản xuất sơ bộ" 
+                                    value={estimate.finalCost} 
+                                    suffix="₫" 
+                                    precision={0}
+                                    valueStyle={{ color: '#108ee9', fontWeight: 'bold' }}
+                                />
+                                {estimate.rushFee > 0 && (
+                                    <div className="text-xs text-red-500 mt-1 flex items-center">
+                                        <ThunderboltFilled className="mr-1"/> 
+                                        Đã bao gồm phụ phí gấp: {estimate.rushFee.toLocaleString()} ₫
+                                    </div>
+                                )}
+                                <div className="text-xs text-gray-500 mt-1">
+                                    (Bao gồm Giấy + Kẽm + Công in + Gia công)
+                                </div>
+                            </div>
+
+                            {/* [MỚI] Tiến độ (Steps) */}
+                            <div className="border-t pt-4">
+                                <h4 className="font-semibold text-gray-700 mb-2">Tiến độ dự kiến:</h4>
+                                <Steps
+                                    orientation="vertical"
+                                    size="small"
+                                    current={1} 
+                                    items={[
+                                        { title: 'Tạo đơn', description: 'Hôm nay' },
+                                        { 
+                                            title: 'Chuẩn bị vật tư', 
+                                            description: estimate.isStockEnough ? 'Có sẵn tại kho' : <span className="text-red-500">Thiếu - Cần 3-5 ngày nhập</span>,
+                                            status: estimate.isStockEnough ? 'finish' : 'error'
+                                        },
+                                        { 
+                                            title: 'Sản xuất', 
+                                            description: `Khoảng ${estimate.productionDays} ngày` 
+                                        },
+                                        { 
+                                            title: 'Giao hàng', 
+                                            description: `Hẹn giao: ${dayjs(estimate.effectiveDate).format('DD/MM/YYYY')}` 
+                                        },
+                                    ]}
+                                />
+                            </div>
+                        </div>
                     )}
-                    <Divider className="my-2" />
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-700">{estimate.finalCost.toLocaleString()} ₫</div>
-                    </div>
-                  </div>
-                )}
-              </Card>
+                </Card>
             </div>
           </Col>
         </Row>
