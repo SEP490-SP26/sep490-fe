@@ -1,10 +1,9 @@
 "use client";
 import { Order, useProduction } from "@/context/ProductionContext";
 import { showSuccessToast } from "@/utils/toastService";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   BiCalendar,
-  BiCaretDown,
   BiCheckCircle,
   BiChevronDown,
   BiChevronUp,
@@ -15,18 +14,16 @@ import {
   BiSearch,
   BiXCircle,
 } from "react-icons/bi";
-import { BsEye } from "react-icons/bs";
+import {
+  BsCheckCircle,
+  BsExclamationCircle,
+  BsExclamationTriangle,
+  BsEye,
+} from "react-icons/bs";
 import { FiAlertTriangle, FiMoreVertical } from "react-icons/fi";
-import { toast } from "react-toastify";
 
 export default function OrderListPage() {
-  const {
-    products,
-    materials,
-    orders,
-    checkOrderFulfillment,
-    createPurchaseRequest,
-  } = useProduction();
+  const { products, materials, orders, createPurchaseRequest } = useProduction();
 
   const [checkingOrder, setCheckingOrder] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -121,7 +118,7 @@ export default function OrderListPage() {
 
   const handleCheckFulfillment = (orderId: string) => {
     setCheckingOrder(orderId);
-    const canFulfill = checkOrderFulfillment(orderId);
+    // const canFulfill = checkOrderFulfillment(orderId);
 
     setTimeout(() => {
       setCheckingOrder(null);
@@ -493,10 +490,23 @@ export default function OrderListPage() {
                   const product = products.find(
                     (p) => p.id === order.product_id
                   );
+                  const isMissingMaterials = order.can_fulfill === false;
+                  const isWarning =
+                    order.can_fulfill === undefined &&
+                    order.status === "pending";
 
                   return (
                     <>
-                      <tr key={order.id} className="hover:bg-gray-50">
+                      <tr
+                        key={order.id}
+                        className={`hover:bg-gray-50 transition-colors ${
+                          isMissingMaterials
+                            ? "bg-red-50 hover:bg-red-100"
+                            : isWarning
+                            ? "bg-yellow-50 hover:bg-yellow-100"
+                            : ""
+                        }`}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(order.created_at)}
                         </td>
@@ -504,7 +514,6 @@ export default function OrderListPage() {
                           <div className="text-sm font-medium text-gray-900">
                             {order.id.substring(0, 8)}...
                           </div>
-                         
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
@@ -516,7 +525,7 @@ export default function OrderListPage() {
                             {product?.name}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900  text-right">
                           <span className="font-medium">{order.quantity}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -549,7 +558,15 @@ export default function OrderListPage() {
                               )}
                             </button>
                             <button className="text-gray-600 hover:text-gray-900">
-                              <BsEye className="w-5 h-5" />
+                              {isMissingMaterials ? (
+                                <div className="flex items-center gap-1 text-red-600">
+                                  <BsExclamationCircle className="w-5 h-5" />
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 text-green-600">
+                                  <BsCheckCircle className="w-5 h-5" />
+                                </div>
+                              )}
                             </button>
                             <button className="text-gray-600 hover:text-gray-900">
                               <FiMoreVertical className="w-5 h-5" />
@@ -598,7 +615,7 @@ export default function OrderListPage() {
                                       Số lượng:
                                     </span>
                                     <span className="text-gray-900">
-                                      {order.quantity} sản phẩm
+                                      {order.quantity}
                                     </span>
                                   </div>
                                 </div>
@@ -639,7 +656,7 @@ export default function OrderListPage() {
                                     order.missing_materials && (
                                       <div className="space-y-3">
                                         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                          <BiXCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                          <BiXCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                                           <div className="flex-1">
                                             <div className="text-red-700 text-sm mb-2">
                                               Thiếu nguyên vật liệu:
@@ -652,6 +669,7 @@ export default function OrderListPage() {
                                                       (m) =>
                                                         m.id === mm.material_id
                                                     );
+
                                                   return (
                                                     <div
                                                       key={mm.material_id}
