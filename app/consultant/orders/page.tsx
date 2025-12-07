@@ -112,6 +112,9 @@ export default function ConsultantOrdersPage() {
                 onChange={(e) => setSearchText(e.target.value)}
                 size="large"
              />
+             <Link href="/manager/orders" className="text-sm text-blue-600 hover:underline mt-1 inline-block">
+             chuyển đến Quản lý đơn hàng &gt;
+             </Link>
         </div>
        </div>
        

@@ -688,7 +688,7 @@ export default function OrderListPage() {
                                           </div>
                                         </div>
 
-                                        <button
+                                        {/* <button
                                           onClick={() =>
                                             handleCreatePR(order.id)
                                           }
@@ -696,7 +696,7 @@ export default function OrderListPage() {
                                         >
                                           <FiAlertTriangle className="w-4 h-4" />
                                           Tạo yêu cầu mua hàng
-                                        </button>
+                                        </button> */}
                                       </div>
                                     )}
                                 </div>

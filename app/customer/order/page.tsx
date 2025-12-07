@@ -3,6 +3,7 @@
 import { useProduction } from '@/context/ProductionContext';
 import { InboxOutlined } from '@ant-design/icons';
 import { Button, Card, DatePicker, Form, Input, InputNumber, Result, Typography, Upload } from 'antd';
+import Link from 'next/link';
 import { useState } from 'react';
 
 const { Title, Text } = Typography;
@@ -49,7 +50,12 @@ export default function CustomerOrderPage() {
             extra={[
               <Button type="primary" key="back" onClick={() => { setIsSuccess(false); form.resetFields(); }}>
                 Đặt đơn khác
-              </Button>
+              </Button>, 
+              <Link href="/consultant/orders" key="home">
+                <Button>
+                  Chuyển sang trang tư vấn & báo giá
+                </Button>
+              </Link>
             ]}
           />
         </Card>
