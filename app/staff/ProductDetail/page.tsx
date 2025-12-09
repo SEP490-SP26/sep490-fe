@@ -240,13 +240,7 @@ export default function ProductionDetailPage() {
 
                       {/* Action Button */}
                       {isAvailable && stageStatus === 'pending' && hasEnoughMaterials && (
-                        <button
-                          onClick={() => handleUpdateStage(stage.id)}
-                          className="w-full mt-3 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                        >
-                          <BiCheckCircle className="w-4 h-4" />
-                          Bắt đầu công đoạn
-                        </button>
+                        <span className="text-gray-600">Đang chờ:</span>
                       )}
 
                       {isAvailable && stageStatus === 'pending' && !hasEnoughMaterials && (

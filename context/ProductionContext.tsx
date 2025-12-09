@@ -1,10 +1,5 @@
 "use client";
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useState
-} from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 
 // Types
 export interface Product {
@@ -37,7 +32,11 @@ export interface Order {
   customer_email?: string;
   design_file_url?: string;
   status: "pending" | "scheduled" | "in_production" | "completed";
-  process_status: 'pending_consultant' | 'consultant_verified' | 'manager_approved' | 'rejected';
+  process_status:
+    | "pending_consultant"
+    | "consultant_verified"
+    | "manager_approved"
+    | "rejected";
   specs?: {
     width: number;
     height: number;
@@ -52,7 +51,7 @@ export interface Order {
     needed: number;
     available: number;
   }[];
-  base_price?: number; 
+  base_price?: number;
   rush_fee?: number;
   final_price?: number;
   note?: string;
@@ -108,13 +107,17 @@ interface ProductionContextType {
   bom: BOMItem[];
   orders: Order[];
   inventory: Inventory[];
-  currentProductionLoad: number; 
+  currentProductionLoad: number;
   isBusy: boolean;
   purchaseRequests: PurchaseRequest[];
   purchaseOrders: PurchaseOrder[];
   productionSchedules: ProductionSchedule[];
   updateOrder: (id: string, updates: Partial<Order>) => void;
-  addOrder: (order: Omit<Order, "id" | "status" | "created_at" | "process_status"> & { process_status?: Order["process_status"] }) => string;
+  addOrder: (
+    order: Omit<Order, "id" | "status" | "created_at" | "process_status"> & {
+      process_status?: Order["process_status"];
+    }
+  ) => string;
   checkOrderFulfillment: (orderId: string) => boolean;
   createPurchaseRequest: (orderId: string) => void;
   createPurchaseOrder: (
@@ -133,7 +136,10 @@ interface ProductionContextType {
   ) => void;
   updateProductionStage: (scheduleId: string, stage: string) => void;
   getProductionStages: (orderId: string) => ProductionStage[];
-    getStageMaterialsInfo: (orderId: string, stageId: string) => Array<{
+  getStageMaterialsInfo: (
+    orderId: string,
+    stageId: string
+  ) => Array<{
     material_id: string;
     quantity: number;
     unit: string;
@@ -325,6 +331,30 @@ const getInitialPurchaseRequests = (): PurchaseRequest[] => {
   const now = new Date();
   return [
     {
+      id: "pr-sample-1",
+      order_id: "ord-sample-3",
+      material_id: "m5",
+      quantity_needed: 10,
+      status: "pending",
+      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "pr-sample-5",
+      order_id: "ord-sample-7",
+      material_id: "m6",
+      quantity_needed: 10,
+      status: "pending",
+      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "pr-sample-6",
+      order_id: "ord-sample-7",
+      material_id: "m4",
+      quantity_needed: 80,
+      status: "pending",
+      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
       id: "pr-sample-2",
       order_id: "ord-sample-6",
       material_id: "m4",
@@ -360,6 +390,14 @@ const getInitialPurchaseOrders = (): PurchaseOrder[] => {
   in2Days.setDate(in2Days.getDate() + 2);
 
   return [
+    {
+      id: "po-sample-0",
+      pr_id: "pr-sample-1",
+      supplier: "Công ty TNHH Giấy Sài Gòn",
+      expected_delivery_date: tomorrow.toISOString().split("T")[0],
+      status: "ordered",
+      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    },
     {
       id: "po-sample-1",
       pr_id: "pr-sample-2",
@@ -479,17 +517,20 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
   const [productionSchedules, setProductionSchedules] = useState<
     ProductionSchedule[]
   >(getInitialProductionSchedules());
-  const [currentProductionLoad] = useState<number>(30);  //thay đổi chỗ này nếu muốn thử test case xưởng rảnh
+  const [currentProductionLoad] = useState<number>(30); //thay đổi chỗ này nếu muốn thử test case xưởng rảnh
   const isBusy = currentProductionLoad > 80; //Xưởng bận khi >80%
 
   const addOrder = (
-    orderData: Omit<Order, "id" | "status" | "created_at" | "process_status"> & { process_status?: Order["process_status"] }
+    orderData: Omit<
+      Order,
+      "id" | "status" | "created_at" | "process_status"
+    > & { process_status?: Order["process_status"] }
   ): string => {
     const newOrder: Order = {
       ...orderData,
       id: `ord-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       status: "pending",
-      process_status: orderData.process_status || 'pending_consultant',
+      process_status: orderData.process_status || "pending_consultant",
       created_at: new Date().toISOString(),
     };
     setOrders((prev) => [...prev, newOrder]);
@@ -497,9 +538,9 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
   };
 
   const updateOrder = (id: string, updates: Partial<Order>) => {
-    setOrders(prev => prev.map(order => 
-      order.id === id ? { ...order, ...updates } : order
-    ));
+    setOrders((prev) =>
+      prev.map((order) => (order.id === id ? { ...order, ...updates } : order))
+    );
   };
 
   const checkOrderFulfillment = (orderId: string): boolean => {
@@ -671,8 +712,6 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     return schedule.stages;
   };
 
-  
-
   const scheduleProduction = (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     if (!order || !order.can_fulfill) return;
@@ -799,7 +838,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     );
   };
 
- const getStageMaterialsInfo = (orderId: string, stageId: string) => {
+  const getStageMaterialsInfo = (orderId: string, stageId: string) => {
     // Trả về mảng rỗng hoặc dữ liệu mẫu
     return [];
   };
