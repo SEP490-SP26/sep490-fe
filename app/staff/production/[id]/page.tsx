@@ -4,8 +4,10 @@ import { useParams, useRouter } from "next/navigation";
 import {
   BiBook,
   BiCheckCircle,
+  BiNetworkChart,
   BiPackage,
-  BiSolidZap
+  BiSolidZap,
+  BiWorld,
 } from "react-icons/bi";
 import {
   BsArrowLeft,
@@ -550,23 +552,18 @@ export default function ProductionDetailPage() {
                 {!process.finalProduct && (
                   <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                     {isInProgress ? (
-                      <button
-                        onClick={() => handleUpdateStage(process.id)}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                      >
-                        <BiCheckCircle className="w-4 h-4" />
-                        Hoàn thành công đoạn
-                      </button>
+                      <div>
+                        <div className="text-sm text-green-600 flex items-center gap-2">
+                          <BsClock className="w-4 h-4" />
+                          <span>Đang gia công</span>
+                        </div>
+                      </div>
                     ) : (
                       stageStatus === "pending" && (
-                        <button
-                          onClick={() => handleUpdateStage(process.id)}
-                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                          disabled={!checkStageMaterials(order.id, process.id)}
-                        >
+                        <div className="text-sm text-yellow-600 flex items-center gap-2">
                           <BsClock className="w-4 h-4" />
-                          Bắt đầu công đoạn
-                        </button>
+                          <span>Đang chờ xử lý</span>
+                        </div>
                       )
                     )}
 

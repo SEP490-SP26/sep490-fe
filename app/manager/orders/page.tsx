@@ -23,7 +23,8 @@ import {
 import { FiAlertTriangle, FiMoreVertical } from "react-icons/fi";
 
 export default function OrderListPage() {
-  const { products, materials, orders, createPurchaseRequest } = useProduction();
+  const { products, materials, orders, createPurchaseRequest } =
+    useProduction();
 
   const [checkingOrder, setCheckingOrder] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -451,7 +452,7 @@ export default function OrderListPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Sản phẩm
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <button
                       onClick={() => handleSort("quantity")}
                       className="flex items-center gap-1 hover:text-gray-700"
@@ -525,12 +526,13 @@ export default function OrderListPage() {
                             {product?.name}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900  text-right">
-                          <span className="font-medium">{order.quantity}</span>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900  ">
+                          <span className="flex justify-center font-medium">
+                            {order.quantity}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <BiCalendar className="w-4 h-4 text-gray-400" />
                             <span className="text-sm text-gray-900">
                               {formatDate(order.delivery_date)}
                             </span>
@@ -629,18 +631,12 @@ export default function OrderListPage() {
                                 <div className="space-y-2">
                                   {order.status === "pending" &&
                                     order.can_fulfill === undefined && (
-                                      <button
-                                        onClick={() =>
-                                          handleCheckFulfillment(order.id)
-                                        }
-                                        disabled={checkingOrder === order.id}
-                                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2 text-sm"
-                                      >
-                                        <BiPackage className="w-4 h-4" />
-                                        {checkingOrder === order.id
-                                          ? "Đang kiểm tra..."
-                                          : "Kiểm tra khả năng đáp ứng"}
-                                      </button>
+                                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <BiCheckCircle className="w-5 h-5 text-green-600" />
+                                        <span className="text-green-700 text-sm">
+                                          Có thể sản xuất
+                                        </span>
+                                      </div>
                                     )}
 
                                   {order.can_fulfill === true && (
