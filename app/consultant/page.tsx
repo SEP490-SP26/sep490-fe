@@ -5,6 +5,7 @@ import {
   BgColorsOutlined,
   CalculatorOutlined,
   CodeSandboxOutlined,
+  DashboardOutlined,
   DeleteOutlined,
   ExperimentOutlined,
   FileImageOutlined,
@@ -12,10 +13,10 @@ import {
   InboxOutlined,
   MinusCircleOutlined,
   PlusOutlined,
-  ThunderboltFilled,
-  UnorderedListOutlined, // Icon cho danh sách đơn xưởng
+  ThunderboltFilled, // Icon cho danh sách đơn xưởng
   UploadOutlined,
   UserOutlined,
+  WarningOutlined,
 } from '@ant-design/icons'
 import type { UploadFile, UploadProps } from 'antd'
 import {
@@ -35,6 +36,7 @@ import {
   List,
   message,
   Modal,
+  Progress,
   Row,
   Select,
   Space,
@@ -146,7 +148,14 @@ interface DesignItem {
 // --- COMPONENT CHÍNH ---
 function ConsultantForm() {
   const [form] = Form.useForm()
-  const { addOrder, updateOrder, products, orders, isBusy } = useProduction()
+  const {
+    addOrder,
+    updateOrder,
+    products,
+    orders,
+    isBusy,
+    currentProductionLoad,
+  } = useProduction()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -172,6 +181,35 @@ function ConsultantForm() {
     productionDays: number
     effectiveDate: string
   } | null>(null)
+
+  const TOTAL_MACHINES = 50
+  // Tính số máy đang chạy dựa trên % tải (currentProductionLoad)
+  const machinesInUse = Math.round(
+    (currentProductionLoad / 100) * TOTAL_MACHINES
+  )
+  const isWorkshopFull = machinesInUse >= 40 // Coi như đầy nếu >= 45/50 máy (90%)
+
+  // Tính toán ngày dự kiến xưởng rảnh
+  const getEstimatedFreeDate = () => {
+    // Lấy các đơn đang sản xuất
+    const activeOrders = orders.filter((o) => o.status === 'in_production')
+    if (activeOrders.length === 0) return 0 // Rảnh ngay
+
+    // Tìm ngày giao sớm nhất của các đơn đang chạy (giả sử đó là lúc máy rảnh)
+    const sortedOrders = [...activeOrders].sort(
+      (a, b) =>
+        new Date(a.delivery_date).getTime() -
+        new Date(b.delivery_date).getTime()
+    )
+
+    const nextFreeDateStr = sortedOrders[0]?.delivery_date
+    if (!nextFreeDateStr) return 2 // Default 2 ngày
+
+    const diffDays = dayjs(nextFreeDateStr).diff(dayjs(), 'day')
+    return diffDays > 0 ? diffDays : 1
+  }
+
+  const daysUntilFree = getEstimatedFreeDate()
 
   // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU ---
   useEffect(() => {
@@ -298,7 +336,6 @@ function ConsultantForm() {
   const handleCalculate = (changedValues: any, allValues: any) => {
     const { quantity, paperType, desiredDate } = allValues
 
-    // Nếu chỉ thay đổi giá (người dùng tự sửa), không cần tính lại logic khác
     if ('finalPrice' in changedValues) return
 
     if (!quantity) return
@@ -311,9 +348,10 @@ function ConsultantForm() {
       ? selectedPaper.stock >= paperNeeded
       : true
 
+    const waitingDays = isWorkshopFull ? daysUntilFree : 0
     const productionDays = Math.ceil(quantity / 2000) + 2
     const materialLeadTime = isStockEnough ? 0 : 4
-    const totalSystemDays = productionDays + materialLeadTime
+    const totalSystemDays = productionDays + materialLeadTime + waitingDays
 
     const today = dayjs()
     const systemDateObj = today.add(totalSystemDays, 'day')
@@ -330,7 +368,7 @@ function ConsultantForm() {
 
     if (currentDesiredDate.isBefore(systemDateObj, 'day')) {
       daysEarly = systemDateObj.diff(currentDesiredDate, 'day')
-      if (!isStockEnough) {
+      if (!isStockEnough || isWorkshopFull) {
         rushFee = daysEarly * RUSH_FEE_HIGH * 1.5
         caseType = 3
       } else if (!isBusy) {
@@ -344,21 +382,13 @@ function ConsultantForm() {
 
     const calculatedTotal = baseCost + rushFee
 
-    // Tự động điền giá gợi ý vào form nếu chưa có hoặc đang tính lại từ đầu
-    if (
-      form.getFieldValue('finalPrice') === undefined ||
-      'quantity' in changedValues ||
-      'paperType' in changedValues ||
-      'desiredDate' in changedValues
-    ) {
-      form.setFieldValue('finalPrice', calculatedTotal)
-    }
+    form.setFieldValue('finalPrice', calculatedTotal)
 
     setEstimate({
       baseCost,
       rushFee,
       daysEarly,
-      finalCost: calculatedTotal, // Giá hệ thống để tham khảo
+      finalCost: calculatedTotal,
       systemDate: systemDateStr,
       caseType,
       paperNeeded,
@@ -425,11 +455,37 @@ function ConsultantForm() {
 
   const renderStatusAlert = () => {
     if (!estimate) return null
+    if (isWorkshopFull) {
+      return (
+        <Alert
+          title='Xưởng đang quá tải!'
+          description={
+            <div>
+              <p>
+                Công suất hiện tại:{' '}
+                <b>
+                  {machinesInUse}/{TOTAL_MACHINES}
+                </b>{' '}
+                máy đang chạy.
+              </p>
+              <p>
+                Cần thương lượng lại ngày giao. Dự kiến xưởng sẽ có máy rảnh sau{' '}
+                <b>{daysUntilFree} ngày</b> nữa.
+              </p>
+            </div>
+          }
+          type='error'
+          showIcon
+          icon={<WarningOutlined />}
+          className='mb-4'
+        />
+      )
+    }
 
     if (!estimate.isStockEnough) {
       return (
         <Alert
-          message='Thiếu nguyên vật liệu'
+          title='Thiếu nguyên vật liệu'
           description='Kho không đủ giấy. Cần tạo phiếu Yêu Cầu Vật Tư sau khi tạo đơn.'
           type='error'
           showIcon
@@ -441,7 +497,7 @@ function ConsultantForm() {
     if (estimate.caseType === 3) {
       return (
         <Alert
-          message='GẤP & QUÁ TẢI'
+          title='GẤP & QUÁ TẢI'
           description={`Khách cần sớm ${estimate.daysEarly} ngày. Xưởng đang bận. Đã tính phí gấp cao.`}
           type='error'
           showIcon
@@ -490,20 +546,22 @@ function ConsultantForm() {
                 : 'Nhập thông tin yêu cầu sản xuất'}
             </span>
           </div>
-          <div className='flex gap-2 items-center'>
-            {/* Nút xem đơn hàng tại xưởng */}
-            <Button
-              icon={<UnorderedListOutlined />}
-              onClick={handleOpenFactoryOrders}
-            >
-              Đơn hàng tại xưởng
-            </Button>
-            <Tag
-              color={isBusy ? 'red' : 'green'}
-              className='text-base py-1 px-4 m-0 h-8 flex items-center'
-            >
-              {isBusy ? '🔥 Xưởng Bận (High Load)' : '✅ Xưởng Rảnh (Low Load)'}
-            </Tag>
+          <div className='flex gap-4 items-center'>
+            {/* [MỚI] Hiển thị Công suất máy dạng thanh Progress */}
+            <div className='flex flex-col items-end w-48'>
+              <div className='text-xs text-gray-500 flex gap-1 mb-1'>
+                <DashboardOutlined /> Công suất xưởng ({machinesInUse}/
+                {TOTAL_MACHINES})
+              </div>
+              <Progress
+                percent={(machinesInUse / TOTAL_MACHINES) * 100}
+                size='small'
+                // Đổi màu đỏ nếu đầy, xanh nếu còn chỗ
+                status={isWorkshopFull ? 'exception' : 'active'}
+                format={(percent) => `${machinesInUse} máy`}
+                strokeColor={isWorkshopFull ? '#ff4d4f' : '#52c41a'}
+              />
+            </div>
           </div>
         </div>
 
