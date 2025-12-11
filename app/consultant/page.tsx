@@ -336,7 +336,6 @@ function ConsultantForm() {
   const handleCalculate = (changedValues: any, allValues: any) => {
     const { quantity, paperType, desiredDate } = allValues
 
-    // Nếu chỉ thay đổi giá (người dùng tự sửa), không cần tính lại logic khác
     if ('finalPrice' in changedValues) return
 
     if (!quantity) return
@@ -383,21 +382,13 @@ function ConsultantForm() {
 
     const calculatedTotal = baseCost + rushFee
 
-    // Tự động điền giá gợi ý vào form nếu chưa có hoặc đang tính lại từ đầu
-    if (
-      form.getFieldValue('finalPrice') === undefined ||
-      'quantity' in changedValues ||
-      'paperType' in changedValues ||
-      'desiredDate' in changedValues
-    ) {
-      form.setFieldValue('finalPrice', calculatedTotal)
-    }
+    form.setFieldValue('finalPrice', calculatedTotal)
 
     setEstimate({
       baseCost,
       rushFee,
       daysEarly,
-      finalCost: calculatedTotal, // Giá hệ thống để tham khảo
+      finalCost: calculatedTotal,
       systemDate: systemDateStr,
       caseType,
       paperNeeded,
@@ -467,7 +458,7 @@ function ConsultantForm() {
     if (isWorkshopFull) {
       return (
         <Alert
-          message='Xưởng đang quá tải!'
+          title='Xưởng đang quá tải!'
           description={
             <div>
               <p>
@@ -494,7 +485,7 @@ function ConsultantForm() {
     if (!estimate.isStockEnough) {
       return (
         <Alert
-          message='Thiếu nguyên vật liệu'
+          title='Thiếu nguyên vật liệu'
           description='Kho không đủ giấy. Cần tạo phiếu Yêu Cầu Vật Tư sau khi tạo đơn.'
           type='error'
           showIcon
@@ -506,7 +497,7 @@ function ConsultantForm() {
     if (estimate.caseType === 3) {
       return (
         <Alert
-          message='GẤP & QUÁ TẢI'
+          title='GẤP & QUÁ TẢI'
           description={`Khách cần sớm ${estimate.daysEarly} ngày. Xưởng đang bận. Đã tính phí gấp cao.`}
           type='error'
           showIcon

@@ -56,6 +56,7 @@ export interface Order {
   final_price?: number
   note?: string
   created_at: string
+  contract_file?: string | null
 }
 
 export interface Inventory {
@@ -254,7 +255,78 @@ const getInitialOrders = (): Order[] => {
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
 
+  const addDays = (days: number) => {
+    const d = new Date(now)
+    d.setDate(d.getDate() + days)
+    return d.toISOString().split('T')[0]
+  }
+
   return [
+    // --- 3 ĐƠN HÀNG DEMO CHO KHÁCH (SĐT: 0123456789) ---
+    {
+      id: 'ORD-DEMO-001',
+      product_id: 'p4',
+      product_name: 'Hộp giấy Kraft Vintage',
+      quantity: 500,
+      delivery_date: addDays(7),
+      customer_name: 'Khách Hàng Demo',
+      customer_phone: '0123456789', // Số điện thoại test
+      status: 'pending',
+      process_status: 'pending_consultant', // Trạng thái: Chờ tư vấn
+      created_at: new Date().toISOString(), // Vừa đặt
+      note: 'Gói hàng kỹ giúp mình nhé.',
+      specs: {
+        width: 15,
+        height: 10,
+        length: 5,
+        paper_id: 'Giấy Kraft',
+        colors: ['#8B4513'],
+        processing: [],
+      },
+    },
+    {
+      id: 'ORD-DEMO-002',
+      product_id: 'p1',
+      product_name: 'Catalogue Giới Thiệu (A4)',
+      quantity: 200,
+      delivery_date: addDays(5),
+      customer_name: 'Khách Hàng Demo',
+      customer_phone: '0123456789',
+      status: 'in_production',
+      process_status: 'manager_approved', // Trạng thái: Đang in ấn
+      created_at: addDays(-2), // Đặt cách đây 2 ngày
+      final_price: 3500000, // Đã có giá
+      specs: {
+        width: 21,
+        height: 29,
+        length: 0,
+        paper_id: 'Giấy Couche 150',
+        colors: ['#000000', '#FF0000'],
+        processing: ['Cán màng mờ', 'Đóng ghim giữa'],
+      },
+    },
+    {
+      id: 'ORD-DEMO-003',
+      product_id: 'p5',
+      product_name: 'Card Visit (5 hộp)',
+      quantity: 500,
+      delivery_date: addDays(-1),
+      customer_name: 'Khách Hàng Demo',
+      customer_phone: '0123456789',
+      status: 'completed',
+      process_status: 'manager_approved', // Trạng thái: Hoàn thành
+      created_at: addDays(-10), // Đặt cách đây 10 ngày
+      final_price: 450000,
+      contract_file: 'HD-0123456789.pdf', // Có hợp đồng
+      specs: {
+        width: 9,
+        height: 5,
+        length: 0,
+        paper_id: 'Giấy C300',
+        colors: ['#0000FF'],
+        processing: ['Cán màng bóng'],
+      },
+    },
     {
       id: 'ord-sample-1',
       product_id: 'p1',
