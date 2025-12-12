@@ -187,7 +187,7 @@ function ConsultantForm() {
   const machinesInUse = Math.round(
     (currentProductionLoad / 100) * TOTAL_MACHINES
   )
-  const isWorkshopFull = machinesInUse >= 40 // Coi như đầy nếu >= 45/50 máy (90%)
+  const isWorkshopFull = machinesInUse >= 49 // Coi như đầy nếu >= 45/50 máy (90%)
 
   // Tính toán ngày dự kiến xưởng rảnh
   const getEstimatedFreeDate = () => {
@@ -965,15 +965,16 @@ function ConsultantForm() {
                       <Form.Item name='finalPrice' noStyle>
                         <InputNumber
                           className='w-full text-2xl font-bold text-blue-700 border-none bg-transparent focus:bg-white focus:shadow-md transition-all p-0'
+                          defaultValue={estimate.finalCost.toLocaleString()}
                           formatter={(value) =>
                             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
                           }
-                          parser={(value) =>
-                            value?.replace(
-                              /\$\s?|(,*)/g,
-                              ''
-                            ) as unknown as number
-                          }
+                          // parser={(value) =>
+                          //   value?.replace(
+                          //     /\$\s?|(,*)/g,
+                          //     ''
+                          //   ) as unknown as number
+                          // }
                           addonAfter='₫'
                           bordered={false}
                         />
