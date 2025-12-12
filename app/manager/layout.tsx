@@ -33,7 +33,7 @@ export default function layoutManager({
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
         <div className="p-6">
-          <h1 className="text-blue-600">Quản lý Sản xuất</h1>
+          <h1 className="text-blue-600 text-2xl font-semibold">Quản lý </h1>
         </div>
 
         <nav className="px-4">
