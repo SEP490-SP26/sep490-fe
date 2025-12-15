@@ -1,14 +1,7 @@
 "use client";
 import { useProduction } from "@/context/ProductionContext";
 import { useParams, useRouter } from "next/navigation";
-import {
-  BiBook,
-  BiCheckCircle,
-  BiNetworkChart,
-  BiPackage,
-  BiSolidZap,
-  BiWorld,
-} from "react-icons/bi";
+import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
 import {
   BsArrowLeft,
   BsClock,
@@ -25,11 +18,8 @@ export default function ProductionDetailPage() {
   const {
     orders,
     products,
-    materials,
     productionSchedules,
     getProductionStages,
-    getStageMaterialsInfo,
-    checkStageMaterials,
     updateProductionStage,
   } = useProduction();
 
@@ -61,7 +51,7 @@ export default function ProductionDetailPage() {
     {
       id: "ralo",
       name: "Ralo",
-      code: "25-557", // Mã công đoạn
+      code: "25-557",
       inputMaterials: [
         { name: "Giấy Duplex 350", quantity: 320, unit: "tờ", code: "VT00798" },
       ],
@@ -302,7 +292,7 @@ export default function ProductionDetailPage() {
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">SẢN PHẨM</div>
-                <div className="font-medium text-gray-900">{product?.name}</div>
+                <div className="font-medium text-gray-900">{product?.type}</div>
                 <div className="text-xs text-gray-500 mt-1">Mã: 2025NL0052</div>
               </div>
 

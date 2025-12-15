@@ -137,6 +137,7 @@ export default function ProductionScheduling() {
 
   const handleSchedule = (orderId: string) => {
     scheduleProduction(orderId);
+    showInfoToast("Đã lên lịch sản xuất cho đơn hàng");
   };
 
   const handleStart = (scheduleId: string) => {
@@ -271,7 +272,7 @@ export default function ProductionScheduling() {
                       {order.customer_name}
                     </div>
                     <div className="text-gray-500 text-sm">
-                      {product?.name} • Số lượng: {order.quantity}
+                      {product?.type} • Số lượng: {order.quantity}
                     </div>
                     <div className="text-gray-500 text-sm">
                       Giao:{" "}
@@ -331,7 +332,7 @@ export default function ProductionScheduling() {
                         </span>
                       </div>
                       <div className="text-gray-500 text-sm">
-                        {order.product?.name} • SL: {order.quantity}
+                        {order.product?.type} • SL: {order.quantity}
                       </div>
                       <div className="text-gray-500 text-sm">
                         Giao:{" "}
@@ -454,7 +455,7 @@ export default function ProductionScheduling() {
                       {order.customer_name}
                     </div>
                     <div className="text-gray-500 text-sm">
-                      {order.product?.name} • SL: {order.quantity}
+                      {order.product?.type} • SL: {order.quantity}
                     </div>
                     <div className="text-gray-500 text-sm">
                       Giao:{" "}
@@ -553,7 +554,7 @@ export default function ProductionScheduling() {
                             {order.customer_name}
                           </div>
                           <div className="text-gray-500 text-sm">
-                            {order.product?.name} • Số lượng: {order.quantity}
+                            {order.product?.type} • Số lượng: {order.quantity}
                           </div>
                           {order.schedule && (
                             <div className="text-gray-500 text-sm">

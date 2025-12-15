@@ -179,6 +179,7 @@ export default function PurchaseManagement() {
     const pos = purchaseOrders.filter((po) => po.status === status);
 
     // Nhóm các PO theo supplier và delivery date
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const groupedOrders: Record<string, any[]> = {};
 
     pos.forEach((po) => {
@@ -225,7 +226,7 @@ export default function PurchaseManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 ">
       {/* Header với Tab Bar và Search */}
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
