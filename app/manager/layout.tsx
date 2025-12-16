@@ -1,7 +1,7 @@
 import Link from "next/link";
 import React from "react";
-import { BiLogOut, BiPackage } from "react-icons/bi";
-import { FaShoppingCart, FaWarehouse } from "react-icons/fa";
+import { BiLogOut, BiNotepad, BiPackage } from "react-icons/bi";
+import { FaShoppingCart } from "react-icons/fa";
 import { LuLayoutDashboard } from "react-icons/lu";
 
 export default function layoutManager({
@@ -11,19 +11,25 @@ export default function layoutManager({
 }) {
   const navItems = [
     {
-      path: "/",
+      path: "/manager",
       label: "Dashboard",
       icon: LuLayoutDashboard,
     },
-    { path: "/orders", label: "Đơn hàng", icon: FaShoppingCart },
-    { path: "/purchase", label: "Mua hàng", icon: BiPackage },
+    {
+      path: "/manager/orders/pending",
+      label: "Đơn hàng chờ duyệt",
+      icon: BiNotepad,
+    },
+    { path: "/manager/orders", label: "Đơn hàng", icon: FaShoppingCart },
+
+    { path: "/manager/purchase", label: "Mua hàng", icon: BiPackage },
     // {
     //   path: "/production",
     //   label: "Sản xuất",
     //   icon: BiCalendar,
     // },
     {
-      // path: "/",
+      path: "/",
       label: "Đăng xuất",
       icon: BiLogOut,
     },
@@ -33,7 +39,7 @@ export default function layoutManager({
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
         <div className="p-6">
-          <h1 className="text-blue-600">Quản lý Sản xuất</h1>
+          <h1 className="text-blue-600 text-2xl font-semibold">Quản lý </h1>
         </div>
 
         <nav className="px-4">
@@ -43,7 +49,7 @@ export default function layoutManager({
 
             return (
               <Link
-                href={"/manager" + item.path}
+                href={item.path}
                 key={item.path}
                 className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${
                   isActive

@@ -1,6 +1,7 @@
 'use client";'
 import Link from "next/link";
 import React from "react";
+import { FaWarehouse } from "react-icons/fa";
 import { FiLogOut, FiShoppingCart } from "react-icons/fi";
 
 export default function layoutManager({
@@ -13,6 +14,11 @@ export default function layoutManager({
       path: "/",
       label: "Lịch Sản Xuất",
       icon: FiShoppingCart,
+    },
+        {
+      path: "/inventory",
+      label: "Tồn Kho",
+      icon: FaWarehouse,
     },
     { path: "/", label: "Đăng xuất", icon: FiLogOut },
   ];

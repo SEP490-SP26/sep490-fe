@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { Order, useProduction } from '@/context/ProductionContext'
+import { Order, useProduction } from "@/context/ProductionContext";
 import {
   BgColorsOutlined,
   CalculatorOutlined,
@@ -9,16 +9,16 @@ import {
   DeleteOutlined,
   ExperimentOutlined,
   FileImageOutlined,
-  FileTextOutlined, // Icon cho hợp đồng
+  FileTextOutlined,
   InboxOutlined,
   MinusCircleOutlined,
   PlusOutlined,
-  ThunderboltFilled, // Icon cho danh sách đơn xưởng
+  ThunderboltFilled,
   UploadOutlined,
   UserOutlined,
   WarningOutlined,
-} from '@ant-design/icons'
-import type { UploadFile, UploadProps } from 'antd'
+} from "@ant-design/icons";
+import type { UploadFile, UploadProps } from "antd";
 import {
   Alert,
   Image as AntImage,
@@ -45,10 +45,10 @@ import {
   Tag,
   Tooltip,
   Upload,
-} from 'antd'
-import dayjs from 'dayjs'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+} from "antd";
+import dayjs from "dayjs";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 // --- UTILS: HÀM XỬ LÝ MÀU TỪ ẢNH (CANVAS API) ---
 const getDominantColors = (
@@ -56,98 +56,103 @@ const getDominantColors = (
   count: number = 5
 ): Promise<string[]> => {
   return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'Anonymous'
-    img.src = imageSrc
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = imageSrc;
     img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return reject('Canvas context error')
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject("Canvas context error");
 
-      canvas.width = 100
-      canvas.height = 100 * (img.height / img.width)
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.width = 100;
+      canvas.height = 100 * (img.height / img.width);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
-      const colorCounts: { [key: string]: number } = {}
+      const imageData = ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      ).data;
+      const colorCounts: { [key: string]: number } = {};
 
       for (let i = 0; i < imageData.length; i += 4 * 5) {
-        const r = imageData[i]
-        const g = imageData[i + 1]
-        const b = imageData[i + 2]
-        const alpha = imageData[i + 3]
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
+        const alpha = imageData[i + 3];
         if (
           alpha < 128 ||
           (r > 240 && g > 240 && b > 240) ||
           (r < 15 && g < 15 && b < 15)
         )
-          continue
+          continue;
 
-        const rRound = Math.round(r / 20) * 20
-        const gRound = Math.round(g / 20) * 20
-        const bRound = Math.round(b / 20) * 20
+        const rRound = Math.round(r / 20) * 20;
+        const gRound = Math.round(g / 20) * 20;
+        const bRound = Math.round(b / 20) * 20;
 
-        const rgb = `rgb(${rRound},${gRound},${bRound})`
-        colorCounts[rgb] = (colorCounts[rgb] || 0) + 1
+        const rgb = `rgb(${rRound},${gRound},${bRound})`;
+        colorCounts[rgb] = (colorCounts[rgb] || 0) + 1;
       }
 
       const sortedColors = Object.entries(colorCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, count)
         .map(([color]) => {
-          const [r, g, b] = color.match(/\d+/g)!.map(Number)
+          const [r, g, b] = color.match(/\d+/g)!.map(Number);
           return (
-            '#' +
+            "#" +
             ((1 << 24) + (r << 16) + (g << 8) + b)
               .toString(16)
               .slice(1)
               .toUpperCase()
-          )
-        })
+          );
+        });
 
-      resolve(sortedColors)
-    }
-    img.onerror = (e) => reject(e)
-  })
-}
+      resolve(sortedColors);
+    };
+    img.onerror = (e) => reject(e);
+  });
+};
 
 // --- DỮ LIỆU MẪU ---
 const PAPER_TYPES = [
-  { label: 'Giấy Duplex 250 (Khổ 650)', value: 'VT00008', stock: 30437 },
-  { label: 'Giấy Ivory 300 (Khổ 79x109)', value: 'VT00012', stock: 1200 },
-  { label: 'Giấy Couche 150', value: 'VT00020', stock: 5000 },
-  { label: 'Giấy Kraft', value: 'VT00030', stock: 0 },
-]
+  { label: "Giấy Duplex 250 (Khổ 650)", value: "VT00008", stock: 30437 },
+  { label: "Giấy Ivory 300 (Khổ 79x109)", value: "VT00012", stock: 1200 },
+  { label: "Giấy Couche 150", value: "VT00020", stock: 5000 },
+  { label: "Giấy Kraft", value: "VT00030", stock: 0 },
+];
 
 const PROCESSING_OPTS = [
-  { label: 'Cán màng (Bóng/Mờ)', value: 'can_mang' },
-  { label: 'Phủ UV/Varnish', value: 'phu_uv' },
-  { label: 'Bế (Die-cut)', value: 'be' },
-  { label: 'Dán máy', value: 'dan_may' },
-  { label: 'Bồi sóng', value: 'boi_song' },
-]
+  { label: "Cán màng (Bóng/Mờ)", value: "can_mang" },
+  { label: "Phủ UV/Varnish", value: "phu_uv" },
+  { label: "Bế (Die-cut)", value: "be" },
+  { label: "Dán máy", value: "dan_may" },
+  { label: "Bồi sóng", value: "boi_song" },
+];
 
 const PRODUCT_SUGGESTIONS = [
-  'Hộp bánh trung thu cao cấp',
-  'Hộp thuốc tây',
-  'Tờ rơi A4',
-  'Catalogue 32 trang',
-  'Hộp carton sóng E',
-]
+  "Hộp bánh trung thu cao cấp",
+  "Hộp thuốc tây",
+  "Tờ rơi A4",
+  "Catalogue 32 trang",
+  "Hộp carton sóng E",
+];
 
-const RUSH_FEE_LOW = 500000
-const RUSH_FEE_HIGH = 2000000
+const RUSH_FEE_LOW = 500000;
+const RUSH_FEE_HIGH = 2000000;
 
 interface DesignItem {
-  id: string
-  file: UploadFile | null
-  previewUrl: string
-  colors: string[]
+  id: string;
+  file: UploadFile | null;
+  previewUrl: string;
+  colors: string[];
 }
 
 // --- COMPONENT CHÍNH ---
 function ConsultantForm() {
-  const [form] = Form.useForm()
+  const [form] = Form.useForm();
   const {
     addOrder,
     updateOrder,
@@ -155,66 +160,70 @@ function ConsultantForm() {
     orders,
     isBusy,
     currentProductionLoad,
-  } = useProduction()
-  const searchParams = useSearchParams()
-  const router = useRouter()
+  } = useProduction();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const orderId = searchParams.get('orderId')
-  const [loading, setLoading] = useState(false)
+  const orderId = searchParams.get("orderId");
+  const [loading, setLoading] = useState(false);
 
-  const [designItems, setDesignItems] = useState<DesignItem[]>([])
+  const [designItems, setDesignItems] = useState<DesignItem[]>([]);
 
   // State cho Modal danh sách đơn hàng tại xưởng
-  const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false)
-  const [factoryOrders, setFactoryOrders] = useState<Order[]>([])
+  const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
+  const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
 
   // State estimate
   const [estimate, setEstimate] = useState<{
-    baseCost: number
-    rushFee: number
-    daysEarly: number
-    finalCost: number // Giá hệ thống tính (để tham khảo)
-    systemDate: string
-    caseType: 1 | 2 | 3
-    paperNeeded: number
-    isStockEnough: boolean
-    productionDays: number
-    effectiveDate: string
-  } | null>(null)
+    baseCost: number;
+    rushFee: number;
+    daysEarly: number;
+    finalCost: number; // Giá hệ thống tính (để tham khảo)
+    systemDate: string;
+    caseType: 1 | 2 | 3;
+    paperNeeded: number;
+    isStockEnough: boolean;
+    productionDays: number;
+    effectiveDate: string;
+  } | null>(null);
 
-  const TOTAL_MACHINES = 50
+  const TOTAL_MACHINES = 50;
   // Tính số máy đang chạy dựa trên % tải (currentProductionLoad)
-  const machinesInUse = Math.round(
-    (currentProductionLoad / 100) * TOTAL_MACHINES
-  )
-  const isWorkshopFull = machinesInUse >= 40 // Coi như đầy nếu >= 45/50 máy (90%)
+  const machinesInUse = Math.round(currentProductionLoad
+  );
+  const isWorkshopFull = machinesInUse >= 40; // Coi như đầy nếu >= 45/50 máy (90%)
 
   // Tính toán ngày dự kiến xưởng rảnh
   const getEstimatedFreeDate = () => {
     // Lấy các đơn đang sản xuất
-    const activeOrders = orders.filter((o) => o.status === 'in_production')
-    if (activeOrders.length === 0) return 0 // Rảnh ngay
+    const activeOrders = orders.filter((o) => o.status === "in_production");
+    if (activeOrders.length === 0) return { days: 0, date: dayjs().format("DD/MM/YYYY") };
 
     // Tìm ngày giao sớm nhất của các đơn đang chạy (giả sử đó là lúc máy rảnh)
     const sortedOrders = [...activeOrders].sort(
       (a, b) =>
         new Date(a.delivery_date).getTime() -
         new Date(b.delivery_date).getTime()
-    )
+    );
 
-    const nextFreeDateStr = sortedOrders[0]?.delivery_date
-    if (!nextFreeDateStr) return 2 // Default 2 ngày
+    const nextFreeDateStr = sortedOrders[0]?.delivery_date;
+    if (!nextFreeDateStr) return { days: 2, date: dayjs().add(2, "day").format("DD/MM/YYYY") };
 
-    const diffDays = dayjs(nextFreeDateStr).diff(dayjs(), 'day')
-    return diffDays > 0 ? diffDays : 1
-  }
+    const nextFreeDate = dayjs(nextFreeDateStr);
+    const diffDays = nextFreeDate.diff(dayjs(), "day");
+    return { 
+      days: diffDays > 0 ? diffDays : 1, 
+      date: nextFreeDate.format("DD/MM/YYYY") 
+    };
+  };
 
-  const daysUntilFree = getEstimatedFreeDate()
+  const workshopFreeInfo = getEstimatedFreeDate();
+  const daysUntilFree = workshopFreeInfo.days;
 
   // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU ---
   useEffect(() => {
     if (orderId) {
-      const existingOrder = orders.find((o) => o.id === orderId)
+      const existingOrder = orders.find((o) => o.id === orderId);
       if (existingOrder) {
         form.setFieldsValue({
           customerName: existingOrder.customer_name,
@@ -234,23 +243,23 @@ function ConsultantForm() {
           processing: existingOrder.specs?.processing,
           // Load giá cũ nếu có
           finalPrice: existingOrder.final_price,
-        })
+        });
 
         // Xử lý File cũ
         if (existingOrder.design_file_url) {
-          const urls = existingOrder.design_file_url.split(',')
+          const urls = existingOrder.design_file_url.split(",");
           const loadedItems: DesignItem[] = urls.map((url, idx) => ({
             id: `design-${idx}`,
             file: {
               uid: `-${idx}`,
               name: `File ${idx + 1}`,
-              status: 'done',
+              status: "done",
               url: url.trim(),
             } as UploadFile,
             previewUrl: url.trim(),
             colors: idx === 0 ? existingOrder.specs?.colors || [] : [],
-          }))
-          setDesignItems(loadedItems)
+          }));
+          setDesignItems(loadedItems);
         }
 
         handleCalculate(
@@ -262,127 +271,129 @@ function ConsultantForm() {
               : null,
             paperType: existingOrder.specs?.paper_id,
           }
-        )
+        );
       }
     }
-  }, [orderId, orders, form])
+  }, [orderId, orders, form]);
 
   // --- LOGIC XEM ĐƠN HÀNG TẠI XƯỞNG ---
   const handleOpenFactoryOrders = () => {
     const activeOrders = orders.filter(
-      (o) => o.status === 'in_production' || o.status === 'scheduled'
-    )
-    setFactoryOrders(activeOrders)
-    setIsFactoryModalOpen(true)
-  }
+      (o) => o.status === "in_production" || o.status === "scheduled"
+    );
+    setFactoryOrders(activeOrders);
+    setIsFactoryModalOpen(true);
+  };
 
-  const handleUploadChange: UploadProps['onChange'] = ({
+  const handleUploadChange: UploadProps["onChange"] = ({
     fileList: newFileList,
   }) => {
-    const latestFile = newFileList[newFileList.length - 1]
-    if (!latestFile) return
+    const latestFile = newFileList[newFileList.length - 1];
+    if (!latestFile) return;
 
-    const exists = designItems.some((item) => item.file?.uid === latestFile.uid)
+    const exists = designItems.some(
+      (item) => item.file?.uid === latestFile.uid
+    );
     if (!exists && latestFile.originFileObj) {
-      const objectUrl = URL.createObjectURL(latestFile.originFileObj)
+      const objectUrl = URL.createObjectURL(latestFile.originFileObj);
       const newItem: DesignItem = {
         id: `design-${Date.now()}`,
         file: latestFile,
         previewUrl: objectUrl,
-        colors: ['#000000'],
-      }
-      setDesignItems((prev) => [...prev, newItem])
+        colors: ["#000000"],
+      };
+      setDesignItems((prev) => [...prev, newItem]);
     }
-  }
+  };
 
   const removeDesignItem = (id: string) => {
-    setDesignItems((prev) => prev.filter((item) => item.id !== id))
-  }
+    setDesignItems((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const updateItemColors = (id: string, newColors: string[]) => {
     setDesignItems((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, colors: newColors } : item
       )
-    )
-  }
+    );
+  };
 
   const handleAutoExtract = async (id: string, previewUrl: string) => {
     try {
-      message.loading({ content: 'Đang quét màu...', key: 'extract' })
-      const colors = await getDominantColors(previewUrl, 5)
-      updateItemColors(id, colors)
-      message.success({ content: 'Đã lấy màu xong!', key: 'extract' })
+      message.loading({ content: "Đang quét màu...", key: "extract" });
+      const colors = await getDominantColors(previewUrl, 5);
+      updateItemColors(id, colors);
+      message.success({ content: "Đã lấy màu xong!", key: "extract" });
     } catch (e) {
-      message.error('Lỗi khi đọc ảnh')
+      message.error("Lỗi khi đọc ảnh");
     }
-  }
+  };
 
   const handleEyeDropper = async (id: string) => {
-    if (!window.EyeDropper) return message.error('Trình duyệt không hỗ trợ!')
+    if (!window.EyeDropper) return message.error("Trình duyệt không hỗ trợ!");
     try {
-      const eyeDropper = new window.EyeDropper()
-      const result = await eyeDropper.open()
-      const hex = result.sRGBHex
+      const eyeDropper = new window.EyeDropper();
+      const result = await eyeDropper.open();
+      const hex = result.sRGBHex;
 
-      const item = designItems.find((i) => i.id === id)
+      const item = designItems.find((i) => i.id === id);
       if (item && !item.colors.includes(hex)) {
-        updateItemColors(id, [...item.colors, hex])
+        updateItemColors(id, [...item.colors, hex]);
       }
     } catch (e) {}
-  }
+  };
 
   // --- LOGIC TÍNH TOÁN & SUBMIT ---
   const handleCalculate = (changedValues: any, allValues: any) => {
-    const { quantity, paperType, desiredDate } = allValues
+    const { quantity, paperType, desiredDate } = allValues;
 
-    if ('finalPrice' in changedValues) return
+    if ("finalPrice" in changedValues) return;
 
-    if (!quantity) return
+    if (!quantity) return;
 
-    const baseCost = quantity * 2500 + 3000000
+    const baseCost = quantity * 2500 + 3000000;
 
-    const paperNeeded = Math.ceil((quantity / 4) * 1.05)
-    const selectedPaper = PAPER_TYPES.find((p) => p.value === paperType)
+    const paperNeeded = Math.ceil((quantity / 4) * 1.05);
+    const selectedPaper = PAPER_TYPES.find((p) => p.value === paperType);
     const isStockEnough = selectedPaper
       ? selectedPaper.stock >= paperNeeded
-      : true
+      : true;
 
-    const waitingDays = isWorkshopFull ? daysUntilFree : 0
-    const productionDays = Math.ceil(quantity / 2000) + 2
-    const materialLeadTime = isStockEnough ? 0 : 4
-    const totalSystemDays = productionDays + materialLeadTime + waitingDays
+    const waitingDays = isWorkshopFull ? daysUntilFree : 0;
+    const productionDays = Math.ceil(quantity / 2000) + 2;
+    const materialLeadTime = isStockEnough ? 0 : 4;
+    const totalSystemDays = productionDays + materialLeadTime + waitingDays;
 
-    const today = dayjs()
-    const systemDateObj = today.add(totalSystemDays, 'day')
-    const systemDateStr = systemDateObj.format('YYYY-MM-DD')
+    const today = dayjs();
+    const systemDateObj = today.add(totalSystemDays, "day");
+    const systemDateStr = systemDateObj.format("YYYY-MM-DD");
 
-    if (!orderId && 'quantity' in changedValues && !desiredDate) {
-      form.setFieldValue('desiredDate', systemDateObj)
+    if (!orderId && "quantity" in changedValues && !desiredDate) {
+      form.setFieldValue("desiredDate", systemDateObj);
     }
 
-    const currentDesiredDate = desiredDate || systemDateObj
-    let rushFee = 0
-    let daysEarly = 0
-    let caseType: 1 | 2 | 3 = 1
+    const currentDesiredDate = desiredDate || systemDateObj;
+    let rushFee = 0;
+    let daysEarly = 0;
+    let caseType: 1 | 2 | 3 = 1;
 
-    if (currentDesiredDate.isBefore(systemDateObj, 'day')) {
-      daysEarly = systemDateObj.diff(currentDesiredDate, 'day')
+    if (currentDesiredDate.isBefore(systemDateObj, "day")) {
+      daysEarly = systemDateObj.diff(currentDesiredDate, "day");
       if (!isStockEnough || isWorkshopFull) {
-        rushFee = daysEarly * RUSH_FEE_HIGH * 1.5
-        caseType = 3
+        rushFee = daysEarly * RUSH_FEE_HIGH * 1.5;
+        caseType = 3;
       } else if (!isBusy) {
-        rushFee = daysEarly * RUSH_FEE_LOW
-        caseType = 2
+        rushFee = daysEarly * RUSH_FEE_LOW;
+        caseType = 2;
       } else {
-        rushFee = daysEarly * RUSH_FEE_HIGH
-        caseType = 3
+        rushFee = daysEarly * RUSH_FEE_HIGH;
+        caseType = 3;
       }
     }
 
-    const calculatedTotal = baseCost + rushFee
+    const calculatedTotal = baseCost + rushFee;
 
-    form.setFieldValue('finalPrice', calculatedTotal)
+    form.setFieldValue("finalPrice", calculatedTotal);
 
     setEstimate({
       baseCost,
@@ -394,23 +405,25 @@ function ConsultantForm() {
       paperNeeded,
       isStockEnough,
       productionDays,
-      effectiveDate: currentDesiredDate.format('YYYY-MM-DD'),
-    })
-  }
+      effectiveDate: currentDesiredDate.format("YYYY-MM-DD"),
+    });
+  };
 
   const onFinish = (values: any) => {
-    setLoading(true)
+    setLoading(true);
 
     const allUniqueColors = Array.from(
       new Set(designItems.flatMap((i) => i.colors))
-    )
+    );
     const colorDetailNote = designItems
-      .map((item, idx) => `[Mẫu ${idx + 1}]: ${item.colors.join(', ')}`)
-      .join('; ')
+      .map((item, idx) => `[Mẫu ${idx + 1}]: ${item.colors.join(", ")}`)
+      .join("; ");
     const finalNote = values.notes
       ? `${values.notes}. Chi tiết màu: ${colorDetailNote}`
-      : `Chi tiết màu: ${colorDetailNote}`
-    const fileUrls = designItems.map((i) => i.file?.url || 'new-file').join(',')
+      : `Chi tiết màu: ${colorDetailNote}`;
+    const fileUrls = designItems
+      .map((i) => i.file?.url || "new-file")
+      .join(",");
 
     const orderData = {
       product_id: values.paperType,
@@ -418,11 +431,11 @@ function ConsultantForm() {
         ? values.productName[0]
         : values.productName,
       quantity: values.quantity,
-      delivery_date: values.desiredDate.format('YYYY-MM-DD'),
+      delivery_date: values.desiredDate.format("YYYY-MM-DD"),
       system_delivery_date: estimate?.systemDate,
       customer_name: values.customerName,
       customer_phone: values.phone,
-      process_status: 'consultant_verified' as const,
+      process_status: "consultant_verified" as const,
       // Lấy giá chốt từ form input (giá người dùng có thể đã sửa)
       final_price: values.finalPrice,
       rush_fee: estimate?.rushFee,
@@ -437,147 +450,157 @@ function ConsultantForm() {
         processing: values.processing,
       },
       note: finalNote,
-      contract_file: values.contractFile ? 'contract.pdf' : null,
-    }
+      contract_file: values.contractFile ? "contract.pdf" : undefined,
+    };
 
     setTimeout(() => {
       if (orderId) {
-        updateOrder(orderId, orderData)
-        message.success('Đã cập nhật đơn hàng!')
+        updateOrder(orderId, orderData);
+        message.success("Đã cập nhật đơn hàng!");
+      } else if (estimate && estimate.isStockEnough) {
+        addOrder({ ...orderData, can_fulfill: true });
+        message.success("Đã tạo đơn mới!");
       } else {
-        addOrder({ ...orderData })
-        message.success('Đã tạo đơn mới!')
+        addOrder({ ...orderData, can_fulfill: false });
+        message.success("Đã tạo đơn mới!");
       }
-      setLoading(false)
-      router.push('/consultant/orders')
-    }, 1000)
-  }
+      setLoading(false);
+      router.push("/consultant/orders");
+    }, 1000);
+  };
 
   const renderStatusAlert = () => {
-    if (!estimate) return null
+    if (!estimate) return null;
     if (isWorkshopFull) {
       return (
         <Alert
-          title='Xưởng đang quá tải!'
+          message="⚠️ Xưởng đang quá tải!"
           description={
-            <div>
+            <div className="space-y-2">
               <p>
-                Công suất hiện tại:{' '}
-                <b>
+                Công suất hiện tại:{" "}
+                <b className="text-red-600">
                   {machinesInUse}/{TOTAL_MACHINES}
-                </b>{' '}
+                </b>{" "}
                 máy đang chạy.
               </p>
-              <p>
-                Cần thương lượng lại ngày giao. Dự kiến xưởng sẽ có máy rảnh sau{' '}
-                <b>{daysUntilFree} ngày</b> nữa.
-              </p>
+              <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+                <p className="font-medium text-yellow-800 mb-1">📅 Thông báo cho khách hàng:</p>
+                <p className="text-yellow-700">
+                  Xưởng sẽ bắt đầu rảnh trở lại vào ngày{" "}
+                  <b className="text-yellow-900">{workshopFreeInfo.date}</b>
+                  {" "}(còn <b>{daysUntilFree} ngày</b> nữa).
+                </p>
+                <p className="text-xs text-yellow-600 mt-1 italic">
+                  Nếu khách hàng vẫn đồng ý, bạn có thể tiếp tục gửi đơn cho Manager.
+                </p>
+              </div>
             </div>
           }
-          type='error'
+          type="warning"
           showIcon
           icon={<WarningOutlined />}
-          className='mb-4'
+          className="mb-4"
         />
-      )
+      );
     }
 
     if (!estimate.isStockEnough) {
       return (
         <Alert
-          title='Thiếu nguyên vật liệu'
-          description='Kho không đủ giấy. Cần tạo phiếu Yêu Cầu Vật Tư sau khi tạo đơn.'
-          type='error'
+          title="Thiếu nguyên vật liệu"
+          description="Kho không đủ giấy. Cần tạo phiếu Yêu Cầu Vật Tư sau khi tạo đơn."
+          type="error"
           showIcon
-          className='mb-4'
+          className="mb-4"
         />
-      )
+      );
     }
 
     if (estimate.caseType === 3) {
       return (
         <Alert
-          title='GẤP & QUÁ TẢI'
+          title="GẤP & QUÁ TẢI"
           description={`Khách cần sớm ${estimate.daysEarly} ngày. Xưởng đang bận. Đã tính phí gấp cao.`}
-          type='error'
+          type="error"
           showIcon
-          className='mb-4'
+          className="mb-4"
         />
-      )
+      );
     }
 
     if (estimate.caseType === 2) {
       return (
         <Alert
-          title='Đơn hàng ưu tiên (Gấp)'
+          title="Đơn hàng ưu tiên (Gấp)"
           description={`Khách cần sớm ${estimate.daysEarly} ngày. Đã tính phí ưu tiên.`}
-          type='warning'
+          type="warning"
           showIcon
-          className='mb-4'
+          className="mb-4"
         />
-      )
+      );
     }
 
     return (
       <Alert
-        title='Đủ điều kiện sản xuất'
-        description='Kho đủ giấy & Tiến độ phù hợp.'
-        type='success'
+        title="Đủ điều kiện sản xuất"
+        description="Kho đủ giấy & Tiến độ phù hợp."
+        type="success"
         showIcon
-        className='mb-4'
+        className="mb-4"
       />
-    )
-  }
+    );
+  };
 
   return (
-    <div className='p-6 bg-gray-50 min-h-screen'>
-      <div className='max-w-7xl mx-auto'>
+    <div className="p-4 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className='mb-6 flex justify-between items-center bg-white p-4 rounded shadow-sm'>
+        <div className="mb-4 flex justify-between items-center bg-white p-3 rounded shadow-sm">
           <div>
-            <h1 className='text-xl font-bold m-0 uppercase'>
+            <h1 className="text-xl font-bold m-0 uppercase">
               {orderId
-                ? `Xử Lý Đơn Hàng #${orderId.split('-')[1] || orderId}`
-                : 'Tạo Đơn Hàng Mới'}
+                ? `Xử Lý Đơn Hàng #${orderId.split("-")[1] || orderId}`
+                : "Tạo Đơn Hàng Mới"}
             </h1>
-            <span className='text-gray-500 text-sm'>
+            <span className="text-gray-500 text-sm">
               {orderId
-                ? 'Kiểm tra thông tin khách gửi và chốt phương án'
-                : 'Nhập thông tin yêu cầu sản xuất'}
+                ? "Kiểm tra thông tin khách gửi và chốt phương án"
+                : "Nhập thông tin yêu cầu sản xuất"}
             </span>
           </div>
-          <div className='flex gap-4 items-center'>
+          <div className="flex gap-4 items-center">
             {/* [MỚI] Hiển thị Công suất máy dạng thanh Progress */}
-            <div className='flex flex-col items-end w-48'>
-              <div className='text-xs text-gray-500 flex gap-1 mb-1'>
+            <div className="flex flex-col items-end w-48">
+              <div className="text-xs text-gray-500 flex gap-1 mb-1">
                 <DashboardOutlined /> Công suất xưởng ({machinesInUse}/
                 {TOTAL_MACHINES})
               </div>
               <Progress
                 percent={(machinesInUse / TOTAL_MACHINES) * 100}
-                size='small'
+                size="small"
                 // Đổi màu đỏ nếu đầy, xanh nếu còn chỗ
-                status={isWorkshopFull ? 'exception' : 'active'}
+                status={isWorkshopFull ? "exception" : "active"}
                 format={(percent) => `${machinesInUse} máy`}
-                strokeColor={isWorkshopFull ? '#ff4d4f' : '#52c41a'}
+                strokeColor={isWorkshopFull ? "#ff4d4f" : "#52c41a"}
               />
             </div>
           </div>
         </div>
 
-        <Row gutter={24}>
-          <Col span={15}>
+        <Row gutter={16}>
+          <Col span={16}>
             <Card
               title={
                 <>
                   <CodeSandboxOutlined /> Thông Tin Đơn Hàng
                 </>
               }
-              className='shadow-sm'
+              className="shadow-sm"
             >
               <Form
                 form={form}
-                layout='vertical'
+                layout="vertical"
                 onFinish={onFinish}
                 onValuesChange={handleCalculate}
               >
@@ -585,69 +608,64 @@ function ConsultantForm() {
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
-                      name='customerName'
-                      label='Khách Hàng'
+                      name="customerName"
+                      label="Khách Hàng"
                       rules={[{ required: true }]}
                     >
                       <Input
                         prefix={<UserOutlined />}
-                        placeholder='Tên khách...'
+                        placeholder="Tên khách..."
                       />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item name='phone' label='SĐT'>
+                    <Form.Item name="phone" label="SĐT">
                       <Input
-                        style={{ textAlign: 'right' }}
-                        placeholder='09...'
+                        style={{ textAlign: "right" }}
+                        placeholder="09..."
                       />
                     </Form.Item>
                   </Col>
                 </Row>
 
-                <Divider titlePlacement='left'>Thông Số Kỹ Thuật</Divider>
+                <Divider titlePlacement="left">Thông Số Kỹ Thuật</Divider>
 
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
-                      name='productName'
-                      label='Tên Sản Phẩm'
+                      name="productName"
+                      label="Tên sản phẩm"
                       rules={[{ required: true }]}
                     >
                       <Select
                         showSearch
-                        placeholder='Chọn hoặc nhập mới'
+                        placeholder="Chọn hoặc nhập mới"
                         options={PRODUCT_SUGGESTIONS.map((name) => ({
                           label: name,
                           value: name,
                         }))}
-                        mode='tags'
+                        mode="tags"
                         maxCount={1}
                       />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item label='Kích thước (D - R - C)' required>
-                      <Space.Compact block>
-                        <Form.Item name='length' noStyle>
-                          <InputNumber
-                            style={{ width: '33%', textAlign: 'right' }}
-                            placeholder='D'
-                          />
-                        </Form.Item>
-                        <Form.Item name='width' noStyle>
-                          <InputNumber
-                            style={{ width: '33%', textAlign: 'right' }}
-                            placeholder='R'
-                          />
-                        </Form.Item>
-                        <Form.Item name='height' noStyle>
-                          <InputNumber
-                            style={{ width: '34%', textAlign: 'right' }}
-                            placeholder='C'
-                          />
-                        </Form.Item>
-                      </Space.Compact>
+                    <Form.Item
+                      name="desiredDate"
+                      label="Ngày Giao Mong Muốn"
+                      rules={[{ required: true }]}
+                      help={
+                        estimate ? (
+                          <span className="text-blue-500 text-xs">
+                            Hệ thống tính:{" "}
+                            {dayjs(estimate.systemDate).format("DD/MM/YYYY")}
+                          </span>
+                        ) : (
+                          ""
+                        )
+                      }
+                    >
+                      <DatePicker className="w-full" format="DD/MM/YYYY" />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -655,43 +673,70 @@ function ConsultantForm() {
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
-                      name='paperType'
-                      label='Loại sản phẩm'
+                      name="paperType"
+                      label="Loại sản phẩm"
                       rules={[{ required: true }]}
                     >
                       <Select
-                        placeholder='Chọn sản phẩm'
+                        placeholder="Chọn sản phẩm"
                         options={products.map((prod) => ({
-                          label: prod.name,
+                          label: prod.type,
                           value: prod.id,
                         }))}
-                        // onChange={handleCalculate}
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col span={6}>
+                    <Form.Item label="Kích thước (D - R - C)" required>
+                      <Space.Compact block>
+                        <Form.Item name="length" noStyle>
+                          <InputNumber
+                            style={{ width: "33%" }}
+                            placeholder="D"
+                            controls={{ upIcon: null, downIcon: null }}
+                          />
+                        </Form.Item>
+                        <Form.Item name="width" noStyle>
+                          <InputNumber
+                            style={{ width: "33%" }}
+                            placeholder="R"
+                            controls={{ upIcon: null, downIcon: null }}
+                          />
+                        </Form.Item>
+                        <Form.Item name="height" noStyle>
+                          <InputNumber
+                            style={{ width: "34%" }}
+                            placeholder="C"
+                            controls={{ upIcon: null, downIcon: null }}
+                          />
+                        </Form.Item>
+                      </Space.Compact>
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
                     <Form.Item
-                      name='quantity'
-                      label='Số Lượng'
+                      name="quantity"
+                      label="Số Lượng"
                       rules={[{ required: true }]}
                     >
                       <InputNumber
-                        className='w-full'
-                        style={{ textAlign: 'right' }}
+                        className="w-full"
+                        style={{ textAlign: "right" }}
                         formatter={(value) =>
-                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                         }
+                        controls={{ upIcon: null, downIcon: null }}
                       />
                     </Form.Item>
                   </Col>
                 </Row>
 
-                <Divider titlePlacement='left'>
+                <Divider titlePlacement="left">
                   Quản Lý File & Màu Sắc (Theo từng mẫu)
                 </Divider>
 
-                <div className='bg-gray-50 p-4 rounded border mb-4'>
-                  <div className='mb-4 text-center'>
+                <div className="bg-gray-50 p-4 rounded border mb-4">
+                  <div className="mb-4 text-center">
                     <Upload
                       showUploadList={false}
                       beforeUpload={() => false}
@@ -699,20 +744,20 @@ function ConsultantForm() {
                       multiple
                     >
                       <Button
-                        type='dashed'
+                        type="dashed"
                         icon={<InboxOutlined />}
-                        size='large'
-                        className='w-full'
+                        size="large"
+                        className="w-full"
                       >
                         + Thêm Mẫu Thiết Kế Mới (Upload Ảnh)
                       </Button>
                     </Upload>
                   </div>
 
-                  <div className='space-y-4'>
+                  <div className="space-y-4">
                     {designItems.length === 0 && (
                       <Empty
-                        description='Chưa có mẫu nào. Hãy upload ảnh.'
+                        description="Chưa có mẫu nào. Hãy upload ảnh."
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
                       />
                     )}
@@ -720,42 +765,42 @@ function ConsultantForm() {
                     {designItems.map((item, index) => (
                       <div
                         key={item.id}
-                        className='bg-white p-3 rounded shadow-sm border flex gap-4 items-start relative hover:border-blue-400 transition-colors'
+                        className="bg-white p-3 rounded shadow-sm border flex gap-4 items-start relative hover:border-blue-400 transition-colors"
                       >
-                        <div className='absolute top-0 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-br'>
+                        <div className="absolute top-0 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-br">
                           Mẫu #{index + 1}
                         </div>
-                        <div className='absolute top-2 right-2'>
+                        <div className="absolute top-2 right-2">
                           <Button
-                            type='text'
+                            type="text"
                             danger
                             icon={<DeleteOutlined />}
                             onClick={() => removeDesignItem(item.id)}
                           />
                         </div>
 
-                        <div className='w-32 h-32 flex-shrink-0 border rounded bg-gray-100 flex items-center justify-center overflow-hidden mt-2'>
+                        <div className="w-32 h-32 flex-shrink-0 border rounded bg-gray-100 flex items-center justify-center overflow-hidden mt-2">
                           {item.previewUrl ? (
                             <AntImage
                               src={item.previewUrl}
-                              height='100%'
-                              className='object-contain'
+                              height="100%"
+                              className="object-contain"
                             />
                           ) : (
-                            <FileImageOutlined className='text-2xl text-gray-300' />
+                            <FileImageOutlined className="text-2xl text-gray-300" />
                           )}
                         </div>
 
-                        <div className='flex-1 mt-2'>
-                          <div className='flex justify-between items-center mb-2'>
-                            <span className='font-semibold text-gray-700'>
+                        <div className="flex-1 mt-2">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-semibold text-gray-700">
                               Màu sắc in ấn cho mẫu này:
                             </span>
-                            <Space size='small'>
-                              <Tooltip title='Tự động tìm màu trong ảnh này'>
+                            <Space size="small">
+                              <Tooltip title="Tự động tìm màu trong ảnh này">
                                 <Button
-                                  size='small'
-                                  type='primary'
+                                  size="small"
+                                  type="primary"
                                   ghost
                                   icon={<ExperimentOutlined />}
                                   onClick={() =>
@@ -765,9 +810,9 @@ function ConsultantForm() {
                                   Auto
                                 </Button>
                               </Tooltip>
-                              <Tooltip title='Chấm màu trên màn hình'>
+                              <Tooltip title="Chấm màu trên màn hình">
                                 <Button
-                                  size='small'
+                                  size="small"
                                   icon={<BgColorsOutlined />}
                                   onClick={() => handleEyeDropper(item.id)}
                                 >
@@ -777,11 +822,11 @@ function ConsultantForm() {
                             </Space>
                           </div>
 
-                          <div className='flex flex-wrap gap-2'>
+                          <div className="flex flex-wrap gap-2">
                             {item.colors.map((color, cIdx) => (
                               <div
                                 key={cIdx}
-                                className='flex items-center bg-gray-50 border rounded pl-1 pr-2 py-1'
+                                className="flex items-center bg-gray-50 border rounded pl-1 pr-2 py-1"
                               >
                                 <div
                                   style={{
@@ -790,37 +835,37 @@ function ConsultantForm() {
                                     backgroundColor: color,
                                     borderRadius: 4,
                                     marginRight: 8,
-                                    border: '1px solid #ddd',
+                                    border: "1px solid #ddd",
                                   }}
                                 ></div>
-                                <span className='text-xs font-mono'>
+                                <span className="text-xs font-mono">
                                   {color}
                                 </span>
                                 <MinusCircleOutlined
-                                  className='ml-2 text-gray-400 hover:text-red-500 cursor-pointer'
+                                  className="ml-2 text-gray-400 hover:text-red-500 cursor-pointer"
                                   onClick={() => {
                                     const newColors = item.colors.filter(
                                       (_, i) => i !== cIdx
-                                    )
-                                    updateItemColors(item.id, newColors)
+                                    );
+                                    updateItemColors(item.id, newColors);
                                   }}
                                 />
                               </div>
                             ))}
                             <ColorPicker
-                              value='#1677ff'
+                              value="#1677ff"
                               onChangeComplete={(c) => {
                                 if (!item.colors.includes(c.toHexString())) {
                                   updateItemColors(item.id, [
                                     ...item.colors,
                                     c.toHexString(),
-                                  ])
+                                  ]);
                                 }
                               }}
                             >
                               <Button
-                                size='small'
-                                type='dashed'
+                                size="small"
+                                type="dashed"
                                 icon={<PlusOutlined />}
                               >
                                 Thêm
@@ -833,83 +878,73 @@ function ConsultantForm() {
                   </div>
                 </div>
 
-                <Form.Item name='processing' label='Gia Công'>
+                <Form.Item name="processing" label="Gia Công">
                   <Checkbox.Group options={PROCESSING_OPTS} />
                 </Form.Item>
 
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item name='notes' label='Ghi Chú'>
-                      <Input.TextArea rows={1} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name='desiredDate'
-                      label='Ngày Giao Dự Kiến'
-                      rules={[{ required: true }]}
-                      help={
-                        estimate ? (
-                          <span className='text-blue-500 text-xs'>
-                            Hệ thống tính:{' '}
-                            {dayjs(estimate.systemDate).format('DD/MM/YYYY')}
-                          </span>
-                        ) : (
-                          ''
-                        )
-                      }
-                    >
-                      <DatePicker className='w-full' format='DD/MM/YYYY' />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                <Form.Item name="notes" label="Ghi Chú">
+                  <Input.TextArea rows={1} />
+                </Form.Item>
 
-                <div className='bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4'>
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
                   <Form.Item
-                    name='contractFile'
+                    name="contractFile"
                     label={
-                      <span className='flex items-center gap-1 font-semibold text-blue-800'>
+                      <span className="flex items-center gap-1 font-semibold text-blue-800">
                         <FileTextOutlined /> Upload hợp đồng
                       </span>
                     }
-                    valuePropName='fileList'
+                    valuePropName="fileList"
                     getValueFromEvent={(e) =>
                       Array.isArray(e) ? e : e?.fileList
                     }
+                    className="mb-0"
                   >
                     <Upload
-                      name='contract'
-                      action='/upload.do'
-                      listType='text'
+                      name="contract"
+                      action="/upload.do"
+                      listType="text"
                       maxCount={1}
+                      className="contract-upload-success"
                     >
-                      <Button icon={<UploadOutlined />}>
+                      <Button icon={<UploadOutlined />} size="small">
                         Tải lên file PDF/DOCX
                       </Button>
                     </Upload>
                   </Form.Item>
                 </div>
+                <style jsx global>{`
+                  .contract-upload-success .ant-upload-list-item-name {
+                    color: #16a34a !important;
+                  }
+                  .contract-upload-success .ant-upload-list-item {
+                    color: #16a34a !important;
+                  }
+                  .contract-upload-success .ant-upload-list-item-actions .anticon-delete {
+                    color: #dc2626 !important;
+                  }
+                `}</style>
 
-                <Form.Item className='mt-4'>
+                <Form.Item className="mt-4">
                   <Button
-                    type='primary'
-                    htmlType='submit'
-                    size='large'
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
                     loading={loading}
                     block
                     className={`h-12 font-bold ${
                       estimate?.caseType === 3
-                        ? 'bg-red-600 hover:bg-red-700'
+                        ? "bg-red-600 hover:bg-red-700"
                         : estimate?.caseType === 2
-                        ? 'bg-orange-500 hover:bg-orange-600'
-                        : 'bg-blue-600'
+                        ? "bg-orange-500 hover:bg-orange-600"
+                        : "bg-blue-600"
                     }`}
                   >
                     {estimate?.caseType === 3
-                      ? 'CHỐT DEAL GIÁ & GỬI DUYỆT'
+                      ? "CHỐT DEAL GIÁ & GỬI DUYỆT"
                       : estimate?.caseType === 2
-                      ? 'XÁC NHẬN ƯU TIÊN & GỬI DUYỆT'
-                      : 'XÁC NHẬN & GỬI DUYỆT'}
+                      ? "XÁC NHẬN ƯU TIÊN & GỬI DUYỆT"
+                      : "XÁC NHẬN & GỬI DUYỆT"}
                   </Button>
                 </Form.Item>
               </Form>
@@ -917,111 +952,110 @@ function ConsultantForm() {
           </Col>
 
           {/* CỘT PHẢI: LOGIC TÍNH TOÁN & ƯỚC TÍNH */}
-          <Col span={9}>
-            <div className='sticky top-6'>
+          <Col span={8}>
+            <div className="sticky top-4">
               <Card
                 title={
                   <>
                     <CalculatorOutlined /> Ước Tính & Tồn Kho
                   </>
                 }
-                className='shadow-sm border-blue-100'
+                className="shadow-sm border-blue-100"
               >
                 {!estimate ? (
-                  <div className='text-center py-8 text-gray-400'>
+                  <div className="text-center py-8 text-gray-400">
                     Nhập thông số để xem ước tính
                   </div>
                 ) : (
-                  <div className='space-y-6'>
+                  <div className="space-y-6">
                     {renderStatusAlert()}
 
-                    <div className='bg-gray-50 p-4 rounded-lg'>
+                    <div className="bg-gray-50 p-4 rounded-lg">
                       <Statistic
-                        title='Giấy in ước tính (đã bù hao)'
+                        title="Giấy in ước tính (đã bù hao)"
                         value={estimate.paperNeeded}
-                        suffix='tờ'
-                        groupSeparator=','
+                        suffix="tờ"
+                        groupSeparator=","
                       />
-                      <div className='text-xs text-gray-500 mt-1'>
+                      <div className="text-xs text-gray-500 mt-1">
                         (Bình trang giả định: 4 hộp/tờ + 5% hao hụt)
                       </div>
                     </div>
 
-                    {/* Chi phí sơ bộ - CHO PHÉP CHỈNH SỬA */}
-                    <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
-                      <div className='flex justify-between items-center mb-2'>
-                        <span className='text-sm font-medium text-blue-900'>
-                          Chi phí sản xuất:
-                        </span>
-                        <Tooltip title='Giá đề xuất tự động dựa trên số lượng và công đoạn'>
-                          <span className='text-xs text-blue-500 cursor-help underline'>
-                            Giá hệ thống: {estimate.finalCost.toLocaleString()}{' '}
-                            ₫
+                    {/* Chi phí sơ bộ - CHO PHÉP CHỈNH SỬa */}
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-sm font-medium text-blue-900">
+                            Chi phí sản xuất:
                           </span>
-                        </Tooltip>
+                          <div className="text-xs text-blue-500 mt-1">
+                            Giá hệ thống: {estimate.finalCost.toLocaleString()} ₫
+                          </div>
+                        </div>
+                        
+                        {/* Input nhập giá chốt - căn phải */}
+                        <Form.Item name="finalPrice" noStyle>
+                          <InputNumber
+                            className="text-xl font-bold text-blue-700"
+                            style={{ width: 200, textAlign: "right" }}
+                            formatter={(value) =>
+                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            parser={(value) =>
+                              value?.replace(
+                                /\$\s?|(,*)/g,
+                                ""
+                              ) as unknown as number
+                            }
+                            addonAfter="₫"
+                          />
+                        </Form.Item>
                       </div>
 
-                      {/* Input nhập giá chốt */}
-                      <Form.Item name='finalPrice' noStyle>
-                        <InputNumber
-                          className='w-full text-2xl font-bold text-blue-700 border-none bg-transparent focus:bg-white focus:shadow-md transition-all p-0'
-                          formatter={(value) =>
-                            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                          }
-                          parser={(value) =>
-                            value?.replace(
-                              /\$\s?|(,*)/g,
-                              ''
-                            ) as unknown as number
-                          }
-                          addonAfter='₫'
-                          bordered={false}
-                        />
-                      </Form.Item>
-
                       {estimate.rushFee > 0 && (
-                        <div className='text-xs text-red-500 mt-2 flex items-center justify-end'>
-                          <ThunderboltFilled className='mr-1' />
-                          (Bao gồm phí gấp: {estimate.rushFee.toLocaleString()}{' '}
+                        <div className="text-xs text-red-500 mt-2 flex items-center justify-end">
+                          <ThunderboltFilled className="mr-1" />
+                          (Bao gồm phí in gấp: {estimate.rushFee.toLocaleString()}{" "}
                           ₫)
                         </div>
                       )}
-                      <Divider className='my-2 border-blue-200' />
-                      <div className='text-xs text-gray-500 text-center'>
+                      <Divider className="my-2 border-blue-200" />
+                      <div className="text-xs text-gray-500 text-center">
                         (Bao gồm Giấy + Kẽm + Công in + Gia công)
                       </div>
                     </div>
 
-                    <div className='border-t pt-4'>
-                      <h4 className='font-semibold text-gray-700 mb-2'>
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold text-gray-700 mb-2">
                         Tiến độ dự kiến:
                       </h4>
                       <Steps
-                        orientation='vertical'
-                        size='small'
+                        orientation="vertical"
+                        size="small"
                         current={1}
                         items={[
-                          { title: 'Tạo đơn', description: 'Hôm nay' },
+                          { title: "Tạo đơn", description: "Hôm nay" },
                           {
-                            title: 'Chuẩn bị vật tư',
+                            title: "Chuẩn bị vật tư",
                             description: estimate.isStockEnough ? (
-                              'Có sẵn tại kho'
+                              "Có sẵn tại kho"
                             ) : (
-                              <span className='text-red-500'>
+                              <span className="text-red-500">
                                 Thiếu - Cần 3-5 ngày nhập
                               </span>
                             ),
-                            status: estimate.isStockEnough ? 'finish' : 'error',
+                            status: estimate.isStockEnough ? "finish" : "error",
                           },
                           {
-                            title: 'Sản xuất',
+                            title: "Sản xuất",
                             description: `Khoảng ${estimate.productionDays} ngày`,
                           },
                           {
-                            title: 'Giao hàng',
+                            title: "Giao hàng",
                             description: `Hẹn giao: ${dayjs(
                               estimate.effectiveDate
-                            ).format('DD/MM/YYYY')}`,
+                            ).format("DD/MM/YYYY")}`,
                           },
                         ]}
                       />
@@ -1035,7 +1069,7 @@ function ConsultantForm() {
 
         {/* MODAL DANH SÁCH ĐƠN HÀNG TẠI XƯỞNG */}
         <Modal
-          title='Đơn Hàng Đang Sản Xuất Tại Xưởng'
+          title="Đơn Hàng Đang Sản Xuất Tại Xưởng"
           open={isFactoryModalOpen}
           onCancel={() => setIsFactoryModalOpen(false)}
           footer={null}
@@ -1048,42 +1082,42 @@ function ConsultantForm() {
               <List.Item>
                 <List.Item.Meta
                   avatar={
-                    <div className='bg-blue-100 p-2 rounded-full text-blue-600'>
+                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
                       <CodeSandboxOutlined />
                     </div>
                   }
                   description={
                     <div>
-                      <div className='font-medium text-gray-800'>
+                      <div className="font-medium text-gray-800">
                         {item.customer_name}
                       </div>
-                      <div className='text-xs text-gray-500'>
-                        SL: {item.quantity.toLocaleString()} | Giao:{' '}
-                        {dayjs(item.delivery_date).format('DD/MM/YYYY')}
+                      <div className="text-xs text-gray-500">
+                        SL: {item.quantity.toLocaleString()} | Giao:{" "}
+                        {dayjs(item.delivery_date).format("DD/MM/YYYY")}
                       </div>
                     </div>
                   }
                 />
                 <Tag
-                  color={item.status === 'in_production' ? 'orange' : 'blue'}
+                  color={item.status === "in_production" ? "orange" : "blue"}
                 >
-                  {item.status === 'in_production'
-                    ? 'Đang chạy máy'
-                    : 'Đã lên lịch'}
+                  {item.status === "in_production"
+                    ? "Đang chạy máy"
+                    : "Đã lên lịch"}
                 </Tag>
               </List.Item>
             )}
-            locale={{ emptyText: 'Hiện xưởng đang trống việc' }}
+            locale={{ emptyText: "Hiện xưởng đang trống việc" }}
           />
         </Modal>
       </div>
     </div>
-  )
+  );
 }
 
 declare global {
   interface Window {
-    EyeDropper: any
+    EyeDropper: any;
   }
 }
 
@@ -1092,5 +1126,5 @@ export default function ConsultantPageWrapper() {
     <Suspense fallback={<div>Loading...</div>}>
       <ConsultantForm />
     </Suspense>
-  )
+  );
 }

@@ -1,11 +1,14 @@
 "use client";
-import { Order, useProduction } from "@/context/ProductionContext";
+import { Order, Printer, useProduction } from "@/context/ProductionContext";
 import { showSuccessToast } from "@/utils/toastService";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import React from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BiCalendar,
   BiCheckCircle,
   BiChevronDown,
+  BiChevronRight,
   BiChevronUp,
   BiDownload,
   BiFilter,
@@ -14,21 +17,25 @@ import {
   BiSearch,
   BiXCircle,
 } from "react-icons/bi";
-import {
-  BsCheckCircle,
-  BsExclamationCircle,
-  BsExclamationTriangle,
-  BsEye,
-} from "react-icons/bs";
-import { FiAlertTriangle, FiMoreVertical } from "react-icons/fi";
+import { BsCheckCircle, BsExclamationCircle } from "react-icons/bs";
+import { FiMoreVertical } from "react-icons/fi";
 
 export default function OrderListPage() {
-  const { products, materials, orders, createPurchaseRequest } =
-    useProduction();
+  const {
+    products,
+    materials,
+    orders,
+    createPurchaseRequest,
+    getAvailablePrinters,
+    assignPrinterToOrder,
+    updateProductionSchedule,
+    scheduleProduction,
+    productionSchedules,
+  } = useProduction();
 
   const [checkingOrder, setCheckingOrder] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-
+  const router = useRouter();
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -43,14 +50,15 @@ export default function OrderListPage() {
   const [sortBy, setSortBy] = useState<keyof Order>("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // Get unique customers and products for filters
-  const uniqueCustomers = useMemo(() => {
-    const customers = orders.map((order) => order.customer_name);
-    return [...new Set(customers)];
-  }, [orders]);
+
+
+const nonPendingOrders = orders.filter(
+  (order) => order.status !== "pending"
+);
+
 
   const filteredOrders = useMemo(() => {
-    let result = [...orders];
+    let result = [...nonPendingOrders];
 
     // Search filter
     if (searchTerm) {
@@ -107,7 +115,7 @@ export default function OrderListPage() {
 
     return result;
   }, [
-    orders,
+    nonPendingOrders,
     searchTerm,
     statusFilter,
     customerFilter,
@@ -172,12 +180,28 @@ export default function OrderListPage() {
     });
   };
 
+  const handleSchedule = (orderId: string) => {
+    const schedule = productionSchedules.find((s) => s.order_id === orderId);
+    if (schedule?.assigned_printer) {
+      scheduleProduction(orderId);
+      showSuccessToast("Đã lên lịch sản xuất!");
+    }
+  };
+
+  const handleRowClick = (order: Order) => {
+    // Chỉ chuyển trang nếu order có thể sản xuất
+    if (order.can_fulfill === true) {
+      router.push(`orders/${order.id}`);
+    }
+    // Nếu không đủ NVL, có thể hiển thị thông báo hoặc không làm gì
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 ">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Danh Sách Đơn Hàng</h1>
         <p className="text-gray-600 mt-2">
-          Tổng số: {orders.length} đơn hàng • Đang hiển thị:{" "}
+          Tổng số: {nonPendingOrders.length} đơn hàng • Đang hiển thị:{" "}
           {filteredOrders.length} đơn
         </p>
       </div>
@@ -276,7 +300,7 @@ export default function OrderListPage() {
                       <option value="all">Tất cả sản phẩm</option>
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.name}
+                          {product.type}
                         </option>
                       ))}
                     </select>
@@ -351,7 +375,7 @@ export default function OrderListPage() {
                     )}
                     {productFilter !== "all" && (
                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
-                        SP: {products.find((p) => p.id === productFilter)?.name}
+                        SP: {products.find((p) => p.id === productFilter)?.type}
                         <button
                           onClick={() => setProductFilter("all")}
                           className="hover:text-purple-900"
@@ -396,7 +420,7 @@ export default function OrderListPage() {
         {/* Table Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Table Header */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          {/* <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <h2 className="font-semibold text-gray-900">Đơn hàng</h2>
@@ -411,7 +435,7 @@ export default function OrderListPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Table */}
           <div className="overflow-x-auto">
@@ -421,7 +445,7 @@ export default function OrderListPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <button
                       onClick={() => handleSort("created_at")}
-                      className="flex items-center gap-1 hover:text-gray-700"
+                      className="flex items-center  hover:text-gray-700"
                     >
                       Ngày tạo
                       {sortBy === "created_at" &&
@@ -492,19 +516,18 @@ export default function OrderListPage() {
                     (p) => p.id === order.product_id
                   );
                   const isMissingMaterials = order.can_fulfill === false;
-                  const isWarning =
-                    order.can_fulfill === undefined &&
-                    order.status === "pending";
+                  const canNavigate = order.can_fulfill === true; // Chỉ navigate khi đủ NVL
 
                   return (
-                    <>
+                    <React.Fragment key={order.id}>
+                      {/* Hàng chính */}
                       <tr
-                        key={order.id}
-                        className={`hover:bg-gray-50 transition-colors ${
+                        onClick={() => handleRowClick(order)} // Thêm click handler
+                        className={`hover:bg-gray-50 transition-colors cursor-pointer ${
                           isMissingMaterials
-                            ? "bg-red-50 hover:bg-red-100"
-                            : isWarning
-                            ? "bg-yellow-50 hover:bg-yellow-100"
+                            ? "bg-red-100 hover:bg-red-200"
+                            : canNavigate
+                            ? "hover:bg-blue-50" // Highlight nếu có thể navigate
                             : ""
                         }`}
                       >
@@ -523,10 +546,10 @@ export default function OrderListPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {product?.name}
+                            {product?.type}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900  ">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <span className="flex justify-center font-medium">
                             {order.quantity}
                           </span>
@@ -547,10 +570,16 @@ export default function OrderListPage() {
                             {getStatusLabel(order.status)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td
+                          className="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                          onClick={(e) => e.stopPropagation()} // Ngăn click vào nút lan ra hàng
+                        >
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => toggleExpandOrder(order.id)}
+                              onClick={(e) => {
+                                e.stopPropagation(); // Ngăn lan ra hàng
+                                toggleExpandOrder(order.id);
+                              }}
                               className="text-blue-600 hover:text-blue-900"
                             >
                               {expandedOrder === order.id ? (
@@ -559,7 +588,10 @@ export default function OrderListPage() {
                                 <BiChevronDown className="w-5 h-5" />
                               )}
                             </button>
-                            <button className="text-gray-600 hover:text-gray-900">
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
                               {isMissingMaterials ? (
                                 <div className="flex items-center gap-1 text-red-600">
                                   <BsExclamationCircle className="w-5 h-5" />
@@ -570,7 +602,10 @@ export default function OrderListPage() {
                                 </div>
                               )}
                             </button>
-                            <button className="text-gray-600 hover:text-gray-900">
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
                               <FiMoreVertical className="w-5 h-5" />
                             </button>
                           </div>
@@ -609,7 +644,7 @@ export default function OrderListPage() {
                                       Sản phẩm:
                                     </span>
                                     <span className="text-gray-900">
-                                      {product?.name}
+                                      {product?.type}
                                     </span>
                                   </div>
                                   <div className="flex justify-between">
@@ -640,11 +675,24 @@ export default function OrderListPage() {
                                     )}
 
                                   {order.can_fulfill === true && (
-                                    <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                      <BiCheckCircle className="w-5 h-5 text-green-600" />
-                                      <span className="text-green-700 text-sm">
-                                        Có thể sản xuất
-                                      </span>
+                                    <div>
+                                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <BiCheckCircle className="w-5 h-5 text-green-600" />
+                                        <span className="text-green-700 text-sm">
+                                          ĐỦ NGUYÊN VẬT LIỆU
+                                        </span>
+                                      </div>
+                                      <div className="pt-4 border-t border-gray-200">
+                                        <button
+                                          onClick={() =>
+                                            router.push(`orders/${order.id}`)
+                                          }
+                                          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                                        >
+                                          <BiChevronRight className="w-4 h-4" />
+                                          Xem thông tin chi tiết 
+                                        </button>
+                                      </div>
                                     </div>
                                   )}
 
@@ -683,16 +731,6 @@ export default function OrderListPage() {
                                             </div>
                                           </div>
                                         </div>
-
-                                        {/* <button
-                                          onClick={() =>
-                                            handleCreatePR(order.id)
-                                          }
-                                          className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2 text-sm"
-                                        >
-                                          <FiAlertTriangle className="w-4 h-4" />
-                                          Tạo yêu cầu mua hàng
-                                        </button> */}
                                       </div>
                                     )}
                                 </div>
@@ -701,7 +739,7 @@ export default function OrderListPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>

@@ -205,7 +205,7 @@ export default function CustomerHistoryPage() {
               }}
             />
             <div className='text-center mt-4'>
-              <Link href='/customer/order'>
+              <Link href='/order'>
                 <Button type='dashed'>Đặt đơn hàng mới</Button>
               </Link>
             </div>
