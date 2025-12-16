@@ -606,7 +606,7 @@ function ConsultantForm() {
               >
                 {/* Thông tin khách */}
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col span={8}>
                     <Form.Item
                       name="customerName"
                       label="Khách Hàng"
@@ -618,15 +618,25 @@ function ConsultantForm() {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col span={8}>
                     <Form.Item name="phone" label="SĐT">
-                      <Input
-                        style={{ textAlign: "right" }}
-                        placeholder="09..."
-                      />
+                      <Input placeholder="09..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="email" label="Email">
+                      <Input placeholder="email@example.com" />
                     </Form.Item>
                   </Col>
                 </Row>
+
+                {/* Địa chỉ giao hàng */}
+                <Form.Item name="shippingAddress" label="Địa chỉ giao hàng">
+                  <Input.TextArea
+                    rows={2}
+                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố..."
+                  />
+                </Form.Item>
 
                 <Divider titlePlacement="left">Thông Số Kỹ Thuật</Divider>
 
@@ -678,36 +688,39 @@ function ConsultantForm() {
                       rules={[{ required: true }]}
                     >
                       <Select
-                        placeholder="Chọn sản phẩm"
+                        showSearch
+                        placeholder="Chọn hoặc nhập mới"
                         options={products.map((prod) => ({
                           label: prod.type,
-                          value: prod.id,
+                          value: prod.type,
                         }))}
+                        mode="tags"
+                        maxCount={1}
                       />
                     </Form.Item>
                   </Col>
                   <Col span={6}>
-                    <Form.Item label="Kích thước (D - R - C)" required>
-                      <Space.Compact block>
+                    <Form.Item label="Kích thước (D x R x C)" required>
+                      <Space.Compact block style={{ display: 'flex' }}>
                         <Form.Item name="length" noStyle>
                           <InputNumber
-                            style={{ width: "33%" }}
+                            style={{ flex: 1 }}
                             placeholder="D"
-                            controls={{ upIcon: null, downIcon: null }}
+                            controls={false}
                           />
                         </Form.Item>
                         <Form.Item name="width" noStyle>
                           <InputNumber
-                            style={{ width: "33%" }}
+                            style={{ flex: 1 }}
                             placeholder="R"
-                            controls={{ upIcon: null, downIcon: null }}
+                            controls={false}
                           />
                         </Form.Item>
                         <Form.Item name="height" noStyle>
                           <InputNumber
-                            style={{ width: "34%" }}
+                            style={{ flex: 1 }}
                             placeholder="C"
-                            controls={{ upIcon: null, downIcon: null }}
+                            controls={false}
                           />
                         </Form.Item>
                       </Space.Compact>
@@ -721,11 +734,10 @@ function ConsultantForm() {
                     >
                       <InputNumber
                         className="w-full"
-                        style={{ textAlign: "right" }}
                         formatter={(value) =>
                           `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                         }
-                        controls={{ upIcon: null, downIcon: null }}
+                        controls={false}
                       />
                     </Form.Item>
                   </Col>
