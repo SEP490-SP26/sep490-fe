@@ -6,19 +6,19 @@ import { getDistrictsByProvince, VIETNAM_PROVINCES } from '@/utils/vietnamLocati
 import { EnvironmentOutlined, EyeOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons'
 import type { UploadFile } from 'antd'
 import {
-    Button,
-    Card,
-    Col,
-    DatePicker,
-    Form,
-    Input,
-    InputNumber,
-    Modal,
-    Result,
-    Row,
-    Select,
-    Typography,
-    Upload
+  Button,
+  Card,
+  Col,
+  DatePicker,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Result,
+  Row,
+  Select,
+  Typography,
+  Upload
 } from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -359,26 +359,31 @@ export default function CustomerOrderPage() {
                   <Input placeholder='VD: Hộp bánh trung thu, Catalogue, Tờ rơi...' />
                 </Form.Item>
 
-                <Form.Item
-                  name='quantity'
-                  label={<span className={labelStyle}>Số lượng dự kiến</span>}
-                  rules={[{ required: true, message: 'Nhập số lượng' }]}
-                >
-                  <InputNumber
-                    className='w-full'
-                    min={1}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    placeholder='VD: 1,000'
-                  />
-                </Form.Item>
-
-                <Form.Item
-                  name='desiredDate'
-                  label={<span className={labelStyle}>Ngày mong muốn nhận hàng</span>}
-                  rules={[{ required: true, message: 'Chọn ngày' }]}
-                >
-                  <DatePicker className='w-full' format='DD/MM/YYYY' placeholder='Chọn ngày' />
-                </Form.Item>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name='quantity'
+                      label={<span className={labelStyle}>Số lượng dự kiến</span>}
+                      rules={[{ required: true, message: 'Nhập số lượng' }]}
+                    >
+                      <InputNumber
+                        className='w-full'
+                        min={1}
+                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        placeholder='VD: 1,000'
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name='desiredDate'
+                      label={<span className={labelStyle}>Ngày mong muốn nhận hàng</span>}
+                      rules={[{ required: true, message: 'Chọn ngày' }]}
+                    >
+                      <DatePicker className='w-full' format='DD/MM/YYYY' placeholder='Chọn ngày' />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
                 <Form.Item
                   name='note'

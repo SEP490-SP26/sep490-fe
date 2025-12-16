@@ -276,70 +276,64 @@ export default function GuestOrderPage() {
                     <Input placeholder='Nguyễn Văn A' />
                   </Form.Item>
 
-                  <Form.Item
-                    name='phone'
-                    label={<span className={labelStyle}>Số điện thoại</span>}
-                    rules={[
-                      { required: true, message: 'Nhập SĐT' },
-                      { pattern: /^0\d{9}$/, message: 'SĐT không hợp lệ' },
-                    ]}
-                  >
-                    <Input
-                      placeholder='0912345678'
-                      disabled={isOtpSent || isVerified}
-                      suffix={isVerified ? <CheckCircleOutlined className='text-green-500' /> : null}
-                    />
-                  </Form.Item>
+                  {/* SĐT + OTP cùng hàng */}
+                  <div className='mb-3'>
+                    <div className={`${labelStyle} mb-1`}>Số điện thoại <span className='text-red-500'>*</span></div>
+                    <div className='flex gap-2 items-start'>
+                      <Form.Item
+                        name='phone'
+                        className='flex-1 mb-0'
+                        rules={[
+                          { required: true, message: 'Nhập SĐT' },
+                          { pattern: /^0\d{9}$/, message: 'SĐT không hợp lệ' },
+                        ]}
+                      >
+                        <Input
+                          placeholder='0912345678'
+                          disabled={isOtpSent || isVerified}
+                          suffix={isVerified ? <CheckCircleOutlined className='text-green-500' /> : null}
+                        />
+                      </Form.Item>
 
-                  {/* OTP Section */}
-                  {!isVerified && (
-                    <div className='mb-4'>
-                      {!isOtpSent ? (
-                        <Button type='default' onClick={onSendOtp} loading={loadingOtp}>
-                          Gửi mã xác thực (OTP)
-                        </Button>
-                      ) : (
-                        <div className='space-y-3'>
-                          <div className='flex justify-center gap-2'>
-                            {otp.map((digit, index) => (
-                              <input
-                                key={index}
-                                id={`otp-${index}`}
-                                type='text'
-                                inputMode='numeric'
-                                maxLength={1}
-                                value={digit}
-                                onChange={(e) => handleOtpChange(index, e.target.value.replace(/\D/g, ''))}
-                                onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                                className='w-10 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none'
-                              />
-                            ))}
-                          </div>
-                          <div className='flex gap-2'>
-                            <Button type='primary' onClick={onVerifyOtp} loading={loadingOtp} className='flex-1'>
-                              Xác nhận
+                      {/* OTP Button/Input */}
+                      {!isVerified && (
+                        <>
+                          {!isOtpSent ? (
+                            <Button type='primary' onClick={onSendOtp} loading={loadingOtp}>
+                              Gửi OTP
                             </Button>
-                            <Button
-                              type='link'
-                              danger
-                              onClick={() => {
-                                setIsOtpSent(false)
-                                setOtp(['', '', '', '', '', ''])
-                              }}
-                            >
-                              Gửi lại
-                            </Button>
-                          </div>
-                        </div>
+                          ) : (
+                            <div className='flex gap-1 items-center'>
+                              {otp.map((digit, index) => (
+                                <input
+                                  key={index}
+                                  id={`otp-${index}`}
+                                  type='text'
+                                  inputMode='numeric'
+                                  maxLength={1}
+                                  value={digit}
+                                  onChange={(e) => handleOtpChange(index, e.target.value.replace(/\D/g, ''))}
+                                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                                  className='w-8 h-8 text-center text-sm font-bold border border-gray-300 rounded focus:border-blue-500 focus:outline-none'
+                                />
+                              ))}
+                              <Button type='primary' size='small' onClick={onVerifyOtp} loading={loadingOtp}>
+                                Xác nhận
+                              </Button>
+                              <Button type='link' size='small' danger onClick={() => { setIsOtpSent(false); setOtp(['', '', '', '', '', '']); }}>
+                                Gửi lại
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {isVerified && (
+                        <span className='text-green-600 text-sm flex items-center'>
+                          <CheckCircleOutlined className='mr-1' /> Đã xác minh
+                        </span>
                       )}
                     </div>
-                  )}
-
-                  {isVerified && (
-                    <div className='mb-4 p-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm'>
-                      <CheckCircleOutlined className='mr-1' /> SĐT đã xác minh
-                    </div>
-                  )}
+                  </div>
 
                   <Form.Item
                     name='email'
@@ -416,26 +410,31 @@ export default function GuestOrderPage() {
                   <Input placeholder='VD: Hộp bánh trung thu, Catalogue, Tờ rơi...' />
                 </Form.Item>
 
-                <Form.Item
-                  name='quantity'
-                  label={<span className={labelStyle}>Số lượng dự kiến</span>}
-                  rules={[{ required: true, message: 'Nhập số lượng' }]}
-                >
-                  <InputNumber
-                    className='w-full'
-                    min={1}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    placeholder='VD: 1,000'
-                  />
-                </Form.Item>
-
-                <Form.Item
-                  name='desiredDate'
-                  label={<span className={labelStyle}>Ngày mong muốn nhận hàng</span>}
-                  rules={[{ required: true, message: 'Chọn ngày' }]}
-                >
-                  <DatePicker className='w-full' format='DD/MM/YYYY' placeholder='Chọn ngày' />
-                </Form.Item>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name='quantity'
+                      label={<span className={labelStyle}>Số lượng dự kiến</span>}
+                      rules={[{ required: true, message: 'Nhập số lượng' }]}
+                    >
+                      <InputNumber
+                        className='w-full'
+                        min={1}
+                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        placeholder='VD: 1,000'
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name='desiredDate'
+                      label={<span className={labelStyle}>Ngày mong muốn nhận hàng</span>}
+                      rules={[{ required: true, message: 'Chọn ngày' }]}
+                    >
+                      <DatePicker className='w-full' format='DD/MM/YYYY' placeholder='Chọn ngày' />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
                 <Form.Item
                   name='note'

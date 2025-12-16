@@ -995,45 +995,46 @@ function ConsultantForm() {
                     </div>
 
                     {/* Chi phí sơ bộ - CHO PHÉP CHỈNH SỬa */}
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-sm font-medium text-blue-900">
-                            Chi phí sản xuất:
+                    <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
+                      <div className='flex justify-between items-center mb-2'>
+                        <span className='text-sm font-medium text-blue-900'>
+                          Chi phí sản xuất:
+                        </span>
+                        <Tooltip title='Giá đề xuất tự động dựa trên số lượng và công đoạn'>
+                          <span className='text-xs text-blue-500 cursor-help underline'>
+                            Giá hệ thống: {estimate.finalCost.toLocaleString()}{' '}
+                            ₫
                           </span>
-                          <div className="text-xs text-blue-500 mt-1">
-                            Giá hệ thống: {estimate.finalCost.toLocaleString()} ₫
-                          </div>
-                        </div>
-                        
-                        {/* Input nhập giá chốt - căn phải */}
-                        <Form.Item name="finalPrice" noStyle>
-                          <InputNumber
-                            className="text-xl font-bold text-blue-700"
-                            style={{ width: 200, textAlign: "right" }}
-                            formatter={(value) =>
-                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                            }
-                            parser={(value) =>
-                              value?.replace(
-                                /\$\s?|(,*)/g,
-                                ""
-                              ) as unknown as number
-                            }
-                            addonAfter="₫"
-                          />
-                        </Form.Item>
+                        </Tooltip>
                       </div>
 
+                      {/* Input nhập giá chốt */}
+                      <Form.Item name='finalPrice' noStyle>
+                        <InputNumber
+                          className='w-full text-2xl font-bold text-blue-700 border-none bg-transparent focus:bg-white focus:shadow-md transition-all p-0'
+                          formatter={(value) =>
+                            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                          }
+                          parser={(value) =>
+                            value?.replace(
+                              /\$\s?|(,*)/g,
+                              ''
+                            ) as unknown as number
+                          }
+                          addonAfter='₫'
+                          bordered={false}
+                        />
+                      </Form.Item>
+
                       {estimate.rushFee > 0 && (
-                        <div className="text-xs text-red-500 mt-2 flex items-center justify-end">
-                          <ThunderboltFilled className="mr-1" />
-                          (Bao gồm phí in gấp: {estimate.rushFee.toLocaleString()}{" "}
+                        <div className='text-xs text-red-500 mt-2 flex items-center justify-end'>
+                          <ThunderboltFilled className='mr-1' />
+                          (Bao gồm phí gấp: {estimate.rushFee.toLocaleString()}{' '}
                           ₫)
                         </div>
                       )}
-                      <Divider className="my-2 border-blue-200" />
-                      <div className="text-xs text-gray-500 text-center">
+                      <Divider className='my-2 border-blue-200' />
+                      <div className='text-xs text-gray-500 text-center'>
                         (Bao gồm Giấy + Kẽm + Công in + Gia công)
                       </div>
                     </div>
