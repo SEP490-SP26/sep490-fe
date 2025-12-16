@@ -2,15 +2,18 @@
 import { Order, useProduction } from "@/context/ProductionContext";
 import { formatDate } from "@/utils/format";
 import { showSuccessToast } from "@/utils/toastService";
+import { DashboardOutlined } from "@ant-design/icons";
+import { Progress } from "antd";
+import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
 import {
-    BiCheckCircle,
-    BiChevronDown,
-    BiChevronUp,
-    BiPackage,
-    BiSearch,
-    BiXCircle
+  BiCheckCircle,
+  BiChevronDown,
+  BiChevronUp,
+  BiPackage,
+  BiSearch,
+  BiXCircle,
 } from "react-icons/bi";
 import { BsCheckCircle, BsExclamationCircle } from "react-icons/bs";
 import { FiMoreVertical } from "react-icons/fi";
@@ -20,12 +23,13 @@ export default function PendingOrderPage() {
     products,
     materials,
     orders,
+    currentProductionLoad,
     scheduleProduction,
   } = useProduction();
 
   const [checkingOrder, setCheckingOrder] = useState<string | null>(null);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  // const router = useRouter();
+  const router = useRouter();
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -145,28 +149,80 @@ export default function PendingOrderPage() {
     return labels[status] || status;
   };
 
-  const handleSchedule = (orderId: string) => {    
-      scheduleProduction(orderId);
-      showSuccessToast("Đã lên lịch sản xuất!")
+  const handleSchedule = (orderId: string) => {
+    scheduleProduction(orderId);
+    showSuccessToast("Đơn đã được duyệt!");
   };
 
-  // const handleRowClick = (order: Order) => {
-  //   // Chỉ chuyển trang nếu order có thể sản xuất
-  //   if (order.can_fulfill === true) {
-  //     router.push(`/manager/orders/${order.id}`);
-  //   }
-  //   // Nếu không đủ NVL, có thể hiển thị thông báo hoặc không làm gì
-  // };
+  const handleRowClick = (order: Order) => {
+    // Chỉ chuyển trang nếu order có thể sản xuất
+    if (order.can_fulfill === true) {
+      router.push(`/manager/orders/${order.id}`);
+    }
+    // Nếu không đủ NVL, có thể hiển thị thông báo hoặc không làm gì
+  };
+
+  const TOTAL_MACHINES = 50;
+  // Tính số máy đang chạy dựa trên % tải (currentProductionLoad)
+  const machinesInUse = Math.round(currentProductionLoad);
+  const isWorkshopFull = machinesInUse >= 40; // Coi như đầy nếu >= 45/50 máy (90%)
+
+  // Tính toán ngày dự kiến xưởng rảnh
+  const getEstimatedFreeDate = () => {
+    // Lấy các đơn đang sản xuất
+    const activeOrders = orders.filter((o) => o.status === "in_production");
+    if (activeOrders.length === 0)
+      return { days: 0, date: dayjs().format("DD/MM/YYYY") };
+
+    // Tìm ngày giao sớm nhất của các đơn đang chạy (giả sử đó là lúc máy rảnh)
+    const sortedOrders = [...activeOrders].sort(
+      (a, b) =>
+        new Date(a.delivery_date).getTime() -
+        new Date(b.delivery_date).getTime()
+    );
+
+    const nextFreeDateStr = sortedOrders[0]?.delivery_date;
+    if (!nextFreeDateStr)
+      return { days: 2, date: dayjs().add(2, "day").format("DD/MM/YYYY") };
+
+    const nextFreeDate = dayjs(nextFreeDateStr);
+    const diffDays = nextFreeDate.diff(dayjs(), "day");
+    return {
+      days: diffDays > 0 ? diffDays : 1,
+      date: nextFreeDate.format("DD/MM/YYYY"),
+    };
+  };
+
+  const workshopFreeInfo = getEstimatedFreeDate();
 
   return (
     <div className="min-h-screen bg-gray-50 ">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Danh Sách Đơn Hàng Đang Chờ Duyệt
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Tổng số: {pendingOrdersCount.length} đơn hàng
-        </p>
+      <div className="mb-8 flex justify-between items-center  ">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Danh Sách Đơn Hàng Đang Chờ Duyệt
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Tổng số: {pendingOrdersCount.length} đơn hàng
+          </p>
+        </div>
+        <div className="flex gap-4 items-center">
+          {/* [MỚI] Hiển thị Công suất máy dạng thanh Progress */}
+          <div className="flex flex-col items-end w-48">
+            <div className="text-xs text-gray-500 flex gap-1 mb-1">
+              <DashboardOutlined /> Công suất xưởng ({machinesInUse}/
+              {TOTAL_MACHINES})
+            </div>
+            <Progress
+              percent={(machinesInUse / TOTAL_MACHINES) * 100}
+              size="small"
+              // Đổi màu đỏ nếu đầy, xanh nếu còn chỗ
+              status={isWorkshopFull ? "exception" : "active"}
+              format={(percent) => `${machinesInUse} máy`}
+              strokeColor={isWorkshopFull ? "#ff4d4f" : "#52c41a"}
+            />
+          </div>
+        </div>
       </div>
       <div className="max-w-8xl mx-auto">
         {/* Toolbar  */}
@@ -211,7 +267,7 @@ export default function PendingOrderPage() {
                   <option value="all">Tất cả</option>
                   {products.map((product) => (
                     <option key={product.id} value={product.id}>
-                      {product.type} 
+                      {product.type}
                     </option>
                   ))}
                 </select>
@@ -411,7 +467,7 @@ export default function PendingOrderPage() {
                       <React.Fragment key={order.id}>
                         {/* Hàng chính */}
                         <tr
-                          // onClick={() => handleRowClick(order)} // Thêm click handler
+                          onClick={() => handleRowClick(order)} // Thêm click handler
                           className={`hover:bg-gray-50 transition-colors cursor-pointer ${
                             isMissingMaterials
                               ? "bg-red-100 hover:bg-red-200"
@@ -573,21 +629,23 @@ export default function PendingOrderPage() {
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 pt-4">
                                           <button
-                                            onClick={() => handleSchedule(order.id)}
+                                            onClick={() =>
+                                              handleSchedule(order.id)
+                                            }
                                             className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm"
                                           >
                                             <BiCheckCircle className="w-4 h-4" />
-                                            Duyện và lên lịch sản xuất
+                                            Duyệt đơn hàng
                                           </button>
                                           <button
-                                            // onClick={() =>
-                                            //   router.push(
-                                            //     `/manager/orders/${order.id}`
-                                            //   )
-                                            // }
+                                            onClick={() =>
+                                              router.push(
+                                                `/manager/orders/${order.id}`
+                                              )
+                                            }
                                             className="w-full bg-red-700 text-white px-4 py-2 rounded-lg hover:bg-red-800 transition-colors flex items-center justify-center gap-2 text-sm"
                                           >
-                                            <BiXCircle  className="w-4 h-4" />
+                                            <BiXCircle className="w-4 h-4" />
                                             Từ chối đơn hàng
                                           </button>
                                         </div>

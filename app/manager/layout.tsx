@@ -1,6 +1,11 @@
 import Link from "next/link";
 import React from "react";
-import { BiLogOut, BiNotepad, BiPackage } from "react-icons/bi";
+import {
+  BiCalendarCheck,
+  BiLogOut,
+  BiNotepad,
+  BiPackage,
+} from "react-icons/bi";
 import { FaShoppingCart } from "react-icons/fa";
 import { LuLayoutDashboard } from "react-icons/lu";
 
@@ -20,7 +25,7 @@ export default function layoutManager({
       label: "Đơn hàng chờ duyệt",
       icon: BiNotepad,
     },
-    { path: "/manager/orders", label: "Đơn hàng", icon: FaShoppingCart },
+    { path: "/manager/orders", label: "Đơn hàng", icon: BiCalendarCheck },
 
     { path: "/manager/purchase", label: "Mua hàng", icon: BiPackage },
     // {

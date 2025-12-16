@@ -224,21 +224,6 @@ export default function ProductionDetailPage() {
           {/* Left side - Order info */}
           <div className="flex-1">
             <div className="flex items-start gap-4 mb-4">
-              {/* <div className="bg-blue-600 text-white p-3 rounded-lg">
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div> */}
               <div>
                 <div className="flex flex-row justify-between items-start  gap-2 mb-1">
                   <div>
@@ -249,7 +234,7 @@ export default function ProductionDetailPage() {
 
                   {/* Status badge */}
                   <div
-                    className={`px-2 py-1 rounded-lg text-sm font-semibold   inline-block ${
+                    className={`px-2 py-1 rounded-lg text-sm font-semibold inline-block ${
                       order.status === "completed"
                         ? "bg-green-100 text-green-700 border border-green-200"
                         : order.status === "in_production"
@@ -268,9 +253,7 @@ export default function ProductionDetailPage() {
                       : " CHỜ XỬ LÝ"}
                   </div>
                 </div>
-                {/* <div className="text-gray-600">
-                  <span className="font-medium">Mã:</span> LSX-{order.id}
-                </div> */}
+
                 <div className=" flex flex-wrap item-end gap-2">
                   <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                     <span className="font-medium"></span> Người duyệt: Quản lý
