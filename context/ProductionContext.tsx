@@ -872,7 +872,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     getInitialPurchaseOrders()
   );
 
-  const [currentProductionLoad] = useState<number>(30); //thay đổi chỗ này nếu muốn thử test case xưởng rảnh
+  const [currentProductionLoad] = useState<number>(40); //thay đổi chỗ này nếu muốn thử test case xưởng rảnh
   const isBusy = currentProductionLoad > 80; //Xưởng bận khi >80%
   const [printers, setPrinters] = useState<Printer[]>(initialPrinters);
   const [productionSchedules, setProductionSchedules] = useState<

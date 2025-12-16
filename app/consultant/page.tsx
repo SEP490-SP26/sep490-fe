@@ -9,11 +9,11 @@ import {
   DeleteOutlined,
   ExperimentOutlined,
   FileImageOutlined,
-  FileTextOutlined, // Icon cho hợp đồng
+  FileTextOutlined,
   InboxOutlined,
   MinusCircleOutlined,
   PlusOutlined,
-  ThunderboltFilled, // Icon cho danh sách đơn xưởng
+  ThunderboltFilled,
   UploadOutlined,
   UserOutlined,
   WarningOutlined,
@@ -189,8 +189,7 @@ function ConsultantForm() {
 
   const TOTAL_MACHINES = 50;
   // Tính số máy đang chạy dựa trên % tải (currentProductionLoad)
-  const machinesInUse = Math.round(
-    (currentProductionLoad / 100) * TOTAL_MACHINES
+  const machinesInUse = Math.round(currentProductionLoad
   );
   const isWorkshopFull = machinesInUse >= 40; // Coi như đầy nếu >= 45/50 máy (90%)
 
@@ -198,7 +197,7 @@ function ConsultantForm() {
   const getEstimatedFreeDate = () => {
     // Lấy các đơn đang sản xuất
     const activeOrders = orders.filter((o) => o.status === "in_production");
-    if (activeOrders.length === 0) return 0; // Rảnh ngay
+    if (activeOrders.length === 0) return { days: 0, date: dayjs().format("DD/MM/YYYY") };
 
     // Tìm ngày giao sớm nhất của các đơn đang chạy (giả sử đó là lúc máy rảnh)
     const sortedOrders = [...activeOrders].sort(
@@ -208,13 +207,18 @@ function ConsultantForm() {
     );
 
     const nextFreeDateStr = sortedOrders[0]?.delivery_date;
-    if (!nextFreeDateStr) return 2; // Default 2 ngày
+    if (!nextFreeDateStr) return { days: 2, date: dayjs().add(2, "day").format("DD/MM/YYYY") };
 
-    const diffDays = dayjs(nextFreeDateStr).diff(dayjs(), "day");
-    return diffDays > 0 ? diffDays : 1;
+    const nextFreeDate = dayjs(nextFreeDateStr);
+    const diffDays = nextFreeDate.diff(dayjs(), "day");
+    return { 
+      days: diffDays > 0 ? diffDays : 1, 
+      date: nextFreeDate.format("DD/MM/YYYY") 
+    };
   };
 
-  const daysUntilFree = getEstimatedFreeDate();
+  const workshopFreeInfo = getEstimatedFreeDate();
+  const daysUntilFree = workshopFreeInfo.days;
 
   // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU ---
   useEffect(() => {
@@ -470,23 +474,30 @@ function ConsultantForm() {
     if (isWorkshopFull) {
       return (
         <Alert
-          title="Xưởng đang quá tải!"
+          message="⚠️ Xưởng đang quá tải!"
           description={
-            <div>
+            <div className="space-y-2">
               <p>
                 Công suất hiện tại:{" "}
-                <b>
+                <b className="text-red-600">
                   {machinesInUse}/{TOTAL_MACHINES}
                 </b>{" "}
                 máy đang chạy.
               </p>
-              <p>
-                Cần thương lượng lại ngày giao. Dự kiến xưởng sẽ có máy rảnh sau{" "}
-                <b>{daysUntilFree} ngày</b> nữa.
-              </p>
+              <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+                <p className="font-medium text-yellow-800 mb-1">📅 Thông báo cho khách hàng:</p>
+                <p className="text-yellow-700">
+                  Xưởng sẽ bắt đầu rảnh trở lại vào ngày{" "}
+                  <b className="text-yellow-900">{workshopFreeInfo.date}</b>
+                  {" "}(còn <b>{daysUntilFree} ngày</b> nữa).
+                </p>
+                <p className="text-xs text-yellow-600 mt-1 italic">
+                  Nếu khách hàng vẫn đồng ý, bạn có thể tiếp tục gửi đơn cho Manager.
+                </p>
+              </div>
             </div>
           }
-          type="error"
+          type="warning"
           showIcon
           icon={<WarningOutlined />}
           className="mb-4"
@@ -542,10 +553,10 @@ function ConsultantForm() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="mb-6 flex justify-between items-center bg-white p-4 rounded shadow-sm">
+        <div className="mb-4 flex justify-between items-center bg-white p-3 rounded shadow-sm">
           <div>
             <h1 className="text-xl font-bold m-0 uppercase">
               {orderId
@@ -577,8 +588,8 @@ function ConsultantForm() {
           </div>
         </div>
 
-        <Row gutter={24}>
-          <Col span={15}>
+        <Row gutter={16}>
+          <Col span={16}>
             <Card
               title={
                 <>
@@ -623,7 +634,7 @@ function ConsultantForm() {
                   <Col span={12}>
                     <Form.Item
                       name="productName"
-                      label="Tên Sản Phẩm"
+                      label="Tên sản phẩm"
                       rules={[{ required: true }]}
                     >
                       <Select
@@ -639,27 +650,22 @@ function ConsultantForm() {
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item label="Kích thước (D - R - C)" required>
-                      <Space.Compact block>
-                        <Form.Item name="length" noStyle>
-                          <InputNumber
-                            style={{ width: "33%", textAlign: "right" }}
-                            placeholder="D"
-                          />
-                        </Form.Item>
-                        <Form.Item name="width" noStyle>
-                          <InputNumber
-                            style={{ width: "33%", textAlign: "right" }}
-                            placeholder="R"
-                          />
-                        </Form.Item>
-                        <Form.Item name="height" noStyle>
-                          <InputNumber
-                            style={{ width: "34%", textAlign: "right" }}
-                            placeholder="C"
-                          />
-                        </Form.Item>
-                      </Space.Compact>
+                    <Form.Item
+                      name="desiredDate"
+                      label="Ngày Giao Mong Muốn"
+                      rules={[{ required: true }]}
+                      help={
+                        estimate ? (
+                          <span className="text-blue-500 text-xs">
+                            Hệ thống tính:{" "}
+                            {dayjs(estimate.systemDate).format("DD/MM/YYYY")}
+                          </span>
+                        ) : (
+                          ""
+                        )
+                      }
+                    >
+                      <DatePicker className="w-full" format="DD/MM/YYYY" />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -677,11 +683,37 @@ function ConsultantForm() {
                           label: prod.type,
                           value: prod.id,
                         }))}
-                        // onChange={handleCalculate}
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col span={6}>
+                    <Form.Item label="Kích thước (D - R - C)" required>
+                      <Space.Compact block>
+                        <Form.Item name="length" noStyle>
+                          <InputNumber
+                            style={{ width: "33%" }}
+                            placeholder="D"
+                            controls={{ upIcon: null, downIcon: null }}
+                          />
+                        </Form.Item>
+                        <Form.Item name="width" noStyle>
+                          <InputNumber
+                            style={{ width: "33%" }}
+                            placeholder="R"
+                            controls={{ upIcon: null, downIcon: null }}
+                          />
+                        </Form.Item>
+                        <Form.Item name="height" noStyle>
+                          <InputNumber
+                            style={{ width: "34%" }}
+                            placeholder="C"
+                            controls={{ upIcon: null, downIcon: null }}
+                          />
+                        </Form.Item>
+                      </Space.Compact>
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
                     <Form.Item
                       name="quantity"
                       label="Số Lượng"
@@ -693,6 +725,7 @@ function ConsultantForm() {
                         formatter={(value) =>
                           `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                         }
+                        controls={{ upIcon: null, downIcon: null }}
                       />
                     </Form.Item>
                   </Col>
@@ -849,34 +882,11 @@ function ConsultantForm() {
                   <Checkbox.Group options={PROCESSING_OPTS} />
                 </Form.Item>
 
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item name="notes" label="Ghi Chú">
-                      <Input.TextArea rows={1} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="desiredDate"
-                      label="Ngày Giao Dự Kiến"
-                      rules={[{ required: true }]}
-                      help={
-                        estimate ? (
-                          <span className="text-blue-500 text-xs">
-                            Hệ thống tính:{" "}
-                            {dayjs(estimate.systemDate).format("DD/MM/YYYY")}
-                          </span>
-                        ) : (
-                          ""
-                        )
-                      }
-                    >
-                      <DatePicker className="w-full" format="DD/MM/YYYY" />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                <Form.Item name="notes" label="Ghi Chú">
+                  <Input.TextArea rows={1} />
+                </Form.Item>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
                   <Form.Item
                     name="contractFile"
                     label={
@@ -888,19 +898,32 @@ function ConsultantForm() {
                     getValueFromEvent={(e) =>
                       Array.isArray(e) ? e : e?.fileList
                     }
+                    className="mb-0"
                   >
                     <Upload
                       name="contract"
                       action="/upload.do"
                       listType="text"
                       maxCount={1}
+                      className="contract-upload-success"
                     >
-                      <Button icon={<UploadOutlined />}>
+                      <Button icon={<UploadOutlined />} size="small">
                         Tải lên file PDF/DOCX
                       </Button>
                     </Upload>
                   </Form.Item>
                 </div>
+                <style jsx global>{`
+                  .contract-upload-success .ant-upload-list-item-name {
+                    color: #16a34a !important;
+                  }
+                  .contract-upload-success .ant-upload-list-item {
+                    color: #16a34a !important;
+                  }
+                  .contract-upload-success .ant-upload-list-item-actions .anticon-delete {
+                    color: #dc2626 !important;
+                  }
+                `}</style>
 
                 <Form.Item className="mt-4">
                   <Button
@@ -929,8 +952,8 @@ function ConsultantForm() {
           </Col>
 
           {/* CỘT PHẢI: LOGIC TÍNH TOÁN & ƯỚC TÍNH */}
-          <Col span={9}>
-            <div className="sticky top-6">
+          <Col span={8}>
+            <div className="sticky top-4">
               <Card
                 title={
                   <>
@@ -959,42 +982,41 @@ function ConsultantForm() {
                       </div>
                     </div>
 
-                    {/* Chi phí sơ bộ - CHO PHÉP CHỈNH SỬA */}
+                    {/* Chi phí sơ bộ - CHO PHÉP CHỈNH SỬa */}
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-blue-900">
-                          Chi phí sản xuất:
-                        </span>
-                        <Tooltip title="Giá đề xuất tự động dựa trên số lượng và công đoạn">
-                          <span className="text-xs text-blue-500 cursor-help underline">
-                            Giá hệ thống: {estimate.finalCost.toLocaleString()}{" "}
-                            ₫
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-sm font-medium text-blue-900">
+                            Chi phí sản xuất:
                           </span>
-                        </Tooltip>
+                          <div className="text-xs text-blue-500 mt-1">
+                            Giá hệ thống: {estimate.finalCost.toLocaleString()} ₫
+                          </div>
+                        </div>
+                        
+                        {/* Input nhập giá chốt - căn phải */}
+                        <Form.Item name="finalPrice" noStyle>
+                          <InputNumber
+                            className="text-xl font-bold text-blue-700"
+                            style={{ width: 200, textAlign: "right" }}
+                            formatter={(value) =>
+                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            parser={(value) =>
+                              value?.replace(
+                                /\$\s?|(,*)/g,
+                                ""
+                              ) as unknown as number
+                            }
+                            addonAfter="₫"
+                          />
+                        </Form.Item>
                       </div>
-
-                      {/* Input nhập giá chốt */}
-                      <Form.Item name="finalPrice" noStyle>
-                        <InputNumber
-                          className="w-full text-2xl font-bold text-blue-700 border-none bg-transparent focus:bg-white focus:shadow-md transition-all p-0"
-                          formatter={(value) =>
-                            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                          }
-                          parser={(value) =>
-                            value?.replace(
-                              /\$\s?|(,*)/g,
-                              ""
-                            ) as unknown as number
-                          }
-                          addonAfter="₫"
-                          bordered={false}
-                        />
-                      </Form.Item>
 
                       {estimate.rushFee > 0 && (
                         <div className="text-xs text-red-500 mt-2 flex items-center justify-end">
                           <ThunderboltFilled className="mr-1" />
-                          (Bao gồm phí gấp: {estimate.rushFee.toLocaleString()}{" "}
+                          (Bao gồm phí in gấp: {estimate.rushFee.toLocaleString()}{" "}
                           ₫)
                         </div>
                       )}
