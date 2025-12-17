@@ -1,8 +1,8 @@
 'use client'
 
+import AddressMapPicker, { AddressResult } from '@/components/AddressMapPicker'
 import { useProduction } from '@/context/ProductionContext'
 import { auth } from '@/utils/firebaseConfig'
-import { getDistrictsByProvince, VIETNAM_PROVINCES } from '@/utils/vietnamLocations'
 import { CheckCircleOutlined, EnvironmentOutlined, EyeOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons'
 import type { UploadFile } from 'antd'
 import {
@@ -17,9 +17,8 @@ import {
   Modal,
   Result,
   Row,
-  Select,
   Typography,
-  Upload,
+  Upload
 } from 'antd'
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
 import Link from 'next/link'
@@ -52,7 +51,20 @@ export default function GuestOrderPage() {
   const [previewTitle, setPreviewTitle] = useState('')
 
   // Address state
-  const [selectedProvince, setSelectedProvince] = useState<string>('')
+  const [selectedAddress, setSelectedAddress] = useState<AddressResult | undefined>(undefined)
+
+  // Check if basic info is filled to enable other fields
+  const [isBasicInfoFilled, setIsBasicInfoFilled] = useState(false)
+
+  // Watch form values for basic info
+  const customerName = Form.useWatch('customerName', form)
+  const phone = Form.useWatch('phone', form)
+
+  useEffect(() => {
+    const nameValid = customerName && customerName.trim().length >= 2
+    const phoneValid = phone && /^0\d{9}$/.test(phone)
+    setIsBasicInfoFilled(nameValid && phoneValid)
+  }, [customerName, phone])
 
   // Setup reCAPTCHA
   useEffect(() => {
@@ -160,9 +172,7 @@ export default function GuestOrderPage() {
     })
 
   const onFinish = (values: any) => {
-    const province = VIETNAM_PROVINCES.find((p) => p.code === values.provinceCode)
-    const district = province?.districts.find((d) => d.code === values.districtCode)
-    const shippingAddress = `${values.streetAddress}, ${district?.name}, ${province?.name}`
+    const shippingAddress = selectedAddress?.formattedAddress || values.shippingAddress || 'Chưa có địa chỉ'
 
     const fakeFileUrl = values.designFile?.[0]
       ? `https://storage.cloud.com/${values.designFile[0].name}`
@@ -211,7 +221,7 @@ export default function GuestOrderPage() {
                   setIsOtpSent(false)
                   setOtp(['', '', '', '', '', ''])
                   setFileList([])
-                  setSelectedProvince('')
+                  setSelectedAddress(undefined)
                 }}
               >
                 Đặt đơn khác
@@ -340,56 +350,26 @@ export default function GuestOrderPage() {
                     label={<span className={labelStyle}>Email</span>}
                     rules={[{ type: 'email', message: 'Email không hợp lệ' }]}
                   >
-                    <Input placeholder='email@example.com' />
+                    <Input placeholder='email@example.com' disabled={!isVerified} />
                   </Form.Item>
 
-                  {/* Shipping Address */}
-                  <div className='pt-4 border-t'>
-                    <div className={`${labelStyle} mb-3`}>Địa chỉ giao hàng</div>
-
-                    <Form.Item
-                      name='provinceCode'
-                      label='Tỉnh/Thành phố'
-                      rules={[{ required: true, message: 'Chọn tỉnh/thành' }]}
-                    >
-                      <Select
-                        placeholder='Chọn tỉnh/thành phố'
-                        showSearch
-                        optionFilterProp='label'
-                        options={VIETNAM_PROVINCES.map((p) => ({
-                          value: p.code,
-                          label: p.name,
-                        }))}
-                        onChange={(value) => {
-                          setSelectedProvince(value)
-                          form.setFieldValue('districtCode', undefined)
-                        }}
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      name='districtCode'
-                      label='Quận/Huyện'
-                      rules={[{ required: true, message: 'Chọn quận/huyện' }]}
-                    >
-                      <Select
-                        placeholder='Chọn quận/huyện'
-                        showSearch
-                        optionFilterProp='label'
-                        disabled={!selectedProvince}
-                        options={getDistrictsByProvince(selectedProvince).map((d) => ({
-                          value: d.code,
-                          label: d.name,
-                        }))}
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      name='streetAddress'
-                      label='Địa chỉ chi tiết'
-                      rules={[{ required: true, message: 'Nhập địa chỉ' }]}
-                    >
-                      <Input placeholder='Số nhà, tên đường, phường/xã...' />
+                  {/* Shipping Address - Map Picker */}
+                  <div className={`pt-4 border-t ${!isVerified ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`${labelStyle} mb-3`}>Địa chỉ giao hàng <span className='text-red-500'>*</span></div>
+                    {!isVerified && (
+                      <div className='text-sm text-orange-500 mb-2'>Vui lòng xác thực SĐT trước</div>
+                    )}
+                    <AddressMapPicker
+                      value={selectedAddress}
+                      onChange={(address) => {
+                        setSelectedAddress(address)
+                        form.setFieldValue('shippingAddress', address.formattedAddress)
+                      }}
+                      height={250}
+                      placeholder='Tìm kiếm địa chỉ tại Việt Nam...'
+                    />
+                    <Form.Item name='shippingAddress' hidden>
+                      <Input />
                     </Form.Item>
                   </div>
                 </div>
@@ -397,10 +377,16 @@ export default function GuestOrderPage() {
 
               {/* Right Column: Order Info */}
               <Col xs={24} lg={12}>
-                <Title level={4} className='text-blue-700 mb-6'>
-                  <PlusOutlined className='mr-2' />
-                  Yêu cầu in ấn
-                </Title>
+                <div className={!isVerified ? 'opacity-50 pointer-events-none' : ''}>
+                  {!isVerified && (
+                    <div className='mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-orange-700 text-sm'>
+                      Vui lòng xác thực Số điện thoại bằng OTP trước khi tiếp tục
+                    </div>
+                  )}
+                  <Title level={4} className='text-blue-700 mb-6'>
+                    <PlusOutlined className='mr-2' />
+                    Yêu cầu in ấn
+                  </Title>
 
                 <Form.Item
                   name='productName'
@@ -471,6 +457,7 @@ export default function GuestOrderPage() {
                     <p className='ant-upload-hint text-xs'>PDF, AI, JPG, PNG (Max 10MB)</p>
                   </Upload.Dragger>
                 </Form.Item>
+                </div>
               </Col>
             </Row>
 

@@ -11,6 +11,10 @@ export interface ShippingAddress {
   districtName: string;
   streetAddress: string;
   isDefault: boolean;
+  // Map coordinates (optional for backward compatibility)
+  lat?: number;
+  lng?: number;
+  formattedAddress?: string;
 }
 
 export interface Customer {
