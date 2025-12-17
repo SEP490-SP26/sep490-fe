@@ -165,7 +165,16 @@ function ConsultantForm() {
   const router = useRouter();
 
   const orderId = searchParams.get("orderId");
+  const modeParam = searchParams.get("mode"); // 'negotiate' or 'create'
   const [loading, setLoading] = useState(false);
+
+  // Determine mode based on URL param or order status
+  const existingOrder = orderId ? orders.find((o) => o.id === orderId) : null;
+  const isNegotiateMode = modeParam === 'negotiate' || 
+    (existingOrder?.process_status === 'pending_consultant') ||
+    (!orderId && !modeParam); // New order = negotiate mode
+  const isCreateMode = modeParam === 'create' || 
+    existingOrder?.process_status === 'pending_order_creation';
 
   const [designItems, setDesignItems] = useState<DesignItem[]>([]);
 
@@ -454,18 +463,43 @@ function ConsultantForm() {
     };
 
     setTimeout(() => {
-      if (orderId) {
-        updateOrder(orderId, orderData);
-        message.success("Đã cập nhật đơn hàng!");
+      if (orderId && existingOrder) {
+        if (isNegotiateMode) {
+          // Negotiation mode: send quote to customer
+          updateOrder(orderId, {
+            ...orderData,
+            process_status: 'waiting_customer_confirm',
+            contract_file: undefined, // No contract in negotiate mode
+          });
+          message.success('Đã gửi báo giá cho khách hàng! Chờ khách xác nhận qua email.');
+        } else {
+          // Create mode: send to manager
+          updateOrder(orderId, {
+            ...orderData,
+            process_status: 'consultant_verified',
+          });
+          message.success('Đã tạo đơn hàng và gửi cho Manager duyệt!');
+        }
       } else if (estimate && estimate.isStockEnough) {
-        addOrder({ ...orderData, can_fulfill: true });
-        message.success("Đã tạo đơn mới!");
+        // New order - always negotiate mode first
+        const newOrderId = addOrder({ 
+          ...orderData, 
+          can_fulfill: true,
+          process_status: 'waiting_customer_confirm',
+          contract_file: undefined,
+        });
+        message.success('Đã tạo báo giá và gửi cho khách hàng!');
       } else {
-        addOrder({ ...orderData, can_fulfill: false });
-        message.success("Đã tạo đơn mới!");
+        const newOrderId = addOrder({ 
+          ...orderData, 
+          can_fulfill: false,
+          process_status: 'waiting_customer_confirm',
+          contract_file: undefined,
+        });
+        message.success('Đã tạo báo giá và gửi cho khách hàng!');
       }
       setLoading(false);
-      router.push("/consultant/orders");
+      router.push('/consultant/orders');
     }, 1000);
   };
 
@@ -604,31 +638,39 @@ function ConsultantForm() {
                 onFinish={onFinish}
                 onValuesChange={handleCalculate}
               >
-                {/* Thông tin khách */}
-                <Row gutter={16}>
-                  <Col span={8}>
-                    <Form.Item
-                      name="customerName"
-                      label="Khách Hàng"
-                      rules={[{ required: true }]}
-                    >
-                      <Input
-                        prefix={<UserOutlined />}
-                        placeholder="Tên khách..."
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={8}>
-                    <Form.Item name="phone" label="SĐT">
-                      <Input placeholder="09..." />
-                    </Form.Item>
-                  </Col>
-                  <Col span={8}>
-                    <Form.Item name="email" label="Email">
-                      <Input placeholder="email@example.com" />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                {/* Thông tin khách - Sticky khi cuộn */}
+                <div className={`${orderId ? 'sticky top-0 z-10 bg-white pb-3 border-b border-gray-100 -mx-6 px-6 pt-2' : ''}`}>
+                  <Row gutter={16}>
+                    <Col span={8}>
+                      <Form.Item
+                        name="customerName"
+                        label="Khách Hàng"
+                        rules={[{ required: true }]}
+                      >
+                        <Input
+                          prefix={<UserOutlined />}
+                          placeholder="Tên khách..."
+                          disabled={!!orderId}
+                          className={orderId ? 'bg-gray-50' : ''}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name="phone" label="SĐT">
+                        <Input 
+                          placeholder="09..." 
+                          disabled={!!orderId}
+                          className={orderId ? 'bg-gray-50' : ''}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name="email" label="Email">
+                        <Input placeholder="email@example.com" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
 
                 {/* Địa chỉ giao hàng */}
                 <Form.Item name="shippingAddress" label="Địa chỉ giao hàng">
@@ -656,6 +698,8 @@ function ConsultantForm() {
                         }))}
                         mode="tags"
                         maxCount={1}
+                        disabled={!!orderId}
+                        className={orderId ? 'bg-gray-50' : ''}
                       />
                     </Form.Item>
                   </Col>
@@ -898,44 +942,50 @@ function ConsultantForm() {
                   <Input.TextArea rows={1} />
                 </Form.Item>
 
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
-                  <Form.Item
-                    name="contractFile"
-                    label={
-                      <span className="flex items-center gap-1 font-semibold text-blue-800">
-                        <FileTextOutlined /> Upload hợp đồng
-                      </span>
-                    }
-                    valuePropName="fileList"
-                    getValueFromEvent={(e) =>
-                      Array.isArray(e) ? e : e?.fileList
-                    }
-                    className="mb-0"
-                  >
-                    <Upload
-                      name="contract"
-                      action="/upload.do"
-                      listType="text"
-                      maxCount={1}
-                      className="contract-upload-success"
-                    >
-                      <Button icon={<UploadOutlined />} size="small">
-                        Tải lên file PDF/DOCX
-                      </Button>
-                    </Upload>
-                  </Form.Item>
-                </div>
-                <style jsx global>{`
-                  .contract-upload-success .ant-upload-list-item-name {
-                    color: #16a34a !important;
-                  }
-                  .contract-upload-success .ant-upload-list-item {
-                    color: #16a34a !important;
-                  }
-                  .contract-upload-success .ant-upload-list-item-actions .anticon-delete {
-                    color: #dc2626 !important;
-                  }
-                `}</style>
+                {/* Contract Upload - Only in Create Mode */}
+                {isCreateMode && (
+                  <>
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
+                      <Form.Item
+                        name="contractFile"
+                        label={
+                          <span className="flex items-center gap-1 font-semibold text-blue-800">
+                            <FileTextOutlined /> Upload hợp đồng
+                          </span>
+                        }
+                        valuePropName="fileList"
+                        getValueFromEvent={(e) =>
+                          Array.isArray(e) ? e : e?.fileList
+                        }
+                        className="mb-0"
+                        rules={[{ required: true, message: 'Vui lòng tải lên hợp đồng' }]}
+                      >
+                        <Upload
+                          name="contract"
+                          action="/upload.do"
+                          listType="text"
+                          maxCount={1}
+                          className="contract-upload-success"
+                        >
+                          <Button icon={<UploadOutlined />} size="small">
+                            Tải lên file PDF/DOCX
+                          </Button>
+                        </Upload>
+                      </Form.Item>
+                    </div>
+                    <style jsx global>{`
+                      .contract-upload-success .ant-upload-list-item-name {
+                        color: #16a34a !important;
+                      }
+                      .contract-upload-success .ant-upload-list-item {
+                        color: #16a34a !important;
+                      }
+                      .contract-upload-success .ant-upload-list-item-actions .anticon-delete {
+                        color: #dc2626 !important;
+                      }
+                    `}</style>
+                  </>
+                )}
 
                 <Form.Item className="mt-4">
                   <Button
@@ -945,18 +995,22 @@ function ConsultantForm() {
                     loading={loading}
                     block
                     className={`h-12 font-bold ${
-                      estimate?.caseType === 3
+                      isCreateMode
+                        ? "bg-green-600 hover:bg-green-700"
+                        : estimate?.caseType === 3
                         ? "bg-red-600 hover:bg-red-700"
                         : estimate?.caseType === 2
                         ? "bg-orange-500 hover:bg-orange-600"
                         : "bg-blue-600"
                     }`}
                   >
-                    {estimate?.caseType === 3
-                      ? "CHỐT DEAL GIÁ & GỬI DUYỆT"
+                    {isCreateMode
+                      ? "XÁC NHẬN & GỬI MANAGER DUYỆT"
+                      : estimate?.caseType === 3
+                      ? "CHỐT GIÁ & GỬi KHÁCH HÀNG"
                       : estimate?.caseType === 2
-                      ? "XÁC NHẬN ƯU TIÊN & GỬI DUYỆT"
-                      : "XÁC NHẬN & GỬI DUYỆT"}
+                      ? "GỬi BÁO GIÁ ƯU TIÊN"
+                      : "GỬi BÁO GIÁ CHO KHÁCH HÀNG"}
                   </Button>
                 </Form.Item>
               </Form>

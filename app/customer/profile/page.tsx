@@ -1,8 +1,8 @@
 'use client'
 
+import AddressMapPicker, { AddressResult } from '@/components/AddressMapPicker'
 import { ShippingAddress, useCustomer } from '@/context/CustomerContext'
 import { Order, useProduction } from '@/context/ProductionContext'
-import { getDistrictsByProvince, VIETNAM_PROVINCES } from '@/utils/vietnamLocations'
 import {
     CheckCircleOutlined,
     ClockCircleOutlined,
@@ -35,11 +35,10 @@ import {
     message,
     Modal,
     Popconfirm,
-    Select,
     Table,
     Tabs,
     Tag,
-    Typography,
+    Typography
 } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
@@ -73,7 +72,7 @@ export default function CustomerProfilePage() {
   // Address modal state
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
   const [editingAddress, setEditingAddress] = useState<ShippingAddress | null>(null)
-  const [selectedProvince, setSelectedProvince] = useState<string>('')
+  const [mapAddressValue, setMapAddressValue] = useState<AddressResult | undefined>(undefined)
 
   // Redirect if not logged in
   useEffect(() => {
@@ -134,34 +133,35 @@ export default function CustomerProfilePage() {
   const openAddAddressModal = () => {
     setEditingAddress(null)
     addressForm.resetFields()
-    setSelectedProvince('')
+    setMapAddressValue(undefined)
     setIsAddressModalOpen(true)
   }
 
   const openEditAddressModal = (address: ShippingAddress) => {
     setEditingAddress(address)
-    setSelectedProvince(address.provinceCode)
+    setMapAddressValue(
+      address.lat && address.lng
+        ? { lat: address.lat, lng: address.lng, formattedAddress: address.formattedAddress || address.streetAddress }
+        : undefined
+    )
     addressForm.setFieldsValue({
       label: address.label,
-      provinceCode: address.provinceCode,
-      districtCode: address.districtCode,
-      streetAddress: address.streetAddress,
     })
     setIsAddressModalOpen(true)
   }
 
   const handleAddressSubmit = (values: any) => {
-    const province = VIETNAM_PROVINCES.find((p) => p.code === values.provinceCode)
-    const district = province?.districts.find((d) => d.code === values.districtCode)
-
     const addressData = {
       label: values.label,
-      provinceCode: values.provinceCode,
-      provinceName: province?.name || '',
-      districtCode: values.districtCode,
-      districtName: district?.name || '',
-      streetAddress: values.streetAddress,
+      provinceCode: '',
+      provinceName: '',
+      districtCode: '',
+      districtName: '',
+      streetAddress: mapAddressValue?.formattedAddress || 'Chưa có địa chỉ',
       isDefault: editingAddress ? editingAddress.isDefault : false,
+      lat: mapAddressValue?.lat,
+      lng: mapAddressValue?.lng,
+      formattedAddress: mapAddressValue?.formattedAddress,
     }
 
     if (editingAddress) {
@@ -174,6 +174,7 @@ export default function CustomerProfilePage() {
 
     setIsAddressModalOpen(false)
     addressForm.resetFields()
+    setMapAddressValue(undefined)
   }
 
   const handleDeleteAddress = (addressId: string) => {
@@ -528,53 +529,15 @@ export default function CustomerProfilePage() {
               <Input placeholder='VD: Nhà riêng, Công ty, Văn phòng...' />
             </Form.Item>
 
-            <Form.Item
-              name='provinceCode'
-              label='Tỉnh/Thành phố'
-              rules={[{ required: true, message: 'Chọn tỉnh/thành' }]}
-            >
-              <Select
-                placeholder='Chọn tỉnh/thành phố'
-                showSearch
-                optionFilterProp='label'
-                options={VIETNAM_PROVINCES.map((p) => ({
-                  value: p.code,
-                  label: p.name,
-                }))}
-                onChange={(value) => {
-                  setSelectedProvince(value)
-                  addressForm.setFieldValue('districtCode', undefined)
-                }}
+            <div className='mb-4'>
+              <div className='font-medium text-gray-700 mb-2'>Địa chỉ giao hàng <span className='text-red-500'>*</span></div>
+              <AddressMapPicker
+                value={mapAddressValue}
+                onChange={(address) => setMapAddressValue(address)}
+                height={280}
+                placeholder='Tìm kiếm hoặc click chọn địa chỉ...'
               />
-            </Form.Item>
-
-            <Form.Item
-              name='districtCode'
-              label='Quận/Huyện'
-              rules={[{ required: true, message: 'Chọn quận/huyện' }]}
-            >
-              <Select
-                placeholder='Chọn quận/huyện'
-                showSearch
-                optionFilterProp='label'
-                disabled={!selectedProvince}
-                options={getDistrictsByProvince(selectedProvince).map((d) => ({
-                  value: d.code,
-                  label: d.name,
-                }))}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name='streetAddress'
-              label='Địa chỉ chi tiết'
-              rules={[{ required: true, message: 'Nhập địa chỉ' }]}
-            >
-              <Input.TextArea
-                rows={2}
-                placeholder='Số nhà, tên đường, phường/xã...'
-              />
-            </Form.Item>
+            </div>
 
             <div className='flex justify-end gap-2'>
               <Button onClick={() => setIsAddressModalOpen(false)}>Hủy</Button>
