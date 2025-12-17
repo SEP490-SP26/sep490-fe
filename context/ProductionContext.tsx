@@ -4,7 +4,7 @@ import { createContext, ReactNode, useContext, useState } from "react";
 // Types
 export interface Product {
   id: string;
-  name: string;
+  type: string;
   production_rate: number; // số sản phẩm/ngày
 }
 
@@ -56,6 +56,22 @@ export interface Order {
   final_price?: number;
   note?: string;
   created_at: string;
+  contract_file?: string;
+}
+
+export interface Printer {
+  id: string;
+  name: string;
+  type: "offset" | "digital" | "flexo" | "screen"; // Loại máy in
+  status: "available" | "busy" | "maintenance" | "offline";
+  max_print_size: string;
+  color_support: "cmyk" | "spot_color" | "pantone" | "full_color";
+  daily_capacity: number;
+  current_job?: string;
+  assigned_orders: string[];
+  location: string;
+  last_maintenance: string;
+  next_maintenance: string;
 }
 
 export interface Inventory {
@@ -99,6 +115,38 @@ export interface ProductionSchedule {
   status: "scheduled" | "in_progress" | "completed";
   current_stage?: string;
   stages?: ProductionStage[];
+  assigned_printer?: string;
+  assigned_operator?: string;
+}
+
+export interface Worker {
+  id: string;
+  employee_id: string; // Mã nhân viên
+  name: string;
+  position: "operator" | "technician" | "supervisor" | "qc"; // Vị trí
+  department: "printing" | "cutting" | "finishing" | "binding" | "qc"; // Bộ phận
+  skills: string[]; // Kỹ năng: ["offset_printing", "digital_printing", "cutting", "lamination", "binding"]
+  experience_months: number;
+  status: "available" | "busy" | "break" | "off"; // Trạng thái
+  current_machine?: string; // Máy đang vận hành (nếu có)
+  assigned_orders: string[];
+  shift: "morning" | "afternoon" | "night";
+  phone: string;
+  rating: number; // Đánh giá chất lượng
+  notes?: string;
+}
+
+export interface MachineAssignment {
+  id: string;
+  order_id: string;
+  machine_id: string; // ID máy (printer)
+  worker_id?: string; // ID thợ vận hành (optional)
+  assignment_type: "machine_only" | "machine_with_worker";
+  start_time?: string;
+  end_time?: string;
+  status: "pending" | "assigned" | "in_progress" | "completed";
+  notes?: string;
+  created_at: string;
 }
 
 interface ProductionContextType {
@@ -112,6 +160,9 @@ interface ProductionContextType {
   purchaseRequests: PurchaseRequest[];
   purchaseOrders: PurchaseOrder[];
   productionSchedules: ProductionSchedule[];
+  printers: Printer[];
+  workers: Worker[];
+  machineAssignments: MachineAssignment[];
   updateOrder: (id: string, updates: Partial<Order>) => void;
   addOrder: (
     order: Omit<Order, "id" | "status" | "created_at" | "process_status"> & {
@@ -148,6 +199,75 @@ interface ProductionContextType {
     hasEnough: boolean;
   }>;
   checkStageMaterials: (orderId: string, stageId: string) => boolean;
+  addPrinter: (printer: Omit<Printer, "id" | "assigned_orders">) => string;
+  updatePrinterStatus: (printerId: string, status: Printer["status"]) => void;
+  assignPrinterToOrder: (printerId: string, orderId: string) => void;
+  removePrinterFromOrder: (printerId: string, orderId: string) => void;
+  getAvailablePrinters: () => Printer[];
+  getPrinterById: (printerId: string) => Printer | undefined;
+  getPrintersByType: (type: Printer["type"]) => Printer[];
+  updateProductionSchedule: (
+    scheduleId: string,
+    updates: Partial<ProductionSchedule>
+  ) => void;
+  // Worker functions
+  addWorker: (worker: Omit<Worker, "id" | "assigned_orders">) => string;
+  updateWorkerStatus: (workerId: string, status: Worker["status"]) => void;
+  assignWorkerToOrder: (workerId: string, orderId: string) => void;
+  removeWorkerFromOrder: (workerId: string, orderId: string) => void;
+  getAvailableWorkers: () => Worker[];
+  getWorkerById: (workerId: string) => Worker | undefined;
+  getWorkersByDepartment: (department: Worker["department"]) => Worker[];
+  getWorkersBySkill: (skill: string) => Worker[];
+  createMachineAssignment: (
+    orderId: string,
+    machineId: string,
+    workerId?: string
+  ) => string;
+  updateMachineAssignment: (
+    assignmentId: string,
+    updates: Partial<MachineAssignment>
+  ) => void;
+  getMachineAssignmentByOrder: (
+    orderId: string
+  ) => MachineAssignment | undefined;
+  assignMachineWithWorker: (
+    orderId: string,
+    machineId: string,
+    workerId?: string
+  ) => void;
+  reassignWorker: (orderId: string, newWorkerId: string) => void;
+}
+
+export interface Contractor {
+  id: string;
+  name: string;
+  type: "offset" | "digital" | "flexo" | "screen" | "finishing";
+  status: "available" | "busy" | "on_leave" | "inactive";
+  skills: string[]; // Kỹ năng: ["cutting", "printing", "lamination", "binding"]
+  experience_years: number;
+  daily_capacity: number;
+  current_job?: string;
+  assigned_orders: string[];
+  phone: string;
+  email: string;
+  address: string;
+  rating: number; // 1-5 sao
+  hourly_rate?: number;
+  notes?: string;
+}
+
+export interface Assignment {
+  id: string;
+  order_id: string;
+  contractor_id?: string;
+  printer_id?: string;
+  assignment_type: "contractor" | "printer" | "both";
+  start_date: string;
+  end_date: string;
+  status: "pending" | "assigned" | "in_progress" | "completed";
+  notes?: string;
+  created_at: string;
 }
 
 const ProductionContext = createContext<ProductionContextType | undefined>(
@@ -168,11 +288,11 @@ const productionStagesList = [
 
 // Initial data
 const initialProducts: Product[] = [
-  { id: "p1", name: "Catalog A4", production_rate: 5000 }, // 5000 tờ/ngày
-  { id: "p2", name: "Brochure 3 gấp", production_rate: 8000 },
-  { id: "p3", name: "Poster A2", production_rate: 3000 },
-  { id: "p4", name: "Hộp giấy cao cấp", production_rate: 2000 },
-  { id: "p5", name: "Danh thiếp 2 mặt", production_rate: 10000 },
+  { id: "p1", type: "Catalog A4", production_rate: 5000 }, // 5000 tờ/ngày
+  { id: "p2", type: "Brochure 3 gấp", production_rate: 8000 },
+  { id: "p3", type: "Poster A2", production_rate: 3000 },
+  { id: "p4", type: "Hộp giấy cao cấp", production_rate: 2000 },
+  { id: "p5", type: "Danh thiếp 2 mặt", production_rate: 10000 },
 ];
 
 const initialMaterials: Material[] = [
@@ -254,7 +374,79 @@ const getInitialOrders = (): Order[] => {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
 
+  const addDays = (days: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split("T")[0];
+  };
+
   return [
+    // --- 3 ĐƠN HÀNG DEMO CHO KHÁCH (SĐT: 0123456789) ---
+    {
+      id: "ORD-DEMO-001",
+      product_id: "p4",
+      product_name: "Hộp giấy Kraft Vintage",
+      quantity: 500,
+      delivery_date: addDays(7),
+      customer_name: "Khách Hàng Demo",
+      customer_phone: "0123456789", // Số điện thoại test
+      status: "pending",
+      process_status: "pending_consultant", // Trạng thái: Chờ tư vấn
+      created_at: new Date().toISOString(), // Vừa đặt
+      note: "Gói hàng kỹ giúp mình nhé.",
+      specs: {
+        width: 15,
+        height: 10,
+        length: 5,
+        paper_id: "Giấy Kraft",
+        colors: ["#8B4513"],
+        processing: [],
+      },
+      can_fulfill: true,
+    },
+    {
+      id: "ORD-DEMO-002",
+      product_id: "p1",
+      product_name: "Catalogue Giới Thiệu (A4)",
+      quantity: 200,
+      delivery_date: addDays(5),
+      customer_name: "Khách Hàng Demo",
+      customer_phone: "0123456789",
+      status: "in_production",
+      process_status: "manager_approved", // Trạng thái: Đang in ấn
+      created_at: addDays(-2), // Đặt cách đây 2 ngày
+      final_price: 3500000, // Đã có giá
+      specs: {
+        width: 21,
+        height: 29,
+        length: 0,
+        paper_id: "Giấy Couche 150",
+        colors: ["#000000", "#FF0000"],
+        processing: ["Cán màng mờ", "Đóng ghim giữa"],
+      },
+    },
+    {
+      id: "ORD-DEMO-003",
+      product_id: "p5",
+      product_name: "Card Visit (5 hộp)",
+      quantity: 500,
+      delivery_date: addDays(-1),
+      customer_name: "Khách Hàng Demo",
+      customer_phone: "0123456789",
+      status: "completed",
+      process_status: "manager_approved", // Trạng thái: Hoàn thành
+      created_at: addDays(-10), // Đặt cách đây 10 ngày
+      final_price: 450000,
+      contract_file: "HD-0123456789.pdf", // Có hợp đồng
+      specs: {
+        width: 9,
+        height: 5,
+        length: 0,
+        paper_id: "Giấy C300",
+        colors: ["#0000FF"],
+        processing: ["Cán màng bóng"],
+      },
+    },
     {
       id: "ord-sample-1",
       product_id: "p1",
@@ -270,8 +462,11 @@ const getInitialOrders = (): Order[] => {
       id: "ord-sample-2",
       product_id: "p2",
       quantity: 5000,
+      product_name: "Brochure 3 gấp Cao Cấp",
       delivery_date: in10Days.toISOString().split("T")[0],
       customer_name: "Tập đoàn FPT",
+      customer_phone: "0987654321",
+      customer_email: "fbt@gmail.com",
       status: "scheduled",
       process_status: "manager_approved",
       can_fulfill: true,
@@ -500,6 +695,168 @@ const getInitialInventory = (): Inventory[] => {
   ];
 };
 
+const initialPrinters: Printer[] = [
+  {
+    id: "printer-1",
+    name: "Máy Offset Heidelberg SM74",
+    type: "offset",
+    status: "available",
+    max_print_size: "520x740mm",
+    color_support: "cmyk",
+    daily_capacity: 10000,
+    assigned_orders: [],
+    location: "Xưởng A - Tầng 1",
+    last_maintenance: "2024-01-15",
+    next_maintenance: "2024-02-15",
+  },
+  {
+    id: "printer-2",
+    name: "Máy Digital Konica Minolta C3070",
+    type: "digital",
+    status: "available",
+    max_print_size: "A3+",
+    color_support: "full_color",
+    daily_capacity: 5000,
+    assigned_orders: ["ord-sample-1"],
+    location: "Xưởng B - Tầng 2",
+    last_maintenance: "2024-01-20",
+    next_maintenance: "2024-02-20",
+  },
+  {
+    id: "printer-3",
+    name: "Máy Flexo Mark Andy 2200",
+    type: "flexo",
+    status: "busy",
+    max_print_size: "450mm",
+    color_support: "spot_color",
+    daily_capacity: 8000,
+    current_job: "ord-sample-2",
+    assigned_orders: ["ord-sample-2"],
+    location: "Xưởng C - Tầng 1",
+    last_maintenance: "2024-01-10",
+    next_maintenance: "2024-02-10",
+  },
+  {
+    id: "printer-4",
+    name: "Máy Screen MHM",
+    type: "screen",
+    status: "maintenance",
+    max_print_size: "A2",
+    color_support: "spot_color",
+    daily_capacity: 3000,
+    assigned_orders: [],
+    location: "Xưởng D - Tầng 2",
+    last_maintenance: "2024-01-05",
+    next_maintenance: "2024-02-05",
+  },
+  {
+    id: "printer-5",
+    name: "Máy Offset Roland 700",
+    type: "offset",
+    status: "available",
+    max_print_size: "700x1000mm",
+    color_support: "cmyk",
+    daily_capacity: 12000,
+    assigned_orders: [],
+    location: "Xưởng A - Tầng 1",
+    last_maintenance: "2024-01-18",
+    next_maintenance: "2024-02-18",
+  },
+];
+
+const initialWorkers: Worker[] = [
+  {
+    id: "worker-001",
+    employee_id: "NV001",
+    name: "Nguyễn Văn An",
+    position: "operator",
+    department: "printing",
+    skills: ["offset_printing", "machine_setup", "color_matching"],
+    experience_months: 36,
+    status: "available",
+    current_machine: "printer-1",
+    assigned_orders: [],
+    shift: "morning",
+    phone: "0909123456",
+    rating: 4.5,
+    notes: "Chuyên vận hành máy offset",
+  },
+  {
+    id: "worker-002",
+    employee_id: "NV002",
+    name: "Trần Thị Bình",
+    position: "operator",
+    department: "printing",
+    skills: ["digital_printing", "file_preparation", "quality_check"],
+    experience_months: 24,
+    status: "busy",
+    current_machine: "printer-2",
+    assigned_orders: ["ord-sample-1"],
+    shift: "morning",
+    phone: "0918234567",
+    rating: 4.2,
+    notes: "Chuyên máy digital",
+  },
+  {
+    id: "worker-003",
+    employee_id: "NV003",
+    name: "Lê Văn Cường",
+    position: "technician",
+    department: "cutting",
+    skills: ["cutting", "creasing", "die_cutting"],
+    experience_months: 48,
+    status: "available",
+    assigned_orders: [],
+    shift: "afternoon",
+    phone: "0929345678",
+    rating: 4.7,
+    notes: "Thợ cắt lành nghề",
+  },
+  {
+    id: "worker-004",
+    employee_id: "NV004",
+    name: "Phạm Thị Dung",
+    position: "technician",
+    department: "finishing",
+    skills: ["lamination", "foiling", "uv_coating"],
+    experience_months: 30,
+    status: "available",
+    assigned_orders: [],
+    shift: "afternoon",
+    phone: "0938456789",
+    rating: 4.3,
+    notes: "Chuyên gia công hoàn thiện",
+  },
+  {
+    id: "worker-005",
+    employee_id: "NV005",
+    name: "Hoàng Văn Đức",
+    position: "supervisor",
+    department: "printing",
+    skills: ["offset_printing", "digital_printing", "team_management", "qc"],
+    experience_months: 60,
+    status: "available",
+    assigned_orders: [],
+    shift: "morning",
+    phone: "0947567890",
+    rating: 4.8,
+    notes: "Tổ trưởng tổ in",
+  },
+];
+
+const initialMachineAssignments: MachineAssignment[] = [
+  {
+    id: "massign-1",
+    order_id: "ord-sample-1",
+    machine_id: "printer-2",
+    worker_id: "worker-002",
+    assignment_type: "machine_with_worker",
+    start_time: new Date().toISOString(),
+    status: "assigned",
+    created_at: new Date().toISOString(),
+  },
+];
+
 export function ProductionProvider({ children }: { children: ReactNode }) {
   const [products] = useState<Product[]>(initialProducts);
   const [materials] = useState<Material[]>(initialMaterials);
@@ -514,11 +871,17 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(
     getInitialPurchaseOrders()
   );
+
+  const [currentProductionLoad] = useState<number>(40); //thay đổi chỗ này nếu muốn thử test case xưởng rảnh
+  const isBusy = currentProductionLoad > 80; //Xưởng bận khi >80%
+  const [printers, setPrinters] = useState<Printer[]>(initialPrinters);
   const [productionSchedules, setProductionSchedules] = useState<
     ProductionSchedule[]
   >(getInitialProductionSchedules());
-  const [currentProductionLoad] = useState<number>(30); //thay đổi chỗ này nếu muốn thử test case xưởng rảnh
-  const isBusy = currentProductionLoad > 80; //Xưởng bận khi >80%
+  const [workers, setWorkers] = useState<Worker[]>(initialWorkers);
+  const [machineAssignments, setMachineAssignments] = useState<
+    MachineAssignment[]
+  >(initialMachineAssignments);
 
   const addOrder = (
     orderData: Omit<
@@ -712,7 +1075,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     return schedule.stages;
   };
 
-  const scheduleProduction = (orderId: string) => {
+  const scheduleProduction = (orderId: string, printerId?: string) => {
     const order = orders.find((o) => o.id === orderId);
     if (!order || !order.can_fulfill) return;
 
@@ -726,6 +1089,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     startDate.setDate(startDate.getDate() - productionDays - 1); // Buffer 1 ngày
 
     const newSchedule: ProductionSchedule = {
+      // eslint-disable-next-line react-hooks/purity
       id: `sch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       order_id: orderId,
       start_date: startDate.toISOString().split("T")[0],
@@ -733,8 +1097,19 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         .toISOString()
         .split("T")[0], // 1 ngày trước giao
       status: "scheduled",
+      current_stage: "ralo",
+      stages: productionStagesList.map((stage) => ({
+        id: stage.id,
+        name: stage.name,
+        status: "pending" as const,
+      })),
+      assigned_printer: printerId,
     };
 
+    if (printerId) {
+      assignPrinterToOrder(printerId, orderId);
+    }
+    // Nếu có gán printer, cập nhật trạng thái printer
     setProductionSchedules((prev) => [...prev, newSchedule]);
     setOrders((prev) =>
       prev.map((o) =>
@@ -848,6 +1223,271 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const addPrinter = (
+    printerData: Omit<Printer, "id" | "assigned_orders">
+  ): string => {
+    const newPrinter: Printer = {
+      ...printerData,
+      id: `printer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      assigned_orders: [],
+    };
+
+    setPrinters((prev) => [...prev, newPrinter]);
+    return newPrinter.id;
+  };
+
+  const updatePrinterStatus = (
+    printerId: string,
+    status: Printer["status"]
+  ) => {
+    setPrinters((prev) =>
+      prev.map((printer) =>
+        printer.id === printerId ? { ...printer, status } : printer
+      )
+    );
+  };
+
+  const assignPrinterToOrder = (printerId: string, orderId: string) => {
+    setPrinters((prev) =>
+      prev.map((printer) => {
+        if (printer.id === printerId) {
+          // Nếu máy đang available, đặt current_job
+          if (printer.status === "available") {
+            return {
+              ...printer,
+              status: "busy",
+              current_job: orderId,
+              assigned_orders: [...printer.assigned_orders, orderId],
+            };
+          }
+          // Nếu máy đang busy, chỉ thêm vào danh sách assigned
+          return {
+            ...printer,
+            assigned_orders: [...printer.assigned_orders, orderId],
+          };
+        }
+        return printer;
+      })
+    );
+  };
+
+  const removePrinterFromOrder = (printerId: string, orderId: string) => {
+    setPrinters((prev) =>
+      prev.map((printer) => {
+        if (printer.id === printerId) {
+          const updatedOrders = printer.assigned_orders.filter(
+            (id) => id !== orderId
+          );
+          const shouldBeAvailable = updatedOrders.length === 0;
+
+          return {
+            ...printer,
+            assigned_orders: updatedOrders,
+            current_job:
+              printer.current_job === orderId ? undefined : printer.current_job,
+            status: shouldBeAvailable ? "available" : printer.status,
+          };
+        }
+        return printer;
+      })
+    );
+  };
+
+  const updateProductionSchedule = (
+    scheduleId: string,
+    updates: Partial<ProductionSchedule>
+  ) => {
+    setProductionSchedules((prev) =>
+      prev.map((schedule) =>
+        schedule.id === scheduleId ? { ...schedule, ...updates } : schedule
+      )
+    );
+  };
+
+  const getAvailablePrinters = () => {
+    return printers.filter((printer) => printer.status === "available");
+  };
+
+  const getPrinterById = (printerId: string) => {
+    return printers.find((printer) => printer.id === printerId);
+  };
+
+  const getPrintersByType = (type: Printer["type"]) => {
+    return printers.filter((printer) => printer.type === type);
+  };
+
+  const addWorker = (
+    workerData: Omit<Worker, "id" | "assigned_orders">
+  ): string => {
+    const newWorker: Worker = {
+      ...workerData,
+      id: `worker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      assigned_orders: [],
+    };
+    setWorkers((prev) => [...prev, newWorker]);
+    return newWorker.id;
+  };
+
+  const updateWorkerStatus = (workerId: string, status: Worker["status"]) => {
+    setWorkers((prev) =>
+      prev.map((worker) =>
+        worker.id === workerId ? { ...worker, status } : worker
+      )
+    );
+  };
+
+  const assignWorkerToOrder = (workerId: string, orderId: string) => {
+    setWorkers((prev) =>
+      prev.map((worker) => {
+        if (worker.id === workerId) {
+          if (worker.status === "available") {
+            return {
+              ...worker,
+              status: "busy",
+              assigned_orders: [...worker.assigned_orders, orderId],
+            };
+          }
+          return {
+            ...worker,
+            assigned_orders: [...worker.assigned_orders, orderId],
+          };
+        }
+        return worker;
+      })
+    );
+  };
+
+  const removeWorkerFromOrder = (workerId: string, orderId: string) => {
+    setWorkers((prev) =>
+      prev.map((worker) => {
+        if (worker.id === workerId) {
+          const updatedOrders = worker.assigned_orders.filter(
+            (id) => id !== orderId
+          );
+          const shouldBeAvailable = updatedOrders.length === 0;
+
+          return {
+            ...worker,
+            assigned_orders: updatedOrders,
+            status: shouldBeAvailable ? "available" : worker.status,
+          };
+        }
+        return worker;
+      })
+    );
+  };
+
+  const getAvailableWorkers = () => {
+    return workers.filter((worker) => worker.status === "available");
+  };
+
+  const getWorkerById = (workerId: string) => {
+    return workers.find((worker) => worker.id === workerId);
+  };
+
+  const getWorkersByDepartment = (department: Worker["department"]) => {
+    return workers.filter((worker) => worker.department === department);
+  };
+
+  const getWorkersBySkill = (skill: string) => {
+    return workers.filter((worker) => worker.skills.includes(skill));
+  };
+
+  // Machine Assignment functions
+  const createMachineAssignment = (
+    orderId: string,
+    machineId: string,
+    workerId?: string
+  ): string => {
+    const newAssignment: MachineAssignment = {
+      id: `massign-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      order_id: orderId,
+      machine_id: machineId,
+      worker_id: workerId,
+      assignment_type: workerId ? "machine_with_worker" : "machine_only",
+      status: "assigned",
+      created_at: new Date().toISOString(),
+    };
+
+    setMachineAssignments((prev) => [...prev, newAssignment]);
+    return newAssignment.id;
+  };
+
+  const assignMachineWithWorker = (
+    orderId: string,
+    machineId: string,
+    workerId?: string
+  ) => {
+    // Gán máy
+    assignPrinterToOrder(machineId, orderId);
+
+    // Gán thợ nếu có
+    if (workerId) {
+      assignWorkerToOrder(workerId, orderId);
+
+      // Cập nhật current_machine của worker
+      setWorkers((prev) =>
+        prev.map((worker) =>
+          worker.id === workerId
+            ? { ...worker, current_machine: machineId }
+            : worker
+        )
+      );
+    }
+
+    // Tạo assignment record
+    createMachineAssignment(orderId, machineId, workerId);
+  };
+
+  const updateMachineAssignment = (
+    assignmentId: string,
+    updates: Partial<MachineAssignment>
+  ) => {
+    setMachineAssignments((prev) =>
+      prev.map((assignment) =>
+        assignment.id === assignmentId
+          ? { ...assignment, ...updates }
+          : assignment
+      )
+    );
+  };
+
+  const getMachineAssignmentByOrder = (
+    orderId: string
+  ): MachineAssignment | undefined => {
+    return machineAssignments.find(
+      (assignment) => assignment.order_id === orderId
+    );
+  };
+
+  const reassignWorker = (orderId: string, newWorkerId: string) => {
+    const assignment = machineAssignments.find((a) => a.order_id === orderId);
+
+    if (!assignment) return;
+
+    const oldWorkerId = assignment.worker_id;
+
+    // Gỡ thợ cũ
+    if (oldWorkerId) {
+      removeWorkerFromOrder(oldWorkerId, orderId);
+    }
+
+    // Gán thợ mới
+    assignWorkerToOrder(newWorkerId, orderId);
+
+    // Cập nhật assignment
+    updateMachineAssignment(assignment.id, { worker_id: newWorkerId });
+
+    // Cập nhật current_machine của worker mới
+    setWorkers((prev) =>
+      prev.map((worker) =>
+        worker.id === newWorkerId
+          ? { ...worker, current_machine: assignment.machine_id }
+          : worker
+      )
+    );
+  };
+
   return (
     <ProductionContext.Provider
       value={{
@@ -861,6 +1501,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         productionSchedules,
         currentProductionLoad,
         isBusy,
+        printers,
         addOrder,
         checkOrderFulfillment,
         createPurchaseRequest,
@@ -875,6 +1516,29 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         getStageMaterialsInfo,
         checkStageMaterials,
         updateOrder,
+        addPrinter,
+        updatePrinterStatus,
+        assignPrinterToOrder,
+        removePrinterFromOrder,
+        getAvailablePrinters,
+        getPrinterById,
+        getPrintersByType,
+        updateProductionSchedule,
+        workers,
+        machineAssignments,
+        addWorker,
+        updateWorkerStatus,
+        assignWorkerToOrder,
+        removeWorkerFromOrder,
+        getAvailableWorkers,
+        getWorkerById,
+        getWorkersByDepartment,
+        getWorkersBySkill,
+        createMachineAssignment,
+        updateMachineAssignment,
+        getMachineAssignmentByOrder,
+        assignMachineWithWorker,
+        reassignWorker,
       }}
     >
       {children}

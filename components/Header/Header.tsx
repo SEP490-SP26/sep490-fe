@@ -1,11 +1,14 @@
 "use client";
-import { Badge } from "antd";
+import { useCustomer } from "@/context/CustomerContext";
+import { UserOutlined } from "@ant-design/icons";
+import { Avatar, Button, Space } from "antd";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BsPersonCircle } from "react-icons/bs";
 import HeaderSearch from "./HeaderSearch";
 
 export default function Header() {
+  const { customer, isLoggedIn, isLoading } = useCustomer();
+
   return (
     <div>
       <div
@@ -18,26 +21,73 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* Hiện trên mobile, ẩn ở sm trở lên */}
-          <div className="flex items-center space-x-5 sm:hidden">
-            <Link href="/login">
-              <Badge>
-                <BsPersonCircle className="size-6 fill-green-700" />
-              </Badge>
-            </Link>
+          {/* Mobile: Show icon or buttons */}
+          <div className="flex items-center space-x-3 sm:hidden ml-auto">
+            {!isLoading && (
+              isLoggedIn ? (
+                <Link href="/customer/profile">
+                  <Avatar
+                    size="default"
+                    icon={<UserOutlined />}
+                    className="bg-green-600 cursor-pointer hover:bg-green-700 transition-colors"
+                  />
+                </Link>
+              ) : (
+                <Space size="small">
+                  <Link href="/login">
+                    <Button type="primary" size="small" ghost className="border-green-500 text-green-500">
+                      Đăng nhập
+                    </Button>
+                  </Link>
+                </Space>
+              )
+            )}
           </div>
         </div>
 
-        {/* Thanh tìm kiếm */}
+        {/* Search bar */}
         <Suspense>
-          <HeaderSearch placeholder="Tìm kiếm sản phẩm in ấn ..." />
+          <HeaderSearch placeholder="Tìm kiếm sản phẩm in ấn ..." />
         </Suspense>
 
-        {/* Icon hiển thị bình thường ở sm trở lên, ẩn trên mobile */}
-        <div className="hidden sm:flex justify-items-center items-center space-x-6 lg:space-x-10">
-          <Link href="/login">
-            <BsPersonCircle className="size-8 fill-green-700" />
-          </Link>
+        {/* Desktop: Show icon or buttons */}
+        <div className="hidden sm:flex justify-items-center items-center space-x-4">
+          {!isLoading && (
+            isLoggedIn ? (
+              <Link href="/customer/profile">
+                <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                  <Avatar
+                    size="default"
+                    icon={<UserOutlined />}
+                    className="bg-green-600"
+                  />
+                  <span className="text-green-500 font-medium hidden lg:inline">
+                    {customer?.name?.split(' ').pop() || 'Tài khoản'}
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <Space size="middle">
+                <Link href="/login">
+                  <Button 
+                    type="primary" 
+                    ghost 
+                    className="border-green-500 text-green-500 hover:border-green-400 hover:text-green-400"
+                  >
+                    Đăng nhập
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button 
+                    type="primary"
+                    className="bg-green-600 hover:bg-green-700 border-green-600"
+                  >
+                    Đăng ký
+                  </Button>
+                </Link>
+              </Space>
+            )
+          )}
         </div>
       </div>
     </div>
