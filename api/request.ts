@@ -2,7 +2,11 @@ import http from "@/lib/httpAxios";
 import { CommonResType, CreateRequestBody } from "../schemaValidations/common.schema";
 
 export const requestOrderApi = {
-  getList: () => http.get<CommonResType>("/api/requests/paged"),
+  getList: (page: number = 1, pageSize: number = 5) =>
+    http.get<CommonResType>(`/api/requests/paged?page=${page}&pageSize=${pageSize}`),
+
+  getListByStatus: (page: number = 1, pageSize: number = 5, status: string) =>
+    http.get<CommonResType>(`/api/requests/paged?page=${page}&pageSize=${pageSize}&status=${status}`),
 
   createRequestOrderByCustomer: (body: CreateRequestBody) =>
     http.post<CommonResType>("/api/requests", body),

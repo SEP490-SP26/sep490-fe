@@ -1,8 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { estimatesApi } from "@/api/estimates";
+import { machineApi } from "@/api/machine";
+import { materialsApi } from "@/api/materials";
+import { productTypesApi } from "@/api/producttypes";
 import { requestOrderApi } from "@/api/request";
 import { Order, useProduction } from "@/context/ProductionContext";
+import { CreateRequestBody, EstimateCostResponse, EstimatePaperResponse, FreeMachine, MachineCapacity, Material, ProductType } from "@/schemaValidations/common.schema";
 import {
   BgColorsOutlined,
   CalculatorOutlined,
@@ -15,10 +20,9 @@ import {
   InboxOutlined,
   MinusCircleOutlined,
   PlusOutlined,
-  ThunderboltFilled,
   UploadOutlined,
   UserOutlined,
-  WarningOutlined,
+  WarningOutlined
 } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import type { UploadFile, UploadProps } from "antd";
@@ -43,15 +47,14 @@ import {
   Row,
   Select,
   Space,
-  Statistic,
   Steps,
   Tag,
   Tooltip,
-  Upload,
+  Upload
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 // --- UTILS: HÀM XỬ LÝ MÀU TỪ ẢNH (CANVAS API) ---
 const getDominantColors = (
@@ -128,11 +131,13 @@ const PAPER_TYPES = [
 ];
 
 const PROCESSING_OPTS = [
-  { label: "Cán màng (Bóng/Mờ)", value: "can_mang" },
-  { label: "Phủ UV/Varnish", value: "phu_uv" },
-  { label: "Bế (Die-cut)", value: "be" },
-  { label: "Dán máy", value: "dan_may" },
-  { label: "Bồi sóng", value: "boi_song" },
+  { label: "In", value: "IN" },
+  { label: "Bồi", value: "BOI" },
+  { label: "Phủ", value: "PHU" },
+  { label: "Cán màng", value: "CAN_MANG" },
+  { label: "Bế", value: "BE" },
+  { label: "Dứt", value: "DUT" },
+  { label: "Dán", value: "DAN" },
 ];
 
 const PRODUCT_SUGGESTIONS = [
@@ -181,6 +186,14 @@ function ConsultantForm() {
 
   const [designItems, setDesignItems] = useState<DesignItem[]>([]);
 
+  // State cho danh sách loại giấy từ API Materials
+  const [paperTypes, setPaperTypes] = useState<Material[]>([]);
+  const [loadingPaperTypes, setLoadingPaperTypes] = useState(false);
+
+  // State cho danh sách loại sản phẩm từ API ProductTypes
+  const [productTypes, setProductTypes] = useState<ProductType[]>([]);
+  const [loadingProductTypes, setLoadingProductTypes] = useState(false);
+
   // State cho Modal danh sách đơn hàng tại xưởng
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
@@ -199,11 +212,22 @@ function ConsultantForm() {
     effectiveDate: string;
   } | null>(null);
 
-  const TOTAL_MACHINES = 50;
-  // Tính số máy đang chạy dựa trên % tải (currentProductionLoad)
-  const machinesInUse = Math.round(currentProductionLoad
-  );
-  const isWorkshopFull = machinesInUse >= 40; // Coi như đầy nếu >= 45/50 máy (90%)
+  // State cho kết quả tính toán giấy từ API
+  const [paperEstimate, setPaperEstimate] = useState<EstimatePaperResponse | null>(null);
+  const [loadingPaperEstimate, setLoadingPaperEstimate] = useState(false);
+
+  // State cho kết quả tính toán chi phí từ API
+  const [costEstimate, setCostEstimate] = useState<EstimateCostResponse | null>(null);
+  const [loadingCostEstimate, setLoadingCostEstimate] = useState(false);
+
+  // State cho thông tin máy từ API
+  const [machineCapacity, setMachineCapacity] = useState<MachineCapacity | null>(null);
+  const [freeMachines, setFreeMachines] = useState<FreeMachine[]>([]);
+
+  // Tính số máy đang chạy từ API
+  const totalMachines = machineCapacity?.totalMachines || 8;
+  const runningMachines = machineCapacity?.runningMachines || 0;
+  const isWorkshopFull = runningMachines >= totalMachines * 0.9; // Đầy nếu >= 90%
 
   // Tính toán ngày dự kiến xưởng rảnh
   const getEstimatedFreeDate = () => {
@@ -233,70 +257,110 @@ function ConsultantForm() {
   const daysUntilFree = workshopFreeInfo.days;
 
   // data fetching 
- const createRequestOrder = useMutation({
-    mutationFn: async (form) => {
-    const res = await requestOrderApi.createRequestOrderByCustomer(form);
-    return res.data;
-     console.log('data', res.data);
-  }});
+  const createRequestOrder = useMutation({
+    mutationFn: async (form: CreateRequestBody) => {
+      const res = await requestOrderApi.createRequestOrderByCustomer(form);
+      console.log('data', res.data);
+      return res.data;
+    }
+  });
 
  
 
-  // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU ---
+  // --- FETCH PAPER TYPES & PRODUCT TYPES FROM API ---
   useEffect(() => {
-    if (orderId) {
-      const existingOrder = orders.find((o) => o.id === orderId);
-      if (existingOrder) {
-        form.setFieldsValue({
-          customerName: existingOrder.customer_name,
-          phone: existingOrder.customer_phone,
-          productName: existingOrder.product_name
-            ? [existingOrder.product_name]
-            : [],
-          quantity: existingOrder.quantity,
-          desiredDate: existingOrder.delivery_date
-            ? dayjs(existingOrder.delivery_date)
-            : null,
-          notes: existingOrder.note,
-          length: existingOrder.specs?.width || 0,
-          width: existingOrder.specs?.height || 0,
-          height: existingOrder.specs?.length || 0,
-          paperType: existingOrder.specs?.paper_id,
-          processing: existingOrder.specs?.processing,
-          // Load giá cũ nếu có
-          finalPrice: existingOrder.final_price,
-        });
-
-        // Xử lý File cũ
-        if (existingOrder.design_file_url) {
-          const urls = existingOrder.design_file_url.split(",");
-          const loadedItems: DesignItem[] = urls.map((url, idx) => ({
-            id: `design-${idx}`,
-            file: {
-              uid: `-${idx}`,
-              name: `File ${idx + 1}`,
-              status: "done",
-              url: url.trim(),
-            } as UploadFile,
-            previewUrl: url.trim(),
-            colors: idx === 0 ? existingOrder.specs?.colors || [] : [],
-          }));
-          setDesignItems(loadedItems);
+    const fetchPaperTypes = async () => {
+      setLoadingPaperTypes(true);
+      try {
+        const response = await materialsApi.getAll();
+        if (Array.isArray(response)) {
+          setPaperTypes(response);
         }
-
-        handleCalculate(
-          { quantity: existingOrder.quantity },
-          {
-            quantity: existingOrder.quantity,
-            desiredDate: existingOrder.delivery_date
-              ? dayjs(existingOrder.delivery_date)
-              : null,
-            paperType: existingOrder.specs?.paper_id,
-          }
-        );
+      } catch (error) {
+        console.error('Error fetching paper types:', error);
+      } finally {
+        setLoadingPaperTypes(false);
       }
-    }
-  }, [orderId, orders, form]);
+    };
+
+    const fetchProductTypes = async () => {
+      setLoadingProductTypes(true);
+      try {
+        const response = await productTypesApi.getAll();
+        if (Array.isArray(response)) {
+          setProductTypes(response.filter(pt => pt.is_active));
+        }
+      } catch (error) {
+        console.error('Error fetching product types:', error);
+      } finally {
+        setLoadingProductTypes(false);
+      }
+    };
+
+    const fetchMachineData = async () => {
+      try {
+        const [capacityRes, freeRes] = await Promise.all([
+          machineApi.getCapacity(),
+          machineApi.getFreeMachines(),
+        ]);
+        if (capacityRes) {
+          setMachineCapacity(capacityRes);
+        }
+        if (Array.isArray(freeRes)) {
+          setFreeMachines(freeRes);
+        }
+      } catch (error) {
+        console.error('Error fetching machine data:', error);
+      }
+    };
+
+    fetchPaperTypes();
+    fetchProductTypes();
+    fetchMachineData();
+  }, []);
+
+  // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU TỪ API ---
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      if (!orderId) return;
+      
+      try {
+        const response = await requestOrderApi.getDetail(orderId);
+        const orderData = response?.data || response;
+        
+        if (orderData) {
+          form.setFieldsValue({
+            customerName: orderData.customer_name,
+            phone: orderData.customer_phone,
+            email: orderData.customer_email,
+            productName: orderData.product_name ? [orderData.product_name] : [],
+            quantity: orderData.quantity,
+            desiredDate: orderData.delivery_date ? dayjs(orderData.delivery_date) : null,
+            shippingAddress: orderData.detail_address,
+            notes: orderData.description,
+            // Fields từ Accepted order
+            numberOfPlates: orderData.number_of_plates || 1,
+            coatingType: orderData.coating_type || 'NONE',
+          });
+
+          // Trigger calculation if we have quantity and date
+          if (orderData.quantity) {
+            handleCalculate(
+              { quantity: orderData.quantity },
+              {
+                quantity: orderData.quantity,
+                desiredDate: orderData.delivery_date ? dayjs(orderData.delivery_date) : null,
+              }
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching order details:', error);
+      }
+    };
+
+    fetchOrderDetails();
+  }, [orderId, form]);
 
   // --- LOGIC XEM ĐƠN HÀNG TẠI XƯỞNG ---
   const handleOpenFactoryOrders = () => {
@@ -429,6 +493,116 @@ function ConsultantForm() {
       productionDays,
       effectiveDate: currentDesiredDate.format("YYYY-MM-DD"),
     });
+  };
+
+  // --- TÍNH TOÁN GIẤY TỪ API ---
+  const calculatePaperEstimate = async () => {
+    const values = form.getFieldsValue();
+    const { paperType, quantity, length, width, height, productType, processing, numberOfPlates, coatingType } = values;
+
+    // Validate required fields
+    if (!paperType || !quantity || !length || !width || !height || !productType) {
+      return;
+    }
+
+    // Get paper code from materials
+    const selectedPaper = paperTypes.find(p => p.material_id === paperType);
+    const paperCode = selectedPaper?.code || '';
+
+    // Get product type code
+    const selectedProductType = productTypes.find(pt => pt.product_type_id === productType);
+    const productTypeCode = selectedProductType?.code || '';
+
+    // Convert processing array to comma-separated string
+    const productionProcesses = Array.isArray(processing) ? processing.join(', ') : '';
+
+    setLoadingPaperEstimate(true);
+    try {
+      const response = await estimatesApi.estimatePaper({
+        paper_code: paperCode,
+        quantity: quantity,
+        length_mm: length,
+        width_mm: width,
+        height_mm: height,
+        allowance_mm: 3, // Default value
+        bleed_mm: 1, // Default value
+        product_type: productTypeCode,
+        number_of_plates: numberOfPlates || 1,
+        production_processes: productionProcesses,
+        coating_type: coatingType || 'NONE',
+      });
+
+      if (response) {
+        setPaperEstimate(response);
+        // After getting paper estimate, calculate cost
+        calculateCostEstimate(response, productTypeCode, productionProcesses, coatingType);
+      }
+    } catch (error) {
+      console.error('Error calculating paper estimate:', error);
+      // Silent fail for realtime - don't show error message for auto-calc
+    } finally {
+      setLoadingPaperEstimate(false);
+    }
+  };
+
+  // --- TÍNH TOÁN CHI PHÍ TỪ API ---
+  const calculateCostEstimate = async (
+    paperData: EstimatePaperResponse,
+    productTypeCode: string,
+    productionProcesses: string,
+    coatingType: string
+  ) => {
+    const values = form.getFieldsValue();
+    const { desiredDate } = values;
+
+    if (!orderId || !paperData) return;
+
+    setLoadingCostEstimate(true);
+    try {
+      const response = await estimatesApi.estimateCost({
+        order_request_id: parseInt(orderId),
+        paper: paperData,
+        desired_delivery_date: desiredDate ? desiredDate.toISOString() : new Date().toISOString(),
+        product_type: productTypeCode,
+        production_processes: productionProcesses,
+        coating_type: coatingType || 'NONE',
+        has_lamination: false,
+      });
+
+      if (response) {
+        setCostEstimate(response);
+        // Set suggested price to form
+        form.setFieldValue('finalPrice', Math.round(response.system_total_cost));
+      }
+    } catch (error) {
+      console.error('Error calculating cost estimate:', error);
+    } finally {
+      setLoadingCostEstimate(false);
+    }
+  };
+
+  // --- REALTIME AUTO-CALCULATION với DEBOUNCE ---
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const handleFormValuesChange = (changedValues: any, allValues: any) => {
+    // Trigger handleCalculate for price estimation
+    handleCalculate(changedValues, allValues);
+
+    // Debounce paper estimate API call
+    const relevantFields = ['paperType', 'quantity', 'length', 'width', 'height', 'productType', 'processing', 'numberOfPlates', 'coatingType'];
+    const hasRelevantChange = Object.keys(changedValues).some(key => relevantFields.includes(key));
+
+    if (hasRelevantChange) {
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Set new timer - call API after 800ms of no changes
+      debounceTimerRef.current = setTimeout(() => {
+        calculatePaperEstimate();
+      }, 800);
+    }
   };
 
   const onFinish = (values: any) => {
@@ -621,15 +795,15 @@ function ConsultantForm() {
             {/* [MỚI] Hiển thị Công suất máy dạng thanh Progress */}
             <div className="flex flex-col items-end w-48">
               <div className="text-xs text-gray-500 flex gap-1 mb-1">
-                <DashboardOutlined /> Công suất xưởng ({machinesInUse}/
-                {TOTAL_MACHINES})
+                <DashboardOutlined /> Công suất xưởng ({runningMachines}/
+                {totalMachines})
               </div>
               <Progress
-                percent={(machinesInUse / TOTAL_MACHINES) * 100}
+                percent={(runningMachines / totalMachines) * 100}
                 size="small"
                 // Đổi màu đỏ nếu đầy, xanh nếu còn chỗ
                 status={isWorkshopFull ? "exception" : "active"}
-                format={(percent) => `${machinesInUse} máy`}
+                format={() => `${runningMachines} máy`}
                 strokeColor={isWorkshopFull ? "#ff4d4f" : "#52c41a"}
               />
             </div>
@@ -650,7 +824,7 @@ function ConsultantForm() {
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
-                onValuesChange={handleCalculate}
+                onValuesChange={handleFormValuesChange}
               >
                 {/* Thông tin khách - Sticky khi cuộn */}
                 <div className={`${orderId ? 'sticky top-0 z-10 bg-white pb-3 border-b border-gray-100 -mx-6 px-6 pt-2' : ''}`}>
@@ -741,61 +915,117 @@ function ConsultantForm() {
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
-                      name="paperType"
-                      label="Loại sản phẩm"
-                      rules={[{ required: true }]}
+                      name="productType"
+                      label="Loại Sản Phẩm"
+                      rules={[{ required: true, message: 'Vui lòng chọn loại sản phẩm' }]}
                     >
                       <Select
                         showSearch
-                        placeholder="Chọn hoặc nhập mới"
-                        options={products.map((prod) => ({
-                          label: prod.type,
-                          value: prod.type,
+                        placeholder="Chọn loại sản phẩm"
+                        loading={loadingProductTypes}
+                        optionFilterProp="label"
+                        options={productTypes.map((pt) => ({
+                          label: `${pt.name} - ${pt.description}`,
+                          value: pt.product_type_id,
                         }))}
-                        mode="tags"
-                        maxCount={1}
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item label="Kích thước (D x R x C)" required>
-                      <Space.Compact block style={{ display: 'flex' }}>
-                        <Form.Item name="length" noStyle>
-                          <InputNumber
-                            style={{ flex: 1 }}
-                            placeholder="D"
-                            controls={false}
-                          />
-                        </Form.Item>
-                        <Form.Item name="width" noStyle>
-                          <InputNumber
-                            style={{ flex: 1 }}
-                            placeholder="R"
-                            controls={false}
-                          />
-                        </Form.Item>
-                        <Form.Item name="height" noStyle>
-                          <InputNumber
-                            style={{ flex: 1 }}
-                            placeholder="C"
-                            controls={false}
-                          />
-                        </Form.Item>
-                      </Space.Compact>
+                  <Col span={12}>
+                    <Form.Item
+                      name="paperType"
+                      label="Loại Giấy"
+                      rules={[{ required: true, message: 'Vui lòng chọn loại giấy' }]}
+                    >
+                      <Select
+                        showSearch
+                        placeholder="Chọn loại giấy"
+                        loading={loadingPaperTypes}
+                        optionFilterProp="label"
+                        options={paperTypes.map((paper) => ({
+                          label: `${paper.name} (${paper.sheet_width_mm || 0}x${paper.sheet_length_mm || 0}mm) - Còn: ${paper.stock_qty} ${paper.unit}`,
+                          value: paper.material_id,
+                        }))}
+                      />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col span={8}>
+                    <Form.Item label="Kích thước D × R × C (mm)" required>
+                      <div className="flex items-center gap-1">
+                        <Form.Item name="length" noStyle>
+                          <InputNumber
+                            style={{ width: 60 }}
+                            placeholder="D"
+                            controls={false}
+                            min={1}
+                          />
+                        </Form.Item>
+                        <span className="text-gray-400">×</span>
+                        <Form.Item name="width" noStyle>
+                          <InputNumber
+                            style={{ width: 60 }}
+                            placeholder="R"
+                            controls={false}
+                            min={1}
+                          />
+                        </Form.Item>
+                        <span className="text-gray-400">×</span>
+                        <Form.Item name="height" noStyle>
+                          <InputNumber
+                            style={{ width: 60 }}
+                            placeholder="C"
+                            controls={false}
+                            min={1}
+                          />
+                        </Form.Item>
+                      </div>
+                    </Form.Item>
+                  </Col>
+                  <Col span={4}>
                     <Form.Item
                       name="quantity"
                       label="Số Lượng"
-                      rules={[{ required: true }]}
+                      rules={[{ required: true, message: 'Nhập số lượng' }]}
                     >
                       <InputNumber
                         className="w-full"
                         formatter={(value) =>
                           `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                         }
+                        parser={(value) => value?.replace(/,/g, '') as unknown as number}
                         controls={false}
+                        min={1}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={4}>
+                    <Form.Item
+                      name="numberOfPlates"
+                      label="Số Kẽm"
+                      initialValue={1}
+                    >
+                      <InputNumber 
+                        className="w-full" 
+                        min={1} 
+                        controls={false}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item
+                      name="coatingType"
+                      label="Loại Phủ"
+                      initialValue="NONE"
+                    >
+                      <Select
+                        options={[
+                          { label: "Không phủ", value: "NONE" },
+                          { label: "Keo nước", value: "KEO_NUOC" },
+                          { label: "Keo dầu", value: "KEO_DAU" },
+                        ]}
                       />
                     </Form.Item>
                   </Col>
@@ -949,7 +1179,13 @@ function ConsultantForm() {
                 </div>
 
                 <Form.Item name="processing" label="Gia Công">
-                  <Checkbox.Group options={PROCESSING_OPTS} />
+                  <Checkbox.Group className="w-full">
+                    <div className="flex justify-between">
+                      {PROCESSING_OPTS.map((opt) => (
+                        <Checkbox value={opt.value} key={opt.value}>{opt.label}</Checkbox>
+                      ))}
+                    </div>
+                  </Checkbox.Group>
                 </Form.Item>
 
                 <Form.Item name="notes" label="Ghi Chú">
@@ -1050,36 +1286,143 @@ function ConsultantForm() {
                   <div className="space-y-6">
                     {renderStatusAlert()}
 
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                    {/* Paper Estimate from API */}
+                    {paperEstimate && (
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <div className="text-sm font-semibold text-green-800 mb-3">
+                          TÍNH TOÁN SƠ BỘ:
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="text-gray-600">Khổ giấy:</div>
+                          <div className="font-medium">{paperEstimate.sheet_width_mm} x {paperEstimate.sheet_height_mm} mm</div>
+                          
+                          <div className="text-gray-600">Kích thước in:</div>
+                          <div className="font-medium">{paperEstimate.print_width_mm} x {paperEstimate.print_height_mm} mm</div>
+                          
+                          <div className="text-gray-600">Số SP/tờ (n_up):</div>
+                          <div className="font-medium text-blue-600">{paperEstimate.n_up}</div>
+                          
+                          <div className="text-gray-600">Số tờ cơ bản:</div>
+                          <div className="font-medium">{paperEstimate.sheets_base.toLocaleString()}</div>
+                          
+                          {/* <div className="text-gray-600">Phế in:</div>
+                          <div className="font-medium text-orange-600">{paperEstimate.waste_printing.toLocaleString()}</div> */}
+                          
+                          {/* <div className="text-gray-600">Phế bồi:</div>
+                          <div className="font-medium text-orange-600">{paperEstimate.waste_mounting.toLocaleString()}</div> */}
+                          
+                          {/* <div className="text-gray-600">Phế dán:</div>
+                          <div className="font-medium text-orange-600">{paperEstimate.waste_gluing.toLocaleString()}</div> */}
+                          
+                          {/* <div className="text-gray-600 font-semibold">Tổng phế:</div>
+                          <div className="font-bold text-red-600">{paperEstimate.total_waste.toLocaleString()}</div> */}
+                          
+                          <div className="col-span-2 border-t pt-2 mt-2">
+                            <div className="flex justify-between">
+                              <span className="text-gray-700 font-semibold">Tổng số tờ cần:</span>
+                              <span className="font-bold text-lg text-green-700">
+                                {paperEstimate.sheets_with_waste.toLocaleString()} tờ
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Chi tiết Chi phí từ API */}
+                    {costEstimate && (
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <div className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                          💰 CHI TIẾT CHI PHÍ:
+                          {loadingCostEstimate && <span className="text-xs text-blue-500 animate-pulse">⏳</span>}
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Chi phí giấy:</span>
+                            <span className="font-medium">{costEstimate.paper_cost.toLocaleString()} ₫</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Chi phí mực:</span>
+                            <span className="font-medium">{costEstimate.ink_cost.toLocaleString()} ₫</span>
+                          </div>
+                          {costEstimate.mounting_glue_cost > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Keo bồi:</span>
+                              <span className="font-medium">{costEstimate.mounting_glue_cost.toLocaleString()} ₫</span>
+                            </div>
+                          )}
+                          {costEstimate.lamination_cost > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Cán màng:</span>
+                              <span className="font-medium">{costEstimate.lamination_cost.toLocaleString()} ₫</span>
+                            </div>
+                          )}
+                          
+                          <div className="border-t pt-2 mt-2">
+                            <div className="flex justify-between text-gray-700">
+                              <span>Chi phí vật liệu:</span>
+                              <span className="font-semibold">{costEstimate.material_cost.toLocaleString()} ₫</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500 text-xs">
+                              <span>+ Chi phí quản lý (10%):</span>
+                              <span>{costEstimate.overhead_cost.toLocaleString()} ₫</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between font-medium">
+                            <span>Giá cơ bản:</span>
+                            <span className="text-blue-700">{costEstimate.base_cost.toLocaleString()} ₫</span>
+                          </div>
+
+                          {costEstimate.is_rush && (
+                            <div className="bg-orange-100 p-2 rounded border border-orange-200">
+                              <div className="flex justify-between text-orange-700">
+                                <span>⚡ Phí gấp ({costEstimate.rush_percent}%):</span>
+                                <span className="font-semibold">+{costEstimate.rush_amount.toLocaleString()} ₫</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="border-t-2 border-blue-300 pt-3 mt-3">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-blue-900">💵 Tổng giá hệ thống:</span>
+                              <span className="font-bold text-xl text-blue-700">
+                                {Math.round(costEstimate.system_total_cost).toLocaleString()} ₫
+                              </span>
+                            </div>
+                            <div className="flex justify-between mt-2 text-sm">
+                              <span className="text-gray-600">📅 Ngày hoàn thành dự kiến:</span>
+                              <span className="font-medium text-green-700">
+                                {dayjs(costEstimate.estimated_finish_date).format('DD/MM/YYYY')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* <div className="bg-gray-50 p-4 rounded-lg">
                       <Statistic
                         title="Giấy in ước tính (đã bù hao)"
-                        value={estimate.paperNeeded}
+                        value={paperEstimate?.sheets_with_waste || estimate.paperNeeded}
                         suffix="tờ"
                         groupSeparator=","
                       />
                       <div className="text-xs text-gray-500 mt-1">
-                        (Bình trang giả định: 4 hộp/tờ + 5% hao hụt)
+                        {paperEstimate ? "(Từ API Estimates)" : "(Bình trang giả định: 4 hộp/tờ + 5% hao hụt)"}
                       </div>
-                    </div>
+                    </div> */}
 
-                    {/* Chi phí sơ bộ - CHO PHÉP CHỈNH SỬa */}
+                    {/* Chi phí sản xuất - CHỈ Ô NHẬP */}
                     <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
-                      <div className='flex justify-between items-center mb-2'>
-                        <span className='text-sm font-medium text-blue-900'>
-                          Chi phí sản xuất:
-                        </span>
-                        <Tooltip title='Giá đề xuất tự động dựa trên số lượng và công đoạn'>
-                          <span className='text-xs text-blue-500 cursor-help underline'>
-                            Giá hệ thống: {estimate.finalCost.toLocaleString()}{' '}
-                            ₫
-                          </span>
-                        </Tooltip>
+                      <div className='text-sm font-medium text-blue-900 mb-2'>
+                        Chi phí sản xuất:
                       </div>
 
                       {/* Input nhập giá chốt */}
                       <Form.Item name='finalPrice' noStyle>
                         <InputNumber
-                          className='w-full text-2xl font-bold text-blue-700 border-none bg-transparent focus:bg-white focus:shadow-md transition-all p-0'
+                          className='w-full text-2xl font-bold text-blue-700'
                           formatter={(value) =>
                             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
                           }
@@ -1090,21 +1433,9 @@ function ConsultantForm() {
                             ) as unknown as number
                           }
                           addonAfter='₫'
-                          bordered={false}
+                          size='large'
                         />
                       </Form.Item>
-
-                      {estimate.rushFee > 0 && (
-                        <div className='text-xs text-red-500 mt-2 flex items-center justify-end'>
-                          <ThunderboltFilled className='mr-1' />
-                          (Bao gồm phí gấp: {estimate.rushFee.toLocaleString()}{' '}
-                          ₫)
-                        </div>
-                      )}
-                      <Divider className='my-2 border-blue-200' />
-                      <div className='text-xs text-gray-500 text-center'>
-                        (Bao gồm Giấy + Kẽm + Công in + Gia công)
-                      </div>
                     </div>
 
                     <div className="border-t pt-4">
