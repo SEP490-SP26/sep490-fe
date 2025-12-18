@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
 import Providers from "./Providers";
+import { Inter, Montserrat } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-inter',
+})
+
+const montserrat = Montserrat({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-montserrat',
+})
 
 export const metadata: Metadata = {
   title: "SEP490",
@@ -15,7 +26,7 @@ export default function RootLayout({
 }>) {
 
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${montserrat.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

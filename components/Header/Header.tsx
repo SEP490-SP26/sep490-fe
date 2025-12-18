@@ -17,7 +17,7 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <div className="text-xl font-bold">
             <Link href="/">
-              <span className="text-green-600 uppercase ">Công TY Cô Phần In ấn</span>
+              <span className="text-accent uppercase ">Công TY Cô Phần In ấn</span>
             </Link>
           </div>
 
@@ -29,13 +29,13 @@ export default function Header() {
                   <Avatar
                     size="default"
                     icon={<UserOutlined />}
-                    className="bg-green-600 cursor-pointer hover:bg-green-700 transition-colors"
+                    className="bg-accent cursor-pointer hover:bg-green-700 transition-colors"
                   />
                 </Link>
               ) : (
                 <Space size="small">
                   <Link href="/login">
-                    <Button type="primary" size="small" ghost className="border-green-500 text-green-500">
+                    <Button type="primary" size="small" ghost className="border-green-500 text-accent">
                       Đăng nhập
                     </Button>
                   </Link>
@@ -61,7 +61,7 @@ export default function Header() {
                     icon={<UserOutlined />}
                     className="bg-green-600"
                   />
-                  <span className="text-green-500 font-medium hidden lg:inline">
+                  <span className="text-accent font-medium hidden lg:inline">
                     {customer?.name?.split(' ').pop() || 'Tài khoản'}
                   </span>
                 </div>
@@ -72,7 +72,7 @@ export default function Header() {
                   <Button 
                     type="primary" 
                     ghost 
-                    className="border-green-500 text-green-500 hover:border-green-400 hover:text-green-400"
+                    className="border-green-500 text-accent hover:border-green-400 hover:text-green-400"
                   >
                     Đăng nhập
                   </Button>

@@ -1,61 +1,72 @@
-import Link from 'next/link'
-import React from 'react'
-import { FiLogOut, FiShoppingCart } from 'react-icons/fi'
 
-export default function layoutManager({
+import Sidebar from "@/components/sidebar/Sidebar";
+import React from "react";
+import { FiList, FiLogOut, FiPackage, FiShoppingCart } from "react-icons/fi";
+
+export default function LayoutManager({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   const navItems = [
     {
-      path: '',
-      label: 'Tạo đơn hàng',
+      path: "",
+      label: "Tạo đơn hàng",
       icon: FiShoppingCart,
     },
     {
-      path: '/orders',
-      label: 'Danh sách đơn hàng',
-      icon: FiShoppingCart,
+      path: "/orders",
+      label: "Danh sách đơn hàng",
+      icon: FiList,
     },
     {
-      path: '/history',
-      label: 'Quản Lý Đơn Hàng',
-      icon: FiShoppingCart,
+      path: "/history",
+      label: "Quản Lý Đơn Hàng",
+      icon: FiPackage,
     },
-    { path: '/', label: 'Đăng xuất', icon: FiLogOut },
-  ]
+    {
+      path: "/",
+      label: "Đăng xuất",
+      icon: FiLogOut,
+    },
+  ];
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className='fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200'>
-        <div className='p-6'>
-          <h1 className='text-blue-600 text-xl font-semibold'>Tư Vấn Viên A</h1>
-        </div>
-
-        <nav className='px-4'>
-          {navItems.map((item) => {
-            const Icon = item.icon
-
-            const href = item.path === '/' ? '/' : '/consultant' + item.path
-
-            return (
-              <Link
-                href={href}
-                key={item.label}
-                className='flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors text-gray-700 hover:bg-gray-100'
-              >
-                <Icon className='w-5 h-5' />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
-      </aside>
+      
+      <Sidebar/>
 
       {/* Main content */}
-      <main className='ml-64 p-8'>{children}</main>
+      <main className="ml-72 min-h-screen p-4">
+        {/* Content */}
+        <div className="bg-white ">
+          {children}
+        </div>
+
+        {/* Footer main */}
+        <footer className="mt-8 pt-6 border-t border-gray-100">
+          <div className="flex justify-between items-center text-sm">
+            <p className="text-secondary">
+              Hệ thống quản lý công ty in ấn •
+              <span className="text-primary font-medium ml-1">
+                {new Date().toLocaleDateString("vi-VN")}
+              </span>
+            </p>
+            <div className="flex gap-6">
+              <button className="text-primary hover:text-primary-dark transition-colors">
+                Trợ giúp
+              </button>
+              <button className="text-primary hover:text-primary-dark transition-colors">
+                Cài đặt
+              </button>
+              <button className="text-accent hover:text-accent-dark transition-colors font-medium">
+                Báo cáo sự cố
+              </button>
+            </div>
+          </div>
+        </footer>
+      </main>
     </div>
-  )
+  );
 }
