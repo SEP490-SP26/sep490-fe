@@ -1,7 +1,8 @@
 'use client'
 
+import { requestOrderApi } from '@/api/request'
+import { uploadApi } from '@/api/uploads'
 import AddressMapPicker, { AddressResult } from '@/components/AddressMapPicker'
-import { useProduction } from '@/context/ProductionContext'
 import { auth } from '@/utils/firebaseConfig'
 import { CheckCircleOutlined, EnvironmentOutlined, EyeOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons'
 import type { UploadFile } from 'antd'
@@ -35,8 +36,8 @@ declare global {
 
 export default function GuestOrderPage() {
   const [form] = Form.useForm()
-  const { addOrder } = useProduction()
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // OTP state
   const [isOtpSent, setIsOtpSent] = useState(false)
@@ -171,34 +172,48 @@ export default function GuestOrderPage() {
       reader.onerror = (error) => reject(error)
     })
 
-  const onFinish = (values: any) => {
-    const shippingAddress = selectedAddress?.formattedAddress || values.shippingAddress || 'Chưa có địa chỉ'
+  const onFinish = async (values: any) => {
+    setIsSubmitting(true)
+    
+    try {
+      // Upload design file if exists
+      let designFilePath = ''
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        try {
+          const uploadResult = await uploadApi.uploadFile(fileList[0].originFileObj as File)
+          designFilePath = uploadResult.url
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError)
+          // Continue without file if upload fails
+        }
+      }
 
-    const fakeFileUrl = values.designFile?.[0]
-      ? `https://storage.cloud.com/${values.designFile[0].name}`
-      : ''
+      // Build request body according to API schema
+      const requestBody = {
+        customer_name: values.customerName,
+        customer_phone: values.phone,
+        customer_email: values.email || '',
+        delivery_date: values.desiredDate?.toISOString() || new Date().toISOString(),
+        product_name: values.productName,
+        quantity: values.quantity || 1,
+        description: values.note || '',
+        design_file_path: designFilePath,
+        order_request_date: new Date().toISOString(),
+        // Address from map picker
+        province: '',
+        district: '',
+        detail_address: selectedAddress?.formattedAddress || values.shippingAddress || '',
+      }
 
-    addOrder({
-      product_id: 'custom',
-      product_name: values.productName,
-      customer_name: values.customerName,
-      customer_phone: values.phone,
-      customer_email: values.email,
-      quantity: values.quantity,
-      delivery_date: values.desiredDate?.format('YYYY-MM-DD') || '',
-      design_file_url: fakeFileUrl,
-      note: `Địa chỉ giao hàng: ${shippingAddress}. ${values.note || ''}`,
-      specs: {
-        width: 0,
-        height: 0,
-        length: 0,
-        paper_id: '',
-        colors: [],
-        processing: [],
-      },
-    })
-
-    setIsSuccess(true)
+      await requestOrderApi.createRequestOrderByCustomer(requestBody)
+      message.success('Đặt hàng thành công!')
+      setIsSuccess(true)
+    } catch (error: any) {
+      console.error('Create order error:', error)
+      message.error(error?.message || 'Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (isSuccess) {
@@ -467,10 +482,11 @@ export default function GuestOrderPage() {
                 htmlType='submit'
                 block
                 size='large'
-                disabled={!isVerified}
+                disabled={!isVerified || isSubmitting}
+                loading={isSubmitting}
                 className={`h-14 text-xl font-bold ${!isVerified ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
-                GỬI YÊU CẦU BÁO GIÁ
+                {isSubmitting ? 'Đang gửi...' : 'GỬI YÊU CẦU BÁO GIÁ'}
               </Button>
               {!isVerified && (
                 <div className='text-center text-red-500 mt-2 text-sm'>

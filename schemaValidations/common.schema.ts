@@ -1,4 +1,4 @@
-import z, { any, date } from 'zod'
+import z from 'zod'
 
 export const MessageRes = z
   .object({
@@ -40,3 +40,56 @@ export const PagingRes = z
   })
   .strict()
 export type PagingResType = z.TypeOf<typeof PagingRes>
+
+export interface CreateRequestBody {
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  delivery_date: string;
+  product_name: string;
+  quantity: number;
+  description?: string;
+  design_file_path?: string;
+  order_request_date?: string;
+  province?: string;
+  district?: string;
+  detail_address?: string;
+}
+
+export interface UploadResponse {
+  url: string;
+}
+
+export interface EstimatePaperRequest {
+  paper_code: string;
+  quantity: number;
+  length_mm: number;
+  width_mm: number;
+  height_mm: number;
+  allowance_mm?: number;
+  bleed_mm?: number;
+}
+
+export interface EstimateCostRequest {
+  order_request_id: number;
+  paper: {
+    paper_code: string;
+    sheet_width_mm: number;
+    sheet_height_mm: number;
+    sheet_length_mm: number;
+    print_width_mm: number;
+    print_height_mm: number;
+    print_length_mm: number;
+    n_up: number;
+    quantity: number;
+    sheets_base: number;
+    sheets_with_waste: number;
+    waste_percent: number;
+  };
+  desired_delivery_date: string;
+}
+
+export interface NearestDeliveryResponse {
+  nearest_delivery_date: string;
+  days_until_free: number;
+}
