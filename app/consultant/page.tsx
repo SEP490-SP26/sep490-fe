@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { requestOrderApi } from "@/api/request";
 import { Order, useProduction } from "@/context/ProductionContext";
 import {
   BgColorsOutlined,
@@ -18,6 +20,7 @@ import {
   UserOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
+import { useMutation } from "@tanstack/react-query";
 import type { UploadFile, UploadProps } from "antd";
 import {
   Alert,
@@ -229,6 +232,16 @@ function ConsultantForm() {
   const workshopFreeInfo = getEstimatedFreeDate();
   const daysUntilFree = workshopFreeInfo.days;
 
+  // data fetching 
+ const createRequestOrder = useMutation({
+    mutationFn: async (form) => {
+    const res = await requestOrderApi.createRequestOrderByCustomer(form);
+    return res.data;
+     console.log('data', res.data);
+  }});
+
+ 
+
   // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU ---
   useEffect(() => {
     if (orderId) {
@@ -420,6 +433,7 @@ function ConsultantForm() {
 
   const onFinish = (values: any) => {
     setLoading(true);
+    createRequestOrder.mutate(values);
 
     const allUniqueColors = Array.from(
       new Set(designItems.flatMap((i) => i.colors))

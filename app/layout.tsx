@@ -1,10 +1,7 @@
-import { CustomerProvider } from "@/context/CustomerContext";
-import { ProductionProvider } from "@/context/ProductionContext";
-import { AntdRegistry } from '@ant-design/nextjs-registry';
 import type { Metadata } from "next";
 import React from "react";
-import { ToastContainer } from "react-toastify";
 import "./globals.css";
+import Providers from "./Providers";
 
 export const metadata: Metadata = {
   title: "SEP490",
@@ -16,17 +13,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
   return (
     <html lang="en">
       <body>
-        <AntdRegistry> 
-          <ProductionProvider>
-            <CustomerProvider>
-              {children}
-              <ToastContainer />
-            </CustomerProvider>
-          </ProductionProvider>
-        </AntdRegistry>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
