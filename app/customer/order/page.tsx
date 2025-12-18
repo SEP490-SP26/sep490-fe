@@ -1,24 +1,24 @@
 'use client'
 
+import AddressMapPicker, { AddressResult } from '@/components/AddressMapPicker'
 import { useCustomer } from '@/context/CustomerContext'
 import { useProduction } from '@/context/ProductionContext'
-import { getDistrictsByProvince, VIETNAM_PROVINCES } from '@/utils/vietnamLocations'
 import { EnvironmentOutlined, EyeOutlined, InboxOutlined, PlusOutlined } from '@ant-design/icons'
 import type { UploadFile } from 'antd'
 import {
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Result,
-  Row,
-  Select,
-  Typography,
-  Upload
+    Button,
+    Card,
+    Col,
+    DatePicker,
+    Form,
+    Input,
+    InputNumber,
+    Modal,
+    Result,
+    Row,
+    Select,
+    Typography,
+    Upload
 } from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -40,7 +40,7 @@ export default function CustomerOrderPage() {
   // Address state
   const [selectedAddressId, setSelectedAddressId] = useState<string>('')
   const [useNewAddress, setUseNewAddress] = useState(false)
-  const [selectedProvince, setSelectedProvince] = useState<string>('')
+  const [newMapAddress, setNewMapAddress] = useState<AddressResult | undefined>(undefined)
 
   // Redirect if not logged in
   useEffect(() => {
@@ -98,13 +98,11 @@ export default function CustomerOrderPage() {
     let shippingAddress = ''
     
     if (useNewAddress) {
-      const province = VIETNAM_PROVINCES.find((p) => p.code === values.provinceCode)
-      const district = province?.districts.find((d) => d.code === values.districtCode)
-      shippingAddress = `${values.streetAddress}, ${district?.name}, ${province?.name}`
+      shippingAddress = newMapAddress?.formattedAddress || values.shippingAddress || 'Chưa có địa chỉ'
     } else {
       const addr = getSelectedAddress()
       if (addr) {
-        shippingAddress = `${addr.streetAddress}, ${addr.districtName}, ${addr.provinceName}`
+        shippingAddress = addr.formattedAddress || `${addr.streetAddress}, ${addr.districtName}, ${addr.provinceName}`
       }
     }
 
@@ -292,51 +290,19 @@ export default function CustomerOrderPage() {
                         )}
                       </>
                     ) : (
-                      // Enter new address
+                      // Enter new address with Map Picker
                       <>
-                        <Form.Item
-                          name='provinceCode'
-                          label='Tỉnh/Thành phố'
-                          rules={[{ required: useNewAddress, message: 'Chọn tỉnh/thành' }]}
-                        >
-                          <Select
-                            placeholder='Chọn tỉnh/thành phố'
-                            showSearch
-                            optionFilterProp='label'
-                            options={VIETNAM_PROVINCES.map((p) => ({
-                              value: p.code,
-                              label: p.name,
-                            }))}
-                            onChange={(value) => {
-                              setSelectedProvince(value)
-                              form.setFieldValue('districtCode', undefined)
-                            }}
-                          />
-                        </Form.Item>
-
-                        <Form.Item
-                          name='districtCode'
-                          label='Quận/Huyện'
-                          rules={[{ required: useNewAddress, message: 'Chọn quận/huyện' }]}
-                        >
-                          <Select
-                            placeholder='Chọn quận/huyện'
-                            showSearch
-                            optionFilterProp='label'
-                            disabled={!selectedProvince}
-                            options={getDistrictsByProvince(selectedProvince).map((d) => ({
-                              value: d.code,
-                              label: d.name,
-                            }))}
-                          />
-                        </Form.Item>
-
-                        <Form.Item
-                          name='streetAddress'
-                          label='Địa chỉ chi tiết'
-                          rules={[{ required: useNewAddress, message: 'Nhập địa chỉ' }]}
-                        >
-                          <Input placeholder='Số nhà, tên đường, phường/xã...' />
+                        <AddressMapPicker
+                          value={newMapAddress}
+                          onChange={(address) => {
+                            setNewMapAddress(address)
+                            form.setFieldValue('shippingAddress', address.formattedAddress)
+                          }}
+                          height={250}
+                          placeholder='Tìm kiếm địa chỉ...'
+                        />
+                        <Form.Item name='shippingAddress' hidden>
+                          <Input />
                         </Form.Item>
                       </>
                     )}
