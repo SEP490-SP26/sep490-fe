@@ -1,14 +1,22 @@
 import http from "@/lib/httpAxios";
 import {
-    CommonResType,
+    AdjustFinalCostRequest,
     EstimateCostRequest,
-    EstimatePaperRequest
+    EstimateCostResponse,
+    EstimatePaperRequest,
+    EstimatePaperResponse
 } from "@/schemaValidations/common.schema";
 
 export const estimatesApi = {
+    // POST /api/Estimates/paper - Calculate paper parameters
     estimatePaper: (body: EstimatePaperRequest) =>
-        http.post<CommonResType>("/api/Estimates/paper", body),
+        http.post<EstimatePaperResponse>("/api/Estimates/paper", body),
 
+    // POST /api/Estimates/cost - Calculate cost estimate
     estimateCost: (body: EstimateCostRequest) =>
-        http.post<CommonResType>("/api/Estimates/cost", body),
+        http.post<EstimateCostResponse>("/api/Estimates/cost", body),
+
+    // PUT /api/Estimates/adjust-final-total-cost/{id} - Adjust final cost
+    adjustFinalCost: (id: number, body: AdjustFinalCostRequest) =>
+        http.put<void>(`/api/Estimates/adjust-final-total-cost/${id}`, body),
 };

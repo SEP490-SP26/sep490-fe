@@ -1,49 +1,116 @@
 'use client';
 
-import { Order, useProduction } from '@/context/ProductionContext';
+import { requestOrderApi } from '@/api/request';
+import { OrderRequest } from '@/schemaValidations/common.schema';
 import {
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    EditOutlined,
-    EyeOutlined,
-    FileTextOutlined,
-    MailOutlined,
-    SearchOutlined,
-    SendOutlined,
-    ThunderboltOutlined
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  EditOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  LoadingOutlined,
+  MailOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  SendOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons';
-import { Button, Card, Empty, Input, message, Popconfirm, Space, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
+import { Button, Card, Empty, Input, message, Popconfirm, Space, Spin, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const { Title } = Typography;
 
 export default function ConsultantOrdersPage() {
-  const { orders, updateOrder } = useProduction();
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
+  const [orders, setOrders] = useState<OrderRequest[]>([]);
+  const [acceptedOrders, setAcceptedOrders] = useState<OrderRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingAccepted, setLoadingAccepted] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageAccepted, setCurrentPageAccepted] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalAccepted, setTotalAccepted] = useState(0);
+  const pageSize = 5;
+
+  // Fetch pending orders from API with pagination
+  const fetchOrders = async (page: number = currentPage) => {
+    setLoading(true);
+    try {
+      const response = await requestOrderApi.getList(page, pageSize);
+      if (response?.data && Array.isArray(response.data)) {
+        setOrders(response.data);
+        // If API returns total count, use it
+        if (response.data.length > 0) {
+          setTotalOrders(response.data.length >= pageSize ? (page * pageSize) + pageSize : response.data.length);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      message.error('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch accepted orders from API (using larger page size for simplicity)
+  const fetchAcceptedOrders = async () => {
+    setLoadingAccepted(true);
+    try {
+      const response = await requestOrderApi.getListByStatus(1, 30, 'Accepted');
+      if (response?.data && Array.isArray(response.data)) {
+        // Only keep orders with Accepted status
+        const acceptedOnly = response.data.filter(
+          (o: OrderRequest) => o.process_status?.toLowerCase() === 'accepted'
+        );
+        setAcceptedOrders(acceptedOnly);
+        setTotalAccepted(acceptedOnly.length);
+      }
+    } catch (error) {
+      console.error('Error fetching accepted orders:', error);
+    } finally {
+      setLoadingAccepted(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders(currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    fetchAcceptedOrders();
+  }, []);
 
   // Filter orders by search text
-  const filterBySearch = (orderList: Order[]) => 
+  const filterBySearch = (orderList: OrderRequest[]) => 
     orderList.filter(order => 
-      order.customer_name.toLowerCase().includes(searchText.toLowerCase()) ||
+      order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.product_name?.toLowerCase().includes(searchText.toLowerCase()) ||
-      order.id.includes(searchText)
-    ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      order.order_request_id?.toString().includes(searchText)
+    ).sort((a, b) => new Date(b.order_request_date).getTime() - new Date(a.order_request_date).getTime());
 
-  // Orders by status
-  const pendingOrders = filterBySearch(orders.filter(o => o.process_status === 'pending_consultant'));
-  const waitingConfirmOrders = filterBySearch(orders.filter(o => o.process_status === 'waiting_customer_confirm'));
-  const pendingCreationOrders = filterBySearch(orders.filter(o => o.process_status === 'pending_order_creation'));
+  // Orders by status - "Pending" from API goes to "Đơn mới"
+  const pendingOrders = filterBySearch(orders.filter(o => 
+    o.process_status?.toLowerCase() === 'pending'
+  ));
+  const waitingConfirmOrders = filterBySearch(orders.filter(o => 
+    o.process_status?.toLowerCase() === 'waiting_customer_confirm'
+  ));
+  // Accepted orders - filtere from separate API call
+  const filteredAcceptedOrders = filterBySearch(acceptedOrders);
 
   // Status tag renderer
-  const getStatusTag = (status: Order['process_status']) => {
-    switch (status) {
-      case 'pending_consultant':
+  const getStatusTag = (status: string) => {
+    const statusLower = status?.toLowerCase();
+    switch (statusLower) {
+      case 'pending':
         return <Tag icon={<ClockCircleOutlined />} color="blue">Mới - Chờ Báo Giá</Tag>;
       case 'waiting_customer_confirm':
         return <Tag icon={<MailOutlined />} color="orange">Chờ KH Xác Nhận</Tag>;
+      case 'accepted':
+        return <Tag icon={<FileTextOutlined />} color="purple">Chờ Tạo Đơn</Tag>;
       case 'pending_order_creation':
         return <Tag icon={<FileTextOutlined />} color="purple">Chờ Tạo Đơn</Tag>;
       case 'consultant_verified':
@@ -56,11 +123,12 @@ export default function ConsultantOrdersPage() {
   };
 
   // Get action button based on status
-  const getActionButton = (record: Order) => {
-    switch (record.process_status) {
-      case 'pending_consultant':
+  const getActionButton = (record: OrderRequest) => {
+    const statusLower = record.process_status?.toLowerCase();
+    switch (statusLower) {
+      case 'pending':
         return (
-          <Link href={`/consultant?orderId=${record.id}&mode=negotiate`}>
+          <Link href={`/consultant?orderId=${record.order_request_id}&mode=negotiate`}>
             <Button type="primary" size="small" icon={<EditOutlined />}>
               Tiếp nhận & Báo giá
             </Button>
@@ -76,10 +144,9 @@ export default function ConsultantOrdersPage() {
             </Tooltip>
             <Popconfirm
               title="Mô phỏng khách hàng xác nhận"
-              description="Đây là tính năng test. Thực tế sẽ do Backend xử lý khi KH click email."
+              description="Đây là tính năng test."
               onConfirm={() => {
-                updateOrder(record.id, { process_status: 'pending_order_creation' });
-                message.success('KH đã xác nhận! Đơn chuyển sang "Chờ tạo đơn".');
+                message.success('Chức năng này cần BE hỗ trợ');
               }}
               okText="Xác nhận (Test)"
               cancelText="Hủy"
@@ -91,8 +158,9 @@ export default function ConsultantOrdersPage() {
           </Space>
         );
       case 'pending_order_creation':
+      case 'accepted':
         return (
-          <Link href={`/consultant?orderId=${record.id}&mode=create`}>
+          <Link href={`/consultant?orderId=${record.order_request_id}&mode=create`}>
             <Button type="primary" size="small" icon={<FileTextOutlined />} className="bg-purple-600 hover:bg-purple-700">
               Tạo đơn hàng
             </Button>
@@ -100,7 +168,7 @@ export default function ConsultantOrdersPage() {
         );
       default:
         return (
-          <Link href={`/consultant?orderId=${record.id}`}>
+          <Link href={`/consultant?orderId=${record.order_request_id}`}>
             <Button size="small" icon={<EyeOutlined />}>
               Xem
             </Button>
@@ -112,16 +180,16 @@ export default function ConsultantOrdersPage() {
   const columns = [
     {
       title: 'Mã Đơn',
-      dataIndex: 'id',
-      key: 'id',
+      dataIndex: 'order_request_id',
+      key: 'order_request_id',
       width: 100,
-      render: (text: string) => <span className="font-mono text-gray-500 text-xs">#{text.split('-')[1]}</span>,
+      render: (id: number) => <span className="font-mono text-gray-500 text-xs">#{id}</span>,
     },
     {
       title: 'Khách Hàng',
       dataIndex: 'customer_name',
       key: 'customer_name',
-      render: (text: string, record: Order) => (
+      render: (text: string, record: OrderRequest) => (
         <div>
           <div className="font-medium text-gray-900">{text}</div>
           {record.customer_phone && <div className="text-xs text-gray-500">{record.customer_phone}</div>}
@@ -161,13 +229,13 @@ export default function ConsultantOrdersPage() {
       dataIndex: 'process_status',
       key: 'process_status',
       align: 'center' as const,
-      render: (status: Order['process_status']) => getStatusTag(status),
+      render: (status: string) => getStatusTag(status),
     },
     {
       title: 'Hành Động',
       key: 'action',
       align: 'center' as const,
-      render: (_: any, record: Order) => getActionButton(record),
+      render: (_: any, record: OrderRequest) => getActionButton(record),
     },
   ];
 
@@ -181,14 +249,23 @@ export default function ConsultantOrdersPage() {
         </span>
       ),
       children: (
-        <Table 
-          columns={columns} 
-          dataSource={pendingOrders} 
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="Không có đơn hàng mới" /> }}
-          bordered
-        />
+        <Spin spinning={loading} indicator={<LoadingOutlined />}>
+          <Table 
+            columns={columns} 
+            dataSource={pendingOrders} 
+            rowKey="order_request_id"
+            pagination={{
+              current: currentPage,
+              pageSize: pageSize,
+              total: totalOrders,
+              showSizeChanger: false,
+              showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} đơn`,
+              onChange: (page) => setCurrentPage(page),
+            }}
+            locale={{ emptyText: <Empty description="Không có đơn hàng mới" /> }}
+            bordered
+          />
+        </Spin>
       ),
     },
     {
@@ -200,14 +277,16 @@ export default function ConsultantOrdersPage() {
         </span>
       ),
       children: (
-        <Table 
-          columns={columns} 
-          dataSource={waitingConfirmOrders} 
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="Không có đơn chờ xác nhận" /> }}
-          bordered
-        />
+        <Spin spinning={loading} indicator={<LoadingOutlined />}>
+          <Table 
+            columns={columns} 
+            dataSource={waitingConfirmOrders} 
+            rowKey="order_request_id"
+            pagination={{ pageSize: 10 }}
+            locale={{ emptyText: <Empty description="Không có đơn chờ xác nhận" /> }}
+            bordered
+          />
+        </Spin>
       ),
     },
     {
@@ -215,18 +294,23 @@ export default function ConsultantOrdersPage() {
       label: (
         <span>
           Chờ tạo đơn
-          {pendingCreationOrders.length > 0 && <Tag color="purple" className="ml-2">{pendingCreationOrders.length}</Tag>}
+          {filteredAcceptedOrders.length > 0 && <Tag color="purple" className="ml-2">{filteredAcceptedOrders.length}</Tag>}
         </span>
       ),
       children: (
-        <Table 
-          columns={columns} 
-          dataSource={pendingCreationOrders} 
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
-          bordered
-        />
+        <Spin spinning={loadingAccepted} indicator={<LoadingOutlined />}>
+          <Table 
+            columns={columns} 
+            dataSource={filteredAcceptedOrders} 
+            rowKey="order_request_id"
+            pagination={{ 
+              pageSize: 10,
+              showTotal: (total) => `Tổng ${total} đơn chờ tạo`,
+            }}
+            locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
+            bordered
+          />
+        </Spin>
       ),
     },
   ];
@@ -244,6 +328,14 @@ export default function ConsultantOrdersPage() {
             prefix={<SearchOutlined />} 
             onChange={(e) => setSearchText(e.target.value)}
             size="large"
+            suffix={
+              <Button 
+                type="text" 
+                icon={<ReloadOutlined spin={loading} />} 
+                onClick={() => fetchOrders(currentPage)}
+                title="Tải lại"
+              />
+            }
           />
           <div className="flex justify-between mt-1">
             <Link href="/consultant" className="text-sm text-blue-600 hover:underline">
