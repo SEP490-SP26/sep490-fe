@@ -34,6 +34,8 @@ export interface Order {
   status: "pending" | "scheduled" | "in_production" | "completed";
   process_status:
     | "pending_consultant"
+    | "waiting_customer_confirm"
+    | "pending_order_creation"
     | "consultant_verified"
     | "manager_approved"
     | "rejected";
@@ -381,7 +383,7 @@ const getInitialOrders = (): Order[] => {
   };
 
   return [
-    // --- 3 ĐƠN HÀNG DEMO CHO KHÁCH (SĐT: 0123456789) ---
+    // --- ĐƠN HÀNG DEMO: PENDING_CONSULTANT (Đơn mới) ---
     {
       id: "ORD-DEMO-001",
       product_id: "p4",
@@ -389,10 +391,11 @@ const getInitialOrders = (): Order[] => {
       quantity: 500,
       delivery_date: addDays(7),
       customer_name: "Khách Hàng Demo",
-      customer_phone: "0123456789", // Số điện thoại test
+      customer_phone: "0123456789",
+      customer_email: "demo@test.com",
       status: "pending",
-      process_status: "pending_consultant", // Trạng thái: Chờ tư vấn
-      created_at: new Date().toISOString(), // Vừa đặt
+      process_status: "pending_consultant",
+      created_at: new Date().toISOString(),
       note: "Gói hàng kỹ giúp mình nhé.",
       specs: {
         width: 15,
@@ -401,6 +404,103 @@ const getInitialOrders = (): Order[] => {
         paper_id: "Giấy Kraft",
         colors: ["#8B4513"],
         processing: [],
+      },
+      can_fulfill: true,
+    },
+    {
+      id: "ORD-NEW-002",
+      product_id: "p1",
+      product_name: "Brochure Quảng cáo",
+      quantity: 1000,
+      delivery_date: addDays(10),
+      customer_name: "Công ty ABC",
+      customer_phone: "0987654321",
+      customer_email: "abc@company.com",
+      status: "pending",
+      process_status: "pending_consultant",
+      created_at: addDays(-1),
+      note: "Cần gấp",
+      specs: {
+        width: 21,
+        height: 29,
+        length: 0,
+        paper_id: "Giấy Couche 150",
+        colors: ["#FF0000", "#0000FF"],
+        processing: ["Cán màng bóng"],
+      },
+      can_fulfill: true,
+    },
+    // --- ĐƠN HÀNG DEMO: WAITING_CUSTOMER_CONFIRM (Chờ KH xác nhận) ---
+    {
+      id: "ORD-WAIT-001",
+      product_id: "p2",
+      product_name: "Catalogue Sản phẩm 2024",
+      quantity: 300,
+      delivery_date: addDays(14),
+      customer_name: "Cửa hàng XYZ",
+      customer_phone: "0912345678",
+      customer_email: "xyz@shop.vn",
+      status: "pending",
+      process_status: "waiting_customer_confirm",
+      created_at: addDays(-2),
+      final_price: 8500000,
+      note: "Đã gửi báo giá, chờ KH phản hồi",
+      specs: {
+        width: 21,
+        height: 29,
+        length: 0,
+        paper_id: "Giấy Couche 250",
+        colors: ["#000000", "#FFD700"],
+        processing: ["Cán màng mờ", "Đóng gáy lò xo"],
+      },
+      can_fulfill: true,
+    },
+    {
+      id: "ORD-WAIT-002",
+      product_id: "p4",
+      product_name: "Hộp Bánh Trung Thu",
+      quantity: 2000,
+      delivery_date: addDays(20),
+      customer_name: "Tiệm Bánh Ngọt Ngào",
+      customer_phone: "0901234567",
+      customer_email: "bakery@email.com",
+      status: "pending",
+      process_status: "waiting_customer_confirm",
+      created_at: addDays(-3),
+      final_price: 25000000,
+      note: "Báo giá cao cấp, chờ KH duyệt",
+      specs: {
+        width: 20,
+        height: 20,
+        length: 10,
+        paper_id: "Giấy Ivory 350",
+        colors: ["#8B0000", "#FFD700"],
+        processing: ["Cán màng bóng", "Ép kim", "Dập nổi"],
+      },
+      can_fulfill: true,
+    },
+    // --- ĐƠN HÀNG DEMO: PENDING_ORDER_CREATION (Chờ tạo đơn) ---
+    {
+      id: "ORD-CREATE-001",
+      product_id: "p3",
+      product_name: "Poster Sự kiện A2",
+      quantity: 150,
+      delivery_date: addDays(5),
+      customer_name: "Event Pro Co.",
+      customer_phone: "0909876543",
+      customer_email: "event@pro.vn",
+      status: "pending",
+      process_status: "pending_order_creation",
+      created_at: addDays(-4),
+      final_price: 3200000,
+      note: "KH đã xác nhận qua email, chờ tạo đơn chính thức",
+      specs: {
+        width: 42,
+        height: 59,
+        length: 0,
+        paper_id: "Giấy Couche 200",
+        colors: ["#FF00FF", "#00FFFF", "#FFFF00"],
+        processing: ["Cán màng bóng"],
       },
       can_fulfill: true,
     },
