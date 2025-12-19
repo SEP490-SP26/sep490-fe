@@ -1,8 +1,6 @@
 "use client";
 import Masonry from "@/components/Bits/Masonry";
-import { Button, Space } from "antd";
 import { useRouter } from "next/navigation";
-import { BiCalendar, BiShoppingBag } from "react-icons/bi";
 
 const data = [
   {
@@ -23,7 +21,12 @@ const data = [
     label: "Thiệp cưới",
     height: 300,
   },
-  { id: 4, image: "/assets/images/ky-thuat-in-an.jpg", label: "Danh thiếp", height: 300 },
+  {
+    id: 4,
+    image: "/assets/images/ky-thuat-in-an.jpg",
+    label: "Danh thiếp",
+    height: 300,
+  },
 
   {
     id: 5,
@@ -43,8 +46,18 @@ const data = [
     label: "Tờ rơi",
     height: 300,
   },
-  { id: 8, image: "/assets/images/ky-thuat-in-an.jpg", label: "Poster", height: 300 },
-  { id: 9, image: "/assets/images/ky-thuat-in-an.jpg", label: "Nhãn mác", height: 300 },
+  {
+    id: 8,
+    image: "/assets/images/ky-thuat-in-an.jpg",
+    label: "Poster",
+    height: 300,
+  },
+  {
+    id: 9,
+    image: "/assets/images/ky-thuat-in-an.jpg",
+    label: "Nhãn mác",
+    height: 300,
+  },
   {
     id: 10,
     image: "/assets/images/ky-thuat-in-an.jpg",
@@ -63,14 +76,24 @@ const data = [
     label: "Menu quán ăn",
     height: 300,
   },
-  { id: 13, image: "/assets/images/ky-thuat-in-an.jpg", label: "Sách báo", height: 300 },
+  {
+    id: 13,
+    image: "/assets/images/ky-thuat-in-an.jpg",
+    label: "Sách báo",
+    height: 300,
+  },
   {
     id: 14,
     image: "/assets/images/ky-thuat-in-an.jpg",
     label: "Văn phòng phẩm",
     height: 300,
   },
-  { id: 15, image: "/assets/images/ky-thuat-in-an.jpg", label: "Lịch Tết", height: 300 },
+  {
+    id: 15,
+    image: "/assets/images/ky-thuat-in-an.jpg",
+    label: "Lịch Tết",
+    height: 300,
+  },
   {
     id: 16,
     image: "/assets/images/ky-thuat-in-an.jpg",
@@ -80,7 +103,7 @@ const data = [
   {
     id: 17,
     image: "/assets/images/ky-thuat-in-an.jpg",
-    label: "túi giấy",
+    label: "Túi giấy",
     height: 300,
   },
   {
@@ -110,7 +133,7 @@ export default function HomePage() {
       <section className="relative  min-h-[600px] md:min-h-auto bg-linear-to-b from-gray-900 to-gray-100 py-20 text-center">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl font-bold text-white mb-4 uppercase">
-            Công ty cổ phần In Ấn  
+            Công ty cổ phần In Ấn
           </h2>
           <p className="text-lg text-gray-200 max-w-2xl mx-auto">
             Chúng tôi cung cấp dịch vụ in ấn chuyên nghiệp với công nghệ hiện
@@ -118,6 +141,14 @@ export default function HomePage() {
             Đảm bảo mang đến cho bạn những sản phẩm in ấn sắc nét, bền đẹp và
             đúng tiến độ.
           </p>
+          <div>
+            <button
+              className="mt-2 bg-accent px-4 py-2 rounded-md text-primary"
+              onClick={() => router.push("/order")}
+            >
+              Đăt In Nhanh{" "}
+            </button>
+          </div>
 
           <div className="pt-8">
             <Masonry data={data} />
@@ -138,8 +169,6 @@ export default function HomePage() {
         {/* <Banner /> */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 max-w-7xl 2xl:max-w-screen-2xl">
           <div className="py-8"> </div>
-
-
         </div>
       </main>
     </div>

@@ -1,10 +1,18 @@
-import { CustomerProvider } from "@/context/CustomerContext";
-import { ProductionProvider } from "@/context/ProductionContext";
-import { AntdRegistry } from '@ant-design/nextjs-registry';
 import type { Metadata } from "next";
 import React from "react";
-import { ToastContainer } from "react-toastify";
 import "./globals.css";
+import Providers from "./Providers";
+import { Inter, Montserrat } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-inter',
+})
+
+const montserrat = Montserrat({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-montserrat',
+})
 
 export const metadata: Metadata = {
   title: "SEP490",
@@ -16,17 +24,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${montserrat.variable}`}>
       <body>
-        <AntdRegistry> 
-          <ProductionProvider>
-            <CustomerProvider>
-              {children}
-              <ToastContainer />
-            </CustomerProvider>
-          </ProductionProvider>
-        </AntdRegistry>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

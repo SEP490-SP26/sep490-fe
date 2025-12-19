@@ -250,9 +250,9 @@ export default function ProductionScheduling() {
     <div>
       <h1 className="mb-8">Lập lịch Sản xuất</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Đơn hàng sẵn sàng */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        {/* <div className="bg-white rounded-lg border border-gray-200 p-6 ">
           <h2 className="mb-4 flex items-center gap-2">
             <BsClock className="w-5 h-5 text-blue-500" />
             Sẵn sàng lên lịch ({readyOrders.length})
@@ -302,7 +302,7 @@ export default function ProductionScheduling() {
               </div>
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* Đang sản xuất */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -388,7 +388,7 @@ export default function ProductionScheduling() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       {progress.remainingStages.length > 0 && (
                         <button
                           onClick={() => {
@@ -411,7 +411,7 @@ export default function ProductionScheduling() {
                           Hoàn thành sản xuất
                         </button>
                       )}
-                    </div>
+                    </div> */}
                       <Link
                         href={`/staff/production/${order.id}`}
                         className="w-full mt-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex items-center justify-center gap-2"
@@ -500,7 +500,7 @@ export default function ProductionScheduling() {
       </div>
 
       {/* Bảng lịch trình theo tuần */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      {/* <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="mb-4">Lịch trình Sản xuất theo Tuần</h2>
 
         <div className="mb-4">
@@ -585,7 +585,7 @@ export default function ProductionScheduling() {
             );
           })}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

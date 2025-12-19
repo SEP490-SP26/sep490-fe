@@ -50,12 +50,7 @@ export default function OrderListPage() {
   const [sortBy, setSortBy] = useState<keyof Order>("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-
-
-const nonPendingOrders = orders.filter(
-  (order) => order.status !== "pending"
-);
-
+  const nonPendingOrders = orders.filter((order) => order.status !== "pending");
 
   const filteredOrders = useMemo(() => {
     let result = [...nonPendingOrders];
@@ -210,8 +205,7 @@ const nonPendingOrders = orders.filter(
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="space-y-6">
             {/* First Row: Search and Main Actions */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              {/* Search Bar */}
+            {/* <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex-1 max-w-lg">
                 <div className="relative">
                   <BiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -233,17 +227,16 @@ const nonPendingOrders = orders.filter(
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+=              <div className="flex items-center gap-3">
                 <button className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium">
                   <BiPlus className="w-4 h-4" />
                   Tạo đơn mới
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* Second Row: Main Filters */}
-            <div className="border-t border-gray-200 pt-6">
+            <div className=" border-gray-200 ">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-gray-900 flex items-center gap-2">
                   <BiFilter className="w-4 h-4" />
@@ -264,9 +257,33 @@ const nonPendingOrders = orders.filter(
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+                {/* Search bar */}
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wider">
+                    Tìm kiếm
+                  </label>
+                  <div className="relative">
+                    <BiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Khách hàng, mã đơn, sản phẩm..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
                 {/* Status Filter */}
-                <div>
+                <div className="lg:w-48">
                   <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wider">
                     Trạng thái
                   </label>
@@ -277,7 +294,7 @@ const nonPendingOrders = orders.filter(
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm"
                     >
                       <option value="all">Tất cả trạng thái</option>
-                      <option value="pending">Chờ xử lý</option>
+                      {/* <option value="pending">Chờ xử lý</option> */}
                       <option value="scheduled">Đã lên lịch</option>
                       <option value="in_production">Đang sản xuất</option>
                       <option value="completed">Hoàn thành</option>
@@ -287,7 +304,7 @@ const nonPendingOrders = orders.filter(
                 </div>
 
                 {/* Product Filter */}
-                <div>
+                <div className="lg:w-48">
                   <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wider">
                     Sản phẩm
                   </label>
@@ -297,7 +314,7 @@ const nonPendingOrders = orders.filter(
                       onChange={(e) => setProductFilter(e.target.value)}
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm"
                     >
-                      <option value="all">Tất cả sản phẩm</option>
+                      <option value="all">Tất cả</option>
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
                           {product.type}
@@ -690,7 +707,7 @@ const nonPendingOrders = orders.filter(
                                           className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm"
                                         >
                                           <BiChevronRight className="w-4 h-4" />
-                                          Xem thông tin chi tiết 
+                                          Xem thông tin chi tiết
                                         </button>
                                       </div>
                                     </div>
