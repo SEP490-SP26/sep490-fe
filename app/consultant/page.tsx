@@ -4,6 +4,7 @@
 import { estimatesApi } from "@/api/estimates";
 import { machineApi } from "@/api/machine";
 import { materialsApi } from "@/api/materials";
+import { productionsApi } from "@/api/productions";
 import { productTypesApi } from "@/api/producttypes";
 import { requestOrderApi } from "@/api/request";
 import { Order, useProduction } from "@/context/ProductionContext";
@@ -13,8 +14,8 @@ import {
   EstimatePaperResponse,
   FreeMachine,
   MachineCapacity,
-  Material,
-  ProductType,
+  ProcessCostBreakdownResponse,
+  ProductType
 } from "@/schemaValidations/common.schema";
 import {
   BgColorsOutlined,
@@ -60,6 +61,7 @@ import {
   Tooltip,
   Upload,
 } from "antd";
+import { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -138,15 +140,19 @@ const PAPER_TYPES = [
   { label: "Giấy Kraft", value: "VT00030", stock: 0 },
 ];
 
-const PROCESSING_OPTS = [
-  { label: "In", value: "IN" },
-  { label: "Bồi", value: "BOI" },
-  { label: "Phủ", value: "PHU" },
-  { label: "Cán màng", value: "CAN_MANG" },
-  { label: "Bế", value: "BE" },
-  { label: "Dứt", value: "DUT" },
-  { label: "Dán", value: "DAN" },
-];
+// Mapping process type code to Vietnamese label
+const PROCESS_TYPE_LABELS: Record<string, string> = {
+  'IN': 'In',
+  'RALO': 'Ra Lô',
+  'CAT': 'Cắt',
+  'BOI': 'Bồi',
+  'PHU': 'Phủ',
+  'CAN_MANG': 'Cán màng',
+  'BE': 'Bế',
+  'DUT': 'Dứt',
+  'DAN': 'Dán',
+  'DOT': 'Đột',
+};
 
 const PRODUCT_SUGGESTIONS = [
   "Hộp bánh trung thu cao cấp",
@@ -158,6 +164,10 @@ const PRODUCT_SUGGESTIONS = [
 
 const RUSH_FEE_LOW = 500000;
 const RUSH_FEE_HIGH = 2000000;
+const disabledDate: RangePickerProps["disabledDate"] = (current) => {
+  // Can not select days before today and today
+  return current && current < dayjs().endOf("day");
+};
 
 interface DesignItem {
   id: string;
@@ -197,12 +207,25 @@ function ConsultantForm() {
   const [designItems, setDesignItems] = useState<DesignItem[]>([]);
 
   // State cho danh sách loại giấy từ API Materials
-  const [paperTypes, setPaperTypes] = useState<Material[]>([]);
+  const [paperTypes, setPaperTypes] = useState<string[]>([]);
   const [loadingPaperTypes, setLoadingPaperTypes] = useState(false);
 
   // State cho danh sách loại sản phẩm từ API ProductTypes
   const [productTypes, setProductTypes] = useState<ProductType[]>([]);
   const [loadingProductTypes, setLoadingProductTypes] = useState(false);
+
+  // State cho danh sách form type (hiển thị khi chọn Hộp màu hoặc Vỏ hộp gạch)
+  const [formTypes, setFormTypes] = useState<string[]>([]);
+  const [loadingFormTypes, setLoadingFormTypes] = useState(false);
+  const [selectedProductTypeCode, setSelectedProductTypeCode] = useState<string>('');
+
+  // State cho danh sách process types từ API
+  const [processTypes, setProcessTypes] = useState<string[]>([]);
+  const [loadingProcessTypes, setLoadingProcessTypes] = useState(false);
+  
+  // State cho process cost breakdown (hiển thị giá kế bên checkbox)
+  const [processCostBreakdown, setProcessCostBreakdown] = useState<ProcessCostBreakdownResponse | null>(null);
+  const [loadingProcessCost, setLoadingProcessCost] = useState(false);
 
   // State cho Modal danh sách đơn hàng tại xưởng
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
@@ -286,7 +309,7 @@ function ConsultantForm() {
     const fetchPaperTypes = async () => {
       setLoadingPaperTypes(true);
       try {
-        const response = await materialsApi.getAll();
+        const response = await materialsApi.getAllPaperTypes();
         if (Array.isArray(response)) {
           setPaperTypes(response);
         }
@@ -311,6 +334,26 @@ function ConsultantForm() {
       }
     };
 
+    const fetchFormTypes = async () => {
+      setLoadingFormTypes(true);
+      try {
+        // Fetch both HOP_MAU forms and GACH types from ProductTypes API
+        const [hopMauResponse, gachResponse] = await Promise.all([
+          productTypesApi.getAllFormTypeOfHopMau(),
+          productTypesApi.getAllTypeOfGach(),
+        ]);
+        const allFormTypes = [
+          ...(Array.isArray(hopMauResponse) ? hopMauResponse : []),
+          ...(Array.isArray(gachResponse) ? gachResponse : []),
+        ];
+        setFormTypes(allFormTypes);
+      } catch (error) {
+        console.error("Error fetching form types:", error);
+      } finally {
+        setLoadingFormTypes(false);
+      }
+    };
+
     const fetchMachineData = async () => {
       try {
         const [capacityRes, freeRes] = await Promise.all([
@@ -328,10 +371,34 @@ function ConsultantForm() {
       }
     };
 
+    const fetchProcessTypes = async () => {
+      setLoadingProcessTypes(true);
+      try {
+        const response = await productionsApi.getAllProcessTypes();
+        if (Array.isArray(response)) {
+          setProcessTypes(response);
+        }
+      } catch (error) {
+        console.error("Error fetching process types:", error);
+      } finally {
+        setLoadingProcessTypes(false);
+      }
+    };
+
     fetchPaperTypes();
     fetchProductTypes();
+    fetchFormTypes();
+    fetchProcessTypes();
     fetchMachineData();
   }, []);
+
+  // --- Fetch process cost breakdown khi paperEstimate thay đổi ---
+  useEffect(() => {
+    if (paperEstimate) {
+      fetchProcessCostBreakdown();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paperEstimate]);
 
   // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU TỪ API ---
   useEffect(() => {
@@ -540,9 +607,8 @@ function ConsultantForm() {
       return;
     }
 
-    // Get paper code from materials
-    const selectedPaper = paperTypes.find((p) => p.material_id === paperType);
-    const paperCode = selectedPaper?.code || "";
+    // Paper type is now the code directly from API
+    const paperCode = paperType as string;
 
     // Get product type code
     const selectedProductType = productTypes.find(
@@ -550,22 +616,26 @@ function ConsultantForm() {
     );
     const productTypeCode = selectedProductType?.code || "";
 
-    // Convert processing array to comma-separated string
+    // Convert processing array to comma-separated string (no space)
     const productionProcesses = Array.isArray(processing)
-      ? processing.join(", ")
+      ? processing.join(",")
       : "";
 
     setLoadingPaperEstimate(true);
     try {
+      const formType = form.getFieldValue('formType');
+      const isOneSideBox = form.getFieldValue('isOneSideBox') ?? true;
       const response = await estimatesApi.estimatePaper({
         paper_code: paperCode,
         quantity: quantity,
         length_mm: length,
         width_mm: width,
         height_mm: height,
-        allowance_mm: 3, // Default value
+        glue_tab_mm: 15, // Default glue tab
         bleed_mm: 1, // Default value
+        is_one_side_box: isOneSideBox,
         product_type: productTypeCode,
+        form_product: formType || '',
         number_of_plates: numberOfPlates || 1,
         production_processes: productionProcesses,
         coating_type: coatingType || "NONE",
@@ -603,6 +673,7 @@ function ConsultantForm() {
 
     setLoadingCostEstimate(true);
     try {
+      const formType = form.getFieldValue('formType');
       const response = await estimatesApi.estimateCost({
         order_request_id: parseInt(orderId),
         paper: paperData,
@@ -610,9 +681,11 @@ function ConsultantForm() {
           ? desiredDate.toISOString()
           : new Date().toISOString(),
         product_type: productTypeCode,
+        form_product: formType || '',
         production_processes: productionProcesses,
         coating_type: coatingType || "NONE",
         has_lamination: false,
+        discount_percent: 0,
       });
 
       if (response) {
@@ -620,13 +693,58 @@ function ConsultantForm() {
         // Set suggested price to form
         form.setFieldValue(
           "finalPrice",
-          Math.round(response.system_total_cost)
+          Math.round(response.final_total_cost)
         );
       }
     } catch (error) {
       console.error("Error calculating cost estimate:", error);
     } finally {
       setLoadingCostEstimate(false);
+    }
+  };
+
+  // --- FETCH PROCESS COST BREAKDOWN (Hiển thị giá kế bên checkbox Gia Công) ---
+  const fetchProcessCostBreakdown = async () => {
+    if (!paperEstimate) return;
+    
+    const productType = form.getFieldValue('productType');
+    const selectedProductType = productTypes.find(
+      (pt) => pt.product_type_id === productType
+    );
+    const productTypeCode = selectedProductType?.code || "";
+    const formType = form.getFieldValue('formType');
+    const processing = form.getFieldValue('processing') || [];
+    const coatingType = form.getFieldValue('coatingType');
+    const desiredDate = form.getFieldValue('desiredDate');
+    
+    // Convert processing array to comma-separated string (no space)
+    const productionProcesses = Array.isArray(processing)
+      ? processing.join(",")
+      : "";
+    
+    setLoadingProcessCost(true);
+    try {
+      const response = await estimatesApi.processCostBreakdown({
+        order_request_id: orderId ? parseInt(orderId) : 0,
+        paper: paperEstimate,
+        desired_delivery_date: desiredDate
+          ? desiredDate.toISOString()
+          : new Date().toISOString(),
+        product_type: productTypeCode,
+        form_product: formType || '',
+        production_processes: productionProcesses,
+        coating_type: coatingType || "NONE",
+        has_lamination: false,
+        discount_percent: 0,
+      });
+      
+      if (response) {
+        setProcessCostBreakdown(response);
+      }
+    } catch (error) {
+      console.error("Error fetching process cost breakdown:", error);
+    } finally {
+      setLoadingProcessCost(false);
     }
   };
 
@@ -648,6 +766,7 @@ function ConsultantForm() {
       "processing",
       "numberOfPlates",
       "coatingType",
+      "desiredDate",
     ];
     const hasRelevantChange = Object.keys(changedValues).some((key) =>
       relevantFields.includes(key)
@@ -972,19 +1091,25 @@ function ConsultantForm() {
                       name="desiredDate"
                       label="Ngày Giao Mong Muốn"
                       rules={[{ required: true }]}
-                      help={
-                        estimate ? (
-                          <span className="text-blue-500 text-xs">
-                            Hệ thống tính:{" "}
-                            {dayjs(estimate.systemDate).format("DD/MM/YYYY")}
-                          </span>
-                        ) : (
-                          ""
-                        )
-                      }
+                      // help={
+                      //   estimate ? (
+                      //     <span className="text-blue-500 text-xs">
+                      //       Hệ thống tính:{" "}
+                      //       {dayjs(estimate.systemDate).format("DD/MM/YYYY")}
+                      //     </span>
+                      //   ) : (
+                      //     ""
+                      //   )
+                      // }
                     >
-                      <DatePicker className="w-full" format="DD/MM/YYYY" />
-                    </Form.Item>
+<DatePicker
+                          format="DD-MM-YYYY"
+                          disabledDate={disabledDate}
+                          // disabledTime={disabledDateTime}
+                          // showTime={{
+                          //   defaultOpenValue: dayjs(),
+                          // }}
+                        />                    </Form.Item>
                   </Col>
                 </Row>
 
@@ -1009,6 +1134,10 @@ function ConsultantForm() {
                           label: `${pt.name} - ${pt.description}`,
                           value: pt.product_type_id,
                         }))}
+                        onChange={(value) => {
+                          const selected = productTypes.find(pt => pt.product_type_id === value);
+                          setSelectedProductTypeCode(selected?.code || '');
+                        }}
                       />
                     </Form.Item>
                   </Col>
@@ -1026,15 +1155,65 @@ function ConsultantForm() {
                         loading={loadingPaperTypes}
                         optionFilterProp="label"
                         options={paperTypes.map((paper) => ({
-                          label: `${paper.name} (${paper.sheet_width_mm || 0}x${
-                            paper.sheet_length_mm || 0
-                          }mm) - Còn: ${paper.stock_qty} ${paper.unit}`,
-                          value: paper.material_id,
+                          label: paper.replace(/_/g, ' '),
+                          value: paper,
                         }))}
                       />
                     </Form.Item>
                   </Col>
                 </Row>
+
+                {/* Hiển thị Form Type khi chọn Hộp màu hoặc Vỏ hộp gạch */}
+                {(selectedProductTypeCode === 'HOP_MAU' || selectedProductTypeCode === 'VO_HOP_GACH') && (
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="formType"
+                        label="Loại Form"
+                        rules={[
+                          { required: true, message: "Vui lòng chọn loại form" },
+                        ]}
+                      >
+                        <Select
+                          showSearch
+                          placeholder="Chọn loại form"
+                          loading={loadingFormTypes}
+                          optionFilterProp="label"
+                          options={formTypes
+                            .filter((ft) => {
+                              if (selectedProductTypeCode === 'HOP_MAU') {
+                                return ft.startsWith('HOP_MAU_');
+                              } else if (selectedProductTypeCode === 'VO_HOP_GACH') {
+                                return ft.startsWith('GACH_');
+                              }
+                              return true;
+                            })
+                            .map((ft) => ({
+                              label: ft.replace(/_/g, ' '),
+                              value: ft,
+                            }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                    {/* Hiển thị toggle Hộp 1 mặt / 2 mặt chỉ khi chọn HOP_MAU */}
+                    {selectedProductTypeCode === 'HOP_MAU' && (
+                      <Col span={12}>
+                        <Form.Item
+                          name="isOneSideBox"
+                          label="Loại Hộp"
+                          initialValue={true}
+                        >
+                          <Select
+                            options={[
+                              { label: '📦 Hộp 1 mặt', value: true },
+                              { label: '📦 Hộp 2 mặt', value: false },
+                            ]}
+                          />
+                        </Form.Item>
+                      </Col>
+                    )}
+                  </Row>
+                )}
 
                 <Row gutter={16}>
                   <Col span={8}>
@@ -1266,16 +1445,56 @@ function ConsultantForm() {
                 </div>
 
                 <Form.Item name="processing" label="Gia Công">
-                  <Checkbox.Group className="w-full">
-                    <div className="flex justify-between">
-                      {PROCESSING_OPTS.map((opt) => (
-                        <Checkbox value={opt.value} key={opt.value}>
-                          {opt.label}
-                        </Checkbox>
-                      ))}
+                  <Checkbox.Group 
+                    className="w-full"
+                    onChange={() => {
+                      // Fetch process cost breakdown when checkboxes change
+                      fetchProcessCostBreakdown();
+                    }}
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      {loadingProcessTypes ? (
+                        <span className="text-gray-400">Đang tải...</span>
+                      ) : (
+                        processTypes.map((pt) => {
+                          // Find the cost for this process from the breakdown
+                          const processCost = processCostBreakdown?.details?.find(
+                            (d) => d.process === pt
+                          );
+                          const cost = processCost?.total_cost || 0;
+                          
+                          return (
+                            <Checkbox value={pt} key={pt}>
+                              <span className="flex items-center gap-1">
+                                {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, ' ')}
+                                {processCostBreakdown && (
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    ({cost > 0 ? cost.toLocaleString() + '₫' : 'N/A'})
+                                  </span>
+                                )}
+                              </span>
+                            </Checkbox>
+                          );
+                        })
+                      )}
                     </div>
                   </Checkbox.Group>
                 </Form.Item>
+                
+                {/* Tổng chi phí gia công */}
+                {processCostBreakdown && (
+                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-purple-800 font-medium">
+                        ⚙️ Tổng chi phí gia công:
+                      </span>
+                      <span className="font-bold text-lg text-purple-700">
+                        {processCostBreakdown.total_cost.toLocaleString()} ₫
+                        {loadingProcessCost && <span className="text-xs ml-2 animate-pulse">⏳</span>}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <Form.Item name="notes" label="Ghi Chú">
                   <Input.TextArea rows={1} />
@@ -1523,7 +1742,7 @@ function ConsultantForm() {
                               </span>
                               <span className="font-bold text-xl text-blue-700">
                                 {Math.round(
-                                  costEstimate.system_total_cost
+                                  costEstimate.final_total_cost
                                 ).toLocaleString()}{" "}
                                 ₫
                               </span>
@@ -1578,6 +1797,54 @@ function ConsultantForm() {
                           size="large"
                         />
                       </Form.Item>
+                      
+                      {/* Giảm giá phần trăm */}
+                      <div className="mt-3 pt-3 border-t border-blue-200">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-gray-600">🏷️ Giảm giá:</span>
+                          <Form.Item name="discountPercent" noStyle initialValue={0}>
+                            <InputNumber
+                              min={0}
+                              max={100}
+                              addonAfter="%"
+                              style={{ width: 100 }}
+                              onChange={() => {
+                                // Trigger re-render to update discounted price
+                                form.validateFields(['discountPercent']);
+                              }}
+                            />
+                          </Form.Item>
+                        </div>
+                        
+                        {/* Hiển thị giá sau giảm */}
+                        <Form.Item noStyle shouldUpdate={(prev, curr) => 
+                          prev.finalPrice !== curr.finalPrice || 
+                          prev.discountPercent !== curr.discountPercent
+                        }>
+                          {({ getFieldValue }) => {
+                            const finalPrice = getFieldValue('finalPrice') || 0;
+                            const discountPercent = getFieldValue('discountPercent') || 0;
+                            const discountAmount = (finalPrice * discountPercent) / 100;
+                            const discountedPrice = finalPrice - discountAmount;
+                            
+                            if (discountPercent > 0) {
+                              return (
+                                <div className="mt-2 p-2 bg-green-100 rounded border border-green-300">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">
+                                      Giảm: <span className="text-red-500 font-medium">-{discountAmount.toLocaleString()} ₫</span>
+                                    </span>
+                                    <span className="font-bold text-lg text-green-700">
+                                      💰 {Math.round(discountedPrice).toLocaleString()} ₫
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        </Form.Item>
+                      </div>
                     </div>
 
                     <div className="border-t pt-4">
