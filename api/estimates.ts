@@ -4,7 +4,8 @@ import {
     EstimateCostRequest,
     EstimateCostResponse,
     EstimatePaperRequest,
-    EstimatePaperResponse
+    EstimatePaperResponse,
+    ProcessCostBreakdownResponse
 } from "@/schemaValidations/common.schema";
 
 export const estimatesApi = {
@@ -15,6 +16,10 @@ export const estimatesApi = {
     // POST /api/Estimates/cost - Calculate cost estimate
     estimateCost: (body: EstimateCostRequest) =>
         http.post<EstimateCostResponse>("/api/Estimates/cost", body),
+
+    // POST /api/Estimates/process-cost-breakdown - Get process cost breakdown
+    processCostBreakdown: (body: EstimateCostRequest) =>
+        http.post<ProcessCostBreakdownResponse>("/api/Estimates/process-cost-breakdown", body),
 
     // PUT /api/Estimates/adjust-final-total-cost/{id} - Adjust final cost
     adjustFinalCost: (id: number, body: AdjustFinalCostRequest) =>
