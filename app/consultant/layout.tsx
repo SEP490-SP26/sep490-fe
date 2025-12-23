@@ -1,7 +1,7 @@
 
 import Sidebar from "@/components/sidebar/Sidebar";
 import React from "react";
-import { FiList, FiLogOut, FiPackage, FiShoppingCart } from "react-icons/fi";
+import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
 
 export default function LayoutManager({
   children,
@@ -19,11 +19,11 @@ export default function LayoutManager({
       label: "Danh sách đơn hàng",
       icon: FiList,
     },
-    {
-      path: "/history",
-      label: "Quản Lý Đơn Hàng",
-      icon: FiPackage,
-    },
+    // {
+    //   path: "/history",
+    //   label: "Quản Lý Đơn Hàng",
+    //   icon: FiPackage,
+    // },
     {
       path: "/",
       label: "Đăng xuất",

@@ -443,7 +443,7 @@ export default function GuestOrderPage() {
                         setSelectedAddress(address)
                         form.setFieldValue('shippingAddress', address.formattedAddress)
                       }}
-                      height={250}
+                      showMap={false}
                       placeholder='Tìm kiếm địa chỉ tại Việt Nam...'
                     />
                     <Form.Item name='shippingAddress' hidden>
