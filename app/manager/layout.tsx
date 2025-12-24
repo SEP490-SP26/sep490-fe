@@ -1,12 +1,8 @@
-import Link from "next/link";
+"use client";
+import { managerNavItems } from "@/components/sidebar/presets";
+import Sidebar from "@/components/sidebar/Sidebar";
 import React from "react";
-import {
-  BiCalendarCheck,
-  BiLogOut,
-  BiNotepad,
-  BiPackage,
-} from "react-icons/bi";
-import { FaShoppingCart } from "react-icons/fa";
+import { BiCalendarCheck, BiLogOut, BiPackage } from "react-icons/bi";
 import { LuLayoutDashboard } from "react-icons/lu";
 
 export default function layoutManager({
@@ -20,11 +16,11 @@ export default function layoutManager({
       label: "Dashboard",
       icon: LuLayoutDashboard,
     },
-    {
-      path: "/manager/orders/pending",
-      label: "Đơn hàng chờ duyệt",
-      icon: BiNotepad,
-    },
+    // {
+    //   path: "/manager/orders/pending",
+    //   label: "Đơn hàng chờ duyệt",
+    //   icon: BiNotepad,
+    // },
     { path: "/manager/orders", label: "Đơn hàng", icon: BiCalendarCheck },
 
     { path: "/manager/purchase", label: "Mua hàng", icon: BiPackage },
@@ -42,7 +38,7 @@ export default function layoutManager({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
+      {/* <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
         <div className="p-6">
           <h1 className="text-blue-600 text-2xl font-semibold">Quản lý </h1>
         </div>
@@ -68,10 +64,25 @@ export default function layoutManager({
             );
           })}
         </nav>
-      </aside>
+      </aside> */}
+      <Sidebar
+        userInfo={{
+          name: "Quản Lý Tổng Hợp",
+          role: "Công ty in ấn",
+        }}
+        navItems={[...managerNavItems]}
+        onLogout={() => {
+          // Xử lý logout
+          console.log("Logout clicked");
+        }}
+        onItemClick={(item) => {
+          // Xử lý khi click vào item
+          console.log("Item clicked:", item.label);
+        }}
+      />
 
       {/* Main content */}
-      <main className="ml-64 p-8">{children}</main>
+      <main className="ml-72 p-8">{children}</main>
     </div>
   );
 }
