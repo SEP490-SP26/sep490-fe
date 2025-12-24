@@ -2,7 +2,7 @@
 import { consultantNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import React from "react";
-import { FiList, FiLogOut, FiPackage, FiShoppingCart } from "react-icons/fi";
+import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
 
 export default function LayoutManager({
   children,
