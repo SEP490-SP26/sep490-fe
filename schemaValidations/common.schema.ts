@@ -275,3 +275,21 @@ export interface FreeMachine {
   busyMachines: number;
   freeMachines: number;
 }
+
+// Public Orders API types
+export interface OrderHistoryItem {
+  order_id: number;
+  code: string;
+  order_date: string;
+  delivery_date: string;
+  status: string;
+  payment_status: string;
+  quote_id: number;
+}
+
+export interface OrderHistoryResponse {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  data: OrderHistoryItem[];
+}

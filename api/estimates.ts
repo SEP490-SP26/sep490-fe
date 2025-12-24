@@ -21,7 +21,11 @@ export const estimatesApi = {
     processCostBreakdown: (body: EstimateCostRequest) =>
         http.post<ProcessCostBreakdownResponse>("/api/Estimates/process-cost-breakdown", body),
 
-    // PUT /api/Estimates/adjust-final-total-cost/{id} - Adjust final cost
+    // PUT /api/Estimates/adjust-final-total-cost/{id} - Adjust final cost (old)
     adjustFinalCost: (id: number, body: AdjustFinalCostRequest) =>
         http.put<void>(`/api/Estimates/adjust-final-total-cost/${id}`, body),
+
+    // PUT /api/Estimates/adjust-cost/{estimateId} - Điều chỉnh giá chốt với khách hàng
+    adjustCost: (estimateId: number, finalCost: number) =>
+        http.put<void>(`/api/Estimates/adjust-cost/${estimateId}`, { final_cost: finalCost }),
 };
