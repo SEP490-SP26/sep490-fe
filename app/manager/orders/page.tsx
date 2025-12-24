@@ -1,41 +1,44 @@
 "use client";
-import { Order, Printer, useProduction } from "@/context/ProductionContext";
-import { showSuccessToast } from "@/utils/toastService";
+import { orderApi } from "@/api/order";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import React from "react";
-import { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   BiCalendar,
   BiCheckCircle,
   BiChevronDown,
   BiChevronRight,
   BiChevronUp,
-  BiDownload,
   BiFilter,
   BiPackage,
-  BiPlus,
   BiSearch,
   BiXCircle,
 } from "react-icons/bi";
 import { BsCheckCircle, BsExclamationCircle } from "react-icons/bs";
 import { FiMoreVertical } from "react-icons/fi";
 
-export default function OrderListPage() {
-  const {
-    products,
-    materials,
-    orders,
-    createPurchaseRequest,
-    getAvailablePrinters,
-    assignPrinterToOrder,
-    updateProductionSchedule,
-    scheduleProduction,
-    productionSchedules,
-  } = useProduction();
+interface Order {
+  order_id: string;
+  code?: string;
+  customer_name: string;
+  product_name?: string;
+  product_id?: string;
+  quantity: number;
+  created_at: string;
+  delivery_date: string;
+  status: string;
+  can_fulfill?: boolean;
+  missing_materials?: Array<{
+    material_id: string;
+    material_name?: string;
+    needed: number;
+    available: number;
+  }>;
+}
 
-  const [checkingOrder, setCheckingOrder] = useState<string | null>(null);
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+export default function OrderListPage() {
   const router = useRouter();
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -45,15 +48,78 @@ export default function OrderListPage() {
     from: "",
     to: "",
   });
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   // Sorting
   const [sortBy, setSortBy] = useState<keyof Order>("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  const nonPendingOrders = orders.filter((order) => order.status !== "pending");
+  // Fetch orders từ API
+  const {
+    isPending,
+    error,
+    data: apiData,
+  } = useQuery({
+    queryKey: ["orders", "list"],
+    queryFn: async () => {
+      try {
+        const response = await orderApi.getList(1, 100);
+        console.log("API Response:", response);
+        console.log("Response data:", response.data);
+        console.log("Orders data:", response.data?.data);
+
+        return {
+          orders: response.data?.data || response.data || [],
+          products: [],
+          materials: [],
+        };
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        return { orders: [], products: [], materials: [] };
+      }
+    },
+  });
+
+  const orders = useMemo(() => {
+    if (!apiData?.orders) return [];
+
+    return apiData.orders.map((order: any) => ({
+      order_id: order.order_id || order._id || order.order_id,
+      code: order.code || order.order_number,
+      customer_name:
+        order.customer_name || order.customer?.name || "Không xác định",
+      product_name: order.product_name || order.product?.name,
+      product_id: order.product_id || order.product?.order_id,
+      quantity: order.quantity || order.order_quantity || 0,
+      created_at: order.created_at || order.created_date || order.date,
+      delivery_date: order.delivery_date || order.expected_delivery,
+      status: order.status || "pending",
+      can_fulfill: order.can_fulfill,
+      missing_materials: order.missing_materials || [],
+    })) as Order[];
+  }, [apiData]);
+
+  // Lấy danh sách products từ API hoặc từ orders
+  const products = useMemo(() => {
+    if (apiData?.products) return apiData.products;
+    const productMap = new Map();
+    orders.forEach((order) => {
+      if (order.product_id && order.product_name) {
+        if (!productMap.has(order.product_id)) {
+          productMap.set(order.product_id, {
+            order_id: order.product_id,
+            name: order.product_name,
+            type: order.product_name,
+          });
+        }
+      }
+    });
+    return Array.from(productMap.values());
+  }, [apiData, orders]);
+
 
   const filteredOrders = useMemo(() => {
-    let result = [...nonPendingOrders];
+    let result = [...orders];
 
     // Search filter
     if (searchTerm) {
@@ -61,7 +127,8 @@ export default function OrderListPage() {
       result = result.filter(
         (order) =>
           order.customer_name.toLowerCase().includes(term) ||
-          order.id.toLowerCase().includes(term)
+          order.order_id.toLowerCase().includes(term) ||
+          (order.code && order.code.toLowerCase().includes(term))
       );
     }
 
@@ -77,7 +144,13 @@ export default function OrderListPage() {
 
     // Product filter
     if (productFilter !== "all") {
-      result = result.filter((order) => order.product_id === productFilter);
+      result = result.filter(
+        (order) =>
+          order.product_id === productFilter ||
+          order.product_name
+            ?.toLowerCase()
+            .includes(productFilter.toLowerCase())
+      );
     }
 
     // Date filter
@@ -110,7 +183,7 @@ export default function OrderListPage() {
 
     return result;
   }, [
-    nonPendingOrders,
+    orders,
     searchTerm,
     statusFilter,
     customerFilter,
@@ -119,20 +192,6 @@ export default function OrderListPage() {
     sortBy,
     sortOrder,
   ]);
-
-  const handleCheckFulfillment = (orderId: string) => {
-    setCheckingOrder(orderId);
-    // const canFulfill = checkOrderFulfillment(orderId);
-
-    setTimeout(() => {
-      setCheckingOrder(null);
-    }, 500);
-  };
-
-  const handleCreatePR = (orderId: string) => {
-    createPurchaseRequest(orderId);
-    showSuccessToast(`Đã tạo yêu cầu mua hàng cho nguyên vật liệu thiếu`);
-  };
 
   const toggleExpandOrder = (orderId: string) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
@@ -153,6 +212,8 @@ export default function OrderListPage() {
       scheduled: "bg-blue-100 text-blue-800",
       in_production: "bg-purple-100 text-purple-800",
       completed: "bg-green-100 text-green-800",
+      cancelled: "bg-red-100 text-red-800",
+      delivered: "bg-teal-100 text-teal-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };
@@ -163,40 +224,68 @@ export default function OrderListPage() {
       scheduled: "Đã lên lịch",
       in_production: "Đang sản xuất",
       completed: "Hoàn thành",
+      cancelled: "Đã hủy",
+      delivered: "Đã giao",
     };
     return labels[status] || status;
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
-
-  const handleSchedule = (orderId: string) => {
-    const schedule = productionSchedules.find((s) => s.order_id === orderId);
-    if (schedule?.assigned_printer) {
-      scheduleProduction(orderId);
-      showSuccessToast("Đã lên lịch sản xuất!");
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch {
+      return dateString;
     }
   };
 
   const handleRowClick = (order: Order) => {
-    // Chỉ chuyển trang nếu order có thể sản xuất
-    if (order.can_fulfill === true) {
-      router.push(`orders/${order.id}`);
+    if (order.can_fulfill === true || order.status !== "pending") {
+      router.push(`/manager/orders/${order.order_id}`);
     }
-    // Nếu không đủ NVL, có thể hiển thị thông báo hoặc không làm gì
   };
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải danh sách đơn hàng...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <BiXCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Có lỗi xảy ra
+          </h3>
+          <p className="text-gray-500">Không thể tải danh sách đơn hàng</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 ">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Danh Sách Đơn Hàng</h1>
         <p className="text-gray-600 mt-2">
-          Tổng số: {nonPendingOrders.length} đơn hàng • Đang hiển thị:{" "}
+          Tổng số: {orders.length} đơn hàng • Đang hiển thị:{" "}
           {filteredOrders.length} đơn
         </p>
       </div>
@@ -204,37 +293,6 @@ export default function OrderListPage() {
         {/* Toolbar */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="space-y-6">
-            {/* First Row: Search and Main Actions */}
-            {/* <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex-1 max-w-lg">
-                <div className="relative">
-                  <BiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm theo khách hàng, mã đơn, sản phẩm..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              </div>
-
-=              <div className="flex items-center gap-3">
-                <button className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-medium">
-                  <BiPlus className="w-4 h-4" />
-                  Tạo đơn mới
-                </button>
-              </div>
-            </div> */}
-
             {/* Second Row: Main Filters */}
             <div className=" border-gray-200 ">
               <div className="flex items-center justify-between mb-4">
@@ -294,10 +352,11 @@ export default function OrderListPage() {
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm"
                     >
                       <option value="all">Tất cả trạng thái</option>
-                      {/* <option value="pending">Chờ xử lý</option> */}
+                      <option value="pending">Chờ xử lý</option>
                       <option value="scheduled">Đã lên lịch</option>
                       <option value="in_production">Đang sản xuất</option>
                       <option value="completed">Hoàn thành</option>
+                      <option value="cancelled">Đã hủy</option>
                     </select>
                     <BiChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                   </div>
@@ -314,10 +373,10 @@ export default function OrderListPage() {
                       onChange={(e) => setProductFilter(e.target.value)}
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm"
                     >
-                      <option value="all">Tất cả</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.type}
+                      <option value="all">Tất cả sản phẩm</option>
+                      {products.map((product: any) => (
+                        <option key={product.order_id} value={product.order_id}>
+                          {product.name || product.type}
                         </option>
                       ))}
                     </select>
@@ -392,7 +451,9 @@ export default function OrderListPage() {
                     )}
                     {productFilter !== "all" && (
                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
-                        SP: {products.find((p) => p.id === productFilter)?.type}
+                        SP:{" "}
+                        {products.find((p: any) => p.order_id === productFilter)
+                          ?.name || productFilter}
                         <button
                           onClick={() => setProductFilter("all")}
                           className="hover:text-purple-900"
@@ -436,24 +497,6 @@ export default function OrderListPage() {
 
         {/* Table Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* Table Header */}
-          {/* <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h2 className="font-semibold text-gray-900">Đơn hàng</h2>
-                <span className="text-sm text-gray-500">
-                  {filteredOrders.length} kết quả
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="px-4 py-2 text-gray-700 hover:text-gray-900 flex items-center gap-2">
-                  <BiDownload className="w-4 h-4" />
-                  Xuất Excel
-                </button>
-              </div>
-            </div>
-          </div> */}
-
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -462,7 +505,7 @@ export default function OrderListPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <button
                       onClick={() => handleSort("created_at")}
-                      className="flex items-center  hover:text-gray-700"
+                      className="flex items-center hover:text-gray-700"
                     >
                       Ngày tạo
                       {sortBy === "created_at" &&
@@ -530,21 +573,22 @@ export default function OrderListPage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredOrders.map((order) => {
                   const product = products.find(
-                    (p) => p.id === order.product_id
+                    (p: any) => p.order_id === order.product_id
                   );
                   const isMissingMaterials = order.can_fulfill === false;
-                  const canNavigate = order.can_fulfill === true; // Chỉ navigate khi đủ NVL
+                  const canNavigate =
+                    order.can_fulfill === true || order.status !== "pending";
 
                   return (
-                    <React.Fragment key={order.id}>
+                    <React.Fragment key={order.order_id}>
                       {/* Hàng chính */}
                       <tr
-                        onClick={() => handleRowClick(order)} // Thêm click handler
+                        onClick={() => handleRowClick(order)}
                         className={`hover:bg-gray-50 transition-colors cursor-pointer ${
                           isMissingMaterials
                             ? "bg-red-100 hover:bg-red-200"
                             : canNavigate
-                            ? "hover:bg-blue-50" // Highlight nếu có thể navigate
+                            ? "hover:bg-blue-50"
                             : ""
                         }`}
                       >
@@ -553,7 +597,7 @@ export default function OrderListPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {order.id.substring(0, 8)}...
+                            {order.code}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -563,7 +607,7 @@ export default function OrderListPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {product?.type}
+                            {order.product_name || product?.name}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -589,17 +633,17 @@ export default function OrderListPage() {
                         </td>
                         <td
                           className="px-6 py-4 whitespace-nowrap text-sm font-medium"
-                          onClick={(e) => e.stopPropagation()} // Ngăn click vào nút lan ra hàng
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center gap-2">
                             <button
                               onClick={(e) => {
-                                e.stopPropagation(); // Ngăn lan ra hàng
-                                toggleExpandOrder(order.id);
+                                e.stopPropagation();
+                                toggleExpandOrder(order.order_id);
                               }}
                               className="text-blue-600 hover:text-blue-900"
                             >
-                              {expandedOrder === order.id ? (
+                              {expandedOrder === order.order_id ? (
                                 <BiChevronUp className="w-5 h-5" />
                               ) : (
                                 <BiChevronDown className="w-5 h-5" />
@@ -630,7 +674,7 @@ export default function OrderListPage() {
                       </tr>
 
                       {/* Expanded Row */}
-                      {expandedOrder === order.id && (
+                      {expandedOrder === order.order_id && (
                         <tr className="bg-gray-50">
                           <td colSpan={8} className="px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -640,6 +684,14 @@ export default function OrderListPage() {
                                   Chi tiết đơn hàng
                                 </h4>
                                 <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">
+                                      Mã đơn:
+                                    </span>
+                                    <span className="text-gray-900">
+                                      {order.code || order.order_id}
+                                    </span>
+                                  </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">
                                       Ngày tạo:
@@ -661,7 +713,7 @@ export default function OrderListPage() {
                                       Sản phẩm:
                                     </span>
                                     <span className="text-gray-900">
-                                      {product?.type}
+                                      {order.product_name}
                                     </span>
                                   </div>
                                   <div className="flex justify-between">
@@ -702,7 +754,7 @@ export default function OrderListPage() {
                                       <div className="pt-4 border-t border-gray-200">
                                         <button
                                           onClick={() =>
-                                            router.push(`orders/${order.id}`)
+                                            router.push(`/manager/orders/${order.order_id}`)
                                           }
                                           className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm"
                                         >
@@ -724,26 +776,18 @@ export default function OrderListPage() {
                                             </div>
                                             <div className="space-y-1">
                                               {order.missing_materials.map(
-                                                (mm) => {
-                                                  const material =
-                                                    materials.find(
-                                                      (m) =>
-                                                        m.id === mm.material_id
-                                                    );
-
-                                                  return (
-                                                    <div
-                                                      key={mm.material_id}
-                                                      className="text-red-600 text-xs"
-                                                    >
-                                                      • {material?.name}: Cần{" "}
-                                                      {mm.needed}{" "}
-                                                      {material?.unit}, Có{" "}
-                                                      {mm.available}{" "}
-                                                      {material?.unit}
-                                                    </div>
-                                                  );
-                                                }
+                                                (mm) => (
+                                                  <div
+                                                    key={mm.material_id}
+                                                    className="text-red-600 text-xs"
+                                                  >
+                                                    •{" "}
+                                                    {mm.material_name ||
+                                                      `Material ${mm.material_id}`}
+                                                    : Cần {mm.needed}, Có{" "}
+                                                    {mm.available}
+                                                  </div>
+                                                )
                                               )}
                                             </div>
                                           </div>
@@ -771,21 +815,22 @@ export default function OrderListPage() {
                 Không tìm thấy đơn hàng
               </h3>
               <p className="text-gray-500">
-                Thử thay đổi bộ lọc hoặc tìm kiếm để xem kết quả
+                {orders.length === 0
+                  ? "Chưa có đơn hàng nào"
+                  : "Thử thay đổi bộ lọc hoặc tìm kiếm để xem kết quả"}
               </p>
             </div>
           )}
 
-          {/* Pagination (simplified) */}
+          {/* Pagination */}
           {filteredOrders.length > 0 && (
             <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">
                   Hiển thị <span className="font-medium">1</span> đến{" "}
                   <span className="font-medium">{filteredOrders.length}</span>{" "}
-                  của{" "}
-                  <span className="font-medium">{filteredOrders.length}</span>{" "}
-                  kết quả
+                  của <span className="font-medium">{orders.length}</span> kết
+                  quả
                 </div>
                 <div className="flex items-center gap-2">
                   <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
