@@ -21,9 +21,10 @@ export interface BOMItem {
 }
 
 export interface Order {
-  id: string;
+  order_id: string;
   product_id: string;
   product_name?: string;
+  code: string;
   quantity: number;
   delivery_date: string;
   system_delivery_date?: string;
@@ -50,6 +51,7 @@ export interface Order {
   can_fulfill?: boolean;
   missing_materials?: {
     material_id: string;
+    material_name:string;
     needed: number;
     available: number;
   }[];
