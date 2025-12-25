@@ -1,5 +1,6 @@
 "use client";
 import { orderApi } from "@/api/order";
+import { Order } from "@/context/ProductionContext";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
@@ -16,25 +17,6 @@ import {
 } from "react-icons/bi";
 import { BsCheckCircle, BsExclamationCircle } from "react-icons/bs";
 import { FiMoreVertical } from "react-icons/fi";
-
-interface Order {
-  order_id: string;
-  code?: string;
-  customer_name: string;
-  product_name?: string;
-  product_id?: string;
-  quantity: number;
-  created_at: string;
-  delivery_date: string;
-  status: string;
-  can_fulfill?: boolean;
-  missing_materials?: Array<{
-    material_id: string;
-    material_name?: string;
-    needed: number;
-    available: number;
-  }>;
-}
 
 export default function OrderListPage() {
   const router = useRouter();
@@ -66,10 +48,9 @@ export default function OrderListPage() {
         const response = await orderApi.getList(1, 100);
         console.log("API Response:", response);
         console.log("Response data:", response.data);
-        console.log("Orders data:", response.data?.data);
 
         return {
-          orders: response.data?.data || response.data || [],
+          orders: response.data || [],
           products: [],
           materials: [],
         };
@@ -116,7 +97,6 @@ export default function OrderListPage() {
     });
     return Array.from(productMap.values());
   }, [apiData, orders]);
-
 
   const filteredOrders = useMemo(() => {
     let result = [...orders];
@@ -244,9 +224,7 @@ export default function OrderListPage() {
   };
 
   const handleRowClick = (order: Order) => {
-    if (order.can_fulfill === true || order.status !== "pending") {
-      router.push(`/manager/orders/${order.order_id}`);
-    }
+    router.push(`/manager/orders/${order.order_id}`);
   };
 
   if (isPending) {
@@ -754,7 +732,9 @@ export default function OrderListPage() {
                                       <div className="pt-4 border-t border-gray-200">
                                         <button
                                           onClick={() =>
-                                            router.push(`/manager/orders/${order.order_id}`)
+                                            router.push(
+                                              `/manager/orders/${order.order_id}`
+                                            )
                                           }
                                           className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm"
                                         >

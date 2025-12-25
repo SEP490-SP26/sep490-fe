@@ -11,7 +11,7 @@ export const orderApi = {
   createRequestOrderByCustomer: (body: CreateRequestBody) =>
     http.post<CommonResType>("/api/Orders", body),
 
-  getDetail: (id: string) => http.get<CommonResType>(`/api/Orders/${id}`),
+  getDetail: (id: string) => http.get<CommonResType>(`/api/Orders/detail/${id}`),
 
   updateRequest: (id: string, body: Partial<CreateRequestBody>) =>
     http.put<CommonResType>(`/api/Orders/${id}`, body),
