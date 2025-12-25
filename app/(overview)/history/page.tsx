@@ -16,10 +16,8 @@ import {
 import {
   Button,
   Card,
-  Descriptions,
   Empty,
   Input,
-  Modal,
   Steps,
   Table,
   Tag,
@@ -28,6 +26,7 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 const { Title, Text } = Typography
@@ -46,9 +45,8 @@ export default function CustomerHistoryPage() {
   const [myOrders, setMyOrders] = useState<OrderHistoryItem[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: 15, hasNext: false })
   
-  // State Modal chi tiết
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<OrderHistoryItem | null>(null)
+  // Router để navigate
+  const router = useRouter()
 
   // --- BƯỚC 1: GỬI OTP ---
   const handleSendOtp = async () => {
@@ -95,6 +93,10 @@ export default function CustomerHistoryPage() {
         pageSize: response.pageSize,
         hasNext: response.hasNext,
       })
+      
+      // Lưu phone đã xác thực vào sessionStorage để bảo vệ trang chi tiết
+      sessionStorage.setItem('verified_phone', phoneNumber)
+      
       setStep('result')
       
       if (response.data?.length === 0) {
@@ -209,10 +211,7 @@ export default function CustomerHistoryPage() {
         <Button
           type="link"
           icon={<EyeOutlined />}
-          onClick={() => {
-            setSelectedOrder(record)
-            setIsDetailOpen(true)
-          }}
+          onClick={() => router.push(`/order/${record.order_id}`)}
         >
           Chi tiết
         </Button>
@@ -371,53 +370,6 @@ export default function CustomerHistoryPage() {
           </Card>
         )}
 
-        {/* --- MODAL CHI TIẾT ĐƠN HÀNG --- */}
-        <Modal
-          title={<span className="text-lg">Chi Tiết Đơn Hàng</span>}
-          open={isDetailOpen}
-          onCancel={() => setIsDetailOpen(false)}
-          footer={[
-            <Button key="close" type="primary" onClick={() => setIsDetailOpen(false)}>
-              Đóng
-            </Button>,
-          ]}
-          width={600}
-        >
-          {selectedOrder && (
-            <div className="space-y-4">
-              {/* Header */}
-              <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
-                <div>
-                  <div className="text-xs text-gray-500 uppercase">Trạng thái</div>
-                  <div className="mt-1">{renderStatus(selectedOrder.status)}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500 uppercase">Mã đơn</div>
-                  <div className="font-mono font-bold text-blue-600">
-                    {selectedOrder.code}
-                  </div>
-                </div>
-              </div>
-
-              <Descriptions bordered column={1} size="small">
-                <Descriptions.Item label="Ngày đặt hàng">
-                  {dayjs(selectedOrder.order_date).format('HH:mm - DD/MM/YYYY')}
-                </Descriptions.Item>
-                <Descriptions.Item label="Ngày giao dự kiến">
-                  {selectedOrder.delivery_date
-                    ? dayjs(selectedOrder.delivery_date).format('DD/MM/YYYY')
-                    : 'Đang cập nhật'}
-                </Descriptions.Item>
-                <Descriptions.Item label="Trạng thái thanh toán">
-                  {renderPaymentStatus(selectedOrder.payment_status)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Mã báo giá">
-                  #{selectedOrder.quote_id}
-                </Descriptions.Item>
-              </Descriptions>
-            </div>
-          )}
-        </Modal>
       </div>
     </div>
   )
