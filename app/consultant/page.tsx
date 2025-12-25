@@ -186,7 +186,7 @@ function ConsultantForm() {
   const [loading, setLoading] = useState(false);
 
   // Determine mode based on URL param or order status
-  const existingOrder = orderId ? orders.find((o) => o.id === orderId) : null;
+  const existingOrder = orderId ? orders.find((o) => o.order_id === orderId) : null;
   const isNegotiateMode =
     modeParam === "negotiate" ||
     existingOrder?.process_status === "pending_consultant" ||
@@ -252,6 +252,9 @@ function ConsultantForm() {
   
   // State cho giảm giá (tính trên FE)
   const [discountPercent, setDiscountPercent] = useState<number>(0);
+
+  // State cho tiền đặt cọc từ API
+  const [depositAmount, setDepositAmount] = useState<number>(0);
 
   // State cho thông tin máy từ API
   const [machineCapacity, setMachineCapacity] =
@@ -702,6 +705,14 @@ function ConsultantForm() {
           "finalPrice",
           Math.round(response.final_total_cost)
         );
+        
+        // Fetch deposit amount sau khi có cost estimate
+        try {
+          const depositResponse = await estimatesApi.getDeposit(parseInt(orderId));
+          setDepositAmount(depositResponse.deposit_amount || 0);
+        } catch (depositError) {
+          console.error("Error fetching deposit:", depositError);
+        }
       }
     } catch (error) {
       console.error("Error calculating cost estimate:", error);
@@ -892,6 +903,8 @@ function ConsultantForm() {
           // New order
           addOrder({
             ...orderData,
+            order_id: orderId || '',
+            code: `ORD-${orderId}`,
             can_fulfill: true,
             process_status: "waiting_customer_confirm",
             contract_file: undefined,
@@ -900,6 +913,8 @@ function ConsultantForm() {
         } else {
           addOrder({
             ...orderData,
+            order_id: orderId || '',
+            code: `ORD-${orderId}`,
             can_fulfill: false,
             process_status: "waiting_customer_confirm",
             contract_file: undefined,
@@ -1425,13 +1440,7 @@ function ConsultantForm() {
 
 
                 <Form.Item name="processing" label="Gia Công">
-                  <Checkbox.Group 
-                    className="w-full"
-                    onChange={() => {
-                      // Fetch process cost breakdown when checkboxes change
-                      fetchProcessCostBreakdown();
-                    }}
-                  >
+                  <Checkbox.Group className="w-full">
                     <div className="grid grid-cols-3 gap-x-6 gap-y-2">
                       {loadingProcessTypes ? (
                         <span className="text-gray-400">Đang tải...</span>
@@ -1439,26 +1448,11 @@ function ConsultantForm() {
                         // Loại bỏ IN, DUT, DOT, CAT vì đã được tính trong chi phí cơ bản
                         processTypes
                           .filter(pt => !['IN', 'DUT', 'DOT', 'CAT'].includes(pt))
-                          .map((pt) => {
-                          // Find the cost for this process from the breakdown
-                          const processCost = processCostBreakdown?.details?.find(
-                            (d) => d.process === pt
-                          );
-                          const cost = processCost?.total_cost || 0;
-                          
-                          return (
+                          .map((pt) => (
                             <Checkbox value={pt} key={pt} className="w-full">
-                              <span className="flex items-center justify-between gap-2 min-w-[140px]">
-                                <span>{PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, ' ')}</span>
-                                {processCostBreakdown && (
-                                  <span className="text-xs text-blue-600 font-medium">
-                                    {cost > 0 ? cost.toLocaleString() + '₫' : 'N/A'}
-                                  </span>
-                                )}
-                              </span>
+                              {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, ' ')}
                             </Checkbox>
-                          );
-                        })
+                          ))
                       )}
                     </div>
                   </Checkbox.Group>
@@ -1644,7 +1638,7 @@ function ConsultantForm() {
                     {costEstimate && (
                       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                         <div className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                          💰 CHI TIẾT CHI PHÍ:
+                           CHI TIẾT CHI PHÍ:
                           {loadingCostEstimate && (
                             <span className="text-xs text-blue-500 animate-pulse">
                               ⏳
@@ -1753,7 +1747,7 @@ function ConsultantForm() {
                                   </div>
                                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
                                     <span className="font-bold text-green-900">
-                                      💰 Giá sau giảm:
+                                       Giá sau giảm:
                                     </span>
                                     <span className="font-bold text-xl text-green-700">
                                       {Math.round(costEstimate.final_total_cost * (100 - discountPercent) / 100).toLocaleString()} ₫
@@ -1763,9 +1757,21 @@ function ConsultantForm() {
                               )}
                             </div>
                             
+                            {/* Tiền đặt cọc */}
+                            {depositAmount > 0 && (
+                              <div className="bg-purple-50 p-3 rounded-lg mt-3 border border-purple-200">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-purple-800 font-medium">Tiền đặt cọc:</span>
+                                  <span className="font-bold text-lg text-purple-700">
+                                    {Math.round(depositAmount).toLocaleString()} ₫
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            
                             <div className="flex justify-between mt-3 text-sm">
                               <span className="text-gray-600">
-                                📅 Ngày hoàn thành dự kiến:
+                                Ngày hoàn thành dự kiến:
                               </span>
                               <span className="font-medium text-green-700">
                                 {dayjs(
@@ -1793,7 +1799,7 @@ function ConsultantForm() {
                     {/* Giá chốt với khách hàng */}
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4">
                       <div className="text-sm font-medium text-blue-900 mb-2">
-                        💰 Giá chốt với khách hàng:
+                         Giá chốt với khách hàng:
                       </div>
 
                       {/* Input nhập giá chốt */}

@@ -293,3 +293,31 @@ export interface OrderHistoryResponse {
   hasNext: boolean;
   data: OrderHistoryItem[];
 }
+
+// Order Detail Response for GET /api/Orders/{id}
+export interface OrderDetailResponse {
+  order_id: number;
+  code: string;
+  status: string;
+  payment_status: string;
+  order_date: string;
+  delivery_date: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  detail_address: string;
+  product_name: string;
+  quantity: number;
+  approver_name: string;
+  note: string;
+  final_total_cost: number;
+  deposit_amount: number;
+  rush_amount: number;
+  file_url: string;
+}
+
+// Deposit Response for GET /api/Estimates/deposit/by-request/{requestId}
+export interface DepositResponse {
+  order_request_id: number;
+  deposit_amount: number;
+}
