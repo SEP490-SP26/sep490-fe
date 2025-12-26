@@ -18,20 +18,14 @@ import {
   ProductType
 } from "@/schemaValidations/common.schema";
 import {
-  BgColorsOutlined,
   CalculatorOutlined,
   CodeSandboxOutlined,
   DashboardOutlined,
-  DeleteOutlined,
-  ExperimentOutlined,
-  FileImageOutlined,
+  DownloadOutlined,
   FileTextOutlined,
-  InboxOutlined,
-  MinusCircleOutlined,
-  PlusOutlined,
   UploadOutlined,
   UserOutlined,
-  WarningOutlined,
+  WarningOutlined
 } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import type { UploadFile, UploadProps } from "antd";
@@ -42,7 +36,6 @@ import {
   Card,
   Checkbox,
   Col,
-  ColorPicker,
   DatePicker,
   Divider,
   Empty,
@@ -55,11 +48,9 @@ import {
   Progress,
   Row,
   Select,
-  Space,
   Steps,
   Tag,
-  Tooltip,
-  Upload,
+  Upload
 } from "antd";
 import { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
@@ -195,7 +186,7 @@ function ConsultantForm() {
   const [loading, setLoading] = useState(false);
 
   // Determine mode based on URL param or order status
-  const existingOrder = orderId ? orders.find((o) => o.id === orderId) : null;
+  const existingOrder = orderId ? orders.find((o) => o.order_id === orderId) : null;
   const isNegotiateMode =
     modeParam === "negotiate" ||
     existingOrder?.process_status === "pending_consultant" ||
@@ -205,6 +196,9 @@ function ConsultantForm() {
     existingOrder?.process_status === "pending_order_creation";
 
   const [designItems, setDesignItems] = useState<DesignItem[]>([]);
+  
+  // State cho file thiết kế từ API
+  const [designFilePath, setDesignFilePath] = useState<string | null>(null);
 
   // State cho danh sách loại giấy từ API Materials
   const [paperTypes, setPaperTypes] = useState<string[]>([]);
@@ -255,6 +249,12 @@ function ConsultantForm() {
     null
   );
   const [loadingCostEstimate, setLoadingCostEstimate] = useState(false);
+  
+  // State cho giảm giá (tính trên FE)
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
+
+  // State cho tiền đặt cọc từ API
+  const [depositAmount, setDepositAmount] = useState<number>(0);
 
   // State cho thông tin máy từ API
   const [machineCapacity, setMachineCapacity] =
@@ -428,6 +428,11 @@ function ConsultantForm() {
               : "KEO_NUOC",
             hasLamination: orderData.has_lamination || false,
           });
+
+          // Lấy file thiết kế từ API
+          if (orderData.design_file_path) {
+            setDesignFilePath(orderData.design_file_path);
+          }
 
           // Trigger calculation if we have quantity and date
           if (orderData.quantity) {
@@ -700,6 +705,14 @@ function ConsultantForm() {
           "finalPrice",
           Math.round(response.final_total_cost)
         );
+        
+        // Fetch deposit amount sau khi có cost estimate
+        try {
+          const depositResponse = await estimatesApi.getDeposit(parseInt(orderId));
+          setDepositAmount(depositResponse.deposit_amount || 0);
+        } catch (depositError) {
+          console.error("Error fetching deposit:", depositError);
+        }
       }
     } catch (error) {
       console.error("Error calculating cost estimate:", error);
@@ -839,7 +852,27 @@ function ConsultantForm() {
         if (orderId) {
           // Existing order
           if (isNegotiateMode) {
-            // Gửi báo giá cho khách hàng via API
+            // Lấy giá chốt từ form
+            const finalPrice = form.getFieldValue('finalPrice');
+            
+            // Kiểm tra giá hợp lệ
+            if (!finalPrice || finalPrice <= 0) {
+              message.warning('Vui lòng nhập giá chốt hợp lệ trước khi gửi báo giá!');
+              setLoading(false);
+              return;
+            }
+            
+            // Bước 1: Cập nhật giá chốt trước
+            try {
+              await estimatesApi.adjustCost(parseInt(orderId), finalPrice);
+            } catch (adjustError) {
+              console.error('Error adjusting cost:', adjustError);
+              message.error('Có lỗi khi cập nhật giá. Vui lòng thử lại.');
+              setLoading(false);
+              return;
+            }
+            
+            // Bước 2: Gửi báo giá cho khách hàng via API
             const response = await requestOrderApi.sendDeal(parseInt(orderId));
             
             if (response.message === "Sent deal email") {
@@ -870,6 +903,8 @@ function ConsultantForm() {
           // New order
           addOrder({
             ...orderData,
+            order_id: orderId || '',
+            code: `ORD-${orderId}`,
             can_fulfill: true,
             process_status: "waiting_customer_confirm",
             contract_file: undefined,
@@ -878,6 +913,8 @@ function ConsultantForm() {
         } else {
           addOrder({
             ...orderData,
+            order_id: orderId || '',
+            code: `ORD-${orderId}`,
             can_fulfill: false,
             process_status: "waiting_customer_confirm",
             contract_file: undefined,
@@ -1360,161 +1397,50 @@ function ConsultantForm() {
                   </Col>
                 </Row>
 
-                <Divider titlePlacement="left">
-                  Quản Lý File & Màu Sắc (Theo từng mẫu)
+                <Divider style={{ marginTop: 24 }}>
+                  File Thiết Kế Từ Khách Hàng
                 </Divider>
 
                 <div className="bg-gray-50 p-4 rounded border mb-4">
-                  <div className="mb-4 text-center">
-                    <Upload
-                      showUploadList={false}
-                      beforeUpload={() => false}
-                      onChange={handleUploadChange}
-                      multiple
-                    >
-                      <Button
-                        type="dashed"
-                        icon={<InboxOutlined />}
-                        size="large"
-                        className="w-full"
-                      >
-                        + Thêm Mẫu Thiết Kế Mới (Upload Ảnh)
-                      </Button>
-                    </Upload>
-                  </div>
-
-                  <div className="space-y-4">
-                    {designItems.length === 0 && (
-                      <Empty
-                        description="Chưa có mẫu nào. Hãy upload ảnh."
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      />
-                    )}
-
-                    {designItems.map((item, index) => (
-                      <div
-                        key={item.id}
-                        className="bg-white p-3 rounded shadow-sm border flex gap-4 items-start relative hover:border-blue-400 transition-colors"
-                      >
-                        <div className="absolute top-0 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-br">
-                          Mẫu #{index + 1}
-                        </div>
-                        <div className="absolute top-2 right-2">
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => removeDesignItem(item.id)}
-                          />
-                        </div>
-
-                        <div className="w-32 h-32 flex-shrink-0 border rounded bg-gray-100 flex items-center justify-center overflow-hidden mt-2">
-                          {item.previewUrl ? (
-                            <AntImage
-                              src={item.previewUrl}
-                              height="100%"
-                              className="object-contain"
-                            />
-                          ) : (
-                            <FileImageOutlined className="text-2xl text-gray-300" />
-                          )}
-                        </div>
-
-                        <div className="flex-1 mt-2">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-semibold text-gray-700">
-                              Màu sắc in ấn cho mẫu này:
-                            </span>
-                            <Space size="small">
-                              <Tooltip title="Tự động tìm màu trong ảnh này">
-                                <Button
-                                  size="small"
-                                  type="primary"
-                                  ghost
-                                  icon={<ExperimentOutlined />}
-                                  onClick={() =>
-                                    handleAutoExtract(item.id, item.previewUrl)
-                                  }
-                                >
-                                  Auto
-                                </Button>
-                              </Tooltip>
-                              <Tooltip title="Chấm màu trên màn hình">
-                                <Button
-                                  size="small"
-                                  icon={<BgColorsOutlined />}
-                                  onClick={() => handleEyeDropper(item.id)}
-                                >
-                                  Chấm màu
-                                </Button>
-                              </Tooltip>
-                            </Space>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            {item.colors.map((color, cIdx) => (
-                              <div
-                                key={cIdx}
-                                className="flex items-center bg-gray-50 border rounded pl-1 pr-2 py-1"
-                              >
-                                <div
-                                  style={{
-                                    width: 16,
-                                    height: 16,
-                                    backgroundColor: color,
-                                    borderRadius: 4,
-                                    marginRight: 8,
-                                    border: "1px solid #ddd",
-                                  }}
-                                ></div>
-                                <span className="text-xs font-mono">
-                                  {color}
-                                </span>
-                                <MinusCircleOutlined
-                                  className="ml-2 text-gray-400 hover:text-red-500 cursor-pointer"
-                                  onClick={() => {
-                                    const newColors = item.colors.filter(
-                                      (_, i) => i !== cIdx
-                                    );
-                                    updateItemColors(item.id, newColors);
-                                  }}
-                                />
-                              </div>
-                            ))}
-                            <ColorPicker
-                              value="#1677ff"
-                              onChangeComplete={(c) => {
-                                if (!item.colors.includes(c.toHexString())) {
-                                  updateItemColors(item.id, [
-                                    ...item.colors,
-                                    c.toHexString(),
-                                  ]);
-                                }
-                              }}
-                            >
-                              <Button
-                                size="small"
-                                type="dashed"
-                                icon={<PlusOutlined />}
-                              >
-                                Thêm
-                              </Button>
-                            </ColorPicker>
-                          </div>
-                        </div>
+                  {designFilePath ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                        <AntImage
+                          src={designFilePath}
+                          alt="File thiết kế"
+                          style={{ maxHeight: 300, objectFit: 'contain' }}
+                          placeholder={
+                            <div className="flex items-center justify-center h-48 bg-gray-100">
+                              <span className="text-gray-400">Đang tải...</span>
+                            </div>
+                          }
+                        />
                       </div>
-                    ))}
-                  </div>
+                      <Button
+                        type="primary"
+                        icon={<DownloadOutlined />}
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = designFilePath;
+                          link.target = '_blank';
+                          link.download = `design_${orderId}.png`;
+                          link.click();
+                        }}
+                      >
+                        Tải File Thiết Kế
+                      </Button>
+                    </div>
+                  ) : (
+                    <Empty
+                      description="Khách hàng chưa gửi file thiết kế"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
                 </div>
 
+
                 <Form.Item name="processing" label="Gia Công">
-                  <Checkbox.Group 
-                    className="w-full"
-                    onChange={() => {
-                      // Fetch process cost breakdown when checkboxes change
-                      fetchProcessCostBreakdown();
-                    }}
-                  >
+                  <Checkbox.Group className="w-full">
                     <div className="grid grid-cols-3 gap-x-6 gap-y-2">
                       {loadingProcessTypes ? (
                         <span className="text-gray-400">Đang tải...</span>
@@ -1522,26 +1448,11 @@ function ConsultantForm() {
                         // Loại bỏ IN, DUT, DOT, CAT vì đã được tính trong chi phí cơ bản
                         processTypes
                           .filter(pt => !['IN', 'DUT', 'DOT', 'CAT'].includes(pt))
-                          .map((pt) => {
-                          // Find the cost for this process from the breakdown
-                          const processCost = processCostBreakdown?.details?.find(
-                            (d) => d.process === pt
-                          );
-                          const cost = processCost?.total_cost || 0;
-                          
-                          return (
+                          .map((pt) => (
                             <Checkbox value={pt} key={pt} className="w-full">
-                              <span className="flex items-center justify-between gap-2 min-w-[140px]">
-                                <span>{PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, ' ')}</span>
-                                {processCostBreakdown && (
-                                  <span className="text-xs text-blue-600 font-medium">
-                                    {cost > 0 ? cost.toLocaleString() + '₫' : 'N/A'}
-                                  </span>
-                                )}
-                              </span>
+                              {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, ' ')}
                             </Checkbox>
-                          );
-                        })
+                          ))
                       )}
                     </div>
                   </Checkbox.Group>
@@ -1727,7 +1638,7 @@ function ConsultantForm() {
                     {costEstimate && (
                       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                         <div className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                          💰 CHI TIẾT CHI PHÍ:
+                           CHI TIẾT CHI PHÍ:
                           {loadingCostEstimate && (
                             <span className="text-xs text-blue-500 animate-pulse">
                               ⏳
@@ -1804,16 +1715,63 @@ function ConsultantForm() {
                           <div className="border-t-2 border-blue-300 pt-3 mt-3">
                             <div className="flex justify-between items-center">
                               <span className="font-bold text-blue-900">
-                                💵 Tổng giá hệ thống:
+                                Tổng giá hệ thống:
                               </span>
                               <span className="font-bold text-xl text-blue-700">
                                 {(Math.round(costEstimate.final_total_cost / 10) * 10).toLocaleString()}{" "}
                                 ₫
                               </span>
                             </div>
-                            <div className="flex justify-between mt-2 text-sm">
+                            
+                            {/* Phần giảm giá */}
+                            <div className="bg-green-50 p-3 rounded-lg mt-3 border border-green-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-green-800 font-medium">Giảm giá:</span>
+                                <InputNumber
+                                  min={0}
+                                  max={100}
+                                  value={discountPercent}
+                                  onChange={(value) => setDiscountPercent(value || 0)}
+                                  addonAfter="%"
+                                  size="small"
+                                  style={{ width: 100 }}
+                                />
+                              </div>
+                              {discountPercent > 0 && (
+                                <>
+                                  <div className="flex justify-between text-green-700 text-sm">
+                                    <span>Số tiền giảm:</span>
+                                    <span className="font-medium">
+                                      -{Math.round(costEstimate.final_total_cost * discountPercent / 100).toLocaleString()} ₫
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
+                                    <span className="font-bold text-green-900">
+                                       Giá sau giảm:
+                                    </span>
+                                    <span className="font-bold text-xl text-green-700">
+                                      {Math.round(costEstimate.final_total_cost * (100 - discountPercent) / 100).toLocaleString()} ₫
+                                    </span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            
+                            {/* Tiền đặt cọc */}
+                            {depositAmount > 0 && (
+                              <div className="bg-purple-50 p-3 rounded-lg mt-3 border border-purple-200">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-purple-800 font-medium">Tiền đặt cọc:</span>
+                                  <span className="font-bold text-lg text-purple-700">
+                                    {Math.round(depositAmount).toLocaleString()} ₫
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-between mt-3 text-sm">
                               <span className="text-gray-600">
-                                📅 Ngày hoàn thành dự kiến:
+                                Ngày hoàn thành dự kiến:
                               </span>
                               <span className="font-medium text-green-700">
                                 {dayjs(
@@ -1838,10 +1796,10 @@ function ConsultantForm() {
                       </div>
                     </div> */}
 
-                    {/* Chi phí sản xuất - CHỈ Ô NHẬP */}
+                    {/* Giá chốt với khách hàng */}
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4">
                       <div className="text-sm font-medium text-blue-900 mb-2">
-                        Chi phí sản xuất:
+                         Giá chốt với khách hàng:
                       </div>
 
                       {/* Input nhập giá chốt */}
@@ -1862,51 +1820,31 @@ function ConsultantForm() {
                         />
                       </Form.Item>
                       
-                      {/* Giảm giá phần trăm */}
-                      <div className="mt-3 pt-3 border-t border-blue-200">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-gray-600">🏷️ Giảm giá:</span>
-                          <Form.Item name="discountPercent" noStyle initialValue={0}>
-                            <InputNumber
-                              min={0}
-                              max={100}
-                              addonAfter="%"
-                              style={{ width: 100 }}
-                              onChange={() => {
-                                // Trigger re-render to update discounted price
-                                form.validateFields(['discountPercent']);
-                              }}
-                            />
-                          </Form.Item>
-                        </div>
-                        
-                        {/* Hiển thị giá sau giảm - dựa trên Tổng giá hệ thống */}
-                        <Form.Item noStyle shouldUpdate>
-                          {({ getFieldValue }) => {
-                            // Luôn tính giảm giá dựa trên Tổng giá hệ thống (costEstimate)
-                            const systemTotal = costEstimate?.final_total_cost ? Math.round(costEstimate.final_total_cost) : 0;
-                            const discountPercent = getFieldValue('discountPercent') || 0;
-                            const discountAmount = (systemTotal * discountPercent) / 100;
-                            const discountedPrice = systemTotal - discountAmount;
-                            
-                            if (discountPercent > 0 && systemTotal > 0) {
-                              return (
-                                <div className="mt-2 p-2 bg-green-100 rounded border border-green-300">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">
-                                      Giảm: <span className="text-red-500 font-medium">-{Math.round(discountAmount).toLocaleString()} ₫</span>
-                                    </span>
-                                    <span className="font-bold text-lg text-green-700">
-                                      💰 {Math.round(discountedPrice).toLocaleString()} ₫
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        </Form.Item>
-                      </div>
+                      {/* Nút xác nhận giá */}
+                      <Button
+                        type="primary"
+                        className="w-full mt-3"
+                        onClick={async () => {
+                          const finalPrice = form.getFieldValue('finalPrice');
+                          if (!finalPrice || finalPrice <= 0) {
+                            message.warning('Vui lòng nhập giá chốt hợp lệ!');
+                            return;
+                          }
+                          if (!orderId) {
+                            message.error('Không tìm thấy mã đơn hàng!');
+                            return;
+                          }
+                          try {
+                            await estimatesApi.adjustCost(parseInt(orderId), finalPrice);
+                            message.success('Đã cập nhật giá chốt thành công!');
+                          } catch (error) {
+                            console.error('Error adjusting cost:', error);
+                            message.error('Có lỗi khi cập nhật giá. Vui lòng thử lại.');
+                          }
+                        }}
+                      >
+                        Xác nhận giá chốt
+                      </Button>
                     </div>
 
                     <div className="border-t pt-4">

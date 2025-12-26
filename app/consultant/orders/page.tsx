@@ -3,19 +3,19 @@
 import { requestOrderApi } from '@/api/request';
 import { OrderRequest } from '@/schemaValidations/common.schema';
 import {
-    CaretDownOutlined,
-    CaretUpOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    EditOutlined,
-    EyeOutlined,
-    FileTextOutlined,
-    LoadingOutlined,
-    MailOutlined,
-    ReloadOutlined,
-    SearchOutlined,
-    SendOutlined,
-    ThunderboltOutlined
+  CaretDownOutlined,
+  CaretUpOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  EditOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  LoadingOutlined,
+  MailOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  SendOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons';
 import { Button, Card, Empty, Input, message, Popconfirm, Space, Spin, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -355,7 +355,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table 
-          columns={columns} 
+          columns={columns.filter(col => col.key !== 'action')} 
           dataSource={acceptedOrders} 
           rowKey="order_request_id"
           pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} đơn` }}
@@ -414,7 +414,14 @@ export default function ConsultantOrdersPage() {
       {/* Sort info */}
       {sortField && (
         <div className="mt-3 text-sm text-gray-500">
-          Đang sắp xếp theo: <b>{sortField}</b> ({sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'})
+          Đang sắp xếp theo: <b>{
+            sortField === 'order_request_id' ? 'Mã đơn' :
+            sortField === 'delivery_date' ? 'Ngày giao' :
+            sortField === 'customer_name' ? 'Khách hàng' :
+            sortField === 'product_name' ? 'Sản phẩm' :
+            sortField === 'quantity' ? 'Số lượng' :
+            sortField
+          }</b> ({sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'})
           <Button type="link" size="small" onClick={() => setSortField(null)}>Khôi phục</Button>
         </div>
       )}
