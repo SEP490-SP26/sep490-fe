@@ -14,6 +14,7 @@ import {
   EstimatePaperResponse,
   FreeMachine,
   MachineCapacity,
+  Material,
   ProcessCostBreakdownResponse,
   ProductType
 } from "@/schemaValidations/common.schema";
@@ -221,6 +222,9 @@ function ConsultantForm() {
   const [processCostBreakdown, setProcessCostBreakdown] = useState<ProcessCostBreakdownResponse | null>(null);
   const [loadingProcessCost, setLoadingProcessCost] = useState(false);
 
+  // State cho loại sóng (khi chọn BOI)
+  const [songTypes, setSongTypes] = useState<Material[]>([]);
+
   // State cho Modal danh sách đơn hàng tại xưởng
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
@@ -385,20 +389,36 @@ function ConsultantForm() {
       }
     };
 
+    // Fetch danh sách loại sóng (cho BOI)
+    const fetchSongTypes = async () => {
+      try {
+        const response = await materialsApi.getSongTypes();
+        if (Array.isArray(response)) {
+          setSongTypes(response);
+        }
+      } catch (error) {
+        console.error("Error fetching song types:", error);
+      }
+    };
+
     fetchPaperTypes();
     fetchProductTypes();
     fetchFormTypes();
     fetchProcessTypes();
     fetchMachineData();
+    fetchSongTypes();
   }, []);
 
   // --- Fetch process cost breakdown khi paperEstimate thay đổi ---
+  // NOTE: Đã comment lại vì function đã được comment
+  /*
   useEffect(() => {
     if (paperEstimate) {
       fetchProcessCostBreakdown();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paperEstimate]);
+  */
 
   // --- 1. TỰ ĐỘNG ĐIỀN DỮ LIỆU TỪ API ---
   useEffect(() => {
@@ -634,6 +654,8 @@ function ConsultantForm() {
       const formType = form.getFieldValue('formType');
       const isOneSideBox = form.getFieldValue('isOneSideBox') ?? true;
       const glueTab = form.getFieldValue('glueTab') ?? 10; // Default 10mm
+      const waveType = form.getFieldValue('waveType'); // Loại sóng khi có BOI
+      
       const response = await estimatesApi.estimatePaper({
         paper_code: paperCode,
         quantity: quantity,
@@ -648,6 +670,8 @@ function ConsultantForm() {
         number_of_plates: numberOfPlates || 1,
         production_processes: productionProcesses,
         coating_type: coatingType || "KEO_NUOC",
+        // wave_type: có giá trị khi BOI, rỗng khi không có BOI
+        wave_type: productionProcesses.includes('BOI') && waveType ? waveType : "",
       });
 
       if (response) {
@@ -684,6 +708,8 @@ function ConsultantForm() {
     try {
       const formType = form.getFieldValue('formType');
       const hasLamination = form.getFieldValue('hasLamination') || false;
+      const waveType = form.getFieldValue('waveType'); // Loại sóng khi có BOI
+      
       const response = await estimatesApi.estimateCost({
         order_request_id: parseInt(orderId),
         paper: paperData,
@@ -696,6 +722,8 @@ function ConsultantForm() {
         coating_type: coatingType || "KEO_NUOC",
         has_lamination: hasLamination,
         discount_percent: 0,
+        // wave_type: có giá trị khi BOI, rỗng khi không có BOI
+        wave_type: productionProcesses.includes('BOI') && waveType ? waveType : "",
       });
 
       if (response) {
@@ -722,6 +750,8 @@ function ConsultantForm() {
   };
 
   // --- FETCH PROCESS COST BREAKDOWN (Hiển thị giá kế bên checkbox Gia Công) ---
+  // NOTE: Đã comment lại để tránh lỗi 404 - có thể bật lại khi API sẵn sàng
+  /*
   const fetchProcessCostBreakdown = async () => {
     if (!paperEstimate) return;
     
@@ -762,6 +792,7 @@ function ConsultantForm() {
       setLoadingProcessCost(false);
     }
   };
+  */
 
   // --- REALTIME AUTO-CALCULATION với DEBOUNCE ---
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -779,6 +810,7 @@ function ConsultantForm() {
       "height",
       "productType",
       "processing",
+      "waveType",
       "numberOfPlates",
       "coatingType",
       "desiredDate",
@@ -1440,7 +1472,19 @@ function ConsultantForm() {
 
 
                 <Form.Item name="processing" label="Gia Công">
-                  <Checkbox.Group className="w-full">
+                  <Checkbox.Group 
+                    className="w-full"
+                    onChange={(checkedValues) => {
+                      // Khi tick BOI, tự động set waveType mặc định là SONG_B_NAU
+                      if (checkedValues.includes('BOI') && !form.getFieldValue('waveType')) {
+                        form.setFieldValue('waveType', 'SONG_B_NAU');
+                      }
+                      // Khi untick BOI, clear waveType
+                      if (!checkedValues.includes('BOI')) {
+                        form.setFieldValue('waveType', '');
+                      }
+                    }}
+                  >
                     <div className="grid grid-cols-3 gap-x-6 gap-y-2">
                       {loadingProcessTypes ? (
                         <span className="text-gray-400">Đang tải...</span>
@@ -1456,6 +1500,37 @@ function ConsultantForm() {
                       )}
                     </div>
                   </Checkbox.Group>
+                </Form.Item>
+                
+                {/* Dropdown chọn loại sóng khi BOI được tick */}
+                <Form.Item 
+                  noStyle 
+                  shouldUpdate={(prevValues, currentValues) => 
+                    prevValues.processing !== currentValues.processing
+                  }
+                >
+                  {({ getFieldValue }) => {
+                    const processingValues = getFieldValue('processing') || [];
+                    const hasBOI = processingValues.includes('BOI');
+                    
+                    return hasBOI ? (
+                      <Form.Item 
+                        name="waveType" 
+                        label="Loại Sóng (Bồi)"
+                        rules={[{ required: true, message: 'Vui lòng chọn loại sóng!' }]}
+                        className="mb-4"
+                      >
+                        <Select
+                          placeholder="Chọn loại sóng..."
+                          options={songTypes.map(st => ({
+                            value: st.code,
+                            label: `${st.name} (${st.cost_price.toLocaleString()}₫/m²)`,
+                          }))}
+                          allowClear
+                        />
+                      </Form.Item>
+                    ) : null;
+                  }}
                 </Form.Item>
                 
                 {/* Tổng chi phí gia công */}

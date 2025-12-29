@@ -88,6 +88,7 @@ export interface EstimatePaperRequest {
   number_of_plates?: number;
   production_processes?: string;
   coating_type?: string;
+  wave_type?: string;
 }
 
 export interface EstimatePaperResponse {
@@ -121,6 +122,7 @@ export interface EstimateCostRequest {
   coating_type?: string;
   has_lamination?: boolean;
   discount_percent?: number;
+  wave_type?: string; // Loại sóng khi có BOI
 }
 
 export interface MaterialCostDetail {
