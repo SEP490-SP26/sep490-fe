@@ -14,6 +14,10 @@ export const materialsApi = {
     getAllFormTypes: () =>
         http.get<string[]>("/api/Materials/get-all-form-type"),
 
+    // GET /api/Materials/get-material-by-type-song - Lấy tất cả loại sóng (bồi)
+    getSongTypes: () =>
+        http.get<Material[]>("/api/Materials/get-material-by-type-song"),
+
       getListMissingMaterial: (page: number = 1, pageSize: number = 10) =>
     http.get<Material>(
       `/api/Orders/missing-materials?page=${page}&pageSize=${pageSize}`
