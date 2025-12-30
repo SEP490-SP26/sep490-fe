@@ -20,7 +20,7 @@ export default function layoutManager({
       label: "Tồn Kho",
       icon: FaWarehouse,
     },
-    { path: "/", label: "Đăng xuất", icon: FiLogOut },
+    { path: "/staff", label: "Đăng xuất", icon: FiLogOut },
   ];
   return (
     <div className="min-h-screen bg-gray-50">
