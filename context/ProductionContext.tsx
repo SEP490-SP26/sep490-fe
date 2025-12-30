@@ -94,12 +94,16 @@ export interface PurchaseRequest {
 }
 
 export interface PurchaseOrder {
-  id: string;
-  pr_id: string;
-  supplier: string;
-  expected_delivery_date: string;
-  status: "ordered" | "delivered";
-  created_at: string;
+  purchaseId: number;
+  code: string;
+  supplierId: number;
+  supplierName: string;
+  etaDate: string;
+  createdAt: string;
+  createdByName: string;
+  status: string;
+  totalQty: number;
+  items: []
 }
 
 export interface ProductionStage {

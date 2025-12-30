@@ -252,10 +252,10 @@ const http = {
     },
     put<Response>(
         url: string,
-        body: any,
+        // body: any,
         options?: Omit<CustomOptions, 'body'> | undefined
     ) {
-        return request<Response>('PUT', url, { ...options, body })
+        return request<Response>('PUT', url, { ...options })
     },
     delete<Response>(
         url: string,
