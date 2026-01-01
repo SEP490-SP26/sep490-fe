@@ -114,7 +114,7 @@ export default function ProductionScheduling() {
     )
     .map((order) => ({
       ...order,
-      schedule: productionSchedules.find((s) => s.order_id === order.id),
+      schedule: productionSchedules.find((s) => s.order_id === order.order_id),
       product: products.find((p) => p.id === order.product_id),
     }));
 
@@ -336,7 +336,7 @@ export default function ProductionScheduling() {
               .filter((o) => o.schedule?.status === "scheduled")
               .map((order) => (
                 <div
-                  key={order.id}
+                  key={order.order_id}
                   className="border border-blue-200 bg-blue-50 rounded-lg p-4"
                 >
                   <div className="mb-3">
@@ -422,7 +422,7 @@ export default function ProductionScheduling() {
 
                 return (
                   <div
-                    key={order.id}
+                    key={order.order_id}
                     className="border border-yellow-200 bg-yellow-50 rounded-lg p-4"
                   >
                     <div className="mb-3">
@@ -516,14 +516,14 @@ export default function ProductionScheduling() {
                       )}
                     </div> */}
                     <Link
-                      href={`/staff/production/${order.id}`}
+                      href={`/staff/production/${order.order_id}`}
                       className="w-full mt-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex items-center justify-center gap-2"
                     >
                       <BsEye className="w-4 h-4" />
                       Xem chi tiết
                     </Link>
 
-                    {expandedOrders.has(order.id) &&
+                    {expandedOrders.has(order.order_id) &&
                       renderProductionDetails(order)}
                   </div>
                 );

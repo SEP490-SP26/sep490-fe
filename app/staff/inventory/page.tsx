@@ -92,10 +92,10 @@ export default function InventoryManagement() {
       // setIsLoading(true);
 
       // Gọi API
-      const result = await purchasesApi.receiveInventory(poId);
+      // const result = await purchasesApi.receiveInventory(poId);
 
       // Cập nhật UI sau khi thành công
-      console.log("Received successfully:", result);
+      // console.log("Received successfully:", result);
       showSuccessToast("Nhập kho thành công!");
 
       // Có thể cần refetch data
@@ -110,7 +110,7 @@ export default function InventoryManagement() {
   };
 
   const handleEditInventory = (materialId: string) => {
-    const inv = inventory.find((i) => i.material_id === materialId);
+    const inv = inventory.find((i: any) => i.material_id === materialId);
     if (inv) {
       setEditingMaterial(materialId);
       setEditForm({

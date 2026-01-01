@@ -43,7 +43,7 @@ import {
 import dayjs from 'dayjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const { Title, Text } = Typography
 
@@ -65,7 +65,7 @@ export default function CustomerProfilePage() {
   const [addressForm] = Form.useForm()
 
   const [isEditing, setIsEditing] = useState(false)
-  const [myOrders, setMyOrders] = useState<Order[]>([])
+  // const [myOrders, setMyOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
@@ -81,19 +81,18 @@ export default function CustomerProfilePage() {
     }
   }, [isLoading, isLoggedIn, router])
 
-  // Load customer orders
-  useEffect(() => {
-    if (customer?.phone) {
-      const foundOrders = orders
-        .filter((o) => o.customer_phone === customer.phone)
-        .sort(
-          (a, b) =>
-            new Date(b.created_at || '').getTime() -
-            new Date(a.created_at || '').getTime()
-        )
-      setMyOrders(foundOrders)
-    }
-  }, [customer, orders])
+// Thay vì useEffect + state, dùng useMemo để tính toán trực tiếp
+const myOrders = useMemo(() => {
+  if (!customer?.phone || !orders.length) return []
+  
+  return orders
+    .filter((o) => o.customer_phone === customer.phone)
+    .sort(
+      (a, b) =>
+        new Date(b.created_at || '').getTime() -
+        new Date(a.created_at || '').getTime()
+    )
+}, [customer, orders]) // dependencies giống như useEffect
 
   // Set form values when customer data loads
   useEffect(() => {
@@ -570,7 +569,7 @@ export default function CustomerProfilePage() {
                 <div className='text-right'>
                   <div className='text-xs text-gray-500'>Mã đơn</div>
                   <div className='font-mono font-bold'>
-                    #{selectedOrder.id.split('-')[1]}
+                    #{selectedOrder.order_id.split('-')[1]}
                   </div>
                 </div>
               </div>

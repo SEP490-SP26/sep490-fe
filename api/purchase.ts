@@ -16,6 +16,9 @@ export const purchasesApi = {
   createPO: (body: any) =>
     http.post<CommonResType>("/api/Purchases/orders", body),
 
-  receiveInventory: (purchaseId: number) =>
-    http.put<CommonResType>(`/api/Purchases/orders/receive-all/?purchaseId=${purchaseId}`),
+  receiveInventory: (purchaseId: number, body: any) =>
+    http.put<CommonResType>(
+      `/api/Purchases/orders/receive-all/?purchaseId=${purchaseId}`,
+      body
+    ),
 };
