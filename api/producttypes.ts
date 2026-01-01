@@ -20,7 +20,3 @@ export const productTypesApi = {
     getAllTypeOfGach: () =>
         http.get<string[]>("/api/ProductTypes/get-all-type-of-gach"),
 };
-
-export const config = {
-  runtime: 'edge',
-}

@@ -26,7 +26,3 @@ export const requestOrderApi = {
       { requestId }
     )
 };
-
-export const config = {
-  runtime: 'edge',
-}
