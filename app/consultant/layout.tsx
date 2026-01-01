@@ -1,48 +1,38 @@
-
+"use client";
+import { consultantNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import React from "react";
-import { FiList, FiLogOut, FiPackage, FiShoppingCart } from "react-icons/fi";
+import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
 
 export default function LayoutManager({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const navItems = [
-    {
-      path: "",
-      label: "Tạo đơn hàng",
-      icon: FiShoppingCart,
-    },
-    {
-      path: "/orders",
-      label: "Danh sách đơn hàng",
-      icon: FiList,
-    },
-    {
-      path: "/history",
-      label: "Quản Lý Đơn Hàng",
-      icon: FiPackage,
-    },
-    {
-      path: "/",
-      label: "Đăng xuất",
-      icon: FiLogOut,
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      
-      <Sidebar/>
+
+      <Sidebar
+        userInfo={{
+          name: "Tư vấn viên A",
+          role: "Công ty in ấn",
+        }}
+        navItems={[...consultantNavItems]}
+        onLogout={() => {
+          // Xử lý logout
+          console.log("Logout clicked");
+        }}
+        onItemClick={(item) => {
+          // Xử lý khi click vào item
+          console.log("Item clicked:", item.label);
+        }}
+      />
 
       {/* Main content */}
       <main className="ml-72 min-h-screen p-4">
         {/* Content */}
-        <div className="bg-white ">
-          {children}
-        </div>
+        <div className="bg-white ">{children}</div>
 
         {/* Footer main */}
         <footer className="mt-8 pt-6 border-t border-gray-100">

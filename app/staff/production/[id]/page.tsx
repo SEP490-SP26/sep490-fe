@@ -23,7 +23,7 @@ export default function ProductionDetailPage() {
     updateProductionStage,
   } = useProduction();
 
-  const order = orders.find((o) => o.id === id);
+  const order = orders.find((o) => o.order_id === id);
   const schedule = productionSchedules.find((s) => s.order_id === id);
   const product = products.find((p) => p.id === order?.product_id);
   const stages = getProductionStages(id as string);
@@ -276,7 +276,7 @@ export default function ProductionDetailPage() {
                   </div>
                 </div>
                 <div className="text-gray-600">
-                  <span className="font-medium">Mã:</span> LSX-{order.id}
+                  <span className="font-medium">Mã:</span> LSX-{order.order_id}
                 </div>
               </div>
             </div>

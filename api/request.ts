@@ -18,4 +18,11 @@ export const requestOrderApi = {
 
   deleteRequest: (id: string) =>
     http.delete<CommonResType>(`/api/requests/${id}`),
+
+  // Gửi báo giá cho khách hàng
+  sendDeal: (requestId: number) =>
+    http.post<{ message: string; detail?: string; orderRequestId: number }>(
+      '/api/Requests/send-deal',
+      { requestId }
+    )
 };

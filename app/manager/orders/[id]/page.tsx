@@ -1,11 +1,11 @@
 "use client";
-import { useProduction } from "@/context/ProductionContext";
-import { formatDate } from "@/utils/format";
+import { orderApi } from "@/api/order";
 import { FileTextOutlined } from "@ant-design/icons";
+import { useQuery } from "@tanstack/react-query";
 import { Button, Descriptions } from "antd";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
+import { BiBook, BiPackage, BiSolidZap } from "react-icons/bi";
 import {
   BsArrowLeft,
   BsClock,
@@ -20,15 +20,63 @@ export default function ProductionDetailPage() {
   const { id } = params;
   const [activeTab, setActiveTab] = useState<"info" | "scheduled">("info");
 
-  const { orders, products, productionSchedules, getProductionStages } =
-    useProduction();
+  // const { orders, products, productionSchedules, getProductionStages } =
+  //   useProduction();
 
-  const order = orders.find((o) => o.id === id);
-  const schedule = productionSchedules.find((s) => s.order_id === id);
-  const product = products.find((p) => p.id === order?.product_id);
-  const stages = getProductionStages(id as string);
+  const {
+    isPending,
+    error,
+    data: apiData,
+  } = useQuery({
+    queryKey: ["apiData", id],
+    queryFn: async () => {
+      if (!id) {
+        throw new Error("Order ID is required");
+      }
+      const response = await orderApi.getDetail(id.toString());
+      console.log("API Response:", response);
+      console.log("Response data:", response.data);
+      return response;
+    },
+    enabled: !!id,
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  });
 
-  if (!order) {
+  // Xử lý loading state
+  if (isPending) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Đang tải thông tin đơn hàng...</div>
+      </div>
+    );
+  }
+
+  console.log("data api", apiData);
+
+  // Xử lý error state
+  // if (error) {
+  //   return (
+  //     <div className="flex flex-col items-center justify-center h-64">
+  //       <div className="text-red-500 text-lg mb-2">
+  //         Lỗi khi tải thông tin đơn hàng
+  //       </div>
+  //       <button
+  //         onClick={() => router.refresh()}
+  //         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+  //       >
+  //         Thử lại
+  //       </button>
+  //     </div>
+  //   );
+  // }
+
+  // const apiData = orders.find((o) => o.order_id === order_id);
+  // const schedule = productionSchedules.find((s) => s.order_id === order_id);
+  // const product = products.find((p) => p.id === apiData?.product_id);
+  // const stages = getProductionStages(order_id as string);
+
+  if (!apiData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -203,13 +251,13 @@ export default function ProductionDetailPage() {
     },
   ];
 
-  const getStageStatus = (stageId: string) => {
-    const stage = stages.find((s) => s.id === stageId);
-    return stage?.status || "pending";
-  };
+  // const getStageStatus = (stageId: string) => {
+  //   const stage = stages.find((s) => s.id === stageId);
+  //   return stage?.status || "pending";
+  // };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 ">
       <button
         onClick={() => router.back()}
         className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
@@ -223,46 +271,46 @@ export default function ProductionDetailPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           {/* Left side - Order info */}
           <div className="flex-1">
-            <div className="flex items-start gap-4 mb-4">
-              <div>
-                <div className="flex flex-row justify-between items-start  gap-2 mb-1">
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">
-                      Chi tiết đơn hàng {order.id}
-                    </h1>
-                  </div>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              {/* Phần bên trái: Tiêu đề và thông tin người duyệt */}
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    Chi tiết đơn hàng: {apiData.code}
+                  </h1>
 
                   {/* Status badge */}
                   <div
-                    className={`px-2 py-1 rounded-lg text-sm font-semibold inline-block ${
-                      order.status === "completed"
+                    className={`px-1.5 py-0.5 rounded-lg text-sm font-semibold ${
+                      apiData.status === "completed"
                         ? "bg-green-100 text-green-700 border border-green-200"
-                        : order.status === "in_production"
+                        : apiData.status === "in_production"
                         ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                        : order.status === "scheduled"
+                        : apiData.status === "scheduled"
                         ? "bg-blue-100 text-blue-700 border border-blue-200"
                         : "bg-gray-100 text-gray-700 border border-gray-200"
                     }`}
                   >
-                    {order.status === "completed"
-                      ? " ĐÃ HOÀN THÀNH"
-                      : order.status === "in_production"
-                      ? " ĐANG SẢN XUẤT"
-                      : order.status === "scheduled"
-                      ? " ĐÃ LÊN LỊCH"
-                      : " CHỜ XỬ LÝ"}
+                    {apiData.status === "completed"
+                      ? "ĐÃ HOÀN THÀNH"
+                      : apiData.status === "in_production"
+                      ? "ĐANG SẢN XUẤT"
+                      : apiData.status === "scheduled"
+                      ? "ĐÃ LÊN LỊCH"
+                      : "CHỜ XỬ LÝ"}
                   </div>
                 </div>
+              </div>
 
-                <div className=" flex flex-wrap item-end gap-2">
-                  <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    <span className="font-medium"></span> Người duyệt: Quản lý
-                    sản xuất
-                  </div>
-                  <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    <span className="font-medium"></span> Ngày tạo:{" "}
-                    {new Date(order.created_at).toLocaleDateString("vi-VN")}
-                  </div>
+              {/* Phần bên phải: Date badge */}
+              <div className="flex items-center gap-2">
+                <div className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm inline-block">
+                  <span className="font-medium">Người duyệt:</span>{" "}
+                  {apiData.approver_name}
+                </div>
+                <div className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm whitespace-nowrap">
+                  <span className="font-medium">Ngày tạo:</span>{" "}
+                  {new Date(apiData.order_date).toLocaleDateString("vi-VN")}
                 </div>
               </div>
             </div>
@@ -272,75 +320,77 @@ export default function ProductionDetailPage() {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">KHÁCH HÀNG</div>
                 <div className="font-medium text-gray-900 truncate">
-                  {order.customer_name}
+                  {apiData.customer_name}
                 </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">SẢN PHẨM</div>
-                <div className="font-medium text-gray-900">{product?.type}</div>
-                <div className="text-xs text-gray-500 mt-1">Mã: 2025NL0052</div>
+                <div className="font-medium text-gray-900">
+                  {apiData?.product_name}
+                </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">SỐ LƯỢNG</div>
                 <div className="font-medium text-gray-900">
-                  {order.quantity} chiếc
+                  {apiData.quantity} chiếc
                 </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">NGÀY GIAO</div>
                 <div className="font-medium text-gray-900">
-                  {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                  {new Date(apiData.delivery_date).toLocaleDateString("vi-VN")}
                 </div>
               </div>
               {/* Schedule info */}
-              {schedule && (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
-                  <div className="text-sm font-medium text-blue-700 mb-1">
-                    LỊCH SẢN XUẤT
+
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                <div className="text-sm font-medium text-blue-700 mb-1">
+                  LỊCH SẢN XUẤT
+                </div>
+                <div className="text-xs text-blue-600">
+                  <div className="flex items-center gap-1 mb-1">
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Bắt đầu:{" "}
+                    {new Date(apiData.production_start_date).toLocaleDateString(
+                      "vi-VN"
+                    )}
                   </div>
-                  <div className="text-xs text-blue-600">
-                    <div className="flex items-center gap-1 mb-1">
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Bắt đầu:{" "}
-                      {new Date(schedule.start_date).toLocaleDateString(
-                        "vi-VN"
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Kết thúc:{" "}
-                      {new Date(schedule.end_date).toLocaleDateString("vi-VN")}
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Kết thúc:{" "}
+                    {new Date(apiData.production_end_date).toLocaleDateString(
+                      "vi-VN"
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Specifications */}
@@ -358,7 +408,7 @@ export default function ProductionDetailPage() {
               </div>
               <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                 <span className="font-medium"></span> Ngày tạo:{" "}
-                {new Date(order.created_at).toLocaleDateString("vi-VN")}
+                {new Date(apiData.created_at).toLocaleDateString("vi-VN")}
               </div>
             </div> */}
           </div>
@@ -393,301 +443,576 @@ export default function ProductionDetailPage() {
 
       {/* Tab Content info */}
       {activeTab === "info" && (
-        <Descriptions bordered column={2}>
-          <Descriptions.Item label="Email khách hàng">
-            {order.customer_email}
-          </Descriptions.Item>
-          <Descriptions.Item label="SĐT">
-            {order.customer_phone}
-          </Descriptions.Item>
-          {/* <Descriptions.Item label="Sản phẩm">
-            <b className="text-blue-600">{order.product_name}</b>
-          </Descriptions.Item> */}
-          <Descriptions.Item label="Loại sản phẩm">
-            {product?.type}
-          </Descriptions.Item>
-          <Descriptions.Item label="Số lượng">
-            {order.quantity.toLocaleString()}
-          </Descriptions.Item>
-          {/* <Descriptions.Item label="Ngày giao">
-            {formatDate(order.delivery_date)}
-          </Descriptions.Item> */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Cột 1: Thông tin khách hàng */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                {/* <div className="p-1.5 bg-blue-50 rounded">
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div> */}
+                <h3 className="font-semibold text-gray-900">
+                  Thông tin khách hàng
+                </h3>
+              </div>
 
-          <Descriptions.Item label="Quy cách" span={2}>
-            {order.specs ? (
-              <div className="text-xs">
-                <p>
-                  • Kích thước: {order.specs.length}x{order.specs.width}x
-                  {order.specs.height} mm
-                </p>
-                <p>• Giấy: {order.specs.paper_id}</p>
-                <p>
-                  • Gia công: {order.specs.processing?.join(", ") || "Không"}
-                </p>
-                <p>
-                  • Màu sắc:{" "}
-                  {order.specs.colors?.map((c) => (
-                    <span
-                      key={c}
-                      style={{
-                        background: c,
-                        padding: "0 4px",
-                        marginRight: 4,
-                      }}
-                    >
-                      {c}
+              <div className="space-y-2">
+                {/* <div>
+                  <div className="font-medium text-md text-gray-500 mb-1">
+                    Email:{" "}
+                    <span className="font-semibold text-md text-gray-900">
+                      {apiData.customer_email}
                     </span>
-                  ))}
-                </p>
-              </div>
-            ) : (
-              "Chưa cập nhật"
-            )}
-          </Descriptions.Item>
+                  </div>
+                </div> */}
 
-          <Descriptions.Item label="Tài chính" span={2}>
-            <div className="flex justify-between w-full">
-              <span>Phí gấp: {order.rush_fee?.toLocaleString()} ₫</span>
-              <span className="font-bold text-lg text-blue-700">
-                Tổng: {order.final_price?.toLocaleString()} ₫
-              </span>
-            </div>
-          </Descriptions.Item>
+                <div className="flex justify-between items-center ">
+                  <div className="text-md text-gray-600">Email:</div>
+                  <div className={`text-md font-medium`}>
+                    {apiData.customer_email}
+                  </div>
+                </div>
 
-          <Descriptions.Item label="Ghi chú" span={2}>
-            {order.note || "Không có"}
-          </Descriptions.Item>
-          <Descriptions.Item label="File mẫu" span={2}>
-            {order.design_file_url ? (
-              <Button type="link" icon={<FileTextOutlined />}>
-                Tải file mẫu
-              </Button>
-            ) : (
-              <div>
-                <span className="italic text-gray-400">Chưa có file mẫu</span>
-                <Button type="link" icon={<FileTextOutlined />}>
-                  Tải file mẫu
-                </Button>
-              </div>
-            )}
-          </Descriptions.Item>
-          <Descriptions.Item label="Hợp đồng" span={2}>
-            {order.contract_file ? (
-              <Button type="link" icon={<FileTextOutlined />}>
-                Tải hợp đồng ({order.contract_file})
-              </Button>
-            ) : (
-             <div>
-                <span className="italic text-gray-400">Chưa có hợp đồng</span>
-                <Button type="link" icon={<FileTextOutlined />}>
-                  Tải file hợp đồng
-                </Button>
-              </div>
-            )}
-          </Descriptions.Item>
-        </Descriptions>
-      )}
+                <div className="flex justify-between items-center ">
+                  <div className="text-md text-gray-600">Số điện thoại:</div>
+                  <div className={`text-md font-medium`}>
+                    {apiData.customer_phone}
+                  </div>
+                </div>
 
-      {/* Tiến trình sản xuất chi tiết */}
-      {activeTab === "scheduled" && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-            <BsClock className="w-5 h-5 text-blue-500" />
-            QUY TRÌNH SẢN XUẤT CHI TIẾT
-          </h2>
+                {/* <div>
+                  <div className="text-md text-gray-500 mb-1">Địa chỉ</div>
+                  <div className="font-medium text-sm">
+                    {apiData.customer_address || "Chưa cập nhật"}
+                  </div>
+                </div> */}
 
-          <div className="space-y-8">
-            {productionProcess.map((process, index) => {
-              const stageStatus = getStageStatus(process.id);
-              const stageInfo = productionStages.find(
-                (s) => s.id === process.id
-              );
-              const StageIcon = stageInfo?.icon || BsScissors;
-              const isCurrentStage = schedule?.current_stage === process.id;
-              const isCompleted = stageStatus === "completed";
-              const isInProgress = stageStatus === "in_progress";
+                <div className="flex justify-between items-center ">
+                  <div className="text-md text-gray-600">Địa chỉ</div>
+                  <div className={`text-md font-medium`}>
+                    {apiData.customer_address || "Chưa cập nhật"}
+                  </div>
+                </div>
 
-              return (
-                <div
-                  key={process.id}
-                  className="border-l-4 border-blue-200 pl-6 ml-4 relative"
-                >
-                  {/* Timeline dot */}
+                <div className="flex justify-between items-center ">
+                  <div className="text-md text-gray-600">
+                    Trạng thái thanh toán
+                  </div>
                   <div
-                    className={`absolute -left-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${
-                      isCompleted
-                        ? "bg-green-500"
-                        : isInProgress
-                        ? "bg-yellow-500"
-                        : "bg-gray-300"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                      apiData.payment_status === "paid"
+                        ? "bg-green-100 text-green-800"
+                        : apiData.payment_status === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {isCompleted ? (
-                      <BiCheckCircle className="w-4 h-4 text-white" />
-                    ) : isInProgress ? (
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                    ) : (
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    )}
+                    {apiData.payment_status === "paid"
+                      ? "Đã thanh toán"
+                      : apiData.payment_status === "pending"
+                      ? "Chờ thanh toán"
+                      : "Chưa thanh toán"}
                   </div>
-
-                  {/* Stage header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${stageInfo?.color}`}>
-                        <StageIcon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg text-gray-900">
-                          {process.name} {process.code}
-                        </h3>
-                        <p
-                          className={`text-sm ${
-                            isCompleted
-                              ? "text-green-600"
-                              : isInProgress
-                              ? "text-yellow-600"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          {isCompleted
-                            ? " Đã hoàn thành"
-                            : isInProgress
-                            ? " Đang thực hiện"
-                            : " Chờ xử lý"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {process.note && (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                        {process.note}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Input Materials Table */}
-                  <div className="mb-6">
-                    <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                      <BiPackage className="w-4 h-4" />
-                      NGUYÊN VẬT LIỆU ĐẦU VÀO
-                    </h4>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              TÊN NVL
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              MÃ NVL
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              SỐ LƯỢNG
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              ĐVT
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              GHI CHÚ
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {process.inputMaterials.map((material, matIndex) => (
-                            <tr key={matIndex} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                {material.name}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-500">
-                                {"code" in material
-                                  ? material.code ?? "-"
-                                  : "-"}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                                {material.quantity}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-500">
-                                {material.unit}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-500">
-                                {"note" in material
-                                  ? material.note ?? "-"
-                                  : "-"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Output Material */}
-                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
-                    <h4 className="font-medium text-blue-700 mb-2 flex items-center gap-2">
-                      <BiCheckCircle className="w-4 h-4" />
-                      THÀNH PHẨM CÔNG ĐOẠN
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <div className="text-sm text-blue-600">
-                          Tên thành phẩm
-                        </div>
-                        <div className="font-medium">
-                          {process.outputMaterial}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-blue-600">Số lượng</div>
-                        <div className="font-medium">
-                          {process.outputQuantity}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-blue-600">Đơn vị</div>
-                        <div className="font-medium">{process.outputUnit}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-blue-600">
-                          Mã công đoạn
-                        </div>
-                        <div className="font-medium">{process.code}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  {!process.finalProduct && (
-                    <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                      {isInProgress ? (
-                        <div>
-                          <div className="text-sm text-green-600 flex items-center gap-2">
-                            <BsClock className="w-4 h-4" />
-                            <span>Đang gia công</span>
-                          </div>
-                        </div>
-                      ) : (
-                        stageStatus === "pending" && (
-                          <div className="text-sm text-yellow-600 flex items-center gap-2">
-                            <BsClock className="w-4 h-4" />
-                            <span>Đang chờ xử lý</span>
-                          </div>
-                        )
-                      )}
-
-                      {stageStatus === "completed" && (
-                        <div className="text-sm text-green-600 flex items-center gap-2">
-                          <BiCheckCircle className="w-4 h-4" />
-                          Đã hoàn thành
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
-              );
-            })}
+              </div>
+            </div>
+
+            {/* Cột 2: Chi phí */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="font-semibold text-gray-900">
+                  Chi phí đơn hàng
+                </h3>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center py-1">
+                  <div className="text-sm text-gray-600">Chi phí sản xuất</div>
+                  <div className="font-medium text-sm">
+                    {(apiData.production_cost || 0).toLocaleString()} ₫
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center py-1">
+                  <div className="text-sm text-gray-600">Phí gấp</div>
+                  <div
+                    className={`text-sm font-medium ${
+                      apiData.rush_amount ? "text-orange-600" : "text-gray-600"
+                    }`}
+                  >
+                    {apiData.rush_amount
+                      ? `+${apiData.rush_amount.toLocaleString()} ₫`
+                      : "0 ₫"}
+                  </div>
+                </div>
+
+                {/* <div className="flex justify-between items-center py-1">
+                  <div className="text-sm text-gray-600">Thuế VAT</div>
+                  <div className="font-medium text-sm">
+                    {apiData.tax_amount
+                      ? `${apiData.tax_amount.toLocaleString()} ₫`
+                      : `${Math.round(
+                          (apiData.estimate_total || 0) * 0.1
+                        ).toLocaleString()} ₫`}
+                  </div>
+                </div> */}
+
+                <div className="pt-2 mt-1 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <div className="font-semibold text-gray-900">Tổng cộng</div>
+                    <div className="text-lg font-bold text-blue-700">
+                      {apiData.estimate_total?.toLocaleString()} ₫
+                    </div>
+                  </div>
+                </div>
+
+                {apiData.deposit_amount && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-blue-600">Đã đặt cọc:</span>
+                      <span className="font-medium">
+                        {apiData.deposit_amount.toLocaleString()} ₫
+                      </span>
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-blue-600">Còn lại:</span>
+                      <span className="font-medium">
+                        {(
+                          apiData.estimate_total - apiData.deposit_amount
+                        ).toLocaleString()}{" "}
+                        ₫
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cột 3: File đính kèm */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-indigo-50 rounded">
+                  <svg
+                    className="w-4 h-4 text-indigo-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-gray-900">File đính kèm</h3>
+              </div>
+
+              <div className="space-y-3">
+                {/* File mẫu */}
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2">
+                    <FileTextOutlined className="text-gray-400 text-sm" />
+                    <div>
+                      <div className="font-medium text-sm">File mẫu</div>
+                      <div className="text-xs text-gray-500">
+                        Thiết kế sản phẩm
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    size="small"
+                    type={apiData.design_file_url ? "primary" : "default"}
+                    disabled={!apiData.design_file_url}
+                    onClick={() =>
+                      apiData.design_file_url &&
+                      window.open(apiData.design_file_url, "_blank")
+                    }
+                  >
+                    {apiData.design_file_url ? "Tải" : "N/A"}
+                  </Button>
+                </div>
+
+                {/* Hợp đồng */}
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <div>
+                      <div className="font-medium text-sm">Hợp đồng</div>
+                      <div className="text-xs text-gray-500">
+                        {apiData.contract_file || "Chưa tải lên"}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    size="small"
+                    type={apiData.contract_file ? "primary" : "default"}
+                    onClick={() =>
+                      apiData.contract_file &&
+                      window.open(apiData.contract_file_url, "_blank")
+                    }
+                  >
+                    {apiData.contract_file ? "Xem" : "N/A"}
+                  </Button>
+                </div>
+
+                {/* File khác */}
+                {apiData.other_files && apiData.other_files.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-xs font-medium text-gray-700 mb-1">
+                      File khác ({apiData.other_files.length}):
+                    </div>
+                    <div className="space-y-1">
+                      {apiData.other_files
+                        .slice(0, 2)
+                        .map((file: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <FileTextOutlined
+                                className="text-gray-400"
+                                style={{ fontSize: "12px" }}
+                              />
+                              <span className="truncate">{file.name}</span>
+                            </div>
+                            <Button
+                              type="link"
+                              size="small"
+                              style={{ padding: 0, fontSize: "12px" }}
+                              onClick={() => window.open(file.url, "_blank")}
+                            >
+                              Tải
+                            </Button>
+                          </div>
+                        ))}
+                      {apiData.other_files.length > 2 && (
+                        <div className="text-xs text-gray-500 text-center">
+                          + {apiData.other_files.length - 2} file khác
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Ghi chú (full width) */}
+            <div className="border border-gray-200 rounded-lg p-4 lg:col-span-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-yellow-50 rounded">
+                  <svg
+                    className="w-4 h-4 text-yellow-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-gray-900">Ghi chú</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-gray-500 mb-1.5">
+                    Ghi chú khách hàng
+                  </div>
+                  <div
+                    className={`p-3 rounded border text-sm min-h-[80px] ${
+                      apiData.note
+                        ? "bg-gray-50 border-gray-200"
+                        : "bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    {apiData.note ? (
+                      <div className="text-gray-700 whitespace-pre-line">
+                        {apiData.note}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 italic text-center">
+                        Không có ghi chú
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs text-gray-500 mb-1.5">
+                    Ghi chú nội bộ
+                  </div>
+                  <div
+                    className={`p-3 rounded border text-sm min-h-[80px] ${
+                      apiData.internal_note
+                        ? "bg-red-50 border-red-100"
+                        : "bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    {apiData.internal_note ? (
+                      <div className="text-red-700 whitespace-pre-line">
+                        {apiData.internal_note}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 italic text-center">
+                        Không có ghi chú nội bộ
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Nút hành động compact */}
+          {/* <div className="flex justify-end gap-2 pt-4 mt-4 border-t border-gray-200">
+            <Button
+              size="small"
+              icon={<FileTextOutlined />}
+              onClick={() => window.print()}
+            >
+              In phiếu
+            </Button>
+            <Button size="small" type="primary" icon={<FileTextOutlined />}>
+              Xuất PDF
+            </Button>
+            <Button size="small" icon={<FileTextOutlined />}>
+              Chia sẻ
+            </Button>
+          </div> */}
         </div>
+      )}
+      {/* Tiến trình sản xuất chi tiết */}
+      {activeTab === "scheduled" && (
+        // <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        //   <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+        //     <BsClock className="w-5 h-5 text-blue-500" />
+        //     QUY TRÌNH SẢN XUẤT CHI TIẾT
+        //   </h2>
+
+        //   <div className="space-y-8">
+        //     {productionProcess.map((process, index) => {
+        //       const stageStatus = getStageStatus(process.id);
+        //       const stageInfo = productionStages.find(
+        //         (s) => s.id === process.id
+        //       );
+        //       const StageIcon = stageInfo?.icon || BsScissors;
+        //       const isCurrentStage = schedule?.current_stage === process.id;
+        //       const isCompleted = stageStatus === "completed";
+        //       const isInProgress = stageStatus === "in_progress";
+
+        //       return (
+        //         <div
+        //           key={process.id}
+        //           className="border-l-4 border-blue-200 pl-6 ml-4 relative"
+        //         >
+        //           {/* Timeline dot */}
+        //           <div
+        //             className={`absolute -left-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${
+        //               isCompleted
+        //                 ? "bg-green-500"
+        //                 : isInProgress
+        //                 ? "bg-yellow-500"
+        //                 : "bg-gray-300"
+        //             }`}
+        //           >
+        //             {isCompleted ? (
+        //               <BiCheckCircle className="w-4 h-4 text-white" />
+        //             ) : isInProgress ? (
+        //               <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+        //             ) : (
+        //               <div className="w-2 h-2 bg-white rounded-full" />
+        //             )}
+        //           </div>
+
+        //           {/* Stage header */}
+        //           <div className="flex items-center justify-between mb-4">
+        //             <div className="flex items-center gap-3">
+        //               <div className={`p-2 rounded-lg ${stageInfo?.color}`}>
+        //                 <StageIcon className="w-5 h-5" />
+        //               </div>
+        //               <div>
+        //                 <h3 className="font-bold text-lg text-gray-900">
+        //                   {process.name} {process.code}
+        //                 </h3>
+        //                 <p
+        //                   className={`text-sm ${
+        //                     isCompleted
+        //                       ? "text-green-600"
+        //                       : isInProgress
+        //                       ? "text-yellow-600"
+        //                       : "text-gray-500"
+        //                   }`}
+        //                 >
+        //                   {isCompleted
+        //                     ? " Đã hoàn thành"
+        //                     : isInProgress
+        //                     ? " Đang thực hiện"
+        //                     : " Chờ xử lý"}
+        //                 </p>
+        //               </div>
+        //             </div>
+
+        //             {process.note && (
+        //               <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+        //                 {process.note}
+        //               </span>
+        //             )}
+        //           </div>
+
+        //           {/* Input Materials Table */}
+        //           <div className="mb-6">
+        //             <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+        //               <BiPackage className="w-4 h-4" />
+        //               NGUYÊN VẬT LIỆU ĐẦU VÀO
+        //             </h4>
+        //             <div className="overflow-x-auto">
+        //               <table className="min-w-full divide-y divide-gray-200">
+        //                 <thead className="bg-gray-50">
+        //                   <tr>
+        //                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        //                       TÊN NVL
+        //                     </th>
+        //                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        //                       MÃ NVL
+        //                     </th>
+        //                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        //                       SỐ LƯỢNG
+        //                     </th>
+        //                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        //                       ĐVT
+        //                     </th>
+        //                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        //                       GHI CHÚ
+        //                     </th>
+        //                   </tr>
+        //                 </thead>
+        //                 <tbody className="bg-white divide-y divide-gray-200">
+        //                   {process.inputMaterials.map((material, matIndex) => (
+        //                     <tr key={matIndex} className="hover:bg-gray-50">
+        //                       <td className="px-4 py-3 text-sm text-gray-900">
+        //                         {material.name}
+        //                       </td>
+        //                       <td className="px-4 py-3 text-sm text-gray-500">
+        //                         {"code" in material
+        //                           ? material.code ?? "-"
+        //                           : "-"}
+        //                       </td>
+        //                       <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+        //                         {material.quantity}
+        //                       </td>
+        //                       <td className="px-4 py-3 text-sm text-gray-500">
+        //                         {material.unit}
+        //                       </td>
+        //                       <td className="px-4 py-3 text-sm text-gray-500">
+        //                         {"note" in material
+        //                           ? material.note ?? "-"
+        //                           : "-"}
+        //                       </td>
+        //                     </tr>
+        //                   ))}
+        //                 </tbody>
+        //               </table>
+        //             </div>
+        //           </div>
+
+        //           {/* Output Material */}
+        //           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+        //             <h4 className="font-medium text-blue-700 mb-2 flex items-center gap-2">
+        //               <BiCheckCircle className="w-4 h-4" />
+        //               THÀNH PHẨM CÔNG ĐOẠN
+        //             </h4>
+        //             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        //               <div>
+        //                 <div className="text-sm text-blue-600">
+        //                   Tên thành phẩm
+        //                 </div>
+        //                 <div className="font-medium">
+        //                   {process.outputMaterial}
+        //                 </div>
+        //               </div>
+        //               <div>
+        //                 <div className="text-sm text-blue-600">Số lượng</div>
+        //                 <div className="font-medium">
+        //                   {process.outputQuantity}
+        //                 </div>
+        //               </div>
+        //               <div>
+        //                 <div className="text-sm text-blue-600">Đơn vị</div>
+        //                 <div className="font-medium">{process.outputUnit}</div>
+        //               </div>
+        //               <div>
+        //                 <div className="text-sm text-blue-600">
+        //                   Mã công đoạn
+        //                 </div>
+        //                 <div className="font-medium">{process.code}</div>
+        //               </div>
+        //             </div>
+        //           </div>
+
+        //           {/* Action Buttons */}
+        //           {!process.finalProduct && (
+        //             <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+        //               {isInProgress ? (
+        //                 <div>
+        //                   <div className="text-sm text-green-600 flex items-center gap-2">
+        //                     <BsClock className="w-4 h-4" />
+        //                     <span>Đang gia công</span>
+        //                   </div>
+        //                 </div>
+        //               ) : (
+        //                 stageStatus === "pending" && (
+        //                   <div className="text-sm text-yellow-600 flex items-center gap-2">
+        //                     <BsClock className="w-4 h-4" />
+        //                     <span>Đang chờ xử lý</span>
+        //                   </div>
+        //                 )
+        //               )}
+
+        //               {stageStatus === "completed" && (
+        //                 <div className="text-sm text-green-600 flex items-center gap-2">
+        //                   <BiCheckCircle className="w-4 h-4" />
+        //                   Đã hoàn thành
+        //                 </div>
+        //               )}
+        //             </div>
+        //           )}
+        //         </div>
+        //       );
+        //     })}
+        //   </div>
+        // </div>
+        <></>
       )}
     </div>
   );

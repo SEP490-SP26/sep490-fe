@@ -1,6 +1,16 @@
 "use client";
-import { useProduction } from "@/context/ProductionContext";
-import { showWarningToast } from "@/utils/toastService";
+import { materialsApi } from "@/api/materials";
+import { purchasesApi } from "@/api/purchase";
+import { supplierApi } from "@/api/supplier";
+import Loading from "@/app/(overview)/loading";
+import { PurchaseOrder, useProduction } from "@/context/ProductionContext";
+import {
+  showErrorToast,
+  showSuccessToast,
+  showWarningToast,
+} from "@/utils/toastService";
+import { useQuery } from "@tanstack/react-query";
+import { Spin } from "antd";
 import { useState, useEffect } from "react";
 import { BiPlus, BiSearch } from "react-icons/bi";
 import { BsCheckCircle, BsClock, BsTruck, BsX } from "react-icons/bs";
@@ -96,6 +106,11 @@ const renderRatingStars = (rating: number) => {
   );
 };
 
+interface SelectedMaterial {
+  material_id: string;
+  quantity: number;
+}
+
 export default function PurchaseManagement() {
   const [activeTab, setActiveTab] = useState<
     "pending" | "ordered" | "received"
@@ -112,103 +127,130 @@ export default function PurchaseManagement() {
 
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState("");
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
-  const [supplier, setSupplier] = useState("Công ty TNHH Giấy Sài Gòn");
+  const [supplierId, setSupplierId] = useState<number | null>(null);
+
+  const [selectedMaterials, setSelectedMaterials] = useState<
+    SelectedMaterial[]
+  >([]);
+  const [supplier, setSupplier] = useState("Chọn nhà cung cấp");
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [materialQuantities, setMaterialQuantities] = useState<
+    Record<string, number>
+  >({});
 
-  // Danh sách nhà cung cấp mẫu
-  const suppliers = [
-    "Công ty TNHH Giấy Sài Gòn",
-    "Nhà máy Giấy Long An",
-    "Công ty CP Mực in Đông Dương",
-    "Công ty TNHH Vật tư In ấn Hà Nội",
-    "Tập đoàn Giấy Việt Nam",
-  ];
+  const {
+    isPending,
+    error,
+    data: suppliersData,
+  } = useQuery({
+    queryKey: ["supplier"],
+    queryFn: async () => {
+      try {
+        const response = await supplierApi.getList(1, 100);
+        console.log("Response supplier data:", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        return { orders: [], products: [], materials: [] };
+      }
+    },
+    initialData: [],
+    // staleTime: 5 * 60 * 1000,
+  });
 
-  // Tính ngày mặc định (2 ngày sau)
-  useEffect(() => {
-    const today = new Date();
-    const defaultDate = new Date(today);
-    defaultDate.setDate(today.getDate() + 2);
-    // setDeliveryDate(defaultDate.toISOString().split('T')[0]);
-  }, []);
+  const { isPending: poLoading, data: poData } = useQuery({
+    queryKey: ["purchase-orders"],
+    queryFn: async () => {
+      try {
+        const response = await purchasesApi.getList(1, 100);
+        console.log("Response po data:", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching purchase orders:", error);
+        return [];
+      }
+    },
+  });
+  console.log("poData", poData);
 
-  // Lấy danh sách vật tư cần mua (pending)
-  const pendingMaterials = purchaseRequests
-    .filter((pr) => pr.status === "pending")
-    .map((pr) => {
-      const material = materials.find((m) => m.id === pr.material_id);
-      const order = orders.find((o) => o.id === pr.order_id);
-      return {
-        ...pr,
-        material,
-        order,
-      };
-    });
+  const { data: missing_materials, isPending: materialLoading } = useQuery({
+    queryKey: ["missing-materials"],
+    queryFn: async () => {
+      try {
+        const response = await materialsApi.getListMissingMaterial(1, 100);
+        console.log("Response miss data:", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching purchase orders:", error);
+        return [];
+      }
+    },
+  });
+
+  if (materialLoading) {
+    return (
+      <div>
+        <Loading />
+      </div>
+    );
+  }
+
+  console.log("missing data", missing_materials);
 
   // Xử lý tạo đơn hàng với nhiều vật tư
-  const handleCreateBulkPO = () => {
+  const handleCreateBulkPO = async () => {
     if (selectedMaterials.length === 0) {
       showWarningToast("Vui lòng chọn ít nhất một vật tư để đặt hàng");
       return;
     }
 
-    if (!supplier || !deliveryDate) {
+    if (!supplierId || !deliveryDate) {
       showWarningToast("Vui lòng chọn nhà cung cấp và ngày giao hàng");
       return;
     }
 
-    // Tạo đơn hàng cho từng vật tư đã chọn
-    selectedMaterials.forEach((prId) => {
-      createPurchaseOrder(prId, supplier, deliveryDate);
-    });
+    // Chuẩn bị request body
+    const requestBody = {
+      supplierId: supplierId,
+      etaDate: new Date(deliveryDate).toISOString(),
+      items: selectedMaterials.map((item: SelectedMaterial) => ({
+        materialId: item.material_id,
+        quantity: item.quantity,
+      })),
+    };
 
-    // Reset form
-    setSelectedMaterials([]);
-    setSupplier("Công ty TNHH Giấy Sài Gòn");
+    console.log("Request body:", requestBody);
 
-    // Set lại delivery date mặc định
-    const today = new Date();
-    const defaultDate = new Date(today);
-    defaultDate.setDate(today.getDate() + 2);
-    setDeliveryDate(defaultDate.toISOString().split("T")[0]);
+    try {
+      const response = await purchasesApi.createPO(requestBody);
+      console.log("Create PO response:", response);
+
+      if (response.success) {
+        showSuccessToast("Tạo đơn đặt hàng thành công!");
+
+        // Reset form
+        setSelectedMaterials([]);
+        setMaterialQuantities({});
+        // setSupplierId("");
+        setDeliveryDate("");
+
+        // Có thể refetch data nếu cần
+        // refetchMissingMaterials();
+      } else {
+        showErrorToast(response.message || "Có lỗi xảy ra khi tạo đơn hàng");
+      }
+    } catch (error) {
+      console.error("Error creating PO:", error);
+      showErrorToast("Đã xảy ra lỗi khi tạo đơn hàng");
+    }
   };
 
-  // Lấy danh sách đơn hàng theo trạng thái
-  const getPurchaseOrdersByStatus = (status: "ordered" | "delivered") => {
-    const pos = purchaseOrders.filter((po) => po.status === status);
-
-    // Nhóm các PO theo supplier và delivery date
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const groupedOrders: Record<string, any[]> = {};
-
-    pos.forEach((po) => {
-      const pr = purchaseRequests.find((p) => p.id === po.pr_id);
-      const material = materials.find((m) => m.id === pr?.material_id);
-      const order = orders.find((o) => o.id === pr?.order_id);
-
-      const key = `${po.supplier}-${po.expected_delivery_date}`;
-
-      if (!groupedOrders[key]) {
-        groupedOrders[key] = [];
-      }
-
-      groupedOrders[key].push({
-        ...po,
-        pr,
-        material,
-        order,
-        customer_name: order?.customer_name || "N/A",
-      });
-    });
-
-    return Object.entries(groupedOrders).map(([key, items]) => ({
-      id: key,
-      supplier: items[0].supplier,
-      deliveryDate: items[0].expected_delivery_date,
-      items: items,
-      status: items[0].status,
-    }));
+  // Reset khi thành công
+  const resetForm = () => {
+    setSelectedMaterials([]);
+    setSupplierId(null);
+    // setSupplierName("");
+    setDeliveryDate("");
   };
 
   // Tính min date (hôm nay)
@@ -223,6 +265,14 @@ export default function PurchaseManagement() {
     const maxDate = new Date(today);
     maxDate.setDate(today.getDate() + 30);
     return maxDate.toISOString().split("T")[0];
+  };
+
+  // Lấy danh sách đơn hàng theo trạng thái
+  const getPurchaseOrdersByStatus = (status: "Ordered" | "Delivered") => {
+    if (poLoading || !poData) {
+      return [];
+    }
+    return poData.filter((po: any) => po.status === status);
   };
 
   return (
@@ -268,7 +318,7 @@ export default function PurchaseManagement() {
             }`}
           >
             <BsClock className="w-4 h-4" />
-            Chờ đặt hàng ({pendingMaterials.length})
+            Chờ đặt hàng ({missing_materials.length})
           </button>
           <button
             onClick={() => setActiveTab("ordered")}
@@ -279,7 +329,7 @@ export default function PurchaseManagement() {
             }`}
           >
             <BsTruck className="w-4 h-4" />
-            Đang chờ giao ({getPurchaseOrdersByStatus("ordered").length})
+            Đang chờ giao ({getPurchaseOrdersByStatus("Ordered").length})
           </button>
           <button
             onClick={() => setActiveTab("received")}
@@ -290,7 +340,7 @@ export default function PurchaseManagement() {
             }`}
           >
             <BsCheckCircle className="w-4 h-4" />
-            Đã nhận hàng ({getPurchaseOrdersByStatus("delivered").length})
+            Đã nhận hàng ({getPurchaseOrdersByStatus("Delivered").length})
           </button>
         </div>
       </div>
@@ -302,10 +352,10 @@ export default function PurchaseManagement() {
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-4">
-                Vật tư cần mua ({pendingMaterials.length})
+                Vật tư cần mua ({missing_materials.length})
               </h2>
 
-              {/* Table layout cho các item trên 1 hàng */}
+              {/* Table */}
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <table className="w-full">
                   <thead className="bg-gray-50">
@@ -315,14 +365,21 @@ export default function PurchaseManagement() {
                           type="checkbox"
                           checked={
                             selectedMaterials.length ===
-                              pendingMaterials.length &&
-                            pendingMaterials.length > 0
+                              missing_materials.length &&
+                            missing_materials.length > 0
                           }
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedMaterials(
-                                pendingMaterials.map((p) => p.id)
+                              // Select all với quantity hiện tại hoặc default
+                              const allMaterials = missing_materials.map(
+                                (pr: any) => ({
+                                  material_id: pr.material_id,
+                                  quantity:
+                                    materialQuantities[pr.material_id] ||
+                                    pr.needed,
+                                })
                               );
+                              setSelectedMaterials(allMaterials);
                             } else {
                               setSelectedMaterials([]);
                             }
@@ -330,63 +387,121 @@ export default function PurchaseManagement() {
                           className="rounded"
                         />
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-50">
                         Tên NVL
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Số lượng
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-end">
+                        SL cần mua
                       </th>
-                      {/* <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-                Đơn hàng
-              </th> */}
+                      <th className="px-4 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider text-end">
+                        Tồn Kho
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-37.5">
+                        Đơn vị
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ngày yêu cầu
                       </th>
+
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {pendingMaterials.map((pr) => (
-                      <tr
-                        key={pr.id}
-                        className={`hover:bg-gray-50 ${
-                          selectedMaterials.includes(pr.id) ? "bg-blue-50" : ""
-                        }`}
-                      >
-                        <td className="px-4 py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedMaterials.includes(pr.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedMaterials([
-                                  ...selectedMaterials,
-                                  pr.id,
-                                ]);
-                              } else {
-                                setSelectedMaterials(
-                                  selectedMaterials.filter((id) => id !== pr.id)
-                                );
-                              }
-                            }}
-                            className="rounded"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div>
+                    {missing_materials.map((pr: any) => {
+                      const currentQuantity =
+                        materialQuantities[pr.material_id] || pr.needed;
+
+                      return (
+                        <tr
+                          key={pr.material_id}
+                          className={`hover:bg-gray-50 ${
+                            selectedMaterials.includes(pr.material_id)
+                              ? "bg-blue-50"
+                              : ""
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedMaterials.some(
+                                (m) => m.material_id === pr.material_id
+                              )}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const quantityToUse =
+                                    materialQuantities[pr.material_id] ||
+                                    pr.needed;
+                                  setSelectedMaterials([
+                                    ...selectedMaterials,
+                                    {
+                                      material_id: pr.material_id,
+                                      quantity: quantityToUse,
+                                    },
+                                  ]);
+                                } else {
+                                  setSelectedMaterials(
+                                    selectedMaterials.filter(
+                                      (item) =>
+                                        item.material_id !== pr.material_id
+                                    )
+                                  );
+                                }
+                              }}
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {pr.material_name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                Mã: {pr.material_id}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900 text-end">
+                              <input
+                                type="number"
+                                value={currentQuantity.toFixed(1)}
+                                onChange={(e) => {
+                                  const newValue =
+                                    parseFloat(e.target.value) || 0;
+
+                                  // Cập nhật quantity trong state
+                                  setMaterialQuantities((prev) => ({
+                                    ...prev,
+                                    [pr.material_id]: newValue,
+                                  }));
+
+                                  // Nếu material đã được chọn, cập nhật quantity trong selectedMaterials
+                                  setSelectedMaterials((prev) =>
+                                    prev.map((item) =>
+                                      item.material_id === pr.material_id
+                                        ? { ...item, quantity: newValue }
+                                        : item
+                                    )
+                                  );
+                                }}
+                                min="0"
+                                step="0.1"
+                                className="text-end w-30"
+                              />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900 text-end">
+                              {pr.available}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
                             <div className="font-medium text-gray-900">
-                              {pr.material?.name}
+                              {pr.unit}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              Mã: {pr.material_id}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">
-                            {pr.quantity_needed} {pr.material?.unit}
-                          </div>
-                        </td>
-                        {/* <td className="px-4 py-3">
+                          </td>
+
+                          {/* <td className="px-4 py-3">
                   {pr.order ? (
                     <>
                       <div className="font-medium text-gray-900 truncate max-w-[140px]">
@@ -398,15 +513,26 @@ export default function PurchaseManagement() {
                     <span className="text-sm text-gray-400">-</span>
                   )}
                 </td> */}
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {new Date(pr.created_at).toLocaleDateString("vi-VN")}
-                        </td>
-                      </tr>
-                    ))}
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {new Date(pr.request_date).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            <button
+                              type="button"
+                              className="mt-2 bg-accent px-2 py-1 rounded-md text-primary"
+                            >
+                              Khảo giá
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
 
-                {pendingMaterials.length === 0 && (
+                {missing_materials.length === 0 && (
                   <div className="text-center py-12 text-gray-400">
                     <BsClock className="w-12 h-12 mx-auto mb-3" />
                     <p>Không có vật tư nào cần đặt hàng</p>
@@ -453,49 +579,6 @@ export default function PurchaseManagement() {
                           </svg>
                         </div>
                       </div>
-
-                      {/* Hiển thị thông tin NCC được chọn */}
-                      {/* {supplier && (
-                        <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                          {(() => {
-                            const selectedSupplier = suppliersWithRating.find(
-                              (s) => s.name === supplier
-                            );
-                            if (!selectedSupplier) return null;
-
-                            return (
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="font-medium text-blue-700">
-                                    {selectedSupplier.name}
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <span className="flex items-center gap-1">
-                                      {renderRatingStars(
-                                        selectedSupplier.rating
-                                      )}
-                                    </span>
-                                    <span>•</span>
-                                    <span>
-                                      Đánh giá: {selectedSupplier.reviewCount}
-                                    </span>
-                                    <span>•</span>
-                                    <span>
-                                      Giao hàng: {selectedSupplier.deliveryTime}
-                                    </span>
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => setShowSupplierPopup(true)}
-                                  className="text-sm text-blue-600 hover:text-blue-800"
-                                >
-                                  Thay đổi
-                                </button>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )} */}
 
                       {/* Supplier Selection Popup */}
                       {showSupplierPopup && (
@@ -563,19 +646,20 @@ export default function PurchaseManagement() {
 
                               {/* Supplier List */}
                               <div className="space-y-3">
-                                {suppliersWithRating
+                                {suppliersData
                                   .filter(
-                                    (s) =>
+                                    (s: any) =>
                                       s.name
                                         .toLowerCase()
                                         .includes(
                                           supplierSearch.toLowerCase()
                                         ) || supplierSearch === ""
                                   )
-                                  .map((s) => (
+                                  .map((s: any) => (
                                     <div
-                                      key={s.id}
+                                      key={s.supplierId}
                                       onClick={() => {
+                                        setSupplierId(s.supplierId);
                                         setSupplier(s.name);
                                         setShowSupplierPopup(false);
                                       }}
@@ -607,7 +691,6 @@ export default function PurchaseManagement() {
                                           <div className="flex items-center gap-4 text-sm text-gray-600">
                                             <div className="flex items-center gap-1">
                                               {renderRatingStars(s.rating)}
-                                             
                                             </div>
 
                                             <div className="flex items-center gap-1">
@@ -649,7 +732,6 @@ export default function PurchaseManagement() {
 
                                           {/* Additional Info */}
                                           <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
-                                        
                                             <div className="flex items-center gap-1">
                                               <svg
                                                 className="w-3 h-3"
@@ -666,8 +748,6 @@ export default function PurchaseManagement() {
                                             </div>
                                           </div>
                                         </div>
-
-                                       
                                       </div>
                                     </div>
                                   ))}
@@ -707,7 +787,7 @@ export default function PurchaseManagement() {
                       )}
                     </div>
 
-                  {/* pick time */}
+                    {/* pick time */}
                     <div>
                       <label className="block text-gray-700 mb-2">
                         Ngày giao dự kiến
@@ -753,7 +833,7 @@ export default function PurchaseManagement() {
         {/* Tab 2: Đang chờ giao */}
         {activeTab === "ordered" && (
           <div className="space-y-6">
-            {getPurchaseOrdersByStatus("ordered").map((orderGroup) => (
+            {getPurchaseOrdersByStatus("Ordered").map((orderGroup: any) => (
               <div
                 key={orderGroup.id}
                 className="bg-white rounded-lg border border-gray-200 overflow-hidden"
@@ -767,7 +847,7 @@ export default function PurchaseManagement() {
                       </div>
                       <div className="text-sm text-blue-600">
                         Dự kiến giao:{" "}
-                        {new Date(orderGroup.deliveryDate).toLocaleDateString(
+                        {new Date(orderGroup.etaDate).toLocaleDateString(
                           "vi-VN"
                         )}
                       </div>
@@ -784,26 +864,23 @@ export default function PurchaseManagement() {
                 {/* Card Body - Danh sách sản phẩm */}
                 <div className="p-4">
                   <div className="space-y-3">
-                    {orderGroup.items.map((item, index) => (
+                    {orderGroup.items.map((item: any) => (
                       <div
-                        key={index}
+                        key={item.id}
                         className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
                       >
                         <div>
                           <div className="font-medium text-gray-900">
-                            {item.material?.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Cho đơn: {item.customer_name}
+                            {item.materialName}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-medium text-gray-900">
-                            {item.pr?.quantity_needed} {item.material?.unit}
+                            {item.qtyOrdered} {item.unit}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          {/* <div className="text-xs text-gray-500">
                             Mã: {item.pr?.material_id}
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     ))}
@@ -814,12 +891,13 @@ export default function PurchaseManagement() {
                 <div className="bg-gray-50 border-t border-gray-100 p-4">
                   <div className="flex justify-between items-center text-sm text-gray-600">
                     <div>
-                      <span className="font-medium">Người đặt:</span> Quản lý A
+                      <span className="font-medium">Người đặt:</span>{" "}
+                      {orderGroup.createdByName}
                     </div>
                     <div>
                       Đặt ngày:{" "}
                       {new Date(
-                        orderGroup.items[0]?.created_at
+                        orderGroup.createdAt
                       ).toLocaleDateString("vi-VN")}
                     </div>
                   </div>
@@ -827,7 +905,7 @@ export default function PurchaseManagement() {
               </div>
             ))}
 
-            {getPurchaseOrdersByStatus("ordered").length === 0 && (
+            {getPurchaseOrdersByStatus("Ordered").length === 0 && (
               <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                 <BsTruck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-400">Không có đơn hàng đang chờ giao</p>
@@ -839,91 +917,91 @@ export default function PurchaseManagement() {
         {/* Tab 3: Đã nhận hàng */}
         {activeTab === "received" && (
           <div className="space-y-6">
-            {getPurchaseOrdersByStatus("delivered").map((orderGroup) => (
-              <div
-                key={orderGroup.id}
-                className="bg-white rounded-lg border border-green-100 overflow-hidden"
-              >
-                {/* Card Header */}
-                <div className="bg-green-50 border-b border-green-100 p-4">
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-                    <div>
-                      <div className="font-semibold text-green-700">
-                        {orderGroup.supplier}
+            {poData
+              .filter((po: any) => po.status === "Delivered")
+              .map((po: any) => (
+                <div
+                  key={po.purchaseId}
+                  className="bg-white rounded-lg border border-green-500 shadow-md overflow-hidden"
+                >
+                  {/* Card Header */}
+                  <div className="bg-green-50 border-b border-green-100 p-4">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+                      <div>
+                        <div className="font-semibold text-green-700">
+                          {po.supplierName}
+                        </div>
+                        <div className="text-sm text-green-600">
+                          Đã giao:{" "}
+                          {new Date(po.etaDate).toLocaleDateString("vi-VN")}
+                        </div>
                       </div>
-                      <div className="text-sm text-green-600">
-                        Đã giao:{" "}
-                        {new Date(orderGroup.deliveryDate).toLocaleDateString(
+                      <div className="flex items-center gap-2">
+                        <BsCheckCircle className="w-5 h-5 text-green-500" />
+                        <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                          Đã nhập kho
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Body - Danh sách sản phẩm */}
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      {po.items.map((item: any) => (
+                        <div
+                          key={item.id}
+                          className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
+                        >
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {item.materialName}
+                            </div>
+                            {/* <div className="text-sm text-gray-500">
+                              Cho đơn: {item.materialName}
+                            </div> */}
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium text-gray-900">
+                              {item.qtyOrdered} {item.unit}
+                            </div>
+                            {/* <div className="text-xs text-gray-500">
+                              Mã: {item.pr?.material_id}
+                            </div> */}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="bg-green-50 border-t border-green-100 p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                      <div>
+                        <span className="font-medium">Người đặt:</span> Quản lý
+                        A
+                      </div>
+                      <div>
+                        <span className="font-medium">Ngày đặt:</span>{" "}
+                        {new Date(po.items[0]?.created_at).toLocaleDateString(
                           "vi-VN"
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <BsCheckCircle className="w-5 h-5 text-green-500" />
-                      <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                        Đã nhập kho
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Body - Danh sách sản phẩm */}
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {orderGroup.items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
-                      >
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {item.material?.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Cho đơn: {item.customer_name}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-gray-900">
-                            {item.pr?.quantity_needed} {item.material?.unit}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Mã: {item.pr?.material_id}
-                          </div>
-                        </div>
+                      <div>
+                        <span className="font-medium">Người nhận:</span> Quản
+                        kho B
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Card Footer */}
-                <div className="bg-green-50 border-t border-green-100 p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div>
-                      <span className="font-medium">Người đặt:</span> Quản lý A
-                    </div>
-                    <div>
-                      <span className="font-medium">Người nhận:</span> Quản kho
-                      B
-                    </div>
-                    <div>
-                      <span className="font-medium">Ngày đặt:</span>{" "}
-                      {new Date(
-                        orderGroup.items[0]?.created_at
-                      ).toLocaleDateString("vi-VN")}
-                    </div>
-                    <div>
-                      <span className="font-medium">Ngày nhận:</span>{" "}
-                      {new Date(orderGroup.deliveryDate).toLocaleDateString(
-                        "vi-VN"
-                      )}
+                      <div>
+                        <span className="font-medium">Ngày nhận:</span>{" "}
+                        {new Date(po.deliveryDate).toLocaleDateString("vi-VN")}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {getPurchaseOrdersByStatus("delivered").length === 0 && (
+            {getPurchaseOrdersByStatus("Delivered").length === 0 && (
               <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                 <BsCheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-400">Chưa có đơn hàng nào đã nhận</p>
@@ -980,8 +1058,8 @@ export default function PurchaseManagement() {
                     </label>
                     <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                       <option value="">Chọn nhà cung cấp</option>
-                      {suppliers.map((supplier) => (
-                        <option key={supplier} value={supplier}>
+                      {suppliersData.map((supplier: any) => (
+                        <option key={supplier.supplierId} value={supplier}>
                           {supplier}
                         </option>
                       ))}

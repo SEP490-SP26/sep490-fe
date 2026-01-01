@@ -1,50 +1,42 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { otpsApi } from "@/api/otps";
 import { requestOrderApi } from "@/api/request";
 import { uploadApi } from "@/api/uploads";
 import AddressMapPicker, { AddressResult } from "@/components/AddressMapPicker";
-import { auth } from "@/utils/firebaseConfig";
 import {
-  CheckCircleOutlined,
-  EnvironmentOutlined,
-  EyeOutlined,
-  InboxOutlined,
-  PlusOutlined,
+    CheckCircleOutlined,
+    EnvironmentOutlined,
+    EyeOutlined,
+    InboxOutlined,
+    MailOutlined,
+    PlusOutlined
 } from "@ant-design/icons";
 import type { UploadFile } from "antd";
 import {
-  AutoComplete,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  message,
-  Modal,
-  Result,
-  Row,
-  Select,
-  Typography,
-  Upload,
+    AutoComplete,
+    Button,
+    Card,
+    Col,
+    DatePicker,
+    Form,
+    Input,
+    InputNumber,
+    message,
+    Modal,
+    Result,
+    Row,
+    Typography,
+    Upload
 } from "antd";
 import dayjs from "dayjs";
 
 import { RangePickerProps } from "antd/es/date-picker";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const { Title, Text } = Typography;
-
-declare global {
-  interface Window {
-    recaptchaVerifier: any;
-    confirmationResult: any;
-  }
-}
 
 const PRODUCT_SUGGESTIONS = [
   "Bao lì xì",
@@ -116,29 +108,7 @@ export default function GuestOrderPage() {
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
 
-  // Setup reCAPTCHA
-  useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
-        {
-          size: "invisible",
-          callback: () => {},
-          "expired-callback": () => {},
-        }
-      );
-    }
-
-    return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
-    };
-  }, []);
-
-  // OTP handlers
+  // OTP handlers for Email
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) value = value.slice(-1);
     const newOtp = [...otp];
@@ -156,24 +126,19 @@ export default function GuestOrderPage() {
   };
 
   const onSendOtp = async () => {
-    const phoneNumber = form.getFieldValue("phone");
-    if (!phoneNumber) {
-      message.error("Vui lòng nhập số điện thoại!");
+    const email = form.getFieldValue("email");
+    if (!email) {
+      message.error("Vui lòng nhập email!");
       return;
     }
 
-    const formatPh = "+84" + phoneNumber.replace(/^0/, "");
     setLoadingOtp(true);
-
     try {
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        formatPh,
-        window.recaptchaVerifier
-      );
-      window.confirmationResult = confirmationResult;
-      setIsOtpSent(true);
-      message.success("Mã OTP đã được gửi!");
+      const response = await otpsApi.sendOtp({ email });
+      if (response?.message === "OTP sent") {
+        setIsOtpSent(true);
+        message.success("Mã OTP đã được gửi đến email của bạn!");
+      }
     } catch (error) {
       console.error(error);
       message.error("Gửi OTP thất bại. Vui lòng thử lại.");
@@ -183,6 +148,7 @@ export default function GuestOrderPage() {
   };
 
   const onVerifyOtp = async () => {
+    const email = form.getFieldValue("email");
     const otpCode = otp.join("");
     if (otpCode.length !== 6) {
       message.error("Vui lòng nhập đủ 6 số OTP!");
@@ -190,10 +156,12 @@ export default function GuestOrderPage() {
     }
     setLoadingOtp(true);
     try {
-      await window.confirmationResult.confirm(otpCode);
-      setIsVerified(true);
-      setIsOtpSent(false);
-      message.success("Xác thực thành công!");
+      const response = await otpsApi.verifyOtp({ email, otp: otpCode });
+      if (response?.message === "OTP verified") {
+        setIsVerified(true);
+        setIsOtpSent(false);
+        message.success("Xác thực email thành công!");
+      }
     } catch (err) {
       console.error(err);
       message.error("Mã OTP không đúng!");
@@ -363,23 +331,36 @@ export default function GuestOrderPage() {
                     <Input placeholder="Nguyễn Văn A" />
                   </Form.Item>
 
-                  {/* SĐT + OTP cùng hàng */}
+                  {/* SĐT - simple field without OTP */}
+                  <Form.Item
+                    name="phone"
+                    label={<span className={labelStyle}>Số điện thoại</span>}
+                    rules={[
+                      { required: true, message: "Nhập SĐT" },
+                      { pattern: /^0\d{9}$/, message: "SĐT không hợp lệ" },
+                    ]}
+                  >
+                    <Input placeholder="0912345678" />
+                  </Form.Item>
+
+                  {/* Email + OTP verification */}
                   <div className="mb-3">
                     <div className={`${labelStyle} mb-1`}>
-                      Số điện thoại <span className="text-red-500">*</span>
+                      Email <span className="text-red-500">*</span>
                     </div>
                     <div className="flex gap-2 items-start">
                       <Form.Item
-                        name="phone"
+                        name="email"
                         className="flex-1 mb-0"
                         rules={[
-                          { required: true, message: "Nhập SĐT" },
-                          { pattern: /^0\d{9}$/, message: "SĐT không hợp lệ" },
+                          { required: true, message: "Nhập email" },
+                          { type: "email", message: "Email không hợp lệ" },
                         ]}
                       >
                         <Input
-                          placeholder="0912345678"
+                          placeholder="email@example.com"
                           disabled={isOtpSent || isVerified}
+                          prefix={<MailOutlined />}
                           suffix={
                             isVerified ? (
                               <CheckCircleOutlined className="text-green-500" />
@@ -450,17 +431,6 @@ export default function GuestOrderPage() {
                     </div>
                   </div>
 
-                  <Form.Item
-                    name="email"
-                    label={<span className={labelStyle}>Email</span>}
-                    rules={[{ type: "email", message: "Email không hợp lệ" }]}
-                  >
-                    <Input
-                      placeholder="email@example.com"
-                      disabled={!isVerified}
-                    />
-                  </Form.Item>
-
                   {/* Shipping Address - Map Picker */}
                  <div className={`pt-4 border-t ${!isVerified ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className={`${labelStyle} mb-3`}>Địa chỉ giao hàng <span className='text-red-500'>*</span></div>
@@ -473,7 +443,7 @@ export default function GuestOrderPage() {
                         setSelectedAddress(address)
                         form.setFieldValue('shippingAddress', address.formattedAddress)
                       }}
-                      height={250}
+                      showMap={false}
                       placeholder='Tìm kiếm địa chỉ tại Việt Nam...'
                     />
                     <Form.Item name='shippingAddress' hidden>

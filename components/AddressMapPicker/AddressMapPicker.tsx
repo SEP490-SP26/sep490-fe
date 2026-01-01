@@ -30,6 +30,7 @@ interface AddressMapPickerProps {
   height?: number | string
   defaultCenter?: [number, number]
   placeholder?: string
+  showMap?: boolean
 }
 
 // Component to handle map clicks
@@ -61,6 +62,7 @@ export default function AddressMapPicker({
   height = 300,
   defaultCenter = [21.028511, 105.804817], // Hanoi
   placeholder = 'Tìm kiếm địa chỉ...',
+  showMap = true,
 }: AddressMapPickerProps) {
   const [position, setPosition] = useState<[number, number] | null>(
     value ? [value.lat, value.lng] : null
@@ -200,26 +202,28 @@ export default function AddressMapPicker({
         )}
       </div>
 
-      {/* Map Container */}
-      <div style={{ height, width: '100%' }} className='rounded-lg overflow-hidden border border-gray-300'>
-        <MapContainer
-          center={position || defaultCenter}
-          zoom={15}
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-          />
-          <MapClickHandler onLocationSelect={handleLocationSelect} />
-          {position && (
-            <>
-              <Marker position={position} />
-              <MapRecenter lat={position[0]} lng={position[1]} />
-            </>
-          )}
-        </MapContainer>
-      </div>
+      {/* Map Container - conditionally rendered */}
+      {showMap && (
+        <div style={{ height, width: '100%' }} className='rounded-lg overflow-hidden border border-gray-300'>
+          <MapContainer
+            center={position || defaultCenter}
+            zoom={15}
+            style={{ height: '100%', width: '100%' }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            />
+            <MapClickHandler onLocationSelect={handleLocationSelect} />
+            {position && (
+              <>
+                <Marker position={position} />
+                <MapRecenter lat={position[0]} lng={position[1]} />
+              </>
+            )}
+          </MapContainer>
+        </div>
+      )}
 
       {/* Selected Address Display */}
       {address && (
@@ -230,7 +234,7 @@ export default function AddressMapPicker({
       )}
 
       {/* Click hint */}
-      {!position && (
+      {showMap && !position && (
         <div className='mt-2 text-xs text-gray-400 text-center'>
           💡 Click vào bản đồ để chọn vị trí hoặc tìm kiếm địa chỉ ở trên
         </div>

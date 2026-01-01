@@ -3,6 +3,8 @@
 import { requestOrderApi } from '@/api/request';
 import { OrderRequest } from '@/schemaValidations/common.schema';
 import {
+  CaretDownOutlined,
+  CaretUpOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   EditOutlined,
@@ -18,34 +20,32 @@ import {
 import { Button, Card, Empty, Input, message, Popconfirm, Space, Spin, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const { Title } = Typography;
+
+// Sort types
+type SortField = 'order_request_id' | 'customer_name' | 'product_name' | 'quantity' | 'delivery_date' | null;
+type SortOrder = 'asc' | 'desc';
 
 export default function ConsultantOrdersPage() {
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
-  const [orders, setOrders] = useState<OrderRequest[]>([]);
-  const [acceptedOrders, setAcceptedOrders] = useState<OrderRequest[]>([]);
+  const [allOrders, setAllOrders] = useState<OrderRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingAccepted, setLoadingAccepted] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [currentPageAccepted, setCurrentPageAccepted] = useState(1);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [totalAccepted, setTotalAccepted] = useState(0);
-  const pageSize = 5;
+  
+  // Sorting state - mặc định theo Ngày Giao gần nhất
+  const [sortField, setSortField] = useState<SortField>('delivery_date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // Fetch pending orders from API with pagination
-  const fetchOrders = async (page: number = currentPage) => {
+  // Fetch ALL orders with single API call
+  const fetchAllOrders = async () => {
     setLoading(true);
     try {
-      const response = await requestOrderApi.getList(page, pageSize);
+      // Get all orders with large pageSize
+      const response = await requestOrderApi.getList(1, 500);
       if (response?.data && Array.isArray(response.data)) {
-        setOrders(response.data);
-        // If API returns total count, use it
-        if (response.data.length > 0) {
-          setTotalOrders(response.data.length >= pageSize ? (page * pageSize) + pageSize : response.data.length);
-        }
+        setAllOrders(response.data);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -55,51 +55,116 @@ export default function ConsultantOrdersPage() {
     }
   };
 
-  // Fetch accepted orders from API (using larger page size for simplicity)
-  const fetchAcceptedOrders = async () => {
-    setLoadingAccepted(true);
-    try {
-      const response = await requestOrderApi.getListByStatus(1, 30, 'Accepted');
-      if (response?.data && Array.isArray(response.data)) {
-        // Only keep orders with Accepted status
-        const acceptedOnly = response.data.filter(
-          (o: OrderRequest) => o.process_status?.toLowerCase() === 'accepted'
-        );
-        setAcceptedOrders(acceptedOnly);
-        setTotalAccepted(acceptedOnly.length);
+  useEffect(() => {
+    fetchAllOrders();
+  }, []);
+
+  // Sorting function
+  const sortOrders = (orders: OrderRequest[]) => {
+    if (!sortField) return orders;
+    
+    return [...orders].sort((a, b) => {
+      let aVal: any = a[sortField as keyof OrderRequest];
+      let bVal: any = b[sortField as keyof OrderRequest];
+      
+      // Handle null/undefined
+      if (aVal == null) aVal = '';
+      if (bVal == null) bVal = '';
+      
+      // Number comparison
+      if (sortField === 'order_request_id' || sortField === 'quantity') {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
       }
-    } catch (error) {
-      console.error('Error fetching accepted orders:', error);
-    } finally {
-      setLoadingAccepted(false);
+      
+      // Date comparison
+      if (sortField === 'delivery_date') {
+        aVal = new Date(aVal).getTime() || 0;
+        bVal = new Date(bVal).getTime() || 0;
+      }
+      
+      // String comparison
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+      
+      if (sortOrder === 'asc') {
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      }
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    });
+  };
+
+  // Handle column header click for sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle order if same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, start with asc
+      setSortField(field);
+      setSortOrder('asc');
     }
   };
 
-  useEffect(() => {
-    fetchOrders(currentPage);
-  }, [currentPage]);
+  // Sortable column header component
+  const SortableHeader = ({ field, title }: { field: SortField; title: string }) => (
+    <div 
+      className="flex items-center gap-1 cursor-pointer select-none hover:text-blue-600"
+      onClick={() => handleSort(field)}
+    >
+      <span>{title}</span>
+      <span className="flex flex-col text-xs leading-none">
+        <CaretUpOutlined className={sortField === field && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'} />
+        <CaretDownOutlined className={sortField === field && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'} style={{ marginTop: -4 }} />
+      </span>
+    </div>
+  );
 
-  useEffect(() => {
-    fetchAcceptedOrders();
-  }, []);
+  // Filter by search text - tìm theo nhiều fields
+  const filterBySearch = (orderList: OrderRequest[]) => {
+    const search = searchText.toLowerCase().trim();
+    if (!search) return orderList;
+    
+    return orderList.filter(order => {
+      // Tìm theo tên khách hàng
+      if (order.customer_name?.toLowerCase().includes(search)) return true;
+      // Tìm theo tên sản phẩm
+      if (order.product_name?.toLowerCase().includes(search)) return true;
+      // Tìm theo mã đơn hàng
+      if (order.order_request_id?.toString().includes(search)) return true;
+      // Tìm theo số điện thoại
+      if (order.customer_phone?.includes(search)) return true;
+      // Tìm theo email
+      if (order.customer_email?.toLowerCase().includes(search)) return true;
+      // Tìm theo ngày giao (DD/MM/YYYY)
+      if (order.delivery_date) {
+        const formattedDate = dayjs(order.delivery_date).format('DD/MM/YYYY');
+        if (formattedDate.includes(search)) return true;
+      }
+      // Tìm theo số lượng
+      if (order.quantity?.toString().includes(search)) return true;
+      
+      return false;
+    });
+  };
 
-  // Filter orders by search text
-  const filterBySearch = (orderList: OrderRequest[]) => 
-    orderList.filter(order => 
-      order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
-      order.product_name?.toLowerCase().includes(searchText.toLowerCase()) ||
-      order.order_request_id?.toString().includes(searchText)
-    ).sort((a, b) => new Date(b.order_request_date).getTime() - new Date(a.order_request_date).getTime());
-
-  // Orders by status - "Pending" from API goes to "Đơn mới"
-  const pendingOrders = filterBySearch(orders.filter(o => 
-    o.process_status?.toLowerCase() === 'pending'
-  ));
-  const waitingConfirmOrders = filterBySearch(orders.filter(o => 
-    o.process_status?.toLowerCase() === 'waiting_customer_confirm'
-  ));
-  // Accepted orders - filtere from separate API call
-  const filteredAcceptedOrders = filterBySearch(acceptedOrders);
+  // Memoized filtered & sorted orders by status
+  const pendingOrders = useMemo(() => 
+    sortOrders(filterBySearch(allOrders.filter(o => o.process_status?.toLowerCase() === 'pending'))),
+    [allOrders, searchText, sortField, sortOrder]
+  );
+  
+  const waitingConfirmOrders = useMemo(() => 
+    sortOrders(filterBySearch(allOrders.filter(o => o.process_status?.toLowerCase() === 'waiting'))),
+    [allOrders, searchText, sortField, sortOrder]
+  );
+  
+  const acceptedOrders = useMemo(() => 
+    sortOrders(filterBySearch(allOrders.filter(o => o.process_status?.toLowerCase() === 'accepted'))),
+    [allOrders, searchText, sortField, sortOrder]
+  );
 
   // Status tag renderer
   const getStatusTag = (status: string) => {
@@ -107,10 +172,10 @@ export default function ConsultantOrdersPage() {
     switch (statusLower) {
       case 'pending':
         return <Tag icon={<ClockCircleOutlined />} color="blue">Mới - Chờ Báo Giá</Tag>;
-      case 'waiting_customer_confirm':
+      case 'waiting':
         return <Tag icon={<MailOutlined />} color="orange">Chờ KH Xác Nhận</Tag>;
       case 'accepted':
-        return <Tag icon={<FileTextOutlined />} color="purple">Chờ Tạo Đơn</Tag>;
+        return <Tag icon={<CheckCircleOutlined />} color="green">Đã xác nhận</Tag>;
       case 'pending_order_creation':
         return <Tag icon={<FileTextOutlined />} color="purple">Chờ Tạo Đơn</Tag>;
       case 'consultant_verified':
@@ -134,7 +199,7 @@ export default function ConsultantOrdersPage() {
             </Button>
           </Link>
         );
-      case 'waiting_customer_confirm':
+      case 'waiting':
         return (
           <Space size="small">
             <Tooltip title="Đang chờ khách hàng xác nhận qua email">
@@ -179,14 +244,14 @@ export default function ConsultantOrdersPage() {
 
   const columns = [
     {
-      title: 'Mã Đơn',
+      title: <SortableHeader field="order_request_id" title="Mã Đơn" />,
       dataIndex: 'order_request_id',
       key: 'order_request_id',
       width: 100,
       render: (id: number) => <span className="font-mono text-gray-500 text-xs">#{id}</span>,
     },
     {
-      title: 'Khách Hàng',
+      title: <SortableHeader field="customer_name" title="Khách Hàng" />,
       dataIndex: 'customer_name',
       key: 'customer_name',
       render: (text: string, record: OrderRequest) => (
@@ -198,20 +263,20 @@ export default function ConsultantOrdersPage() {
       )
     },
     {
-      title: 'Sản Phẩm Yêu Cầu',
+      title: <SortableHeader field="product_name" title="Sản Phẩm Yêu Cầu" />,
       dataIndex: 'product_name',
       key: 'product_name',
       render: (text: string) => <span className="font-medium">{text || 'Sản phẩm tùy chỉnh'}</span>
     },
     {
-      title: 'Số Lượng',
+      title: <SortableHeader field="quantity" title="Số Lượng" />,
       dataIndex: 'quantity',
       key: 'quantity',
       align: 'right' as const,
-      render: (val: number) => <b className="text-blue-600">{val.toLocaleString()}</b>,
+      render: (val: number) => <b className="text-blue-600">{val?.toLocaleString()}</b>,
     },
     {
-      title: 'Ngày Giao (Khách hẹn)',
+      title: <SortableHeader field="delivery_date" title="Ngày Giao" />,
       dataIndex: 'delivery_date',
       key: 'delivery_date',
       align: 'right' as const,
@@ -249,23 +314,15 @@ export default function ConsultantOrdersPage() {
         </span>
       ),
       children: (
-        <Spin spinning={loading} indicator={<LoadingOutlined />}>
-          <Table 
-            columns={columns} 
-            dataSource={pendingOrders} 
-            rowKey="order_request_id"
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: totalOrders,
-              showSizeChanger: false,
-              showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} đơn`,
-              onChange: (page) => setCurrentPage(page),
-            }}
-            locale={{ emptyText: <Empty description="Không có đơn hàng mới" /> }}
-            bordered
-          />
-        </Spin>
+        <Table 
+          columns={columns} 
+          dataSource={pendingOrders} 
+          rowKey="order_request_id"
+          pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} đơn` }}
+          locale={{ emptyText: <Empty description="Không có đơn hàng mới" /> }}
+          bordered
+          size="middle"
+        />
       ),
     },
     {
@@ -277,40 +334,35 @@ export default function ConsultantOrdersPage() {
         </span>
       ),
       children: (
-        <Spin spinning={loading} indicator={<LoadingOutlined />}>
-          <Table 
-            columns={columns} 
-            dataSource={waitingConfirmOrders} 
-            rowKey="order_request_id"
-            pagination={{ pageSize: 10 }}
-            locale={{ emptyText: <Empty description="Không có đơn chờ xác nhận" /> }}
-            bordered
-          />
-        </Spin>
+        <Table 
+          columns={columns} 
+          dataSource={waitingConfirmOrders} 
+          rowKey="order_request_id"
+          pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} đơn` }}
+          locale={{ emptyText: <Empty description="Không có đơn chờ xác nhận" /> }}
+          bordered
+          size="middle"
+        />
       ),
     },
     {
       key: 'creation',
       label: (
         <span>
-          Chờ tạo đơn
-          {filteredAcceptedOrders.length > 0 && <Tag color="purple" className="ml-2">{filteredAcceptedOrders.length}</Tag>}
+          Đã xác nhận
+          {acceptedOrders.length > 0 && <Tag color="green" className="ml-2">{acceptedOrders.length}</Tag>}
         </span>
       ),
       children: (
-        <Spin spinning={loadingAccepted} indicator={<LoadingOutlined />}>
-          <Table 
-            columns={columns} 
-            dataSource={filteredAcceptedOrders} 
-            rowKey="order_request_id"
-            pagination={{ 
-              pageSize: 10,
-              showTotal: (total) => `Tổng ${total} đơn chờ tạo`,
-            }}
-            locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
-            bordered
-          />
-        </Spin>
+        <Table 
+          columns={columns.filter(col => col.key !== 'action')} 
+          dataSource={acceptedOrders} 
+          rowKey="order_request_id"
+          pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} đơn` }}
+          locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
+          bordered
+          size="middle"
+        />
       ),
     },
   ];
@@ -324,7 +376,7 @@ export default function ConsultantOrdersPage() {
         </div>
         <div className="w-1/3">
           <Input 
-            placeholder="Tìm tên khách, sản phẩm..." 
+            placeholder="Tìm tên khách, sản phẩm, mã đơn..." 
             prefix={<SearchOutlined />} 
             onChange={(e) => setSearchText(e.target.value)}
             size="large"
@@ -332,7 +384,7 @@ export default function ConsultantOrdersPage() {
               <Button 
                 type="text" 
                 icon={<ReloadOutlined spin={loading} />} 
-                onClick={() => fetchOrders(currentPage)}
+                onClick={() => fetchAllOrders()}
                 title="Tải lại"
               />
             }
@@ -349,13 +401,30 @@ export default function ConsultantOrdersPage() {
       </div>
        
       <Card className="shadow-sm border-none">
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
-          items={tabItems}
-          size="large"
-        />
+        <Spin spinning={loading} indicator={<LoadingOutlined />}>
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            items={tabItems}
+            size="large"
+          />
+        </Spin>
       </Card>
+      
+      {/* Sort info */}
+      {sortField && (
+        <div className="mt-3 text-sm text-gray-500">
+          Đang sắp xếp theo: <b>{
+            sortField === 'order_request_id' ? 'Mã đơn' :
+            sortField === 'delivery_date' ? 'Ngày giao' :
+            sortField === 'customer_name' ? 'Khách hàng' :
+            sortField === 'product_name' ? 'Sản phẩm' :
+            sortField === 'quantity' ? 'Số lượng' :
+            sortField
+          }</b> ({sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'})
+          <Button type="link" size="small" onClick={() => setSortField(null)}>Khôi phục</Button>
+        </div>
+      )}
     </div>
   );
 }

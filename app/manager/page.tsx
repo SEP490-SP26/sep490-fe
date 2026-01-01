@@ -41,7 +41,7 @@ export default function Dashboard() {
     })
     .map((schedule) => ({
       ...schedule,
-      order: orders.find((o) => o.id === schedule.order_id),
+      order: orders.find((o) => o.order_id === schedule.order_id),
     }));
 
   const getStatusColor = (status: string) => {
@@ -118,7 +118,7 @@ export default function Dashboard() {
             {recentOrders.length > 0 ? (
               recentOrders.map((order) => (
                 <div
-                  key={order.id}
+                  key={order.order_id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div className="flex-1">

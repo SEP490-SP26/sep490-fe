@@ -60,28 +60,43 @@ export interface UploadResponse {
   url: string;
 }
 
+// OTP Interfaces
+export interface SendOtpRequest {
+  email: string;
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface OtpResponse {
+  message: string;
+}
+
 export interface EstimatePaperRequest {
   paper_code: string;
   quantity: number;
   length_mm: number;
   width_mm: number;
   height_mm: number;
-  allowance_mm?: number;
+  glue_tab_mm?: number;
   bleed_mm?: number;
+  is_one_side_box?: boolean;
   product_type?: string;
+  form_product?: string;
   number_of_plates?: number;
   production_processes?: string;
   coating_type?: string;
+  wave_type?: string;
 }
 
 export interface EstimatePaperResponse {
   paper_code: string;
   sheet_width_mm: number;
   sheet_height_mm: number;
-  sheet_length_mm: number;
   print_width_mm: number;
   print_height_mm: number;
-  print_length_mm: number;
   n_up: number;
   quantity: number;
   sheets_base: number;
@@ -94,6 +109,7 @@ export interface EstimatePaperResponse {
   total_waste: number;
   sheets_with_waste: number;
   waste_percent: number;
+  warning_message?: string;
 }
 
 export interface EstimateCostRequest {
@@ -101,30 +117,99 @@ export interface EstimateCostRequest {
   paper: EstimatePaperResponse;
   desired_delivery_date: string;
   product_type?: string;
+  form_product?: string;
   production_processes?: string;
   coating_type?: string;
   has_lamination?: boolean;
+  discount_percent?: number;
+  wave_type?: string; // Loại sóng khi có BOI
+}
+
+export interface MaterialCostDetail {
+  material_name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_cost: number;
+  note: string;
 }
 
 export interface EstimateCostResponse {
+  // Paper costs
   paper_cost: number;
+  paper_sheets_used: number;
+  paper_unit_price: number;
+
+  // Ink costs
   ink_cost: number;
+  ink_weight_kg: number;
+  ink_rate_per_m2: number;
+  ink_unit_price: number;
+
+  // Coating glue costs
   coating_glue_cost: number;
+  coating_glue_weight_kg: number;
+  coating_glue_rate_per_m2: number;
+  coating_glue_unit_price: number;
+  coating_type: string;
+
+  // Mounting glue costs
   mounting_glue_cost: number;
+  mounting_glue_weight_kg: number;
+  mounting_glue_rate_per_m2: number;
+  mounting_glue_unit_price: number;
+
+  // Lamination costs
   lamination_cost: number;
+  lamination_weight_kg: number;
+  lamination_rate_per_m2: number;
+  lamination_unit_price: number;
+
+  // Summary costs
   material_cost: number;
+  overhead_percent: number;
   overhead_cost: number;
   base_cost: number;
+
+  // Rush fee
   is_rush: boolean;
   rush_percent: number;
   rush_amount: number;
-  system_total_cost: number;
+  days_early: number;
+
+  // Discount
+  subtotal: number;
+  discount_percent: number;
+  discount_amount: number;
+
+  // Final
+  final_total_cost: number;
   estimated_finish_date: string;
+  total_area_m2: number;
+
+  // Material details
+  material_cost_details: MaterialCostDetail[];
 }
 
 export interface AdjustFinalCostRequest {
   manual_adjust_cost: number;
   cost_note?: string;
+}
+
+// Process Cost Breakdown
+export interface ProcessCostDetail {
+  process: string;
+  unit_price: number;
+  quantity: number;
+  unit: string;
+  total_cost: number;
+  note: string;
+}
+
+export interface ProcessCostBreakdownResponse {
+  order_request_id: number;
+  total_cost: number;
+  details: ProcessCostDetail[];
 }
 
 export interface NearestDeliveryResponse {
@@ -160,6 +245,7 @@ export interface Material {
   stock_qty: number;
   min_stock: number;
   cost_price: number;
+  description?: string;
   sheet_width_mm?: number;
   sheet_height_mm?: number;
   sheet_length_mm?: number;
@@ -190,4 +276,50 @@ export interface FreeMachine {
   totalMachines: number;
   busyMachines: number;
   freeMachines: number;
+}
+
+// Public Orders API types
+export interface OrderHistoryItem {
+  order_id: number;
+  code: string;
+  order_date: string;
+  delivery_date: string;
+  status: string;
+  payment_status: string;
+  quote_id: number;
+}
+
+export interface OrderHistoryResponse {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  data: OrderHistoryItem[];
+}
+
+// Order Detail Response for GET /api/Orders/{id}
+export interface OrderDetailResponse {
+  order_id: number;
+  code: string;
+  status: string;
+  payment_status: string;
+  order_date: string;
+  delivery_date: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  detail_address: string;
+  product_name: string;
+  quantity: number;
+  approver_name: string;
+  note: string;
+  final_total_cost: number;
+  deposit_amount: number;
+  rush_amount: number;
+  file_url: string;
+}
+
+// Deposit Response for GET /api/Estimates/deposit/by-request/{requestId}
+export interface DepositResponse {
+  order_request_id: number;
+  deposit_amount: number;
 }
