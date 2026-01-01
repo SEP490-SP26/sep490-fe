@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { otpsApi } from "@/api/otps";
 import { requestOrderApi } from "@/api/request";
 import { uploadApi } from "@/api/uploads";
 import AddressMapPicker, { AddressResult } from "@/components/AddressMapPicker";
@@ -34,7 +35,6 @@ import dayjs from "dayjs";
 import { RangePickerProps } from "antd/es/date-picker";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { otpsApi } from "@/api/auth";
 
 const { Title, Text } = Typography;
 
