@@ -15,3 +15,7 @@ export const publicOrdersApi = {
             pageSize,
         }),
 };
+
+export const config = {
+  runtime: 'edge',
+}

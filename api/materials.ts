@@ -24,3 +24,7 @@ export const materialsApi = {
     ),
 
 };
+
+export const config = {
+  runtime: 'edge',
+}
