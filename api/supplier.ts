@@ -13,3 +13,6 @@ export const supplierApi = {
   getDetail: (id: string) =>
     http.get<CommonResType>(`/api/Suppliers/detail/${id}`),
 };
+export const config = {
+  runtime: 'edge',
+}
