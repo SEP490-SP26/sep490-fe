@@ -1,6 +1,6 @@
 'use client'
 
-import { publicOrdersApi } from '@/api/publicorders'
+import { publicOrdersApi } from '@/apiRequests/publicorders'
 import { OrderHistoryItem } from '@/schemaValidations/common.schema'
 import {
   CheckCircleOutlined,

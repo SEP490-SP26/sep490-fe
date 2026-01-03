@@ -8,7 +8,3 @@ export const machineApi = {
     getCapacity: () =>
         http.get<MachineCapacity>("/api/Machine/capacity"),
 };
-
-export const config = {
-  runtime: 'edge',
-}

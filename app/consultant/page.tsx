@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { estimatesApi } from "@/api/estimates";
-import { machineApi } from "@/api/machine";
-import { materialsApi } from "@/api/materials";
-import { productionsApi } from "@/api/productions";
-import { productTypesApi } from "@/api/producttypes";
-import { requestOrderApi } from "@/api/request";
+import { estimatesApi } from "@/apiRequests/estimates";
+import { machineApi } from "@/apiRequests/machine";
+import { materialsApi } from "@/apiRequests/materials";
+import { productionsApi } from "@/apiRequests/productions";
+import { productTypesApi } from "@/apiRequests/producttypes";
+import { requestOrderApi } from "@/apiRequests/request";
 import { Order, useProduction } from "@/context/ProductionContext";
 import {
   CreateRequestBody,

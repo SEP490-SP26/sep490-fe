@@ -1,7 +1,7 @@
 "use client";
-import { materialsApi } from "@/api/materials";
-import { purchasesApi } from "@/api/purchase";
-import { supplierApi } from "@/api/supplier";
+import { materialsApi } from "@/apiRequests/materials";
+import { purchasesApi } from "@/apiRequests/purchase";
+import { supplierApi } from "@/apiRequests/supplier";
 import Loading from "@/app/(overview)/loading";
 import { PurchaseOrder, useProduction } from "@/context/ProductionContext";
 import {

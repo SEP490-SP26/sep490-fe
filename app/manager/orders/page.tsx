@@ -1,5 +1,5 @@
 "use client";
-import { orderApi } from "@/api/order";
+import { orderApi } from "@/apiRequests/order";
 import { Order } from "@/context/ProductionContext";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";

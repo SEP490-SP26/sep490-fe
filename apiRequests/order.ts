@@ -22,7 +22,3 @@ export const orderApi = {
   deleteRequest: (id: string) =>
     http.delete<CommonResType>(`/api/Orders/${id}`),
 };
-
-export const config = {
-  runtime: 'edge',
-}

@@ -1,5 +1,5 @@
 "use client";
-import { productionsApi } from "@/api/productions";
+import { productionsApi } from "@/apiRequests/productions";
 import { useProduction } from "@/context/ProductionContext";
 import { showInfoToast } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
