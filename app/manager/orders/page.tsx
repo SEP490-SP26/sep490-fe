@@ -1,5 +1,5 @@
 "use client";
-import { orderApi } from "@/api/order";
+import { orderApi } from "@/apiRequests/order";
 import { Order } from "@/context/ProductionContext";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -68,7 +68,7 @@ export default function OrderListPage() {
       order_id: order.order_id || order._id || order.order_id,
       code: order.code || order.order_number,
       customer_name:
-        order.customer_name || order.customer?.name || "Không xác định",
+        order.customer_name || order.customer?.name || "Khách lẻ ",
       product_name: order.product_name || order.product?.name,
       product_id: order.product_id || order.product?.order_id,
       quantity: order.quantity || order.order_quantity || 0,
@@ -201,7 +201,7 @@ export default function OrderListPage() {
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending: "Chờ xử lý",
-      scheduled: "Đã lên lịch",
+      Scheduled: "Đã lên lịch",
       in_production: "Đang sản xuất",
       completed: "Hoàn thành",
       cancelled: "Đã hủy",

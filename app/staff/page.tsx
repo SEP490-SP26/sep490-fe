@@ -1,14 +1,14 @@
 "use client";
+import { productionsApi } from "@/apiRequests/productions";
 import { useProduction } from "@/context/ProductionContext";
 import { showInfoToast } from "@/utils/toastService";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { BiPackage } from "react-icons/bi";
 import {
   BsBook,
   BsCalendar,
-  BsCheckCircle,
-  BsClock,
   BsEye,
   BsLayers,
   BsPlay,
@@ -78,6 +78,27 @@ export default function ProductionScheduling() {
     },
   ];
 
+    const {
+    data: scheduledOrder,
+    isPending,
+    error,
+    refetch: refetchSupplierData,
+  } = useQuery({
+    queryKey: ["scheduledOrders"],
+    queryFn: async () => {
+      try {
+        const response = await productionsApi.getAllProduction();
+        console.log("Response po data:", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching purchase orders:", error);
+        return [];
+      }
+    },
+    initialData: [],
+  });
+  console.log("poData", scheduledOrder);
+
   // Đơn hàng sẵn sàng để lên lịch (có thể sản xuất và chưa được lên lịch)
   const readyOrders = orders.filter(
     (o) => o.can_fulfill === true && o.status === "pending"
@@ -93,7 +114,7 @@ export default function ProductionScheduling() {
     )
     .map((order) => ({
       ...order,
-      schedule: productionSchedules.find((s) => s.order_id === order.id),
+      schedule: productionSchedules.find((s) => s.order_id === order.order_id),
       product: products.find((p) => p.id === order.product_id),
     }));
 
@@ -303,7 +324,89 @@ export default function ProductionScheduling() {
             )}
           </div>
         </div> */}
+        {/* Đã lên lịch */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="mb-4 flex items-center gap-2">
+            <BsCalendar className="w-5 h-5 text-blue-500" />
+            Đã lên lịch
+          </h2>
 
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            {scheduledOrders
+              .filter((o) => o.schedule?.status === "scheduled")
+              .map((order) => (
+                <div
+                  key={order.order_id}
+                  className="border border-blue-200 bg-blue-50 rounded-lg p-4"
+                >
+                  <div className="mb-3">
+                    <div className="text-gray-900 font-medium">
+                      {order.customer_name}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      {order.product?.type} • SL: {order.quantity}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      Giao:{" "}
+                      {new Date(order.delivery_date).toLocaleDateString(
+                        "vi-VN"
+                      )}
+                    </div>
+                    {order.schedule && (
+                      <div className="text-gray-500 text-sm">
+                        Kế hoạch:{" "}
+                        {new Date(order.schedule.start_date).toLocaleDateString(
+                          "vi-VN"
+                        )}{" "}
+                        →{" "}
+                        {new Date(order.schedule.end_date).toLocaleDateString(
+                          "vi-VN"
+                        )}
+                      </div>
+                    )}
+                    {/* Current stage */}
+                    <div className="mt-3">
+                      <div className="text-xs font-medium text-gray-700 mb-2">
+                        Tất cả công đoạn:
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {productionStages.map((stage) => {
+                          return (
+                            <div
+                              key={stage.id}
+                              className={`flex items-center gap-1 px-2 py-1 rounded border text-xs 
+                              bg-gray-100 text-gray-500
+                              `}
+                            >
+                              {/* <StageIcon className="w-3 h-3" /> */}
+                              {stage.name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {order.schedule && (
+                    <button
+                      onClick={() => handleStart(order.schedule!.id)}
+                      className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm flex items-center justify-center gap-2"
+                    >
+                      <BsPlay className="w-4 h-4" />
+                      Bắt đầu sản xuất
+                    </button>
+                  )}
+                </div>
+              ))}
+
+            {scheduledOrders.filter((o) => o.schedule?.status === "scheduled")
+              .length === 0 && (
+              <div className="text-gray-400 text-center py-8 text-sm">
+                Chưa có lịch sản xuất
+              </div>
+            )}
+          </div>
+        </div>
         {/* Đang sản xuất */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="mb-4 flex items-center gap-2">
@@ -319,7 +422,7 @@ export default function ProductionScheduling() {
 
                 return (
                   <div
-                    key={order.id}
+                    key={order.order_id}
                     className="border border-yellow-200 bg-yellow-50 rounded-lg p-4"
                   >
                     <div className="mb-3">
@@ -342,7 +445,7 @@ export default function ProductionScheduling() {
                       </div>
 
                       {/* Progress bar */}
-                      <div className="mt-3">
+                      {/* <div className="mt-3">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
                           <span>Tiến độ</span>
                           <span>{Math.round(progress.progress)}%</span>
@@ -353,7 +456,7 @@ export default function ProductionScheduling() {
                             style={{ width: `${progress.progress}%` }}
                           ></div>
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Current stage */}
                       <div className="mt-3">
@@ -412,15 +515,15 @@ export default function ProductionScheduling() {
                         </button>
                       )}
                     </div> */}
-                      <Link
-                        href={`/staff/production/${order.id}`}
-                        className="w-full mt-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex items-center justify-center gap-2"
-                      >
-                        <BsEye className="w-4 h-4" />
-                        Xem chi tiết
-                      </Link>
+                    <Link
+                      href={`/staff/production/${order.order_id}`}
+                      className="w-full mt-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex items-center justify-center gap-2"
+                    >
+                      <BsEye className="w-4 h-4" />
+                      Xem chi tiết
+                    </Link>
 
-                    {expandedOrders.has(order.id) &&
+                    {expandedOrders.has(order.order_id) &&
                       renderProductionDetails(order)}
                   </div>
                 );
@@ -430,69 +533,6 @@ export default function ProductionScheduling() {
               .length === 0 && (
               <div className="text-gray-400 text-center py-8 text-sm">
                 Không có đơn đang sản xuất
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Đã lên lịch */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="mb-4 flex items-center gap-2">
-            <BsCalendar className="w-5 h-5 text-blue-500" />
-            Đã lên lịch
-          </h2>
-
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {scheduledOrders
-              .filter((o) => o.schedule?.status === "scheduled")
-              .map((order) => (
-                <div
-                  key={order.id}
-                  className="border border-blue-200 bg-blue-50 rounded-lg p-4"
-                >
-                  <div className="mb-3">
-                    <div className="text-gray-900 font-medium">
-                      {order.customer_name}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      {order.product?.type} • SL: {order.quantity}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      Giao:{" "}
-                      {new Date(order.delivery_date).toLocaleDateString(
-                        "vi-VN"
-                      )}
-                    </div>
-                    {order.schedule && (
-                      <div className="text-gray-500 text-sm">
-                        Kế hoạch:{" "}
-                        {new Date(order.schedule.start_date).toLocaleDateString(
-                          "vi-VN"
-                        )}{" "}
-                        →{" "}
-                        {new Date(order.schedule.end_date).toLocaleDateString(
-                          "vi-VN"
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {order.schedule && (
-                    <button
-                      onClick={() => handleStart(order.schedule!.id)}
-                      className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm flex items-center justify-center gap-2"
-                    >
-                      <BsPlay className="w-4 h-4" />
-                      Bắt đầu sản xuất
-                    </button>
-                  )}
-                </div>
-              ))}
-
-            {scheduledOrders.filter((o) => o.schedule?.status === "scheduled")
-              .length === 0 && (
-              <div className="text-gray-400 text-center py-8 text-sm">
-                Chưa có lịch sản xuất
               </div>
             )}
           </div>

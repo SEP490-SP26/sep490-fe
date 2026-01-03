@@ -51,7 +51,7 @@ export interface Order {
   can_fulfill?: boolean;
   missing_materials?: {
     material_id: string;
-    material_name:string;
+    material_name: string;
     needed: number;
     available: number;
   }[];
@@ -94,12 +94,16 @@ export interface PurchaseRequest {
 }
 
 export interface PurchaseOrder {
-  id: string;
-  pr_id: string;
-  supplier: string;
-  expected_delivery_date: string;
-  status: "ordered" | "delivered";
-  created_at: string;
+  purchaseId: number;
+  code: string;
+  supplierId: number;
+  supplierName: string;
+  etaDate: string;
+  createdAt: string;
+  createdByName: string;
+  status: string;
+  totalQty: number;
+  items: [];
 }
 
 export interface ProductionStage {
@@ -180,7 +184,7 @@ interface ProductionContextType {
     supplier: string,
     deliveryDate: string
   ) => void;
-  receiveInventory: (poId: string) => void;
+  receiveInventory: (poId: number) => void;
   scheduleProduction: (orderId: string) => void;
   startProduction: (scheduleId: string) => void;
   completeProduction: (scheduleId: string) => void;
@@ -387,7 +391,8 @@ const getInitialOrders = (): Order[] => {
   return [
     // --- ĐƠN HÀNG DEMO: PENDING_CONSULTANT (Đơn mới) ---
     {
-      id: "ORD-DEMO-001",
+      order_id: "ORD-DEMO-001",
+      code: "ORD-DEMO-001",
       product_id: "p4",
       product_name: "Hộp giấy Kraft Vintage",
       quantity: 500,
@@ -410,7 +415,8 @@ const getInitialOrders = (): Order[] => {
       can_fulfill: true,
     },
     {
-      id: "ORD-NEW-002",
+      order_id: "ORD-NEW-002",
+      code: "ORD-NEW-002",
       product_id: "p1",
       product_name: "Brochure Quảng cáo",
       quantity: 1000,
@@ -434,7 +440,8 @@ const getInitialOrders = (): Order[] => {
     },
     // --- ĐƠN HÀNG DEMO: WAITING_CUSTOMER_CONFIRM (Chờ KH xác nhận) ---
     {
-      id: "ORD-WAIT-001",
+      order_id: "ORD-WAIT-001",
+      code: "ORD-WAIT-001",
       product_id: "p2",
       product_name: "Catalogue Sản phẩm 2024",
       quantity: 300,
@@ -458,7 +465,8 @@ const getInitialOrders = (): Order[] => {
       can_fulfill: true,
     },
     {
-      id: "ORD-WAIT-002",
+      order_id: "ORD-WAIT-002",
+      code: "ORD-WAIT-002",
       product_id: "p4",
       product_name: "Hộp Bánh Trung Thu",
       quantity: 2000,
@@ -483,7 +491,8 @@ const getInitialOrders = (): Order[] => {
     },
     // --- ĐƠN HÀNG DEMO: PENDING_ORDER_CREATION (Chờ tạo đơn) ---
     {
-      id: "ORD-CREATE-001",
+      order_id: "ORD-CREATE-001",
+      code: "ORD-CREATE-001",
       product_id: "p3",
       product_name: "Poster Sự kiện A2",
       quantity: 150,
@@ -507,7 +516,8 @@ const getInitialOrders = (): Order[] => {
       can_fulfill: true,
     },
     {
-      id: "ORD-DEMO-002",
+      order_id: "ORD-DEMO-002",
+      code: "ORD-DEMO-002",
       product_id: "p1",
       product_name: "Catalogue Giới Thiệu (A4)",
       quantity: 200,
@@ -528,7 +538,8 @@ const getInitialOrders = (): Order[] => {
       },
     },
     {
-      id: "ORD-DEMO-003",
+      order_id: "ORD-DEMO-003",
+      code: "ORD-DEMO-003",
       product_id: "p5",
       product_name: "Card Visit (5 hộp)",
       quantity: 500,
@@ -550,7 +561,8 @@ const getInitialOrders = (): Order[] => {
       },
     },
     {
-      id: "ord-sample-1",
+      order_id: "ord-sample-1",
+      code: "ord-sample-1",
       product_id: "p1",
       quantity: 10000,
       delivery_date: in7Days.toISOString().split("T")[0],
@@ -561,7 +573,8 @@ const getInitialOrders = (): Order[] => {
       created_at: yesterday.toISOString(),
     },
     {
-      id: "ord-sample-2",
+      order_id: "ord-sample-2",
+      code: "order-2",
       product_id: "p2",
       quantity: 5000,
       product_name: "Brochure 3 gấp Cao Cấp",
@@ -575,7 +588,8 @@ const getInitialOrders = (): Order[] => {
       created_at: yesterday.toISOString(),
     },
     {
-      id: "ord-sample-3",
+      order_id: "ord-sample-3",
+      code: "order-3",
       product_id: "p3",
       quantity: 2000,
       delivery_date: in5Days.toISOString().split("T")[0],
@@ -583,11 +597,12 @@ const getInitialOrders = (): Order[] => {
       status: "pending",
       process_status: "manager_approved",
       can_fulfill: false,
-      missing_materials: [{ material_id: "m2", needed: 400, available: 200 }],
+      // missing_materials: [{ material_id: "m2", needed: 400, available: 200 }],
       created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
     },
     {
-      id: "ord-sample-4",
+      order_id: "ord-sample-4",
+      code: "order-4",
       product_id: "p5",
       quantity: 5000,
       delivery_date: in3Days.toISOString().split("T")[0],
@@ -600,7 +615,8 @@ const getInitialOrders = (): Order[] => {
       ).toISOString(),
     },
     {
-      id: "ord-sample-5",
+      order_id: "ord-sample-5",
+      code: "order-5",
       product_id: "p4",
       quantity: 1500,
       delivery_date: in5Days.toISOString().split("T")[0],
@@ -611,7 +627,8 @@ const getInitialOrders = (): Order[] => {
       created_at: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
     },
     {
-      id: "ord-sample-6",
+      order_id: "ord-sample-6",
+      code: "order-6",
       product_id: "p2",
       quantity: 3000,
       delivery_date: in7Days.toISOString().split("T")[0],
@@ -688,38 +705,28 @@ const getInitialPurchaseOrders = (): PurchaseOrder[] => {
 
   return [
     {
-      id: "po-sample-0",
-      pr_id: "pr-sample-1",
-      supplier: "Công ty TNHH Giấy Sài Gòn",
-      expected_delivery_date: tomorrow.toISOString().split("T")[0],
+      purchaseId: 0,
+      code: "po-1",
+      supplierId: 1,
+      supplierName: "Công ty TNHH Giấy Sài Gòn",
+      etaDate: tomorrow.toISOString().split("T")[0],
       status: "ordered",
-      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      createdByName: "manager1",
+      createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      totalQty: 100,
+      items: [],
     },
     {
-      id: "po-sample-1",
-      pr_id: "pr-sample-2",
-      supplier: "Công ty TNHH Giấy Sài Gòn",
-      expected_delivery_date: tomorrow.toISOString().split("T")[0],
+      purchaseId: 2,
+      code: "po-2",
+      supplierId: 2,
+      supplierName: "Công ty TNHH Giấy Sài Gòn",
+      etaDate: tomorrow.toISOString().split("T")[0],
       status: "ordered",
-      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "po-sample-2",
-      pr_id: "pr-sample-3",
-      supplier: "Công ty CP Mực in Đông Dương",
-      expected_delivery_date: in2Days.toISOString().split("T")[0],
-      status: "ordered",
-      created_at: new Date(now.getTime() - 36 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "po-sample-3",
-      pr_id: "pr-sample-4",
-      supplier: "Nhà máy Giấy Long An",
-      expected_delivery_date: new Date(now.getTime() - 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-      status: "delivered",
-      created_at: new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString(),
+      createdByName: "manager1",
+      createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      totalQty: 100,
+      items: [],
     },
   ];
 };
@@ -993,23 +1000,25 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
   ): string => {
     const newOrder: Order = {
       ...orderData,
-      id: `ord-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      order_id: `ord-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       status: "pending",
       process_status: orderData.process_status || "pending_consultant",
       created_at: new Date().toISOString(),
     };
     setOrders((prev) => [...prev, newOrder]);
-    return newOrder.id;
+    return newOrder.order_id;
   };
 
   const updateOrder = (id: string, updates: Partial<Order>) => {
     setOrders((prev) =>
-      prev.map((order) => (order.id === id ? { ...order, ...updates } : order))
+      prev.map((order) =>
+        order.order_id === id ? { ...order, ...updates } : order
+      )
     );
   };
 
   const checkOrderFulfillment = (orderId: string): boolean => {
-    const order = orders.find((o) => o.id === orderId);
+    const order = orders.find((o) => o.order_id === orderId);
     if (!order) return false;
 
     // Bước 2: Phân rã BOM
@@ -1042,23 +1051,23 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     });
 
     // Cập nhật trạng thái đơn hàng
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              can_fulfill: canFulfill,
-              missing_materials: missingMaterials,
-            }
-          : o
-      )
-    );
+    // setOrders((prev) =>
+    //   prev.map((o) =>
+    //     o.id === orderId
+    //       ? {
+    //           ...o,
+    //           can_fulfill: canFulfill,
+    //           missing_materials: missingMaterials,
+    //         }
+    //       : o
+    //   )
+    // );
 
     return canFulfill;
   };
 
   const createPurchaseRequest = (orderId: string) => {
-    const order = orders.find((o) => o.id === orderId);
+    const order = orders.find((o) => o.order_id === orderId);
     if (
       !order ||
       !order.missing_materials ||
@@ -1087,12 +1096,16 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     if (!pr) return;
 
     const newPO: PurchaseOrder = {
-      id: `po-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      pr_id: prId,
-      supplier,
-      expected_delivery_date: deliveryDate,
+      purchaseId: 0,
+      code: "po-1",
+      supplierId: 1,
+      supplierName: "Công ty TNHH Giấy Sài Gòn",
+      etaDate: deliveryDate,
       status: "ordered",
-      created_at: new Date().toISOString(),
+      createdByName: "manager1",
+      createdAt: deliveryDate,
+      totalQty: 100,
+      items: [],
     };
 
     setPurchaseOrders((prev) => [...prev, newPO]);
@@ -1103,11 +1116,11 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const receiveInventory = (poId: string) => {
-    const po = purchaseOrders.find((p) => p.id === poId);
+  const receiveInventory = (poId: number) => {
+    const po = purchaseOrders.find((p) => p.purchaseId === poId);
     if (!po) return;
 
-    const pr = purchaseRequests.find((p) => p.id === po.pr_id);
+    const pr = purchaseRequests.find((p) => p.id === po.purchaseId.toString());
     if (!pr) return;
 
     // Cập nhật tồn kho
@@ -1122,12 +1135,12 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     // Cập nhật trạng thái PO và PR
     setPurchaseOrders((prev) =>
       prev.map((p) =>
-        p.id === poId ? { ...p, status: "delivered" as const } : p
+        p.purchaseId === poId ? { ...p, status: "delivered" as const } : p
       )
     );
     setPurchaseRequests((prev) =>
       prev.map((p) =>
-        p.id === po.pr_id ? { ...p, status: "received" as const } : p
+        p.id === po.purchaseId.toString() ? { ...p, status: "received" as const } : p
       )
     );
   };
@@ -1178,7 +1191,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
   };
 
   const scheduleProduction = (orderId: string, printerId?: string) => {
-    const order = orders.find((o) => o.id === orderId);
+    const order = orders.find((o) => o.order_id === orderId);
     if (!order || !order.can_fulfill) return;
 
     const product = products.find((p) => p.id === order.product_id);
@@ -1215,7 +1228,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     setProductionSchedules((prev) => [...prev, newSchedule]);
     setOrders((prev) =>
       prev.map((o) =>
-        o.id === orderId ? { ...o, status: "scheduled" as const } : o
+        o.order_id === orderId ? { ...o, status: "scheduled" as const } : o
       )
     );
 
@@ -1244,7 +1257,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     if (schedule) {
       setOrders((prev) =>
         prev.map((o) =>
-          o.id === schedule.order_id
+          o.order_id === schedule.order_id
             ? { ...o, status: "in_production" as const }
             : o
         )
@@ -1256,7 +1269,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
     const schedule = productionSchedules.find((s) => s.id === scheduleId);
     if (!schedule) return;
 
-    const order = orders.find((o) => o.id === schedule.order_id);
+    const order = orders.find((o) => o.order_id === schedule.order_id);
     if (!order) return;
 
     // Đánh dấu tất cả stages là completed
@@ -1296,7 +1309,7 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
 
     setOrders((prev) =>
       prev.map((o) =>
-        o.id === schedule.order_id ? { ...o, status: "completed" as const } : o
+        o.order_id === schedule.order_id ? { ...o, status: "completed" as const } : o
       )
     );
   };

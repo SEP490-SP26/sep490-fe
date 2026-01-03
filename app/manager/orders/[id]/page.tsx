@@ -1,5 +1,5 @@
 "use client";
-import { orderApi } from "@/api/order";
+import { orderApi } from "@/apiRequests/order";
 import { FileTextOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Descriptions } from "antd";

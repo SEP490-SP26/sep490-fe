@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client'
 
 import AddressMapPicker, { AddressResult } from '@/components/AddressMapPicker'
@@ -28,7 +29,7 @@ const { Title, Text } = Typography
 
 export default function CustomerOrderPage() {
   const [form] = Form.useForm()
-  const { addOrder } = useProduction()
+  // const { addOrder } = useProduction()
   const { customer, isLoggedIn, isLoading, getDefaultAddress } = useCustomer()
   const router = useRouter()
   const [isSuccess, setIsSuccess] = useState(false)
@@ -110,25 +111,25 @@ export default function CustomerOrderPage() {
       ? `https://storage.cloud.com/${values.designFile[0].name}`
       : ''
 
-    addOrder({
-      product_id: 'custom',
-      product_name: values.productName,
-      customer_name: values.customerName,
-      customer_phone: values.phone,
-      customer_email: values.email,
-      quantity: values.quantity,
-      delivery_date: values.desiredDate?.format('YYYY-MM-DD') || '',
-      design_file_url: fakeFileUrl,
-      note: `Địa chỉ giao hàng: ${shippingAddress}. ${values.note || ''}`,
-      specs: {
-        width: 0,
-        height: 0,
-        length: 0,
-        paper_id: '',
-        colors: [],
-        processing: [],
-      },
-    })
+    // addOrder({
+    //   product_id: 'custom',
+    //   product_name: values.productName,
+    //   customer_name: values.customerName,
+    //   customer_phone: values.phone,
+    //   customer_email: values.email,
+    //   quantity: values.quantity,
+    //   delivery_date: values.desiredDate?.format('YYYY-MM-DD') || '',
+    //   design_file_url: fakeFileUrl,
+    //   note: `Địa chỉ giao hàng: ${shippingAddress}. ${values.note || ''}`,
+    //   specs: {
+    //     width: 0,
+    //     height: 0,
+    //     length: 0,
+    //     paper_id: '',
+    //     colors: [],
+    //     processing: [],
+    //   },
+    // })
 
     setIsSuccess(true)
   }

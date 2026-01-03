@@ -1,7 +1,7 @@
 "use client";
 
-import { requestOrderApi } from "@/api/request";
-import { uploadApi } from "@/api/uploads";
+import { requestOrderApi } from "@/apiRequests/request";
+import { uploadApi } from "@/apiRequests/uploads";
 import {
   ArrowLeftOutlined,
   CalendarOutlined,
