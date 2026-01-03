@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { otpsApi } from "@/api/otps";
-import { requestOrderApi } from "@/api/request";
-import { uploadApi } from "@/api/uploads";
+import { otpsApi } from "@/apiRequests/otps";
+import { requestOrderApi } from "@/apiRequests/request";
+import { uploadApi } from "@/apiRequests/uploads";
 import AddressMapPicker, { AddressResult } from "@/components/AddressMapPicker";
 import {
     CheckCircleOutlined,

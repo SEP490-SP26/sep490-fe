@@ -1,6 +1,6 @@
 'use client'
 
-import { orderApi } from '@/api/order'
+import { orderApi } from '@/apiRequests/order'
 import { OrderDetailResponse } from '@/schemaValidations/common.schema'
 import {
     ArrowLeftOutlined,

@@ -1,6 +1,6 @@
 'use client';
 
-import { requestOrderApi } from '@/api/request';
+import { requestOrderApi } from '@/apiRequests/request';
 import { OrderRequest } from '@/schemaValidations/common.schema';
 import {
   CaretDownOutlined,
