@@ -17,6 +17,7 @@
     "@types/leaflet": "^1.9.21",
     "antd": "^6.0.0",
     "axios": "^1.13.2",
+    "date-holidays": "^3.26.6",
     "docxtemplater": "^3.67.5",
     "file-saver": "^2.0.5",
     "file-saver-es": "^2.0.5",

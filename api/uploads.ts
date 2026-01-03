@@ -13,4 +13,16 @@ export const uploadApi = {
         const uploadPromises = files.map((file) => uploadApi.uploadFile(file));
         return Promise.all(uploadPromises);
     },
+
+    // POST /api/Uploads/update-design-file/{orderRequestId}
+    // Upload/cập nhật file thiết kế cho order request
+    updateDesignFile: async (orderRequestId: number, file: File): Promise<UploadResponse> => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return http.post<UploadResponse>(
+            `/api/Uploads/update-design-file/${orderRequestId}`,
+            formData
+        );
+    },
 };

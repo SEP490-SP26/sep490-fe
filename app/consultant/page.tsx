@@ -7,6 +7,7 @@ import { materialsApi } from "@/api/materials";
 import { productionsApi } from "@/api/productions";
 import { productTypesApi } from "@/api/producttypes";
 import { requestOrderApi } from "@/api/request";
+import { uploadApi } from "@/api/uploads";
 import { Order, useProduction } from "@/context/ProductionContext";
 import {
   CreateRequestBody,
@@ -22,8 +23,10 @@ import {
   CalculatorOutlined,
   CodeSandboxOutlined,
   DashboardOutlined,
+  DeleteOutlined,
   DownloadOutlined,
   FileTextOutlined,
+  PlusOutlined,
   UploadOutlined,
   UserOutlined,
   WarningOutlined
@@ -39,7 +42,6 @@ import {
   Col,
   DatePicker,
   Divider,
-  Empty,
   Form,
   Input,
   InputNumber,
@@ -57,6 +59,11 @@ import { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+
+// --- UTILS: FORMAT SỐ VỚI DẤU CHẤM (TIẾNG VIỆT) ---
+const formatNumber = (num: number): string => {
+  return num.toLocaleString('vi-VN');
+};
 
 // --- UTILS: HÀM XỬ LÝ MÀU TỪ ẢNH (CANVAS API) ---
 const getDominantColors = (
@@ -202,7 +209,7 @@ function ConsultantForm() {
   const [designFilePath, setDesignFilePath] = useState<string | null>(null);
 
   // State cho danh sách loại giấy từ API Materials
-  const [paperTypes, setPaperTypes] = useState<string[]>([]);
+  const [paperTypes, setPaperTypes] = useState<{code: string; name: string}[]>([]);
   const [loadingPaperTypes, setLoadingPaperTypes] = useState(false);
 
   // State cho danh sách loại sản phẩm từ API ProductTypes
@@ -314,8 +321,13 @@ function ConsultantForm() {
       setLoadingPaperTypes(true);
       try {
         const response = await materialsApi.getAllPaperTypes();
-        if (Array.isArray(response)) {
-          setPaperTypes(response);
+        // Response format: { paperTypes: [{code, name, stockQty}], mostStockPaperNames: string }
+        if (response?.paperTypes && Array.isArray(response.paperTypes)) {
+          // Lưu danh sách paper types với code và name
+          setPaperTypes(response.paperTypes.map((pt: { code: string; name: string }) => ({
+            code: pt.code,
+            name: pt.name,
+          })));
         }
       } catch (error) {
         console.error("Error fetching paper types:", error);
@@ -431,22 +443,21 @@ function ConsultantForm() {
 
         if (orderData) {
           form.setFieldsValue({
-            customerName: orderData.customer_name,
-            phone: orderData.customer_phone,
-            email: orderData.customer_email,
-            productName: orderData.product_name ? [orderData.product_name] : [],
+            customer_name: orderData.customer_name,
+            customer_phone: orderData.customer_phone,
+            customer_email: orderData.customer_email,
+            product_name: orderData.product_name ? [orderData.product_name] : [],
             quantity: orderData.quantity,
-            desiredDate: orderData.delivery_date
+            delivery_date: orderData.delivery_date
               ? dayjs(orderData.delivery_date)
               : null,
-            shippingAddress: orderData.detail_address,
-            notes: orderData.description,
+            detail_address: orderData.detail_address,
+            description: orderData.description,
             // Fields từ Accepted order
-            numberOfPlates: orderData.number_of_plates || 1,
-            coatingType: (orderData.coating_type && orderData.coating_type !== "NONE") 
+            number_of_plates: orderData.number_of_plates || 1,
+            coating_type: (orderData.coating_type && orderData.coating_type !== "NONE") 
               ? orderData.coating_type 
               : "KEO_NUOC",
-            hasLamination: orderData.has_lamination || false,
           });
 
           // Lấy file thiết kế từ API
@@ -460,7 +471,7 @@ function ConsultantForm() {
               { quantity: orderData.quantity },
               {
                 quantity: orderData.quantity,
-                desiredDate: orderData.delivery_date
+                delivery_date: orderData.delivery_date
                   ? dayjs(orderData.delivery_date)
                   : null,
               }
@@ -544,16 +555,16 @@ function ConsultantForm() {
 
   // --- LOGIC TÍNH TOÁN & SUBMIT ---
   const handleCalculate = (changedValues: any, allValues: any) => {
-    const { quantity, paperType, desiredDate } = allValues;
+    const { quantity, paper_code, delivery_date } = allValues;
 
-    if ("finalPrice" in changedValues) return;
+    if ("final_price" in changedValues) return;
 
     if (!quantity) return;
 
     const baseCost = quantity * 2500 + 3000000;
 
     const paperNeeded = Math.ceil((quantity / 4) * 1.05);
-    const selectedPaper = PAPER_TYPES.find((p) => p.value === paperType);
+    const selectedPaper = PAPER_TYPES.find((p) => p.value === paper_code);
     const isStockEnough = selectedPaper
       ? selectedPaper.stock >= paperNeeded
       : true;
@@ -567,11 +578,11 @@ function ConsultantForm() {
     const systemDateObj = today.add(totalSystemDays, "day");
     const systemDateStr = systemDateObj.format("YYYY-MM-DD");
 
-    if (!orderId && "quantity" in changedValues && !desiredDate) {
-      form.setFieldValue("desiredDate", systemDateObj);
+    if (!orderId && "quantity" in changedValues && !delivery_date) {
+      form.setFieldValue("delivery_date", systemDateObj);
     }
 
-    const currentDesiredDate = desiredDate || systemDateObj;
+    const currentDesiredDate = delivery_date || systemDateObj;
     let rushFee = 0;
     let daysEarly = 0;
     let caseType: 1 | 2 | 3 = 1;
@@ -592,7 +603,7 @@ function ConsultantForm() {
 
     const calculatedTotal = baseCost + rushFee;
 
-    form.setFieldValue("finalPrice", calculatedTotal);
+    form.setFieldValue("final_price", calculatedTotal);
 
     setEstimate({
       baseCost,
@@ -612,49 +623,49 @@ function ConsultantForm() {
   const calculatePaperEstimate = async () => {
     const values = form.getFieldsValue();
     const {
-      paperType,
+      paper_code,
       quantity,
       length,
       width,
       height,
-      productType,
-      processing,
-      numberOfPlates,
-      coatingType,
+      product_type,
+      production_processes,
+      number_of_plates,
+      coating_type,
     } = values;
 
     // Validate required fields
     if (
-      !paperType ||
+      !paper_code ||
       !quantity ||
       !length ||
       !width ||
       !height ||
-      !productType
+      !product_type
     ) {
       return;
     }
 
     // Paper type is now the code directly from API
-    const paperCode = paperType as string;
+    const paperCode = paper_code as string;
 
     // Get product type code
     const selectedProductType = productTypes.find(
-      (pt) => pt.product_type_id === productType
+      (pt) => pt.product_type_id === product_type
     );
     const productTypeCode = selectedProductType?.code || "";
 
     // Convert processing array to comma-separated string (no space)
-    const productionProcesses = Array.isArray(processing)
-      ? processing.join(",")
+    const productionProcessesStr = Array.isArray(production_processes)
+      ? production_processes.join(",")
       : "";
 
     setLoadingPaperEstimate(true);
     try {
-      const formType = form.getFieldValue('formType');
-      const isOneSideBox = form.getFieldValue('isOneSideBox') ?? true;
-      const glueTab = form.getFieldValue('glueTab') ?? 10; // Default 10mm
-      const waveType = form.getFieldValue('waveType'); // Loại sóng khi có BOI
+      const formType = form.getFieldValue('form_product');
+      const isOneSideBox = form.getFieldValue('is_one_side_box') ?? true;
+      const glueTab = form.getFieldValue('glue_tab') ?? 10; // Default 10mm
+      const waveType = form.getFieldValue('wave_type'); // Loại sóng khi có BOI
       
       const response = await estimatesApi.estimatePaper({
         paper_code: paperCode,
@@ -667,11 +678,11 @@ function ConsultantForm() {
         is_one_side_box: isOneSideBox,
         product_type: productTypeCode,
         form_product: formType || '',
-        number_of_plates: numberOfPlates || 1,
-        production_processes: productionProcesses,
-        coating_type: coatingType || "KEO_NUOC",
+        number_of_plates: number_of_plates || 1,
+        production_processes: productionProcessesStr,
+        coating_type: coating_type || "KEO_NUOC",
         // wave_type: có giá trị khi BOI, rỗng khi không có BOI
-        wave_type: productionProcesses.includes('BOI') && waveType ? waveType : "",
+        wave_type: productionProcessesStr.includes('BOI') && waveType ? waveType : "",
       });
 
       if (response) {
@@ -680,8 +691,8 @@ function ConsultantForm() {
         calculateCostEstimate(
           response,
           productTypeCode,
-          productionProcesses,
-          coatingType
+          productionProcessesStr,
+          coating_type
         );
       }
     } catch (error) {
@@ -700,27 +711,25 @@ function ConsultantForm() {
     coatingType: string
   ) => {
     const values = form.getFieldsValue();
-    const { desiredDate } = values;
+    const { delivery_date } = values;
 
     if (!orderId || !paperData) return;
 
     setLoadingCostEstimate(true);
     try {
-      const formType = form.getFieldValue('formType');
-      const hasLamination = form.getFieldValue('hasLamination') || false;
-      const waveType = form.getFieldValue('waveType'); // Loại sóng khi có BOI
+      const formType = form.getFieldValue('form_product');
+      const waveType = form.getFieldValue('wave_type'); // Loại sóng khi có BOI
       
       const response = await estimatesApi.estimateCost({
         order_request_id: parseInt(orderId),
         paper: paperData,
-        desired_delivery_date: desiredDate
-          ? desiredDate.toISOString()
+        desired_delivery_date: delivery_date
+          ? delivery_date.toISOString()
           : new Date().toISOString(),
         product_type: productTypeCode,
         form_product: formType || '',
         production_processes: productionProcesses,
         coating_type: coatingType || "KEO_NUOC",
-        has_lamination: hasLamination,
         discount_percent: 0,
         // wave_type: có giá trị khi BOI, rỗng khi không có BOI
         wave_type: productionProcesses.includes('BOI') && waveType ? waveType : "",
@@ -728,10 +737,10 @@ function ConsultantForm() {
 
       if (response) {
         setCostEstimate(response);
-        // Set suggested price to form
+        // Set suggested price to form (access via response.cost)
         form.setFieldValue(
-          "finalPrice",
-          Math.round(response.final_total_cost)
+          "final_price",
+          Math.round(response.cost.final_total_cost)
         );
         
         // Fetch deposit amount sau khi có cost estimate
@@ -803,18 +812,17 @@ function ConsultantForm() {
 
     // Debounce paper estimate API call
     const relevantFields = [
-      "paperType",
+      "paper_code",
       "quantity",
       "length",
       "width",
       "height",
-      "productType",
-      "processing",
-      "waveType",
-      "numberOfPlates",
-      "coatingType",
-      "desiredDate",
-      "hasLamination",
+      "product_type",
+      "production_processes",
+      "wave_type",
+      "number_of_plates",
+      "coating_type",
+      "delivery_date",
     ];
     const hasRelevantChange = Object.keys(changedValues).some((key) =>
       relevantFields.includes(key)
@@ -843,26 +851,26 @@ function ConsultantForm() {
     const colorDetailNote = designItems
       .map((item, idx) => `[Mẫu ${idx + 1}]: ${item.colors.join(", ")}`)
       .join("; ");
-    const finalNote = values.notes
-      ? `${values.notes}. Chi tiết màu: ${colorDetailNote}`
+    const finalNote = values.description
+      ? `${values.description}. Chi tiết màu: ${colorDetailNote}`
       : `Chi tiết màu: ${colorDetailNote}`;
     const fileUrls = designItems
       .map((i) => i.file?.url || "new-file")
       .join(",");
 
     const orderData = {
-      product_id: values.paperType,
-      product_name: Array.isArray(values.productName)
-        ? values.productName[0]
-        : values.productName,
+      product_id: values.paper_code,
+      product_name: Array.isArray(values.product_name)
+        ? values.product_name[0]
+        : values.product_name,
       quantity: values.quantity,
-      delivery_date: values.desiredDate.format("YYYY-MM-DD"),
+      delivery_date: values.delivery_date.format("YYYY-MM-DD"),
       system_delivery_date: estimate?.systemDate,
-      customer_name: values.customerName,
-      customer_phone: values.phone,
+      customer_name: values.customer_name,
+      customer_phone: values.customer_phone,
       process_status: "consultant_verified" as const,
       // Lấy giá chốt từ form input (giá người dùng có thể đã sửa)
-      final_price: values.finalPrice,
+      final_price: values.final_price,
       rush_fee: estimate?.rushFee,
 
       design_file_url: fileUrls,
@@ -870,12 +878,12 @@ function ConsultantForm() {
         width: values.width,
         height: values.height,
         length: values.length,
-        paper_id: values.paperType,
+        paper_id: values.paper_code,
         colors: allUniqueColors,
-        processing: values.processing,
+        processing: values.production_processes,
       },
       note: finalNote,
-      contract_file: values.contractFile ? "contract.pdf" : undefined,
+      contract_file: values.contract_file ? "contract.pdf" : undefined,
     };
 
     // Call sendDeal API for negotiate mode
@@ -885,7 +893,7 @@ function ConsultantForm() {
           // Existing order
           if (isNegotiateMode) {
             // Lấy giá chốt từ form
-            const finalPrice = form.getFieldValue('finalPrice');
+            const finalPrice = form.getFieldValue('final_price');
             
             // Kiểm tra giá hợp lệ
             if (!finalPrice || finalPrice <= 0) {
@@ -1108,16 +1116,17 @@ function ConsultantForm() {
                 <div
                   className={`${
                     orderId
-                      ? "sticky top-0 z-10 bg-white pb-3 border-b border-gray-100 -mx-6 px-6 pt-2"
+                      ? "sticky top-0 z-10 bg-white pb-2 border-b border-gray-100 -mx-6 px-6 pt-2"
                       : ""
                   }`}
                 >
-                  <Row gutter={16}>
-                    <Col span={8}>
+                  <Row gutter={12}>
+                    <Col span={5}>
                       <Form.Item
-                        name="customerName"
+                        name="customer_name"
                         label="Khách Hàng"
                         rules={[{ required: true }]}
+                        className="mb-2"
                       >
                         <Input
                           prefix={<UserOutlined />}
@@ -1127,8 +1136,8 @@ function ConsultantForm() {
                         />
                       </Form.Item>
                     </Col>
-                    <Col span={8}>
-                      <Form.Item name="phone" label="SĐT">
+                    <Col span={4}>
+                      <Form.Item name="customer_phone" label="SĐT" className="mb-2">
                         <Input
                           placeholder="09..."
                           disabled={!!orderId}
@@ -1136,10 +1145,19 @@ function ConsultantForm() {
                         />
                       </Form.Item>
                     </Col>
-                    <Col span={8}>
-                      <Form.Item name="email" label="Email">
+                    <Col span={5}>
+                      <Form.Item name="customer_email" label="Email" className="mb-2">
                         <Input
                           placeholder="email@example.com"
+                          disabled={!!orderId}
+                          className={orderId ? "bg-gray-50" : ""}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={10}>
+                      <Form.Item name="detail_address" label="Địa chỉ giao hàng" className="mb-2">
+                        <Input
+                          placeholder="Số nhà, đường, phường/xã, quận/huyện..."
                           disabled={!!orderId}
                           className={orderId ? "bg-gray-50" : ""}
                         />
@@ -1148,20 +1166,12 @@ function ConsultantForm() {
                   </Row>
                 </div>
 
-                {/* Địa chỉ giao hàng */}
-                <Form.Item name="shippingAddress" label="Địa chỉ giao hàng">
-                  <Input.TextArea
-                    rows={2}
-                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố..."
-                  />
-                </Form.Item>
-
-                <Divider titlePlacement="left">Thông Số Kỹ Thuật</Divider>
+                <Divider titlePlacement="left" className="!my-3">Thông Số Kỹ Thuật</Divider>
 
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
-                      name="productName"
+                      name="product_name"
                       label="Tên sản phẩm"
                       rules={[{ required: true }]}
                     >
@@ -1181,7 +1191,7 @@ function ConsultantForm() {
                   </Col>
                   <Col span={12}>
                     <Form.Item
-                      name="desiredDate"
+                      name="delivery_date"
                       label="Ngày Giao Mong Muốn"
                       rules={[{ required: true }]}
                       // help={
@@ -1214,7 +1224,7 @@ function ConsultantForm() {
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
-                      name="productType"
+                      name="product_type"
                       label="Loại Sản Phẩm"
                       rules={[
                         {
@@ -1239,9 +1249,9 @@ function ConsultantForm() {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
+                  <Col span={12}>
                     <Form.Item
-                      name="paperType"
+                      name="paper_code"
                       label="Loại Giấy"
                       rules={[
                         { required: true, message: "Vui lòng chọn loại giấy" },
@@ -1253,23 +1263,9 @@ function ConsultantForm() {
                         loading={loadingPaperTypes}
                         optionFilterProp="label"
                         options={paperTypes.map((paper) => ({
-                          label: paper.replace(/^GIAY_/i, 'Giấy ').replace(/_/g, ' '),
-                          value: paper,
+                          label: paper.name,
+                          value: paper.code,
                         }))}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={6}>
-                    <Form.Item
-                      name="hasLamination"
-                      label="Cán màng"
-                      initialValue={false}
-                    >
-                      <Select
-                        options={[
-                          { label: "Không", value: false },
-                          { label: "Có", value: true },
-                        ]}
                       />
                     </Form.Item>
                   </Col>
@@ -1280,7 +1276,7 @@ function ConsultantForm() {
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item
-                        name="formType"
+                        name="form_product"
                         label="Loại Form"
                         rules={[
                           { required: true, message: "Vui lòng chọn loại form" },
@@ -1390,11 +1386,11 @@ function ConsultantForm() {
                       <InputNumber
                         className="w-full"
                         formatter={(value) =>
-                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                          `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
                         }
-                        // parser={(value) =>
-                        //   value?.replace(/,/g, "") as unknown as number
-                        // }
+                        parser={(value) =>
+                          Number(value?.replace(/\./g, "")) || 0
+                        }
                         controls={false}
                         min={1}
                       />
@@ -1402,7 +1398,7 @@ function ConsultantForm() {
                   </Col>
                   <Col span={4}>
                     <Form.Item
-                      name="numberOfPlates"
+                      name="number_of_plates"
                       label="Số Kẽm"
                       initialValue={1}
                     >
@@ -1415,7 +1411,7 @@ function ConsultantForm() {
                   </Col>
                   <Col span={6}>
                     <Form.Item
-                      name="coatingType"
+                      name="coating_type"
                       label="Loại Keo"
                       initialValue="KEO_NUOC"
                     >
@@ -1429,109 +1425,135 @@ function ConsultantForm() {
                   </Col>
                 </Row>
 
-                <Divider style={{ marginTop: 24 }}>
-                  File Thiết Kế Từ Khách Hàng
-                </Divider>
-
-                <div className="bg-gray-50 p-4 rounded border mb-4">
-                  {designFilePath ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                        <AntImage
-                          src={designFilePath}
-                          alt="File thiết kế"
-                          style={{ maxHeight: 300, objectFit: 'contain' }}
-                          placeholder={
-                            <div className="flex items-center justify-center h-48 bg-gray-100">
-                              <span className="text-gray-400">Đang tải...</span>
-                            </div>
+                {/* File Thiết Kế - Dạng compact */}
+                <Row gutter={16}>
+                  <Col span={6}>
+                    <Form.Item label="File Thiết Kế" className="mb-2">
+                      {designFilePath ? (
+                        <div className="flex items-center gap-2">
+                          <AntImage
+                            src={designFilePath}
+                            alt="File thiết kế"
+                            width={60}
+                            height={60}
+                            className="rounded border object-cover"
+                            preview={{
+                              cover: <span className="text-xs">Xem</span>,
+                            }}
+                          />
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              size="small"
+                              icon={<DownloadOutlined />}
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = designFilePath;
+                                link.target = '_blank';
+                                link.download = `design_${orderId}.png`;
+                                link.click();
+                              }}
+                            >
+                              Tải
+                            </Button>
+                            <Button
+                              size="small"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => setDesignFilePath(null)}
+                            >
+                              Xóa
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Upload
+                          showUploadList={false}
+                          beforeUpload={async (file) => {
+                            try {
+                              message.loading({ content: 'Đang tải lên...', key: 'upload' });
+                              const response = await uploadApi.uploadFile(file);
+                              if (response?.url) {
+                                setDesignFilePath(response.url);
+                                message.success({ content: 'Tải file thành công!', key: 'upload' });
+                              }
+                            } catch (error) {
+                              console.error('Upload error:', error);
+                              message.error({ content: 'Tải file thất bại!', key: 'upload' });
+                            }
+                            return false;
+                          }}
+                          accept="image/*,.pdf"
+                        >
+                          <Button icon={<PlusOutlined />} size="small" type="dashed">
+                            Thêm file
+                          </Button>
+                        </Upload>
+                      )}
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="production_processes" label="Gia Công" className="mb-1">
+                      <Checkbox.Group 
+                        className="w-full"
+                        onChange={(checkedValues) => {
+                          if (checkedValues.includes('BOI') && !form.getFieldValue('wave_type')) {
+                            form.setFieldValue('wave_type', 'SONG_B_NAU');
                           }
-                        />
-                      </div>
-                      <Button
-                        type="primary"
-                        icon={<DownloadOutlined />}
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = designFilePath;
-                          link.target = '_blank';
-                          link.download = `design_${orderId}.png`;
-                          link.click();
+                          if (!checkedValues.includes('BOI')) {
+                            form.setFieldValue('wave_type', '');
+                          }
                         }}
                       >
-                        Tải File Thiết Kế
-                      </Button>
-                    </div>
-                  ) : (
-                    <Empty
-                      description="Khách hàng chưa gửi file thiết kế"
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    />
-                  )}
-                </div>
-
-
-                <Form.Item name="processing" label="Gia Công">
-                  <Checkbox.Group 
-                    className="w-full"
-                    onChange={(checkedValues) => {
-                      // Khi tick BOI, tự động set waveType mặc định là SONG_B_NAU
-                      if (checkedValues.includes('BOI') && !form.getFieldValue('waveType')) {
-                        form.setFieldValue('waveType', 'SONG_B_NAU');
+                        <div className="grid grid-cols-3 gap-x-2 gap-y-0">
+                          {loadingProcessTypes ? (
+                            <span className="text-gray-400">Đang tải...</span>
+                          ) : (
+                            processTypes
+                              .filter(pt => !['IN', 'DUT', 'DOT', 'CAT'].includes(pt))
+                              .map((pt) => (
+                                <Checkbox value={pt} key={pt}>
+                                  {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, ' ')}
+                                </Checkbox>
+                              ))
+                          )}
+                        </div>
+                      </Checkbox.Group>
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    {/* Dropdown chọn loại sóng khi BOI được tick */}
+                    <Form.Item 
+                      noStyle 
+                      shouldUpdate={(prevValues, currentValues) => 
+                        prevValues.production_processes !== currentValues.production_processes
                       }
-                      // Khi untick BOI, clear waveType
-                      if (!checkedValues.includes('BOI')) {
-                        form.setFieldValue('waveType', '');
-                      }
-                    }}
-                  >
-                    <div className="grid grid-cols-3 gap-x-6 gap-y-2">
-                      {loadingProcessTypes ? (
-                        <span className="text-gray-400">Đang tải...</span>
-                      ) : (
-                        // Loại bỏ IN, DUT, DOT, CAT vì đã được tính trong chi phí cơ bản
-                        processTypes
-                          .filter(pt => !['IN', 'DUT', 'DOT', 'CAT'].includes(pt))
-                          .map((pt) => (
-                            <Checkbox value={pt} key={pt} className="w-full">
-                              {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, ' ')}
-                            </Checkbox>
-                          ))
-                      )}
-                    </div>
-                  </Checkbox.Group>
-                </Form.Item>
-                
-                {/* Dropdown chọn loại sóng khi BOI được tick */}
-                <Form.Item 
-                  noStyle 
-                  shouldUpdate={(prevValues, currentValues) => 
-                    prevValues.processing !== currentValues.processing
-                  }
-                >
-                  {({ getFieldValue }) => {
-                    const processingValues = getFieldValue('processing') || [];
-                    const hasBOI = processingValues.includes('BOI');
-                    
-                    return hasBOI ? (
-                      <Form.Item 
-                        name="waveType" 
-                        label="Loại Sóng (Bồi)"
-                        rules={[{ required: true, message: 'Vui lòng chọn loại sóng!' }]}
-                        className="mb-4"
-                      >
-                        <Select
-                          placeholder="Chọn loại sóng..."
-                          options={songTypes.map(st => ({
-                            value: st.code,
-                            label: `${st.name} (${st.cost_price.toLocaleString()}₫/m²)`,
-                          }))}
-                          allowClear
-                        />
-                      </Form.Item>
-                    ) : null;
-                  }}
-                </Form.Item>
+                    >
+                      {({ getFieldValue }) => {
+                        const processingValues = getFieldValue('production_processes') || [];
+                        const hasBOI = processingValues.includes('BOI');
+                        
+                        return hasBOI ? (
+                          <Form.Item 
+                            name="wave_type" 
+                            label="Loại Sóng (Bồi)"
+                            rules={[{ required: true, message: 'Chọn loại sóng!' }]}
+                            className="mb-1"
+                          >
+                            <Select
+                              placeholder="Chọn loại sóng..."
+                              size="small"
+                              options={songTypes.map(st => ({
+                                value: st.code,
+                                label: `${st.name}`,
+                              }))}
+                              allowClear
+                            />
+                          </Form.Item>
+                        ) : null;
+                      }}
+                    </Form.Item>
+                  </Col>
+                </Row>
                 
                 {/* Tổng chi phí gia công */}
                 {/* {processCostBreakdown && (
@@ -1541,23 +1563,24 @@ function ConsultantForm() {
                         ⚙️ Tổng chi phí gia công:
                       </span>
                       <span className="font-bold text-lg text-purple-700">
-                        {processCostBreakdown.total_cost.toLocaleString()} ₫
+                        {processCostBreakdown.total_cost.toLocaleString('vi-VN')} ₫
                         {loadingProcessCost && <span className="text-xs ml-2 animate-pulse">⏳</span>}
                       </span>
                     </div>
                   </div>
                 )} */}
 
-                <Form.Item name="notes" label="Ghi Chú">
-                  <Input.TextArea rows={1} />
-                </Form.Item>
-
-                {/* Contract Upload - Only in Create Mode */}
-                {isCreateMode && (
-                  <>
-                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-4">
+                <Row gutter={16}>
+                  <Col span={isCreateMode ? 12 : 24}>
+                    <Form.Item name="description" label="Ghi Chú" className="mb-2">
+                      <Input.TextArea rows={1} placeholder="Ghi chú thêm..." />
+                    </Form.Item>
+                  </Col>
+                  {/* Contract Upload - Only in Create Mode */}
+                  {isCreateMode && (
+                    <Col span={12}>
                       <Form.Item
-                        name="contractFile"
+                        name="contract_file"
                         label={
                           <span className="flex items-center gap-1 font-semibold text-blue-800">
                             <FileTextOutlined /> Upload hợp đồng
@@ -1567,7 +1590,7 @@ function ConsultantForm() {
                         getValueFromEvent={(e) =>
                           Array.isArray(e) ? e : e?.fileList
                         }
-                        className="mb-0"
+                        className="mb-2"
                         rules={[
                           {
                             required: true,
@@ -1583,26 +1606,26 @@ function ConsultantForm() {
                           className="contract-upload-success"
                         >
                           <Button icon={<UploadOutlined />} size="small">
-                            Tải lên file PDF/DOCX
+                            Tải lên PDF/DOCX
                           </Button>
                         </Upload>
                       </Form.Item>
-                    </div>
-                    <style jsx global>{`
-                      .contract-upload-success .ant-upload-list-item-name {
-                        color: #16a34a !important;
-                      }
-                      .contract-upload-success .ant-upload-list-item {
-                        color: #16a34a !important;
-                      }
-                      .contract-upload-success
-                        .ant-upload-list-item-actions
-                        .anticon-delete {
-                        color: #dc2626 !important;
-                      }
-                    `}</style>
-                  </>
-                )}
+                      <style jsx global>{`
+                        .contract-upload-success .ant-upload-list-item-name {
+                          color: #16a34a !important;
+                        }
+                        .contract-upload-success .ant-upload-list-item {
+                          color: #16a34a !important;
+                        }
+                        .contract-upload-success
+                          .ant-upload-list-item-actions
+                          .anticon-delete {
+                          color: #dc2626 !important;
+                        }
+                      `}</style>
+                    </Col>
+                  )}
+                </Row>
 
                 <Form.Item className="mt-4">
                   <Button
@@ -1679,20 +1702,20 @@ function ConsultantForm() {
 
                           <div className="text-gray-600">Số tờ cơ bản:</div>
                           <div className="font-medium text-right">
-                            {paperEstimate.sheets_base.toLocaleString()}
+                            {paperEstimate.sheets_base.toLocaleString('vi-VN')}
                           </div>
 
                           {/* <div className="text-gray-600">Phế in:</div>
-                          <div className="font-medium text-orange-600">{paperEstimate.waste_printing.toLocaleString()}</div> */}
+                          <div className="font-medium text-orange-600">{paperEstimate.waste_printing.toLocaleString('vi-VN')}</div> */}
 
                           {/* <div className="text-gray-600">Phế bồi:</div>
-                          <div className="font-medium text-orange-600">{paperEstimate.waste_mounting.toLocaleString()}</div> */}
+                          <div className="font-medium text-orange-600">{paperEstimate.waste_mounting.toLocaleString('vi-VN')}</div> */}
 
                           {/* <div className="text-gray-600">Phế dán:</div>
-                          <div className="font-medium text-orange-600">{paperEstimate.waste_gluing.toLocaleString()}</div> */}
+                          <div className="font-medium text-orange-600">{paperEstimate.waste_gluing.toLocaleString('vi-VN')}</div> */}
 
                           {/* <div className="text-gray-600 font-semibold">Tổng phế:</div>
-                          <div className="font-bold text-red-600">{paperEstimate.total_waste.toLocaleString()}</div> */}
+                          <div className="font-bold text-red-600">{paperEstimate.total_waste.toLocaleString('vi-VN')}</div> */}
 
                           <div className="col-span-2 border-t pt-2 mt-2">
                             <div className="flex justify-between">
@@ -1700,7 +1723,7 @@ function ConsultantForm() {
                                 Tổng số tờ cần:
                               </span>
                               <span className="font-bold text-lg text-green-700">
-                                {paperEstimate.sheets_with_waste.toLocaleString()}{" "}
+                                {paperEstimate.sheets_with_waste.toLocaleString('vi-VN')}{" "}
                                 tờ
                               </span>
                             </div>
@@ -1724,29 +1747,45 @@ function ConsultantForm() {
                           <div className="flex justify-between">
                             <span className="text-gray-600">Chi phí giấy:</span>
                             <span className="font-medium">
-                              {Math.round(costEstimate.paper_cost).toLocaleString()} ₫
+                              {Math.round(costEstimate.cost.paper_cost).toLocaleString('vi-VN')} ₫
                             </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Chi phí mực:</span>
                             <span className="font-medium">
-                              {(Math.round(costEstimate.ink_cost / 10) * 10).toLocaleString()} ₫
+                              {(Math.round(costEstimate.cost.ink_cost / 10) * 10).toLocaleString('vi-VN')} ₫
                             </span>
                           </div>
-                          {costEstimate.mounting_glue_cost > 0 && (
+                          
+                          {/* Chi phí gia công từ process_cost.details */}
+                          {costEstimate.process_cost?.details
+                            ?.filter(detail => detail.total_cost > 0)
+                            .map((detail) => (
+                              <div key={detail.process} className="flex justify-between">
+                                <span className="text-gray-600">
+                                  {detail.process === 'IN' ? 'Công in' : 
+                                   detail.process === 'BOI' ? 'Công bồi' :
+                                   detail.process === 'DAN' ? 'Công dán' :
+                                   detail.process === 'BE' ? 'Công bế' :
+                                   detail.process === 'RALO' ? 'Ra lô' :
+                                   detail.process === 'PHU' ? 'Công phủ' :
+                                   detail.process === 'CAN_MANG' ? 'Cán màng' :
+                                   detail.process === 'DUT' ? 'Đục' :
+                                   detail.process === 'DOT' ? 'Đột' :
+                                   detail.process === 'CAT' ? 'Cắt' :
+                                   detail.process}:
+                                </span>
+                                <span className="font-medium">
+                                  {Math.round(detail.total_cost).toLocaleString('vi-VN')} ₫
+                                </span>
+                              </div>
+                            ))}
+                          
+                          {costEstimate.cost.mounting_glue_cost > 0 && (
                             <div className="flex justify-between">
                               <span className="text-gray-600">Keo bồi:</span>
                               <span className="font-medium">
-                                {Math.round(costEstimate.mounting_glue_cost).toLocaleString()}{" "}
-                                ₫
-                              </span>
-                            </div>
-                          )}
-                          {costEstimate.lamination_cost > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Cán màng:</span>
-                              <span className="font-medium">
-                                {Math.round(costEstimate.lamination_cost).toLocaleString()}{" "}
+                                {Math.round(costEstimate.cost.mounting_glue_cost).toLocaleString('vi-VN')}{" "}
                                 ₫
                               </span>
                             </div>
@@ -1756,13 +1795,13 @@ function ConsultantForm() {
                             <div className="flex justify-between text-gray-700">
                               <span>Chi phí vật liệu:</span>
                               <span className="font-semibold">
-                                {(Math.round(costEstimate.material_cost / 10) * 10).toLocaleString()} ₫
+                                {(Math.round(costEstimate.cost.material_cost / 10) * 10).toLocaleString('vi-VN')} ₫
                               </span>
                             </div>
                             <div className="flex justify-between text-gray-700">
                               <span>Chi phí quản lý (10%):</span>
                               <span>
-                                {(Math.round(costEstimate.overhead_cost / 10) * 10).toLocaleString()} ₫
+                                {(Math.round(costEstimate.cost.overhead_cost / 10) * 10).toLocaleString('vi-VN')} ₫
                               </span>
                             </div>
                           </div>
@@ -1770,18 +1809,18 @@ function ConsultantForm() {
                           <div className="flex justify-between font-medium">
                             <span>Giá cơ bản:</span>
                             <span className="text-blue-700">
-                              {(Math.round(costEstimate.base_cost / 10) * 10).toLocaleString()} ₫
+                              {(Math.round(costEstimate.cost.base_cost / 10) * 10).toLocaleString('vi-VN')} ₫
                             </span>
                           </div>
 
-                          {costEstimate.is_rush && (
+                          {costEstimate.cost.is_rush && (
                             <div className="bg-orange-100 p-2 rounded border border-orange-200">
                               <div className="flex justify-between text-orange-700">
                                 <span>
-                                  ⚡ Phí gấp ({costEstimate.rush_percent}%):
+                                  ⚡ Phí gấp ({costEstimate.cost.rush_percent}%):
                                 </span>
                                 <span className="font-semibold">
-                                  +{Math.round(costEstimate.rush_amount).toLocaleString()} ₫
+                                  +{Math.round(costEstimate.cost.rush_amount).toLocaleString('vi-VN')} ₫
                                 </span>
                               </div>
                             </div>
@@ -1793,7 +1832,7 @@ function ConsultantForm() {
                                 Tổng giá hệ thống:
                               </span>
                               <span className="font-bold text-xl text-blue-700">
-                                {(Math.round(costEstimate.final_total_cost / 10) * 10).toLocaleString()}{" "}
+                                {(Math.round(costEstimate.cost.final_total_cost / 10) * 10).toLocaleString('vi-VN')}{" "}
                                 ₫
                               </span>
                             </div>
@@ -1817,7 +1856,7 @@ function ConsultantForm() {
                                   <div className="flex justify-between text-green-700 text-sm">
                                     <span>Số tiền giảm:</span>
                                     <span className="font-medium">
-                                      -{Math.round(costEstimate.final_total_cost * discountPercent / 100).toLocaleString()} ₫
+                                      -{Math.round(costEstimate.cost.final_total_cost * discountPercent / 100).toLocaleString('vi-VN')} ₫
                                     </span>
                                   </div>
                                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
@@ -1825,7 +1864,7 @@ function ConsultantForm() {
                                        Giá sau giảm:
                                     </span>
                                     <span className="font-bold text-xl text-green-700">
-                                      {Math.round(costEstimate.final_total_cost * (100 - discountPercent) / 100).toLocaleString()} ₫
+                                      {Math.round(costEstimate.cost.final_total_cost * (100 - discountPercent) / 100).toLocaleString('vi-VN')} ₫
                                     </span>
                                   </div>
                                 </>
@@ -1838,7 +1877,7 @@ function ConsultantForm() {
                                 <div className="flex justify-between items-center">
                                   <span className="text-purple-800 font-medium">Tiền đặt cọc:</span>
                                   <span className="font-bold text-lg text-purple-700">
-                                    {Math.round(depositAmount).toLocaleString()} ₫
+                                    {Math.round(depositAmount).toLocaleString('vi-VN')} ₫
                                   </span>
                                 </div>
                               </div>
@@ -1850,7 +1889,7 @@ function ConsultantForm() {
                               </span>
                               <span className="font-medium text-green-700">
                                 {dayjs(
-                                  costEstimate.estimated_finish_date
+                                  costEstimate.cost.estimated_finish_date
                                 ).format("DD/MM/YYYY")}
                               </span>
                             </div>
