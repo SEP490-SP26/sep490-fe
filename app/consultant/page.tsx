@@ -1422,9 +1422,9 @@ function ConsultantForm() {
                         formatter={(value) =>
                           `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
                         }
-                        parser={(value) =>
-                          Number(value?.replace(/\./g, '')) || 0
-                        }
+                        // parser={(value) =>
+                        //   Number(value?.replace(/\./g, '')) || 0
+                        // }
                         controls={false}
                         min={1}
                       />

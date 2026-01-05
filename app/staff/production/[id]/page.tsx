@@ -1,5 +1,7 @@
 "use client";
+import { productionsApi } from "@/apiRequests/productions";
 import { useProduction } from "@/context/ProductionContext";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
 import {
@@ -9,148 +11,150 @@ import {
   BsPrinter,
   BsScissors,
 } from "react-icons/bs";
+import { QRCodeCanvas } from "qrcode.react";
+import { useState } from "react";
 
 export default function ProductionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
+  const [showQRPopup, setShowQRPopup] = useState(false);
 
   const {
-    orders,
-    products,
-    productionSchedules,
+    // productionSchedules,
     getProductionStages,
-    updateProductionStage,
   } = useProduction();
 
-  const order = orders.find((o) => o.order_id === id);
-  const schedule = productionSchedules.find((s) => s.order_id === id);
-  const product = products.find((p) => p.id === order?.product_id);
-  const stages = getProductionStages(id as string);
+  // const order = orders.find((o) => o.order_id === id);
+  // const schedule = productionSchedules.find((s) => s.order_id === id);
+  // const product = products.find((p) => p.id === order?.product_id);
+  // const stages = getProductionStages(id as string);
 
-  if (!order) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Không tìm thấy đơn hàng
-          </h1>
-          <button
-            onClick={() => router.back()}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Quay lại
-          </button>
-        </div>
-      </div>
-    );
+  const { data: productionSchedules, isLoading } = useQuery({
+    queryKey: ["productionSchedules"],
+    queryFn: async () => {
+      if (!id) {
+        throw new Error("Order ID is required");
+      }
+      const response = await productionsApi.getProdyctionByOrderId(
+        id.toString()
+      );
+      return response;
+    },
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
+  console.log("production", productionSchedules);
+
   // Dữ liệu dựa trên phiếu lệnh sản xuất
-  const productionProcess = [
-    {
-      id: "ralo",
-      name: "Ralo",
-      code: "25-557",
-      inputMaterials: [
-        { name: "Giấy Duplex 350", quantity: 320, unit: "tờ", code: "VT00798" },
-      ],
-      outputMaterial: "Giấy đã ralo (300x90x230)mm",
-      outputQuantity: 320,
-      outputUnit: "tờ",
-      note: "Khổ 1000, chặt 440",
-    },
-    {
-      id: "cut",
-      name: "Cắt",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã ralo", quantity: 320, unit: "tờ" }],
-      outputMaterial: "Giấy đã cắt (300x90x230)mm",
-      outputQuantity: 320,
-      outputUnit: "tờ",
-      note: "Cắt hớt 2 chiều 440 về 435",
-    },
-    {
-      id: "print",
-      name: "In",
-      code: "25-557",
-      inputMaterials: [
-        { name: "Giấy đã cắt", quantity: 70, unit: "tờ" },
-        { name: "Kẽm in", quantity: 4, unit: "bản", code: "VT007" },
-        { name: "Mực các loại", quantity: 0.1, unit: "kg", code: "VT00433" },
-      ],
-      outputMaterial: "Giấy đã in (300x90x230)mm",
-      outputQuantity: 70,
-      outputUnit: "tờ",
-    },
-    {
-      id: "laminate",
-      name: "Cán màng",
-      code: "25-557",
-      inputMaterials: [
-        { name: "Giấy đã in", quantity: 60, unit: "tờ" },
-        {
-          name: "Màng BÓNG nhiệt 1205",
-          quantity: 0.42,
-          unit: "kg",
-          code: "VT00684",
-          note: "mix khổ 480",
-        },
-      ],
-      outputMaterial: "Giấy đã cán màng (300x90x230)mm",
-      outputQuantity: 60,
-      outputUnit: "tờ",
-      note: "Màng Bóng",
-    },
-    {
-      id: "corrugate",
-      name: "Bồi sóng",
-      code: "25-557",
-      inputMaterials: [
-        { name: "Giấy đã cán màng", quantity: 50, unit: "tờ" },
-        { name: "Kéo phù bài", quantity: 0.08, unit: "kg", code: "VT00434" },
-        {
-          name: "Sóng E nâu",
-          quantity: 60,
-          unit: "tờ",
-          code: "VTHT00106",
-          note: "khổ 430 x dài 815mm",
-        },
-      ],
-      outputMaterial: "Giấy đã bồi sóng (300x90x230)mm",
-      outputQuantity: 50,
-      outputUnit: "tờ",
-      note: "Sóng mẫu HT",
-    },
-    {
-      id: "crease",
-      name: "Bể",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã bồi sóng", quantity: 40, unit: "tờ" }],
-      outputMaterial: "Giấy đã bể (300x90x230)mm",
-      outputQuantity: 40,
-      outputUnit: "tờ",
-    },
-    {
-      id: "diecut",
-      name: "Dứt",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã bể", quantity: 40, unit: "tờ" }],
-      outputMaterial: "Giấy đã dứt (300x90x230)mm",
-      outputQuantity: 40,
-      outputUnit: "tờ",
-    },
-    {
-      id: "glue",
-      name: "Dán",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã dứt", quantity: 30, unit: "tờ" }],
-      outputMaterial: "Thành phẩm hoàn chỉnh",
-      outputQuantity: 30,
-      outputUnit: "chiếc",
-      finalProduct: true,
-    },
-  ];
+  // const productionProcess = [
+  //   {
+  //     id: "ralo",
+  //     name: "Ralo",
+  //     code: "25-557",
+  //     inputMaterials: [
+  //       { name: "Giấy Duplex 350", quantity: 320, unit: "tờ", code: "VT00798" },
+  //     ],
+  //     outputMaterial: "Giấy đã ralo (300x90x230)mm",
+  //     outputQuantity: 320,
+  //     outputUnit: "tờ",
+  //     note: "Khổ 1000, chặt 440",
+  //   },
+  //   {
+  //     id: "cut",
+  //     name: "Cắt",
+  //     code: "25-557",
+  //     inputMaterials: [{ name: "Giấy đã ralo", quantity: 320, unit: "tờ" }],
+  //     outputMaterial: "Giấy đã cắt (300x90x230)mm",
+  //     outputQuantity: 320,
+  //     outputUnit: "tờ",
+  //     note: "Cắt hớt 2 chiều 440 về 435",
+  //   },
+  //   {
+  //     id: "print",
+  //     name: "In",
+  //     code: "25-557",
+  //     inputMaterials: [
+  //       { name: "Giấy đã cắt", quantity: 70, unit: "tờ" },
+  //       { name: "Kẽm in", quantity: 4, unit: "bản", code: "VT007" },
+  //       { name: "Mực các loại", quantity: 0.1, unit: "kg", code: "VT00433" },
+  //     ],
+  //     outputMaterial: "Giấy đã in (300x90x230)mm",
+  //     outputQuantity: 70,
+  //     outputUnit: "tờ",
+  //   },
+  //   {
+  //     id: "laminate",
+  //     name: "Cán màng",
+  //     code: "25-557",
+  //     inputMaterials: [
+  //       { name: "Giấy đã in", quantity: 60, unit: "tờ" },
+  //       {
+  //         name: "Màng BÓNG nhiệt 1205",
+  //         quantity: 0.42,
+  //         unit: "kg",
+  //         code: "VT00684",
+  //         note: "mix khổ 480",
+  //       },
+  //     ],
+  //     outputMaterial: "Giấy đã cán màng (300x90x230)mm",
+  //     outputQuantity: 60,
+  //     outputUnit: "tờ",
+  //     note: "Màng Bóng",
+  //   },
+  //   {
+  //     id: "corrugate",
+  //     name: "Bồi sóng",
+  //     code: "25-557",
+  //     inputMaterials: [
+  //       { name: "Giấy đã cán màng", quantity: 50, unit: "tờ" },
+  //       { name: "Kéo phù bài", quantity: 0.08, unit: "kg", code: "VT00434" },
+  //       {
+  //         name: "Sóng E nâu",
+  //         quantity: 60,
+  //         unit: "tờ",
+  //         code: "VTHT00106",
+  //         note: "khổ 430 x dài 815mm",
+  //       },
+  //     ],
+  //     outputMaterial: "Giấy đã bồi sóng (300x90x230)mm",
+  //     outputQuantity: 50,
+  //     outputUnit: "tờ",
+  //     note: "Sóng mẫu HT",
+  //   },
+  //   {
+  //     id: "crease",
+  //     name: "Bể",
+  //     code: "25-557",
+  //     inputMaterials: [{ name: "Giấy đã bồi sóng", quantity: 40, unit: "tờ" }],
+  //     outputMaterial: "Giấy đã bể (300x90x230)mm",
+  //     outputQuantity: 40,
+  //     outputUnit: "tờ",
+  //   },
+  //   {
+  //     id: "diecut",
+  //     name: "Dứt",
+  //     code: "25-557",
+  //     inputMaterials: [{ name: "Giấy đã bể", quantity: 40, unit: "tờ" }],
+  //     outputMaterial: "Giấy đã dứt (300x90x230)mm",
+  //     outputQuantity: 40,
+  //     outputUnit: "tờ",
+  //   },
+  //   {
+  //     id: "glue",
+  //     name: "Dán",
+  //     code: "25-557",
+  //     inputMaterials: [{ name: "Giấy đã dứt", quantity: 30, unit: "tờ" }],
+  //     outputMaterial: "Thành phẩm hoàn chỉnh",
+  //     outputQuantity: 30,
+  //     outputUnit: "chiếc",
+  //     finalProduct: true,
+  //   },
+  // ];
 
   const productionStages = [
     {
@@ -203,20 +207,20 @@ export default function ProductionDetailPage() {
     },
   ];
 
-  const handleUpdateStage = (stageId: string) => {
-    if (schedule) {
-      updateProductionStage(schedule.id, stageId);
-    }
-  };
+  // const handleUpdateStage = (stageId: string) => {
+  //   if (schedule) {
+  //     updateProductionStage(schedule.id, stageId);
+  //   }
+  // };
 
-  const getStageStatus = (stageId: string) => {
-    const stage = stages.find((s) => s.id === stageId);
-    return stage?.status || "pending";
-  };
+  // const getStageStatus = (stageId: string) => {
+  //   const stage = stages.find((s) => s.id === stageId);
+  //   return stage?.status || "pending";
+  // };
 
-  const getProcessInfo = (stageId: string) => {
-    return productionProcess.find((p) => p.id === stageId);
-  };
+  // const getProcessInfo = (stageId: string) => {
+  //   return productionProcess.find((p) => p.id === stageId);
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -233,7 +237,7 @@ export default function ProductionDetailPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           {/* Left side - Order info */}
           <div className="flex-1">
-            <div className="flex items-start gap-4 mb-4">
+            {/* <div className="flex items-start gap-4 mb-4">
               <div className="bg-blue-600 text-white p-3 rounded-lg">
                 <svg
                   className="w-8 h-8"
@@ -255,62 +259,71 @@ export default function ProductionDetailPage() {
                     LỆNH SẢN XUẤT
                   </h1>
                   {/* Status badge */}
-                  <div
+            {/* <div
                     className={`px-2 py-1 rounded-lg text-sm font-semibold  inline-block ${
-                      order.status === "completed"
+                      productionSchedules.status === "completed"
                         ? "bg-green-100 text-green-700 border border-green-200"
-                        : order.status === "in_production"
+                        : productionSchedules.status === "in_production"
                         ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                        : order.status === "scheduled"
+                        : productionSchedules.status === "scheduled"
                         ? "bg-blue-100 text-blue-700 border border-blue-200"
                         : "bg-gray-100 text-gray-700 border border-gray-200"
                     }`}
                   >
-                    {order.status === "completed"
+                    {productionSchedules.status === "completed"
                       ? " ĐÃ HOÀN THÀNH"
-                      : order.status === "in_production"
+                      : productionSchedules.status === "in_production"
                       ? " ĐANG SẢN XUẤT"
-                      : order.status === "scheduled"
+                      : productionSchedules.status === "scheduled"
                       ? " ĐÃ LÊN LỊCH"
                       : " CHỜ XỬ LÝ"}
-                  </div>
-                </div>
+                  </div> */}
+            {/* </div>
                 <div className="text-gray-600">
-                  <span className="font-medium">Mã:</span> LSX-{order.order_id}
+                  <span className="font-medium">Mã:</span> LSX-
+                  {productionSchedules.order_id}
                 </div>
               </div>
-            </div>
+            </div>  */}
 
             {/* Order details in cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className="text-xs text-gray-500 mb-1">Lệnh sản xuất</div>
+                <div className="font-medium text-gray-900 truncate">
+                  Mã {productionSchedules.production_code || "Khách lẻ"}
+                </div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">KHÁCH HÀNG</div>
                 <div className="font-medium text-gray-900 truncate">
-                  {order.customer_name}
+                  {productionSchedules.customer_name || "Khách lẻ"}
                 </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">SẢN PHẨM</div>
-                <div className="font-medium text-gray-900">{product?.type}</div>
+                {/* <div className="font-medium text-gray-900">{product?.type}</div> */}
                 <div className="text-xs text-gray-500 mt-1">Mã: 2025NL0052</div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">SỐ LƯỢNG</div>
                 <div className="font-medium text-gray-900">
-                  {order.quantity} chiếc
+                  {productionSchedules.quantity} chiếc
                 </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">NGÀY GIAO</div>
                 <div className="font-medium text-gray-900">
-                  {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                  {new Date(
+                    productionSchedules.delivery_date
+                  ).toLocaleDateString("vi-VN")}
                 </div>
               </div>
               {/* Schedule info */}
-              {schedule && (
+              {/* {productionSchedules && (
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                   <div className="text-sm font-medium text-blue-700 mb-1">
                     LỊCH SẢN XUẤT
@@ -331,9 +344,9 @@ export default function ProductionDetailPage() {
                         />
                       </svg>
                       Bắt đầu:{" "}
-                      {new Date(schedule.start_date).toLocaleDateString(
-                        "vi-VN"
-                      )}
+                      {new Date(
+                        productionSchedules.start_date
+                      ).toLocaleDateString("vi-VN")}
                     </div>
                     <div className="flex items-center gap-1">
                       <svg
@@ -350,15 +363,17 @@ export default function ProductionDetailPage() {
                         />
                       </svg>
                       Kết thúc:{" "}
-                      {new Date(schedule.end_date).toLocaleDateString("vi-VN")}
+                      {new Date(
+                        productionSchedules.end_date
+                      ).toLocaleDateString("vi-VN")}
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* Specifications */}
-            <div className="mt-4 flex flex-wrap gap-2">
+            {/* <div className="mt-4 flex flex-wrap gap-2">
               <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                 <span className="font-medium">Quy cách:</span> 300x90x230mm
               </div>
@@ -372,9 +387,11 @@ export default function ProductionDetailPage() {
               </div>
               <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                 <span className="font-medium"></span> Ngày tạo:{" "}
-                {new Date(order.created_at).toLocaleDateString("vi-VN")}
+                {new Date(productionSchedules.created_at).toLocaleDateString(
+                  "vi-VN"
+                )}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -385,19 +402,18 @@ export default function ProductionDetailPage() {
           <BsClock className="w-5 h-5 text-blue-500" />
           QUY TRÌNH SẢN XUẤT CHI TIẾT
         </h2>
-
         <div className="space-y-8">
-          {productionProcess.map((process, index) => {
-            const stageStatus = getStageStatus(process.id);
-            const stageInfo = productionStages.find((s) => s.id === process.id);
+          {productionSchedules.stages.map((stage: any) => {
+            const stageInfo = productionStages.find(
+              (s) => s.id === stage.process_id
+            );
             const StageIcon = stageInfo?.icon || BsScissors;
-            const isCurrentStage = schedule?.current_stage === process.id;
-            const isCompleted = stageStatus === "completed";
-            const isInProgress = stageStatus === "in_progress";
-
+            const isCompleted = stage.status === "Finished";
+            const isInProgress = stage.status === "Ready";
+            const isUnassigned = stage.status === "Unassigned";
             return (
               <div
-                key={process.id}
+                key={stage.process_id}
                 className="border-l-4 border-blue-200 pl-6 ml-4 relative"
               >
                 {/* Timeline dot */}
@@ -418,7 +434,6 @@ export default function ProductionDetailPage() {
                     <div className="w-2 h-2 bg-white rounded-full" />
                   )}
                 </div>
-
                 {/* Stage header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -427,7 +442,7 @@ export default function ProductionDetailPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg text-gray-900">
-                        {process.name} {process.code}
+                        {stage.process_name} {stage.machine}
                       </h3>
                       <p
                         className={`text-sm ${
@@ -441,16 +456,65 @@ export default function ProductionDetailPage() {
                         {isCompleted
                           ? " Đã hoàn thành"
                           : isInProgress
-                          ? " Đang thực hiện"
+                          ? " Sẵn sàng"
                           : " Chờ xử lý"}
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-4">
+                    {stage.task_name && (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                        {stage.task_name}
+                      </span>
+                    )}
+                    <button
+                      className="bg-accent py-1 px-2 rounded-md"
+                      onClick={() => setShowQRPopup(true)}
+                    >
+                      Xem QR
+                    </button>
+                  </div>
 
-                  {process.note && (
-                    <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                      {process.note}
-                    </span>
+                  {showQRPopup && (
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center  px-4"
+                      // key={`qr-popup-${stage.id}`}
+                    >
+                      {/* header */}
+                      <div className="flex items-center justify-between border-b px-6 py-4">
+                        <button
+                          onClick={() => setShowQRPopup(false)}
+                          className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {/* Popup container */}
+                      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+                        {stage.logs.map((logItem: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex flex-col items-center gap-2 rounded-xl border p-3"
+                          >
+                            <QRCodeCanvas
+                              value={logItem.scanned_code || "N/A"}
+                              size={120}
+                              level="H"
+                            />
+                          </div>
+                        ))}
+
+                        {/* Footer */}
+                        {/* <div className="border-t px-6 py-4">
+                          <button
+                            onClick={() => setShowQRPopup(false)}
+                            className="w-full rounded-xl bg-black py-2 text-white hover:bg-gray-800 transition"
+                          >
+                            Đóng
+                          </button>
+                        </div> */}
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -470,7 +534,7 @@ export default function ProductionDetailPage() {
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             MÃ NVL
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                             SỐ LƯỢNG
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -482,25 +546,31 @@ export default function ProductionDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {process.inputMaterials.map((material, matIndex) => (
-                          <tr key={matIndex} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900">
-                              {material.name}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
-                              {"code" in material ? material.code ?? "-" : "-"}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                              {material.quantity}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
-                              {material.unit}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
-                              {"note" in material ? material.note ?? "-" : "-"}
-                            </td>
-                          </tr>
-                        ))}
+                        {stage.input_materials.map(
+                          (material: any, index: number) => (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {material.name}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">
+                                {"code" in material
+                                  ? material.code ?? "-"
+                                  : "-"}
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm text-gray-900 font-medium textright">
+                                {material.quantity}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">
+                                {material.unit}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">
+                                {"note" in material
+                                  ? material.note ?? "-"
+                                  : "-"}
+                              </td>
+                            </tr>
+                          )
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -512,59 +582,36 @@ export default function ProductionDetailPage() {
                     <BiCheckCircle className="w-4 h-4" />
                     THÀNH PHẨM CÔNG ĐOẠN
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
                       <div className="text-sm text-blue-600">
                         Tên thành phẩm
                       </div>
                       <div className="font-medium">
-                        {process.outputMaterial}
+                        {stage.output_product.name}
                       </div>
                     </div>
-                    <div>
+                    <div className="text-end">
                       <div className="text-sm text-blue-600">Số lượng</div>
                       <div className="font-medium">
-                        {process.outputQuantity}
+                        {stage.output_product.quantity}
                       </div>
                     </div>
+                    <div></div>
                     <div>
                       <div className="text-sm text-blue-600">Đơn vị</div>
-                      <div className="font-medium">{process.outputUnit}</div>
+                      <div className="font-medium">
+                        {stage.output_product.unit}
+                      </div>
                     </div>
                     <div>
                       <div className="text-sm text-blue-600">Mã công đoạn</div>
-                      <div className="font-medium">{process.code}</div>
+                      <div className="font-medium">
+                        {stage.output_product.code}
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Action Buttons */}
-                {!process.finalProduct && (
-                  <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                    {isInProgress ? (
-                      <div>
-                        <div className="text-sm text-green-600 flex items-center gap-2">
-                          <BsClock className="w-4 h-4" />
-                          <span>Đang gia công</span>
-                        </div>
-                      </div>
-                    ) : (
-                      stageStatus === "pending" && (
-                        <div className="text-sm text-yellow-600 flex items-center gap-2">
-                          <BsClock className="w-4 h-4" />
-                          <span>Đang chờ xử lý</span>
-                        </div>
-                      )
-                    )}
-
-                    {stageStatus === "completed" && (
-                      <div className="text-sm text-green-600 flex items-center gap-2">
-                        <BiCheckCircle className="w-4 h-4" />
-                        Đã hoàn thành
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             );
           })}
