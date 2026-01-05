@@ -1,11 +1,12 @@
 "use client";
 import { orderApi } from "@/apiRequests/order";
+import { productionsApi } from "@/apiRequests/productions";
 import { FileTextOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Descriptions } from "antd";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { BiBook, BiPackage, BiSolidZap } from "react-icons/bi";
+import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
 import {
   BsArrowLeft,
   BsClock,
@@ -13,6 +14,7 @@ import {
   BsPrinter,
   BsScissors,
 } from "react-icons/bs";
+import Loading from "../../loading";
 
 export default function ProductionDetailPage() {
   const params = useParams();
@@ -43,13 +45,24 @@ export default function ProductionDetailPage() {
     staleTime: 2 * 60 * 1000,
   });
 
+  const { data: productionSchedules } = useQuery({
+    queryKey: ["productionSchedules"],
+    queryFn: async () => {
+      if (!id) {
+        throw new Error("Order ID is required");
+      }
+      const response = await productionsApi.getProdyctionByOrderId(
+        id.toString()
+      );
+      return response;
+    },
+  });
+
+  console.log("production", productionSchedules);
+
   // Xử lý loading state
   if (isPending) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Đang tải thông tin đơn hàng...</div>
-      </div>
-    );
+    return <Loading text="Đang tải thông tin đơn hàng..." />;
   }
 
   console.log("data api", apiData);
@@ -94,111 +107,7 @@ export default function ProductionDetailPage() {
     );
   }
 
-  // Dữ liệu dựa trên phiếu lệnh sản xuất
-  const productionProcess = [
-    {
-      id: "ralo",
-      name: "Ralo",
-      code: "25-557", // Mã công đoạn
-      inputMaterials: [
-        { name: "Giấy Duplex 350", quantity: 320, unit: "tờ", code: "VT00798" },
-      ],
-      outputMaterial: "Giấy đã ralo (300x90x230)mm",
-      outputQuantity: 320,
-      outputUnit: "tờ",
-      note: "Khổ 1000, chặt 440",
-    },
-    {
-      id: "cut",
-      name: "Cắt",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã ralo", quantity: 320, unit: "tờ" }],
-      outputMaterial: "Giấy đã cắt (300x90x230)mm",
-      outputQuantity: 320,
-      outputUnit: "tờ",
-      note: "Cắt hớt 2 chiều 440 về 435",
-    },
-    {
-      id: "print",
-      name: "In",
-      code: "25-557",
-      inputMaterials: [
-        { name: "Giấy đã cắt", quantity: 70, unit: "tờ" },
-        { name: "Kẽm in", quantity: 4, unit: "bản", code: "VT007" },
-        { name: "Mực các loại", quantity: 0.1, unit: "kg", code: "VT00433" },
-      ],
-      outputMaterial: "Giấy đã in (300x90x230)mm",
-      outputQuantity: 70,
-      outputUnit: "tờ",
-    },
-    {
-      id: "laminate",
-      name: "Cán màng",
-      code: "25-557",
-      inputMaterials: [
-        { name: "Giấy đã in", quantity: 60, unit: "tờ" },
-        {
-          name: "Màng BÓNG nhiệt 1205",
-          quantity: 0.42,
-          unit: "kg",
-          code: "VT00684",
-          note: "mix khổ 480",
-        },
-      ],
-      outputMaterial: "Giấy đã cán màng (300x90x230)mm",
-      outputQuantity: 60,
-      outputUnit: "tờ",
-      note: "Màng Bóng",
-    },
-    {
-      id: "corrugate",
-      name: "Bồi sóng",
-      code: "25-557",
-      inputMaterials: [
-        { name: "Giấy đã cán màng", quantity: 50, unit: "tờ" },
-        { name: "Kéo phù bài", quantity: 0.08, unit: "kg", code: "VT00434" },
-        {
-          name: "Sóng E nâu",
-          quantity: 60,
-          unit: "tờ",
-          code: "VTHT00106",
-          note: "khổ 430 x dài 815mm",
-        },
-      ],
-      outputMaterial: "Giấy đã bồi sóng (300x90x230)mm",
-      outputQuantity: 50,
-      outputUnit: "tờ",
-      note: "Sóng mẫu HT",
-    },
-    {
-      id: "crease",
-      name: "Bể",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã bồi sóng", quantity: 40, unit: "tờ" }],
-      outputMaterial: "Giấy đã bể (300x90x230)mm",
-      outputQuantity: 40,
-      outputUnit: "tờ",
-    },
-    {
-      id: "diecut",
-      name: "Dứt",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã bể", quantity: 40, unit: "tờ" }],
-      outputMaterial: "Giấy đã dứt (300x90x230)mm",
-      outputQuantity: 40,
-      outputUnit: "tờ",
-    },
-    {
-      id: "glue",
-      name: "Dán",
-      code: "25-557",
-      inputMaterials: [{ name: "Giấy đã dứt", quantity: 30, unit: "tờ" }],
-      outputMaterial: "Thành phẩm hoàn chỉnh",
-      outputQuantity: 30,
-      outputUnit: "chiếc",
-      finalProduct: true,
-    },
-  ];
+
 
   const productionStages = [
     {
@@ -214,7 +123,7 @@ export default function ProductionDetailPage() {
       color: "bg-purple-100 text-purple-700",
     },
     {
-      id: "print",
+      id: 3,
       name: "In",
       icon: BsPrinter,
       color: "bg-green-100 text-green-700",
@@ -238,13 +147,13 @@ export default function ProductionDetailPage() {
       color: "bg-red-100 text-red-700",
     },
     {
-      id: "diecut",
+      id: 8,
       name: "Dứt",
       icon: BsScissors,
       color: "bg-pink-100 text-pink-700",
     },
     {
-      id: "glue",
+      id: 9,
       name: "Dán",
       icon: BiBook,
       color: "bg-indigo-100 text-indigo-700",
@@ -814,6 +723,178 @@ export default function ProductionDetailPage() {
       )}
       {/* Tiến trình sản xuất chi tiết */}
       {activeTab === "scheduled" && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+            <BsClock className="w-5 h-5 text-blue-500" />
+            QUY TRÌNH SẢN XUẤT CHI TIẾT
+          </h2>
+          <div className="space-y-8">
+            {productionSchedules.stages.map((stage: any) => {
+              const stageInfo = productionStages.find(
+                (s) => s.id === stage.process_id
+              );
+              const StageIcon = stageInfo?.icon || BsScissors;
+              const isCompleted = stage.status === "Finished";
+              const isInProgress = stage.status === "Ready";
+              const isUnassigned = stage.status === "Unassigned";
+              return (
+                <div
+                  key={stage.process_id}
+                  className="border-l-4 border-blue-200 pl-6 ml-4 relative"
+                >
+                  {/* Timeline dot */}
+                  <div
+                    className={`absolute -left-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${
+                      isCompleted
+                        ? "bg-green-500"
+                        : isInProgress
+                        ? "bg-yellow-500"
+                        : "bg-gray-300"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <BiCheckCircle className="w-4 h-4 text-white" />
+                    ) : isInProgress ? (
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                    ) : (
+                      <div className="w-2 h-2 bg-white rounded-full" />
+                    )}
+                  </div>
+                  {/* Stage header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${stageInfo?.color}`}>
+                        <StageIcon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900">
+                          {stage.process_name} {stage.machine}
+                        </h3>
+                        <p
+                          className={`text-sm ${
+                            isCompleted
+                              ? "text-green-600"
+                              : isInProgress
+                              ? "text-yellow-600"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {isCompleted
+                            ? " Đã hoàn thành"
+                            : isInProgress
+                            ? " Đang thực hiện"
+                            : " Chờ xử lý"}
+                        </p>
+                      </div>
+                    </div>
+                    {stage.task_name && (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                        {stage.task_name}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Input Materials Table */}
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+                      <BiPackage className="w-4 h-4" />
+                      NGUYÊN VẬT LIỆU ĐẦU VÀO
+                    </h4>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              TÊN NVL
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              MÃ NVL
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              SỐ LƯỢNG
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ĐVT
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              GHI CHÚ
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {stage.input_materials.map(
+                            (material: any, index: number) => (
+                              <tr key={index} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {material.name}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500">
+                                  {"code" in material
+                                    ? material.code ?? "-"
+                                    : "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right text-sm text-gray-900 font-medium textright">
+                                  {material.quantity}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500">
+                                  {material.unit}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500">
+                                  {"note" in material
+                                    ? material.note ?? "-"
+                                    : "-"}
+                                </td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Output Material */}
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+                    <h4 className="font-medium text-blue-700 mb-2 flex items-center gap-2">
+                      <BiCheckCircle className="w-4 h-4" />
+                      THÀNH PHẨM CÔNG ĐOẠN
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                      <div>
+                        <div className="text-sm text-blue-600">
+                          Tên thành phẩm
+                        </div>
+                        <div className="font-medium">
+                          {stage.output_product.name}
+                        </div>
+                      </div>
+                      <div className="text-end">
+                        <div className="text-sm text-blue-600">Số lượng</div>
+                        <div className="font-medium">
+                          {stage.output_product.quantity}
+                        </div>
+                      </div>
+                      <div></div>
+                      <div>
+                        <div className="text-sm text-blue-600">Đơn vị</div>
+                        <div className="font-medium">
+                          {stage.output_product.unit}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-blue-600">
+                          Mã công đoạn
+                        </div>
+                        <div className="font-medium">
+                          {stage.output_product.code}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
         // <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         //   <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
         //     <BsClock className="w-5 h-5 text-blue-500" />
@@ -1012,7 +1093,6 @@ export default function ProductionDetailPage() {
         //     })}
         //   </div>
         // </div>
-        <></>
       )}
     </div>
   );

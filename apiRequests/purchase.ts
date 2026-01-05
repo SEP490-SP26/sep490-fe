@@ -18,7 +18,7 @@ export const purchasesApi = {
 
   receiveInventory: (purchaseId: number, body: any) =>
     http.put<CommonResType>(
-      `/api/Purchases/orders/receive-all/?purchaseId=${purchaseId}`,
+      `/api/Purchases/orders/receive-all?purchaseId=${purchaseId}`,
       body
     ),
 };

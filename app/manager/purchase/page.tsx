@@ -3,6 +3,7 @@ import { materialsApi } from "@/apiRequests/materials";
 import { purchasesApi } from "@/apiRequests/purchase";
 import { supplierApi } from "@/apiRequests/supplier";
 import Loading from "@/app/(overview)/loading";
+import SupplierQuoteCard from "@/components/Card/SupplierQuoteCard ";
 import { PurchaseOrder, useProduction } from "@/context/ProductionContext";
 import {
   showErrorToast,
@@ -10,9 +11,9 @@ import {
   showWarningToast,
 } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
-import { Spin } from "antd";
+import { Rate, Spin } from "antd";
 import { useState, useEffect } from "react";
-import { BiPlus, BiSearch } from "react-icons/bi";
+import { BiEnvelope, BiPlus, BiSearch, BiTime } from "react-icons/bi";
 import { BsCheckCircle, BsClock, BsTruck, BsX } from "react-icons/bs";
 
 // Thêm vào đầu component
@@ -117,17 +118,18 @@ export default function PurchaseManagement() {
   >("pending");
   const [showDirectPO, setShowDirectPO] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const {
-    materials,
-    orders,
-    purchaseRequests,
-    purchaseOrders,
-    createPurchaseOrder,
-  } = useProduction();
+  const { materials } = useProduction();
 
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
+  const [showSupplierByItemPopup, setShowSupplierByItemPopup] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [supplierId, setSupplierId] = useState<number | null>(null);
+  const [quotePopupMaterial, setQuotePopupMaterial] = useState<{
+    material_id: string | number;
+    material_name: string;
+    quantity: number;
+    unit: string;
+  } | null>(null);
 
   const [selectedMaterials, setSelectedMaterials] = useState<
     SelectedMaterial[]
@@ -137,6 +139,42 @@ export default function PurchaseManagement() {
   const [materialQuantities, setMaterialQuantities] = useState<
     Record<string, number>
   >({});
+  const [selectedSuppliers, setSelectedSuppliers] = useState<
+    Record<string | number, any>
+  >({});
+
+  const handleSelectSupplier = (supplier: any) => {
+    if (!quotePopupMaterial) return;
+
+    // Lưu supplier đã chọn
+    setSelectedSuppliers((prev) => ({
+      ...prev,
+      [quotePopupMaterial.material_id]: supplier,
+    }));
+
+    // Cập nhật selectedMaterials nếu material đó đang được chọn
+    setSelectedMaterials((prev) =>
+      prev.map((item) =>
+        item.material_id === quotePopupMaterial.material_id
+          ? {
+              ...item,
+              supplier_id: supplier.id,
+              supplier_name: supplier.name,
+              price: supplier.price,
+              total_price: supplier.price * quotePopupMaterial.quantity,
+            }
+          : item
+      )
+    );
+
+    // Hiển thị thông báo
+    alert(
+      `Đã chọn nhà cung cấp ${supplier.name} cho ${quotePopupMaterial.material_name}`
+    );
+
+    // Đóng popup
+    handleClosePopup();
+  };
 
   const {
     isPending,
@@ -147,7 +185,7 @@ export default function PurchaseManagement() {
     queryFn: async () => {
       try {
         const response = await supplierApi.getList(1, 100);
-        console.log("Response supplier data:", response.data);
+        // console.log("Response supplier data:", response.data);
         return response.data;
       } catch (error) {
         console.error("Error fetching orders:", error);
@@ -158,12 +196,13 @@ export default function PurchaseManagement() {
     // staleTime: 5 * 60 * 1000,
   });
 
+  // Lấy danh sách đơn đặt hàng
   const { isPending: poLoading, data: poData } = useQuery({
     queryKey: ["purchase-orders"],
     queryFn: async () => {
       try {
         const response = await purchasesApi.getList(1, 100);
-        console.log("Response po data:", response.data);
+        // console.log("Response po data:", response.data);
         return response.data;
       } catch (error) {
         console.error("Error fetching purchase orders:", error);
@@ -171,14 +210,15 @@ export default function PurchaseManagement() {
       }
     },
   });
-  console.log("poData", poData);
+  // console.log("poData", poData);
 
+  // Lấy danh sách vật tư cần đặt hàng
   const { data: missing_materials, isPending: materialLoading } = useQuery({
     queryKey: ["missing-materials"],
     queryFn: async () => {
       try {
         const response = await materialsApi.getListMissingMaterial(1, 100);
-        console.log("Response miss data:", response.data);
+        // console.log("Response miss data:", response.data);
         return response.data;
       } catch (error) {
         console.error("Error fetching purchase orders:", error);
@@ -187,15 +227,49 @@ export default function PurchaseManagement() {
     },
   });
 
+  // Lấy nhà cung cấp theo material id khi mở popup khảo giá
+  const {
+    data: suppliers = [],
+    isLoading: loadingSuppliers,
+    error: supplierError,
+    refetch,
+  } = useQuery({
+    queryKey: ["supplier-by-id", quotePopupMaterial?.material_id],
+    queryFn: async () => {
+      try {
+        if (!quotePopupMaterial?.material_id) {
+          return [];
+        }
+
+        const response = await supplierApi.getByMaterialId(
+          quotePopupMaterial.material_id.toString()
+        );
+        console.log("Response suppliers by material id:", response);
+
+        // Đảm bảo luôn có return
+        return response || [];
+      } catch (error: any) {
+        console.error("Error fetching suppliers:", error);
+        return []; // Luôn return mảng rỗng thay vì undefined
+      }
+    },
+    // enabled: !!quotePopupMaterial,
+    // staleTime: 5 * 60 * 1000,
+  });
+
+  console.log("supplier by material", suppliers);
+
   if (materialLoading) {
     return (
-      <div>
-        <Loading />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
       </div>
     );
   }
 
-  console.log("missing data", missing_materials);
+  // console.log("missing data", missing_materials);
 
   // Xử lý tạo đơn hàng với nhiều vật tư
   const handleCreateBulkPO = async () => {
@@ -219,13 +293,18 @@ export default function PurchaseManagement() {
       })),
     };
 
-    console.log("Request body:", requestBody);
+    // console.log("Request body:", requestBody);
 
     try {
       const response = await purchasesApi.createPO(requestBody);
-      console.log("Create PO response:", response);
+      // console.log("Create PO response:", response);
 
-      if (response.success) {
+      if (
+        response?.success === true ||
+        response?.data?.success === true ||
+        response?.status === 200 ||
+        response?.status === 201
+      ) {
         showSuccessToast("Tạo đơn đặt hàng thành công!");
 
         // Reset form
@@ -237,7 +316,7 @@ export default function PurchaseManagement() {
         // Có thể refetch data nếu cần
         // refetchMissingMaterials();
       } else {
-        showErrorToast(response.message || "Có lỗi xảy ra khi tạo đơn hàng");
+        showErrorToast(response.message || "Tạo đơn đặt hàng thành công!");
       }
     } catch (error) {
       console.error("Error creating PO:", error);
@@ -273,6 +352,20 @@ export default function PurchaseManagement() {
       return [];
     }
     return poData.filter((po: any) => po.status === status);
+  };
+
+  // Mở popup khảo giá
+  const handleOpenQuotePopup = (pr: any, currentQuantity: number) => {
+    setQuotePopupMaterial({
+      material_id: pr.material_id,
+      material_name: pr.material_name,
+      quantity: currentQuantity,
+      unit: pr.unit,
+    });
+  };
+
+  const handleClosePopup = () => {
+    setQuotePopupMaterial(null);
   };
 
   return (
@@ -521,6 +614,9 @@ export default function PurchaseManagement() {
                           <td className="px-4 py-3 text-sm text-gray-500">
                             <button
                               type="button"
+                              onClick={() =>
+                                handleOpenQuotePopup(pr, currentQuantity)
+                              }
                               className="mt-2 bg-accent px-2 py-1 rounded-md text-primary"
                             >
                               Khảo giá
@@ -531,6 +627,95 @@ export default function PurchaseManagement() {
                     })}
                   </tbody>
                 </table>
+
+                {/* Supplier Selection by item id Popup */}
+                {quotePopupMaterial && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden">
+                      {/* Header */}
+                      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              Khảo giá: {quotePopupMaterial.material_name}
+                            </h3>
+                            Mã vật tư:{" "}
+                            <span className="font-medium">
+                              {quotePopupMaterial.material_id}
+                            </span>
+                          </div>
+
+                          {/* <div className="text-sm text-gray-600 mt-1"> */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              Số lượng:{" "}
+                              <span className="font-medium">
+                                {quotePopupMaterial.quantity}{" "}
+                                {quotePopupMaterial.unit}
+                              </span>
+                            </div>
+                          </div>
+                          {/* </div> */}
+
+                          <button
+                            onClick={handleClosePopup}
+                            className="text-gray-400 hover:text-gray-600 text-xl"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-6 overflow-y-auto max-h-[60vh]">
+                        {loadingSuppliers ? (
+                          <div className="flex justify-center items-center py-12">
+                            <Spin size="large" />
+                            <span className="ml-3 text-gray-600">
+                              Đang tải danh sách nhà cung cấp...
+                            </span>
+                          </div>
+                        ) : supplierError ? (
+                          <div className="text-center py-12">
+                            <div className="text-red-500 mb-2">
+                              Không thể tải danh sách nhà cung cấp
+                            </div>
+                            <button
+                              onClick={() => refetch()}
+                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              Thử lại
+                            </button>
+                          </div>
+                        ) : suppliers.length === 0 ? (
+                          <div className="text-center py-12 text-gray-400">
+                            <p>
+                              Không tìm thấy nhà cung cấp nào cho vật tư này
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <h4 className="font-medium text-gray-900 mb-4">
+                              Có {suppliers.length} nhà cung cấp có thể cung cấp
+                            </h4>
+                            <div className="space-y-4">
+                              {suppliers.map((supplier: any) => (
+                                <SupplierQuoteCard
+                                  key={supplier.id}
+                                  supplier={supplier}
+                                  material={quotePopupMaterial}
+                                  onSelect={() =>
+                                    handleSelectSupplier(supplier)
+                                  }
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {missing_materials.length === 0 && (
                   <div className="text-center py-12 text-gray-400">
@@ -669,85 +854,77 @@ export default function PurchaseManagement() {
                                           : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
                                       }`}
                                     >
-                                      <div className="flex items-start justify-between">
+                                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex-1">
-                                          <div className="flex items-center gap-3 mb-2">
-                                            <div className="font-semibold text-gray-900">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className=" font-semibold text-gray-900">
                                               {s.name}
+                                              {s.mainMaterialType && (
+                                                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs mr-2">
+                                                  {s.mainMaterialType}
+                                                </span>
+                                              )}
                                             </div>
-                                            <div
-                                              className={`px-2 py-1 rounded text-xs font-medium ${
-                                                s.reliability === "Rất cao"
-                                                  ? "bg-green-100 text-green-700"
-                                                  : s.reliability === "Cao"
-                                                  ? "bg-blue-100 text-blue-700"
-                                                  : "bg-yellow-100 text-yellow-700"
-                                              }`}
-                                            >
-                                              {s.reliability}
+                                            <div className="text-sm text-gray-500">
+                                              <span className="text-gray-400">
+                                                •
+                                              </span>
+                                              <span className="ml-2">
+                                                {s.contactPerson} - {s.phone}
+                                              </span>
                                             </div>
                                           </div>
 
-                                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                                            <div className="flex items-center gap-1">
-                                              {renderRatingStars(s.rating)}
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600 mt-3">
+                                            <div className="flex items-center gap-2">
+                                              <div className="flex items-center">
+                                                <Rate
+                                                  disabled
+                                                  allowHalf
+                                                  defaultValue={s.rating || 0}
+                                                  className="text-sm"
+                                                />
+                                                <span className="ml-2 font-medium">
+                                                  {s.rating?.toFixed(1) ||
+                                                    "0.0"}
+                                                </span>
+                                              </div>
                                             </div>
 
-                                            <div className="flex items-center gap-1">
-                                              <svg
-                                                className="w-4 h-4 text-gray-400"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                />
-                                              </svg>
+                                            <div className="flex items-center gap-2">
+                                              <BiTime className="w-4 h-4" />
                                               <span>
-                                                Giao hàng: {s.deliveryTime}
+                                                Thời gian giao:{" "}
+                                                {s.deliveryTime || "Liên hệ"}
                                               </span>
                                             </div>
 
-                                            <div className="flex items-center gap-1">
-                                              <svg
-                                                className="w-4 h-4 text-gray-400"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                              >
-                                                <path
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                  strokeWidth={2}
-                                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                />
-                                              </svg>
-                                              <span>Tỷ lệ đúng hạn: 95%</span>
-                                            </div>
-                                          </div>
-
-                                          {/* Additional Info */}
-                                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
-                                            <div className="flex items-center gap-1">
-                                              <svg
-                                                className="w-3 h-3"
-                                                fill="currentColor"
-                                                viewBox="0 0 20 20"
-                                              >
-                                                <path
-                                                  fillRule="evenodd"
-                                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-                                                  clipRule="evenodd"
-                                                />
-                                              </svg>
-                                              <span>Chất lượng: Ổn định</span>
+                                            <div className="flex items-center gap-2">
+                                              <BiEnvelope className="w-4 h-4" />
+                                              <span className="truncate">
+                                                {s.email || "Chưa có email"}
+                                              </span>
                                             </div>
                                           </div>
                                         </div>
+
+                                        {/* <div className="flex-shrink-0 space-y-2">
+          <button
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm w-full"
+            onClick={() => onSelect(supplier)}
+          >
+            <BiCheck className="w-4 h-4" />
+            Chọn nhà cung cấp
+          </button>
+
+          <button
+            className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm w-full"
+            onClick={() => (window.location.href = `tel:${supplier.phone}`)}
+          >
+            <BiPhone className="w-4 h-4" />
+            Gọi điện liên hệ
+          </button>
+        </div> */}
                                       </div>
                                     </div>
                                   ))}
@@ -896,9 +1073,9 @@ export default function PurchaseManagement() {
                     </div>
                     <div>
                       Đặt ngày:{" "}
-                      {new Date(
-                        orderGroup.createdAt
-                      ).toLocaleDateString("vi-VN")}
+                      {new Date(orderGroup.createdAt).toLocaleDateString(
+                        "vi-VN"
+                      )}
                     </div>
                   </div>
                 </div>

@@ -12,4 +12,7 @@ export const supplierApi = {
 
   getDetail: (id: string) =>
     http.get<CommonResType>(`/api/Suppliers/detail/${id}`),
+
+  getByMaterialId: (materialId: string) =>
+    http.get<CommonResType>(`/api/Suppliers/suppliers-by-material-id?id=${materialId}`),
 };
