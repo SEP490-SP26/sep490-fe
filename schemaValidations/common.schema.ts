@@ -75,6 +75,7 @@ export interface OtpResponse {
 }
 
 export interface EstimatePaperRequest {
+  order_request_id?: number;
   paper_code: string;
   quantity: number;
   length_mm: number;
@@ -120,9 +121,8 @@ export interface EstimateCostRequest {
   form_product?: string;
   production_processes?: string;
   coating_type?: string;
-  has_lamination?: boolean;
   discount_percent?: number;
-  wave_type?: string; // Loại sóng khi có BOI
+  wave_type?: string;
 }
 
 export interface MaterialCostDetail {
@@ -134,7 +134,8 @@ export interface MaterialCostDetail {
   note: string;
 }
 
-export interface EstimateCostResponse {
+// Cost data within EstimateCostResponse
+export interface EstimateCostData {
   // Paper costs
   paper_cost: number;
   paper_sheets_used: number;
@@ -186,9 +187,16 @@ export interface EstimateCostResponse {
   final_total_cost: number;
   estimated_finish_date: string;
   total_area_m2: number;
+  design_cost: number;
 
   // Material details
   material_cost_details: MaterialCostDetail[];
+}
+
+// New response structure with cost and process_cost
+export interface EstimateCostResponse {
+  cost: EstimateCostData;
+  process_cost: ProcessCostBreakdownResponse;
 }
 
 export interface AdjustFinalCostRequest {

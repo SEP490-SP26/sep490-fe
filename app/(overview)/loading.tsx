@@ -8,7 +8,6 @@ export default function Loading() {
       {/* <LoadingOutlined /> */}
       <div className="flex space-x-2 justify-center items-center bg-white h-screen">
         <span className="sr-only">Loading...</span>
-
         <Spin />
       </div>
     </div>

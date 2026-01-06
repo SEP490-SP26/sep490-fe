@@ -1,8 +1,8 @@
 "use client";
 import { productionsApi } from "@/apiRequests/productions";
 import { useProduction } from "@/context/ProductionContext";
-import { showInfoToast } from "@/utils/toastService";
-import { useQuery } from "@tanstack/react-query";
+import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toastService";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { BiPackage } from "react-icons/bi";
@@ -10,6 +10,7 @@ import {
   BsBook,
   BsCalendar,
   BsEye,
+  BsGear,
   BsLayers,
   BsPlay,
   BsPrinter,
@@ -18,12 +19,14 @@ import {
 import { FiZap } from "react-icons/fi";
 
 export default function ProductionScheduling() {
+  const queryClient = useQueryClient();
+  
   const {
     products,
     orders,
     productionSchedules,
     scheduleProduction,
-    startProduction,
+    // startProduction,
     completeProduction,
     updateProductionStage,
   } = useProduction();
@@ -78,7 +81,32 @@ export default function ProductionScheduling() {
     },
   ];
 
-    const {
+  const mutation = useMutation({
+    mutationFn: async (order_id: string) => {
+      const response = await productionsApi.startProduction(order_id);
+      // Kiểm tra response nếu cần
+      if (!response.success) {
+        throw new Error(response.message || "Bắt đầu sản xuất");
+      }
+      return response;
+    },
+    onSuccess: (data, order_id) => {
+      showSuccessToast(`Đã bắt đầu sản xuất đơn hàng ${order_id}`);
+
+      // Invalidate queries để tự động refetch
+      queryClient.invalidateQueries({ queryKey: ["production-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+      // Hoặc refetch cụ thể
+      // refetchSupplierData();
+    },
+    onError: (error: any) => {
+      console.error("Start production error:", error);
+      showErrorToast(error.message || "Có lỗi xảy ra khi bắt đầu sản xuất");
+    },
+  });
+
+  const {
     data: scheduledOrder,
     isPending,
     error,
@@ -105,14 +133,14 @@ export default function ProductionScheduling() {
   );
 
   // Đơn hàng đã lên lịch
-  const scheduledOrders = orders
+  const scheduledOrders = scheduledOrder
     .filter(
-      (o) =>
-        o.status === "scheduled" ||
-        o.status === "in_production" ||
-        o.status === "completed"
+      (o: any) =>
+        o.production_status === "Scheduled" ||
+        o.production_status === "in_production" ||
+        o.production_status === "Finished"
     )
-    .map((order) => ({
+    .map((order: any) => ({
       ...order,
       schedule: productionSchedules.find((s) => s.order_id === order.order_id),
       product: products.find((p) => p.id === order.product_id),
@@ -145,26 +173,31 @@ export default function ProductionScheduling() {
   const weeks = getWeeks();
 
   // Lọc lịch theo tuần
-  const getSchedulesForWeek = (weekStart: Date, weekEnd: Date) => {
-    return scheduledOrders.filter((order) => {
-      if (!order.schedule) return false;
+  // const getSchedulesForWeek = (weekStart: Date, weekEnd: Date) => {
+  //   return scheduledOrders.filter((order: any) => {
+  //     if (!order.schedule) return false;
 
-      const scheduleStart = new Date(order.schedule.start_date);
-      const scheduleEnd = new Date(order.schedule.end_date);
+  //     const scheduleStart = new Date(order.schedule.start_date);
+  //     const scheduleEnd = new Date(order.schedule.end_date);
 
-      return scheduleStart <= weekEnd && scheduleEnd >= weekStart;
-    });
-  };
+  //     return scheduleStart <= weekEnd && scheduleEnd >= weekStart;
+  //   });
+  // };
 
   const handleSchedule = (orderId: string) => {
     scheduleProduction(orderId);
     showInfoToast("Đã lên lịch sản xuất cho đơn hàng");
   };
 
-  const handleStart = (scheduleId: string) => {
-    if (confirm("Bắt đầu sản xuất?")) {
-      startProduction(scheduleId);
-    }
+  const handleStart = (order_id: string) => {
+    if (mutation.isPending) return; // Prevent multiple clicks
+
+    mutation.mutate(order_id, {
+      onError: (error) => {
+        // Xử lý lỗi cụ thể cho từng request nếu cần
+        console.log(`Error for order ${order_id}:`, error);
+      },
+    });
   };
 
   const handleComplete = (scheduleId: string) => {
@@ -272,58 +305,7 @@ export default function ProductionScheduling() {
       <h1 className="mb-8">Lập lịch Sản xuất</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Đơn hàng sẵn sàng */}
-        {/* <div className="bg-white rounded-lg border border-gray-200 p-6 ">
-          <h2 className="mb-4 flex items-center gap-2">
-            <BsClock className="w-5 h-5 text-blue-500" />
-            Sẵn sàng lên lịch ({readyOrders.length})
-          </h2>
-
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {readyOrders.map((order) => {
-              const product = products.find((p) => p.id === order.product_id);
-
-              return (
-                <div
-                  key={order.id}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="mb-3">
-                    <div className="text-gray-900 font-medium">
-                      {order.customer_name}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      {product?.type} • Số lượng: {order.quantity}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      Giao:{" "}
-                      {new Date(order.delivery_date).toLocaleDateString(
-                        "vi-VN"
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      LSX: {order.id}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleSchedule(order.id)}
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2"
-                  >
-                    <BsCalendar className="w-4 h-4" />
-                    Lên lịch sản xuất
-                  </button>
-                </div>
-              );
-            })}
-
-            {readyOrders.length === 0 && (
-              <div className="text-gray-400 text-center py-8 text-sm">
-                Không có đơn hàng sẵn sàng
-              </div>
-            )}
-          </div>
-        </div> */}
+   
         {/* Đã lên lịch */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="mb-4 flex items-center gap-2">
@@ -331,55 +313,54 @@ export default function ProductionScheduling() {
             Đã lên lịch
           </h2>
 
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {scheduledOrders
-              .filter((o) => o.schedule?.status === "scheduled")
-              .map((order) => (
+          <div className="space-y-1.5 max-h-150 overflow-y-auto">
+            {scheduledOrder
+              .filter((o: any) => o.production_status === "Scheduled")
+              .map((order: any) => (
                 <div
                   key={order.order_id}
-                  className="border border-blue-200 bg-blue-50 rounded-lg p-4"
+                  className="flex items-center justify-between p-3 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                 >
-                  <div className="mb-3">
-                    <div className="text-gray-900 font-medium">
-                      {order.customer_name}
+                  {/* Left side: Order info */}
+                  <div className="flex-1 min-w-0 pr-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="font-medium text-gray-900 text-sm truncate">
+                        {order.customer_name?.substring(0, 20) || "Khách lẻ"}
+                        {order.customer_name?.length > 30 && "..."}
+                      </div>
+                      <div className="text-xs font-semibold text-blue-700">
+                        SL: {order.quantity}
+                      </div>
                     </div>
-                    <div className="text-gray-500 text-sm">
-                      {order.product?.type} • SL: {order.quantity}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      Giao:{" "}
-                      {new Date(order.delivery_date).toLocaleDateString(
-                        "vi-VN"
-                      )}
-                    </div>
-                    {order.schedule && (
-                      <div className="text-gray-500 text-sm">
-                        Kế hoạch:{" "}
-                        {new Date(order.schedule.start_date).toLocaleDateString(
-                          "vi-VN"
-                        )}{" "}
-                        →{" "}
-                        {new Date(order.schedule.end_date).toLocaleDateString(
+
+                    <div className="flex items-center gap-3 text-xs text-gray-600">
+                      <span>
+                        {" "}
+                        Ngày giao:{" "}
+                        {new Date(order.delivery_date).toLocaleDateString(
                           "vi-VN"
                         )}
-                      </div>
-                    )}
-                    {/* Current stage */}
+                      </span>
+                      {/* <span className="flex items-center gap-1">
+                        <BsGear className="w-3 h-3" />
+                        {productionStages.length} công đoạn
+                      </span> */}
+                    </div>
                     <div className="mt-3">
-                      <div className="text-xs font-medium text-gray-700 mb-2">
+                      {/* <div className="text-xs font-medium text-gray-700 mb-2">
                         Tất cả công đoạn:
-                      </div>
+                      </div> */}
                       <div className="flex flex-wrap gap-1">
-                        {productionStages.map((stage) => {
+                        {order.stages.map((stage: any, index: number) => {
                           return (
                             <div
-                              key={stage.id}
+                              key={index}
                               className={`flex items-center gap-1 px-2 py-1 rounded border text-xs 
                               bg-gray-100 text-gray-500
                               `}
                             >
                               {/* <StageIcon className="w-3 h-3" /> */}
-                              {stage.name}
+                              {stage}
                             </div>
                           );
                         })}
@@ -387,22 +368,47 @@ export default function ProductionScheduling() {
                     </div>
                   </div>
 
-                  {order.schedule && (
-                    <button
-                      onClick={() => handleStart(order.schedule!.id)}
-                      className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm flex items-center justify-center gap-2"
-                    >
-                      <BsPlay className="w-4 h-4" />
-                      Bắt đầu sản xuất
-                    </button>
-                  )}
+                  {/* Right side: Action button */}
+                  <button
+                    onClick={() => handleStart(order.order_id)}
+                    className={`px-3 py-1.5 rounded-lg transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                      mutation.isPending &&
+                      mutation.variables === order.order_id
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-yellow-600 hover:bg-yellow-700 text-white"
+                    }`}
+                    // disabled={
+                    //   !order.schedule ||
+                    //   (mutation.isPending &&
+                    //     mutation.variables === order.order_id)
+                    // }
+                  >
+                    {mutation.isPending &&
+                    mutation.variables === order.order_id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <BsPlay className="w-3 h-3" />
+                        Bắt đầu
+                      </>
+                    )}
+                  </button>
                 </div>
               ))}
 
-            {scheduledOrders.filter((o) => o.schedule?.status === "scheduled")
-              .length === 0 && (
-              <div className="text-gray-400 text-center py-8 text-sm">
-                Chưa có lịch sản xuất
+            {scheduledOrders.filter(
+              (o: any) => o.production_status === "Scheduled"
+            ).length === 0 && (
+              <div className="text-center py-4">
+                <div className="text-gray-400 text-sm mb-1">
+                  Không có lịch sản xuất
+                </div>
+                <div className="text-xs text-gray-500">
+                  Vui lòng lên lịch cho đơn hàng
+                </div>
               </div>
             )}
           </div>
@@ -414,11 +420,11 @@ export default function ProductionScheduling() {
             Đang sản xuất
           </h2>
 
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {scheduledOrders
-              .filter((o) => o.schedule?.status === "in_progress")
-              .map((order) => {
-                const progress = getStageProgress(order.schedule);
+          <div className="space-y-3 max-h-150 overflow-y-auto">
+            {scheduledOrder
+              .filter((o: any) => o.production_status === "InProcessing")
+              .map((order: any) => {
+                // const progress = getStageProgress(order.schedule);
 
                 return (
                   <div
@@ -428,35 +434,33 @@ export default function ProductionScheduling() {
                     <div className="mb-3">
                       <div className="flex justify-between items-start mb-2">
                         <div className="text-gray-900 font-medium">
-                          {order.customer_name}
+                          {order.customer_name || "Khách lẻ"}
                         </div>
-                        <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
-                          {progress.currentStage}
-                        </span>
-                      </div>
-                      <div className="text-gray-500 text-sm">
-                        {order.product?.type} • SL: {order.quantity}
-                      </div>
-                      <div className="text-gray-500 text-sm">
-                        Giao:{" "}
-                        {new Date(order.delivery_date).toLocaleDateString(
-                          "vi-VN"
-                        )}
+                        <div></div>
+                        <div className="text-gray-500 text-sm">
+                          {order.product?.type} SL: {order.quantity}
+                        </div>
+                        <div className="text-gray-500 text-sm">
+                          Giao:{" "}
+                          {new Date(order.delivery_date).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </div>
                       </div>
 
                       {/* Progress bar */}
-                      {/* <div className="mt-3">
+                      <div className="mt-3">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
                           <span>Tiến độ</span>
-                          <span>{Math.round(progress.progress)}%</span>
+                          <span>{Math.round(order.progress_percent)}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress.progress}%` }}
+                            style={{ width: `${order.progress_percent}%` }}
                           ></div>
                         </div>
-                      </div> */}
+                      </div>
 
                       {/* Current stage */}
                       <div className="mt-3">
@@ -464,16 +468,17 @@ export default function ProductionScheduling() {
                           Công đoạn hiện tại:
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {productionStages.map((stage, index) => {
+                          {order.stages.map((stage: any, index: number) => {
+                            const currentIndex = order.stages.indexOf(
+                              order.current_stage
+                            );
                             const isCompleted =
-                              index <= progress.completedStages.length - 1;
-                            const isCurrent =
-                              stage.id === progress.currentStage;
-                            const StageIcon = stage.icon;
+                              currentIndex !== -1 && index < currentIndex;
+                            const isCurrent = stage === order.current_stage;
 
                             return (
                               <div
-                                key={stage.id}
+                                key={index}
                                 className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
                                   isCurrent
                                     ? "bg-blue-100 text-blue-700 border border-blue-300"
@@ -482,8 +487,8 @@ export default function ProductionScheduling() {
                                     : "bg-gray-100 text-gray-500"
                                 }`}
                               >
-                                <StageIcon className="w-3 h-3" />
-                                {stage.name}
+                                {/* <StageIcon className="w-3 h-3" /> */}
+                                {stage}
                               </div>
                             );
                           })}
@@ -529,103 +534,16 @@ export default function ProductionScheduling() {
                 );
               })}
 
-            {scheduledOrders.filter((o) => o.schedule?.status === "in_progress")
-              .length === 0 && (
+            {scheduledOrders.filter(
+              (o: any) => o.production_status === "InProcessing"
+            ).length === 0 && (
               <div className="text-gray-400 text-center py-8 text-sm">
-                Không có đơn đang sản xuất
+                {/* Không có đơn đang sản xuất */}
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Bảng lịch trình theo tuần */}
-      {/* <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="mb-4">Lịch trình Sản xuất theo Tuần</h2>
-
-        <div className="mb-4">
-          <select
-            value={selectedWeek}
-            onChange={(e) => setSelectedWeek(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Tất cả các tuần</option>
-            {weeks.map((week, index) => (
-              <option key={index} value={index.toString()}>
-                {week.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-4">
-          {weeks.map((week, index) => {
-            if (selectedWeek && selectedWeek !== index.toString()) return null;
-
-            const weekSchedules = getSchedulesForWeek(week.start, week.end);
-
-            if (weekSchedules.length === 0 && selectedWeek) return null;
-
-            return (
-              <div
-                key={index}
-                className="border border-gray-200 rounded-lg p-4"
-              >
-                <div className="mb-3">
-                  <div className="text-gray-900 font-medium">{week.label}</div>
-                  <div className="text-gray-500 text-sm">
-                    {weekSchedules.length} đơn hàng
-                  </div>
-                </div>
-
-                {weekSchedules.length > 0 ? (
-                  <div className="space-y-2">
-                    {weekSchedules.map((order) => (
-                      <div
-                        key={order.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border ${
-                          order.schedule
-                            ? getStatusColor(order.schedule.status)
-                            : ""
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <div className="text-gray-900 font-medium">
-                            {order.customer_name}
-                          </div>
-                          <div className="text-gray-500 text-sm">
-                            {order.product?.type} • Số lượng: {order.quantity}
-                          </div>
-                          {order.schedule && (
-                            <div className="text-gray-500 text-sm">
-                              {new Date(
-                                order.schedule.start_date
-                              ).toLocaleDateString("vi-VN")}{" "}
-                              →{" "}
-                              {new Date(
-                                order.schedule.end_date
-                              ).toLocaleDateString("vi-VN")}
-                            </div>
-                          )}
-                        </div>
-                        {order.schedule && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-white">
-                            {getStatusLabel(order.schedule.status)}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-gray-400 text-center py-4 text-sm">
-                    Không có lịch sản xuất
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div> */}
     </div>
   );
 }

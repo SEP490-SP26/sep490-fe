@@ -6,30 +6,32 @@ import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import AddressMapPicker, { AddressResult } from "@/components/AddressMapPicker";
 import {
-    CheckCircleOutlined,
-    EnvironmentOutlined,
-    EyeOutlined,
-    InboxOutlined,
-    MailOutlined,
-    PlusOutlined
+  CheckCircleOutlined,
+  EnvironmentOutlined,
+  EyeOutlined,
+  InboxOutlined,
+  MailOutlined,
+  PlusOutlined
 } from "@ant-design/icons";
 import type { UploadFile } from "antd";
 import {
-    AutoComplete,
-    Button,
-    Card,
-    Col,
-    DatePicker,
-    Form,
-    Input,
-    InputNumber,
-    message,
-    Modal,
-    Result,
-    Row,
-    Typography,
-    Upload
+  AutoComplete,
+  Button,
+  Card,
+  Col,
+  DatePicker,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Result,
+  Row,
+  Typography,
+  Upload
 } from "antd";
+// @ts-ignore - date-holidays không có type declarations
+import Holidays from "date-holidays";
 import dayjs from "dayjs";
 
 import { RangePickerProps } from "antd/es/date-picker";
@@ -53,6 +55,29 @@ const PRODUCT_SUGGESTIONS = [
   "Lịch Tết",
 ];
 
+// Khởi tạo Vietnamese Holidays
+const hd = new Holidays('VN');
+
+// Lấy danh sách ngày nghỉ lễ cho năm hiện tại và năm sau
+const getVietnameseHolidays = () => {
+  const currentYear = dayjs().year();
+  const holidays: { date: string; name: string }[] = [];
+  
+  // Lấy holidays cho năm hiện tại và năm sau
+  [currentYear, currentYear + 1].forEach(year => {
+    const yearHolidays = hd.getHolidays(year);
+    yearHolidays.forEach((h: any) => {
+      holidays.push({
+        date: dayjs(h.date).format('YYYY-MM-DD'),
+        name: h.name,
+      });
+    });
+  });
+  
+  return holidays;
+};
+
+const vietnameseHolidays = getVietnameseHolidays();
 
 const range = (start: number, end: number) => {
   const result: number[] = [];
@@ -62,9 +87,22 @@ const range = (start: number, end: number) => {
   return result;
 };
 
+// Kiểm tra ngày có phải ngày nghỉ lễ không
+const isHoliday = (date: dayjs.Dayjs) => {
+  const dateStr = date.format('YYYY-MM-DD');
+  return vietnameseHolidays.find(h => h.date === dateStr);
+};
+
 const disabledDate: RangePickerProps["disabledDate"] = (current) => {
-  // Can not select days before today and today
-  return current && current < dayjs().endOf("day");
+  // Không thể chọn ngày trong quá khứ
+  if (current && current < dayjs().endOf("day")) {
+    return true;
+  }
+  // Không thể chọn ngày nghỉ lễ
+  if (current && isHoliday(current)) {
+    return true;
+  }
+  return false;
 };
 
 const disabledDateTime = () => ({

@@ -10,6 +10,7 @@ import { materialsApi } from "@/apiRequests/materials";
 import Loading from "@/app/(overview)/loading";
 import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 import { Spin } from "antd";
+import { stat } from "fs";
 
 export default function InventoryManagement() {
   const {
@@ -90,9 +91,11 @@ export default function InventoryManagement() {
     try {
       // Hiển thị loading
       // setIsLoading(true);
-
+      const body = {
+        status: "Delivered",
+      };
       // Gọi API
-      // const result = await purchasesApi.receiveInventory(poId);
+      const result = await purchasesApi.receiveInventory(poId, body);
 
       // Cập nhật UI sau khi thành công
       // console.log("Received successfully:", result);

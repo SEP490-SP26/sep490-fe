@@ -17,6 +17,7 @@ import {
 } from "react-icons/bi";
 import { BsCheckCircle, BsExclamationCircle } from "react-icons/bs";
 import { FiMoreVertical } from "react-icons/fi";
+import Loading from "../loading";
 
 export default function OrderListPage() {
   const router = useRouter();
@@ -67,8 +68,7 @@ export default function OrderListPage() {
     return apiData.orders.map((order: any) => ({
       order_id: order.order_id || order._id || order.order_id,
       code: order.code || order.order_number,
-      customer_name:
-        order.customer_name || order.customer?.name || "Khách lẻ ",
+      customer_name: order.customer_name || order.customer?.name || "Khách lẻ ",
       product_name: order.product_name || order.product?.name,
       product_id: order.product_id || order.product?.order_id,
       quantity: order.quantity || order.order_quantity || 0,
@@ -228,14 +228,7 @@ export default function OrderListPage() {
   };
 
   if (isPending) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải danh sách đơn hàng...</p>
-        </div>
-      </div>
-    );
+    return <Loading text="Đang tải danh sách đơn hàng..." />;
   }
 
   if (error) {
@@ -262,10 +255,10 @@ export default function OrderListPage() {
     <div className="min-h-screen bg-gray-50 ">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Danh Sách Đơn Hàng</h1>
-        <p className="text-gray-600 mt-2">
+        {/* <p className="text-gray-600 mt-2">
           Tổng số: {orders.length} đơn hàng • Đang hiển thị:{" "}
           {filteredOrders.length} đơn
-        </p>
+        </p> */}
       </div>
       <div className="max-w-8xl mx-auto">
         {/* Toolbar */}
