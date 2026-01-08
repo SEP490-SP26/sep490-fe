@@ -11,7 +11,7 @@ import {
   EyeOutlined,
   InboxOutlined,
   MailOutlined,
-  PlusOutlined
+  PlusOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd";
 import {
@@ -27,16 +27,17 @@ import {
   Modal,
   Result,
   Row,
+  Space,
   Typography,
-  Upload
+  Upload,
 } from "antd";
-// @ts-ignore - date-holidays không có type declarations
 import Holidays from "date-holidays";
 import dayjs from "dayjs";
 
 import { RangePickerProps } from "antd/es/date-picker";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { disabledDate } from "@/utils/vietnamHolidays";
 
 const { Title, Text } = Typography;
 
@@ -56,24 +57,24 @@ const PRODUCT_SUGGESTIONS = [
 ];
 
 // Khởi tạo Vietnamese Holidays
-const hd = new Holidays('VN');
+const hd = new Holidays("VN");
 
 // Lấy danh sách ngày nghỉ lễ cho năm hiện tại và năm sau
 const getVietnameseHolidays = () => {
   const currentYear = dayjs().year();
   const holidays: { date: string; name: string }[] = [];
-  
+
   // Lấy holidays cho năm hiện tại và năm sau
-  [currentYear, currentYear + 1].forEach(year => {
+  [currentYear, currentYear + 1].forEach((year) => {
     const yearHolidays = hd.getHolidays(year);
     yearHolidays.forEach((h: any) => {
       holidays.push({
-        date: dayjs(h.date).format('YYYY-MM-DD'),
+        date: dayjs(h.date).format("YYYY-MM-DD"),
         name: h.name,
       });
     });
   });
-  
+
   return holidays;
 };
 
@@ -89,27 +90,21 @@ const range = (start: number, end: number) => {
 
 // Kiểm tra ngày có phải ngày nghỉ lễ không
 const isHoliday = (date: dayjs.Dayjs) => {
-  const dateStr = date.format('YYYY-MM-DD');
-  return vietnameseHolidays.find(h => h.date === dateStr);
+  const dateStr = date.format("YYYY-MM-DD");
+  return vietnameseHolidays.find((h) => h.date === dateStr);
 };
 
-const disabledDate: RangePickerProps["disabledDate"] = (current) => {
-  // Không thể chọn ngày trong quá khứ
-  if (current && current < dayjs().endOf("day")) {
-    return true;
-  }
-  // Không thể chọn ngày nghỉ lễ
-  if (current && isHoliday(current)) {
-    return true;
-  }
-  return false;
-};
-
-const disabledDateTime = () => ({
-  disabledHours: () => range(0, 24).splice(4, 20),
-  disabledMinutes: () => range(30, 60),
-  disabledSeconds: () => [55, 56],
-});
+// const disabledDate: RangePickerProps["disabledDate"] = (current) => {
+//   // Không thể chọn ngày trong quá khứ
+//   if (current && current < dayjs().endOf("day")) {
+//     return true;
+//   }
+//   // Không thể chọn ngày nghỉ lễ
+//   if (current && isHoliday(current)) {
+//     return true;
+//   }
+//   return false;
+// };
 
 export default function GuestOrderPage() {
   const [form] = Form.useForm();
@@ -140,6 +135,11 @@ export default function GuestOrderPage() {
   const customerName = Form.useWatch("customerName", form);
   const phone = Form.useWatch("phone", form);
 
+  const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
+
+  const handleDateChange = (date: dayjs.Dayjs | null) => {
+    setSelectedDate(date);
+  };
   useEffect(() => {
     const nameValid = customerName && customerName.trim().length >= 2;
     const phoneValid = phone && /^0\d{9}$/.test(phone);
@@ -319,11 +319,11 @@ export default function GuestOrderPage() {
   const labelStyle = "font-semibold text-gray-700";
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
+    <div className="min-h-screen bg-gray-100 py-4 px-4">
       <div id="recaptcha-container"></div>
 
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <Title
             level={2}
             style={{ color: "#1677ff", textTransform: "uppercase" }}
@@ -360,26 +360,29 @@ export default function GuestOrderPage() {
                     <EnvironmentOutlined className="mr-2" />
                     Thông tin liên hệ & Giao hàng
                   </Title>
+                  <div className="flex justify-between gap-4">
+                    <Form.Item
+                      name="customerName"
+                      label={<span className={labelStyle}>Họ và tên</span>}
+                      rules={[{ required: true, message: "Nhập họ tên" }]}
+                      className="w-full"
+                    >
+                      <Input placeholder="Nguyễn Văn A" />
+                    </Form.Item>
 
-                  <Form.Item
-                    name="customerName"
-                    label={<span className={labelStyle}>Họ và tên</span>}
-                    rules={[{ required: true, message: "Nhập họ tên" }]}
-                  >
-                    <Input placeholder="Nguyễn Văn A" />
-                  </Form.Item>
-
-                  {/* SĐT - simple field without OTP */}
-                  <Form.Item
-                    name="phone"
-                    label={<span className={labelStyle}>Số điện thoại</span>}
-                    rules={[
-                      { required: true, message: "Nhập SĐT" },
-                      { pattern: /^0\d{9}$/, message: "SĐT không hợp lệ" },
-                    ]}
-                  >
-                    <Input placeholder="0912345678" />
-                  </Form.Item>
+                    {/* SĐT - simple field without OTP */}
+                    <Form.Item
+                      name="phone"
+                      label={<span className={labelStyle}>Số điện thoại</span>}
+                      rules={[
+                        { required: true, message: "Nhập SĐT" },
+                        { pattern: /^0\d{9}$/, message: "SĐT không hợp lệ" },
+                      ]}
+                      className="w-full"
+                    >
+                      <Input placeholder="0912345678" />
+                    </Form.Item>
+                  </div>
 
                   {/* Email + OTP verification */}
                   <div className="mb-3">
@@ -421,6 +424,7 @@ export default function GuestOrderPage() {
                           ) : (
                             <div className="flex gap-1 items-center">
                               {otp.map((digit, index) => (
+                                
                                 <input
                                   key={index}
                                   id={`otp-${index}`}
@@ -470,21 +474,32 @@ export default function GuestOrderPage() {
                   </div>
 
                   {/* Shipping Address - Map Picker */}
-                 <div className={`pt-4 border-t ${!isVerified ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <div className={`${labelStyle} mb-3`}>Địa chỉ giao hàng <span className='text-red-500'>*</span></div>
+                  <div
+                    className={`pt-4 border-t ${
+                      !isVerified ? "opacity-50 pointer-events-none" : ""
+                    }`}
+                  >
+                    <div className={`${labelStyle} mb-3`}>
+                      Địa chỉ giao hàng <span className="text-red-500">*</span>
+                    </div>
                     {!isVerified && (
-                      <div className='text-sm text-orange-500 mb-2'>Vui lòng xác thực SĐT trước</div>
+                      <div className="text-sm text-orange-500 mb-2">
+                        Vui lòng xác thực SĐT trước
+                      </div>
                     )}
                     <AddressMapPicker
                       value={selectedAddress}
                       onChange={(address) => {
-                        setSelectedAddress(address)
-                        form.setFieldValue('shippingAddress', address.formattedAddress)
+                        setSelectedAddress(address);
+                        form.setFieldValue(
+                          "shippingAddress",
+                          address.formattedAddress
+                        );
                       }}
                       showMap={false}
-                      placeholder='Tìm kiếm địa chỉ tại Việt Nam...'
+                      placeholder="Tìm kiếm địa chỉ tại Việt Nam..."
                     />
-                    <Form.Item name='shippingAddress' hidden>
+                    <Form.Item name="shippingAddress" hidden>
                       <Input />
                     </Form.Item>
                   </div>
@@ -509,44 +524,47 @@ export default function GuestOrderPage() {
                     Yêu cầu in ấn
                   </Title>
 
-                  <Form.Item
-                    name="productName"
-                    label={
-                      <span className={labelStyle}>Tên sản phẩm cần in</span>
-                    }
-                    rules={[{ required: true, message: "Nhập tên sản phẩm" }]}
-                  >
-                    <AutoComplete
-                      options={PRODUCT_SUGGESTIONS.map((name) => ({
-                        label: name,
-                        value: name,
-                      }))}
-                      placeholder="Chọn hoặc nhập tên sản phẩm"
-                      filterOption={(inputValue, option) =>
-                        option?.value
-                          .toUpperCase()
-                          .indexOf(inputValue.toUpperCase()) !== -1
-                      }
-                      // Cho phép nhập giá trị không có trong danh sách
-                      onSelect={(value) => {
-                        form.setFieldsValue({ productName: value });
-                      }}
-                      onChange={(value) => {
-                        form.setFieldsValue({ productName: value });
-                      }}
-                    />
-                  </Form.Item>
                   <Row gutter={16}>
-                    <Col span={12}>
+                    <Space>
+                      <Form.Item
+                        name="productName"
+                        label={
+                          <span className={labelStyle}>
+                            Tên sản phẩm cần in
+                          </span>
+                        }
+                        rules={[
+                          { required: true, message: "Nhập tên sản phẩm" },
+                        ]}
+                      >
+                        <AutoComplete
+                          options={PRODUCT_SUGGESTIONS.map((name) => ({
+                            label: name,
+                            value: name,
+                          }))}
+                          placeholder="Chọn hoặc nhập tên sản phẩm"
+                          filterOption={(inputValue, option) =>
+                            option?.value
+                              .toUpperCase()
+                              .indexOf(inputValue.toUpperCase()) !== -1
+                          }
+                          // Cho phép nhập giá trị không có trong danh sách
+                          onSelect={(value) => {
+                            form.setFieldsValue({ productName: value });
+                          }}
+                          onChange={(value) => {
+                            form.setFieldsValue({ productName: value });
+                          }}
+                        />
+                      </Form.Item>
+
                       <Form.Item
                         name="quantity"
-                        label={
-                          <span className={labelStyle}>Số lượng dự kiến</span>
-                        }
+                        label={<span className={labelStyle}>Số lượng </span>}
                         rules={[{ required: true, message: "Nhập số lượng" }]}
                       >
                         <InputNumber
-                          className="w-full"
+                          className="w-full text-left"
                           min={1}
                           formatter={(value) =>
                             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
@@ -554,27 +572,28 @@ export default function GuestOrderPage() {
                           placeholder="VD: 1,000"
                         />
                       </Form.Item>
-                    </Col>
-                    <Col span={12}>
+
                       <Form.Item
                         name="desiredDate"
                         label={
                           <span className={labelStyle}>
-                            Ngày mong muốn nhận hàng
+                            Thời gian nhận hàng
                           </span>
                         }
                         rules={[{ required: true, message: "Chọn ngày" }]}
                       >
                         <DatePicker
-                          format="DD-MM-YYYY"
+                          value={selectedDate}
+                          onChange={handleDateChange}
                           disabledDate={disabledDate}
-                          // disabledTime={disabledDateTime}
-                          // showTime={{
-                          //   defaultOpenValue: dayjs(),
-                          // }}
+                          format="DD/MM/YYYY"
+                          placeholder="Chọn ngày giao hàng"
+                          style={{ width: "100%" }}
+                          className="w-full"
+                          allowClear
                         />
                       </Form.Item>
-                    </Col>
+                    </Space>
                   </Row>
 
                   <Form.Item

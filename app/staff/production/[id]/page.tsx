@@ -409,6 +409,7 @@ export default function ProductionDetailPage() {
             );
             const StageIcon = stageInfo?.icon || BsScissors;
             const isCompleted = stage.status === "Finished";
+
             const isInProgress = stage.status === "Ready";
             const isUnassigned = stage.status === "Unassigned";
             return (

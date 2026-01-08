@@ -28,7 +28,7 @@ import {
   Skeleton,
   Tag,
   Typography,
-  Upload
+  Upload,
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
@@ -66,12 +66,12 @@ export default function OrderDetailPage() {
   useEffect(() => {
     const fetchOrderDetail = async () => {
       if (!orderId) return;
-      
+
       setLoading(true);
       try {
         const response = await requestOrderApi.getDetail(orderId);
         const orderData = response?.data || response;
-        
+
         if (orderData) {
           setOrderDetail({
             order_request_id: orderData.order_request_id,
@@ -110,7 +110,7 @@ export default function OrderDetailPage() {
         parseInt(orderId),
         file as File
       );
-      
+
       if (response?.url) {
         const newFile: UploadFile = {
           uid: Date.now().toString(),
@@ -119,12 +119,12 @@ export default function OrderDetailPage() {
           url: response.url,
         };
         setDesignFiles((prev) => [...prev, newFile]);
-        
+
         // Cập nhật design_file_path trong orderDetail
-        setOrderDetail((prev) => 
+        setOrderDetail((prev) =>
           prev ? { ...prev, design_file_path: response.url } : prev
         );
-        
+
         message.success("Tải file thiết kế thành công!");
         onSuccess?.(response);
       }
@@ -185,13 +185,13 @@ export default function OrderDetailPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <Button
+          {/* <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.back()}
             className="mb-4"
           >
             Quay lại
-          </Button>
+          </Button> */}
           <div className="flex items-center justify-between">
             <div>
               <Title level={2} className="!mb-1">
@@ -199,7 +199,9 @@ export default function OrderDetailPage() {
               </Title>
               <Text type="secondary">
                 Ngày đặt:{" "}
-                {dayjs(orderDetail.order_request_date).format("DD/MM/YYYY HH:mm")}
+                {dayjs(orderDetail.order_request_date).format(
+                  "DD/MM/YYYY HH:mm"
+                )}
               </Text>
             </div>
             {orderDetail.process_status &&
@@ -237,7 +239,10 @@ export default function OrderDetailPage() {
                     </span>
                   }
                 >
-                  <a href={`tel:${orderDetail.customer_phone}`} className="text-blue-600">
+                  <a
+                    href={`tel:${orderDetail.customer_phone}`}
+                    className="text-blue-600"
+                  >
                     {orderDetail.customer_phone}
                   </a>
                 </Descriptions.Item>
@@ -249,7 +254,10 @@ export default function OrderDetailPage() {
                     </span>
                   }
                 >
-                  <a href={`mailto:${orderDetail.customer_email}`} className="text-blue-600">
+                  <a
+                    href={`mailto:${orderDetail.customer_email}`}
+                    className="text-blue-600"
+                  >
                     {orderDetail.customer_email}
                   </a>
                 </Descriptions.Item>
@@ -262,7 +270,9 @@ export default function OrderDetailPage() {
                   }
                 >
                   {orderDetail.detail_address || (
-                    <Text type="secondary" italic>Chưa có địa chỉ</Text>
+                    <Text type="secondary" italic>
+                      Chưa có địa chỉ
+                    </Text>
                   )}
                 </Descriptions.Item>
               </Descriptions>
@@ -368,47 +378,54 @@ export default function OrderDetailPage() {
               )}
 
               {/* Upload area */}
-              <Upload
-                customRequest={handleUpload}
-                showUploadList={false}
-                accept="image/*,.pdf"
-                disabled={uploading}
-              >
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
-                  <div className="flex flex-col items-center gap-2">
-                    {uploading ? (
-                      <>
-                        <UploadOutlined className="text-3xl text-blue-500 animate-pulse" />
-                        <Text>Đang tải lên...</Text>
-                      </>
-                    ) : (
-                      <>
-                        <PlusOutlined className="text-3xl text-gray-400" />
-                        <Text type="secondary">Nhấn để tải file thiết kế</Text>
-                        <Text type="secondary" className="text-xs">
-                          Hỗ trợ: JPG, PNG, PDF
-                        </Text>
-                      </>
-                    )}
+              {orderDetail.design_file_path === '' && (
+                <div>
+                  <Upload
+                    customRequest={handleUpload}
+                    showUploadList={false}
+                    accept="image/*,.pdf"
+                    disabled={uploading}
+                  >
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
+                      <div className="flex flex-col items-center gap-2">
+                        {uploading ? (
+                          <>
+                            <UploadOutlined className="text-3xl text-blue-500 animate-pulse" />
+                            <Text>Đang tải lên...</Text>
+                          </>
+                        ) : (
+                          <>
+                            <PlusOutlined className="text-3xl text-gray-400" />
+                            <Text type="secondary">
+                              Nhấn để tải file thiết kế
+                            </Text>
+                            <Text type="secondary" className="text-xs">
+                              Hỗ trợ: JPG, PNG, PDF
+                            </Text>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </Upload>
+
+                  {/* Ghi chú */}
+                  <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <Text type="warning" className="text-sm">
+                      💡 <strong>Lưu ý:</strong> Vui lòng tải lên file thiết kế
+                      rõ ràng, độ phân giải cao để đảm bảo chất lượng in ấn tốt
+                      nhất.
+                    </Text>
                   </div>
                 </div>
-              </Upload>
-
-              {/* Ghi chú */}
-              <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                <Text type="warning" className="text-sm">
-                  💡 <strong>Lưu ý:</strong> Vui lòng tải lên file thiết kế rõ ràng,
-                  độ phân giải cao để đảm bảo chất lượng in ấn tốt nhất.
-                </Text>
-              </div>
+              )}
             </Card>
           </Col>
         </Row>
 
         {/* Action buttons */}
         <div className="mt-6 flex justify-center gap-4">
-          <Button size="large" onClick={() => router.back()}>
-            Quay lại
+          <Button size="large" onClick={() => router.push('/')}>
+            Quay lại trang chủ 
           </Button>
         </div>
       </div>
