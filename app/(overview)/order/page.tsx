@@ -38,6 +38,7 @@ import { RangePickerProps } from "antd/es/date-picker";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { disabledDate } from "@/utils/vietnamHolidays";
+import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 
 const { Title, Text } = Typography;
 
@@ -401,7 +402,6 @@ export default function GuestOrderPage() {
                         <Input
                           placeholder="email@example.com"
                           disabled={isOtpSent || isVerified}
-                          prefix={<MailOutlined />}
                           suffix={
                             isVerified ? (
                               <CheckCircleOutlined className="text-green-500" />
@@ -424,7 +424,6 @@ export default function GuestOrderPage() {
                           ) : (
                             <div className="flex gap-1 items-center">
                               {otp.map((digit, index) => (
-                                
                                 <input
                                   key={index}
                                   id={`otp-${index}`}
@@ -563,10 +562,12 @@ export default function GuestOrderPage() {
                         label={<span className={labelStyle}>Số lượng </span>}
                         rules={[{ required: true, message: "Nhập số lượng" }]}
                       >
-                        <InputNumber
-                          className="w-full text-left"
+                        <FloatingInputAntd
+                          className="w-full text-right"
+                          valueType="number"
+                          style={{ width: 100 }}
                           min={1}
-                          formatter={(value) =>
+                          formatter={(value: any) =>
                             `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                           }
                           placeholder="VD: 1,000"
