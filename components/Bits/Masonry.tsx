@@ -57,7 +57,7 @@ function Masonry({ data }: MasonryProps) {
   }, []);
 
   const fixedHeight =
-    typeof window !== "undefined" && window.innerWidth < 600 ? 100 : 250;
+    typeof window !== "undefined" && window.innerWidth < 600 ? 100 : 150;
   const [heights, gridItems] = useMemo<[number[], GridItem[]]>(() => {
     const heights = new Array(columns).fill(0);
     const gridItems = data.map((child) => {
@@ -98,7 +98,7 @@ function Masonry({ data }: MasonryProps) {
         <a.div
           key={item.id}
           style={style}
-          className="absolute p-[15px] [will-change:transform,width,height,opacity]"
+          className="absolute p-3.75 will-change-[transform,width,height,opacity]"
         >
           <div className="relative w-full h-full overflow-hidden rounded-md shadow-md transition duration-300 ease hover:scale-105">
             <img

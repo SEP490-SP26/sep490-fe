@@ -2,9 +2,8 @@
 import { materialsApi } from "@/apiRequests/materials";
 import { purchasesApi } from "@/apiRequests/purchase";
 import { supplierApi } from "@/apiRequests/supplier";
-import Loading from "@/app/(overview)/loading";
 import SupplierQuoteCard from "@/components/Card/SupplierQuoteCard ";
-import { PurchaseOrder, useProduction } from "@/context/ProductionContext";
+import { useProduction } from "@/context/ProductionContext";
 import {
   showErrorToast,
   showSuccessToast,
@@ -12,100 +11,10 @@ import {
 } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
 import { Rate, Spin } from "antd";
-import { useState, useEffect } from "react";
+import dayjs from "dayjs";
+import { useState } from "react";
 import { BiEnvelope, BiPlus, BiSearch, BiTime } from "react-icons/bi";
 import { BsCheckCircle, BsClock, BsTruck, BsX } from "react-icons/bs";
-
-// Thêm vào đầu component
-const suppliersWithRating = [
-  {
-    id: 1,
-    name: "Công ty TNHH Giấy Sài Gòn",
-    rating: 4.8,
-    reviewCount: 245,
-    deliveryTime: "1-2 ngày",
-    reliability: "Rất cao",
-  },
-  {
-    id: 2,
-    name: "Nhà máy Giấy Long An",
-    rating: 4.5,
-    reviewCount: 189,
-    deliveryTime: "2-3 ngày",
-    reliability: "Cao",
-  },
-  {
-    id: 3,
-    name: "Công ty CP Mực in Đông Dương",
-    rating: 4.9,
-    reviewCount: 312,
-    deliveryTime: "1 ngày",
-    reliability: "Rất cao",
-  },
-  {
-    id: 4,
-    name: "Công ty TNHH Vật tư In ấn Hà Nội",
-    rating: 4.2,
-    reviewCount: 156,
-    deliveryTime: "3-4 ngày",
-    reliability: "Trung bình",
-  },
-  {
-    id: 5,
-    name: "Tập đoàn Giấy Việt Nam",
-    rating: 4.7,
-    reviewCount: 421,
-    deliveryTime: "2-3 ngày",
-    reliability: "Cao",
-  },
-];
-
-// Hàm render rating stars
-const renderRatingStars = (rating: number) => {
-  const fullStars = Math.floor(rating);
-  const halfStar = rating % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
-  return (
-    <span className="inline-flex items-center">
-      {[...Array(fullStars)].map((_, i) => (
-        <svg
-          key={`full-${i}`}
-          className="w-4 h-4 text-yellow-400"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-
-      {halfStar && (
-        <svg
-          className="w-4 h-4 text-yellow-400"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M10 1a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L10 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L1.821 6.13a.75.75 0 01.416-1.28l4.21-.611L9.327 1.42A.75.75 0 0110 1zm0 2.445L8.615 5.5a.75.75 0 01-.564.41l-3.097.45 2.24 2.184a.75.75 0 01.216.664l-.528 3.084 2.769-1.456a.75.75 0 01.698 0l2.77 1.456-.53-3.084a.75.75 0 01.216-.664l2.24-2.183-3.096-.45a.75.75 0 01-.564-.41L10 3.445v.001z" />
-        </svg>
-      )}
-
-      {[...Array(emptyStars)].map((_, i) => (
-        <svg
-          key={`empty-${i}`}
-          className="w-4 h-4 text-gray-300"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-
-      <span className="ml-1 text-sm font-medium text-gray-700">
-        {rating.toFixed(1)}
-      </span>
-    </span>
-  );
-};
 
 interface SelectedMaterial {
   material_id: string;
@@ -121,7 +30,7 @@ export default function PurchaseManagement() {
   const { materials } = useProduction();
 
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
-  const [showSupplierByItemPopup, setShowSupplierByItemPopup] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [supplierId, setSupplierId] = useState<number | null>(null);
   const [quotePopupMaterial, setQuotePopupMaterial] = useState<{
@@ -175,6 +84,7 @@ export default function PurchaseManagement() {
     // Đóng popup
     handleClosePopup();
   };
+
 
   const {
     isPending,
@@ -342,7 +252,7 @@ export default function PurchaseManagement() {
   const getMaxDate = () => {
     const today = new Date();
     const maxDate = new Date(today);
-    maxDate.setDate(today.getDate() + 30);
+    maxDate.setDate(today.getDate() + 90);
     return maxDate.toISOString().split("T")[0];
   };
 
@@ -366,6 +276,28 @@ export default function PurchaseManagement() {
 
   const handleClosePopup = () => {
     setQuotePopupMaterial(null);
+  };
+
+  // Hàm disabledDate để disable ngày lễ
+  // const disabledDate = (current: dayjs.Dayjs) => {
+  //   if (!current) return false;
+
+  //   // Ngày trong quá khứ
+  //   if (current.isBefore(dayjs(), "day")) {
+  //     return true;
+  //   }
+
+  //   // Quá 30 ngày
+  //   if (current.isAfter(dayjs().add(60, "day"), "day")) {
+  //     return true;
+  //   }
+
+  //   // Ngày lễ
+  //   return isVietnamHoliday(current);
+  // };
+
+  const handleDateChange = (date: dayjs.Dayjs | null) => {
+    setSelectedDate(date);
   };
 
   return (
@@ -965,24 +897,26 @@ export default function PurchaseManagement() {
                     </div>
 
                     {/* pick time */}
-                    <div>
+                    {/* <div>
                       <label className="block text-gray-700 mb-2">
                         Ngày giao dự kiến
-                      </label>
-                      <input
-                        type="date"
-                        value={deliveryDate}
-                        onChange={(e) => setDeliveryDate(e.target.value)}
-                        min={getMinDate()}
-                        max={getMaxDate()}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <div className="text-xs text-gray-500 mt-1">
+                      </label> */}
+                      {/* <DatePicker
+                        value={selectedDate}
+                        onChange={handleDateChange}
+                        disabledDate={disabledDate}
+                        format="DD/MM/YYYY"
+                        placeholder="Chọn ngày giao hàng"
+                        style={{ width: "100%" }}
+                        className="w-full"
+                        allowClear
+                      /> */}
+                      {/* <div className="text-xs text-gray-500 mt-1">
                         Chọn ngày từ{" "}
                         {new Date(getMinDate()).toLocaleDateString("vi-VN")} đến{" "}
                         {new Date(getMaxDate()).toLocaleDateString("vi-VN")}
                       </div>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div className="flex items-center gap-4">
