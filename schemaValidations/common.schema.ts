@@ -41,6 +41,13 @@ export const PagingRes = z
   .strict()
 export type PagingResType = z.TypeOf<typeof PagingRes>
 
+export interface CreateRequestBodyForConsultant {
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  detail_address: string;
+}
+
 export interface CreateRequestBody {
   customer_name: string;
   customer_phone: string;

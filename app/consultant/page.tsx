@@ -9,6 +9,7 @@ import { requestOrderApi } from "@/apiRequests/request";
 import { Order, useProduction } from "@/context/ProductionContext";
 import {
   CreateRequestBody,
+  CreateRequestBodyForConsultant,
   EstimateCostResponse,
   EstimatePaperResponse,
   FreeMachine,
@@ -112,6 +113,7 @@ function ConsultantForm() {
   const [songTypes, setSongTypes] = useState<Material[]>([]);
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
 
   const [estimate, setEstimate] = useState<{
     baseCost: number;
@@ -346,7 +348,7 @@ function ConsultantForm() {
       // if (!orderId) return; // Removed to allow calculation for new orders
 
       const payload = {
-        order_request_id: orderId ? parseInt(orderId) : 0,
+        order_request_id: orderId ? parseInt(orderId) : (createdOrderId || 0),
         paper_code: paperCode,
         quantity: quantity,
         length_mm: length,
@@ -433,7 +435,7 @@ function ConsultantForm() {
       const waveType = form.getFieldValue("wave_type");
 
       const response = await estimatesApi.estimateCost({
-        order_request_id: orderId ? parseInt(orderId) : 0,
+        order_request_id: orderId ? parseInt(orderId) : (createdOrderId || 0),
         paper: paperData,
         desired_delivery_date: delivery_date
           ? delivery_date.toISOString()
@@ -636,6 +638,37 @@ function ConsultantForm() {
     calculatePaperEstimate();
   };
 
+  const handleCreateCustomerInfo = async (values: any) => {
+    setLoading(true);
+    try {
+      const payload: CreateRequestBodyForConsultant = {
+        customer_name: values.customer_name,
+        customer_phone: values.customer_phone,
+        customer_email: values.customer_email,
+        detail_address: values.detail_address,
+      };
+      // Explicitly typing response as any to access custom fields if needed or standard response
+      const res: any = await requestOrderApi.createRequestOrderByConsultant(payload);
+
+      // Check for order_request_id in known locations (root or data)
+      const newId = res?.order_request_id || res?.data?.order_request_id;
+
+      if (newId) {
+        setCreatedOrderId(newId);
+        message.success("Tạo thông tin khách hàng thành công!");
+      } else {
+        // Fallback checks or error handling if ID isn't found
+        console.warn("No order_request_id found in response", res);
+        message.warning("Đã tạo yêu cầu nhưng không lấy được ID đơn hàng.");
+      }
+    } catch (error) {
+      console.error("Error creating customer info:", error);
+      message.error("Lỗi khi tạo thông tin khách hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -687,9 +720,10 @@ function ConsultantForm() {
                 className="shadow-sm"
               >
                 <CustomerInfoSection
-                  orderId={orderId}
+                  orderId={orderId || (createdOrderId ? createdOrderId.toString() : null)}
                   form={form}
                   handleFormValuesChange={handleFormValuesChange}
+                  onConfirmCreate={handleCreateCustomerInfo}
                 />
 
                 <Divider titlePlacement="left" className="!my-3">

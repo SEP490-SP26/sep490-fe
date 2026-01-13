@@ -1,4 +1,4 @@
-import { Col, Form, Row, DatePicker } from "antd";
+import { Col, Form, Row, DatePicker, Button, message } from "antd";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
@@ -7,6 +7,7 @@ interface CustomerInfoSectionProps {
   orderId: string | null;
   form: any;
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
+  onConfirmCreate?: (values: any) => void; // Add this prop
 }
 
 const disabledDate: RangePickerProps["disabledDate"] = (current) => {
@@ -17,7 +18,10 @@ export default function CustomerInfoSection({
   orderId,
   form,
   handleFormValuesChange,
+  onConfirmCreate,
 }: CustomerInfoSectionProps) {
+
+
   return (
     <div
       className={`${orderId
@@ -29,7 +33,7 @@ export default function CustomerInfoSection({
         <Col span={8}>
           <Form.Item
             name="customer_name"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: "Vui lòng nhập tên khách hàng" }]}
             className="mb-2"
           >
             <FloatingInputAntd
@@ -41,7 +45,7 @@ export default function CustomerInfoSection({
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Form.Item name="customer_phone" className="mb-2">
+          <Form.Item name="customer_phone" className="mb-2" rules={[{ required: true, message: "SĐT bắt buộc" }]}>
             <FloatingInputAntd
               placeholder="09..."
               label="SĐT"
@@ -69,29 +73,53 @@ export default function CustomerInfoSection({
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Form.Item
-            name="delivery_date"
-            rules={[{ required: true }]}
-            className="mb-2"
-          >
-            <DatePicker
-              className="w-full"
-              format="DD-MM-YYYY"
-              placeholder="Ngày giao hàng mong muốn"
-              disabledDate={disabledDate}
-              onChange={(date) => {
-                form.setFieldValue("desiredDate", date);
-                if (date) {
-                  handleFormValuesChange(
-                    { desiredDate: date },
-                    form.getFieldsValue()
-                  );
-                }
-              }}
-            />
-          </Form.Item>
+          {!orderId ? (
+            <div className="mb-2">
+              <Button
+                type="primary"
+                htmlType="button"
+                className="w-full h-10"
+                onClick={async () => {
+                  try {
+                    const values = await form.validateFields([
+                      "customer_name",
+                      "customer_phone",
+                      "customer_email",
+                      "detail_address"
+                    ]);
+                    onConfirmCreate?.(values);
+                  } catch (e) {
+                    // validation failed
+                  }
+                }}
+              >
+                Xác nhận
+              </Button>
+            </div>
+          ) : (
+            <Form.Item
+              name="delivery_date"
+              rules={[{ required: true }]}
+              className="mb-2"
+            >
+              <DatePicker
+                className="w-full"
+                format="DD-MM-YYYY"
+                placeholder="Ngày giao hàng mong muốn"
+                disabledDate={disabledDate}
+                onChange={(date) => {
+                  form.setFieldValue("desiredDate", date);
+                  if (date) {
+                    handleFormValuesChange(
+                      { desiredDate: date },
+                      form.getFieldsValue()
+                    );
+                  }
+                }}
+              />
+            </Form.Item>
+          )}
         </Col>
-
       </Row>
     </div>
   );
