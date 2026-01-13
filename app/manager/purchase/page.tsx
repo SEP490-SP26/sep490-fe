@@ -9,15 +9,17 @@ import {
   showSuccessToast,
   showWarningToast,
 } from "@/utils/toastService";
+import { disabledDate } from "@/utils/vietnamHolidays";
 import { useQuery } from "@tanstack/react-query";
-import { Rate, Spin } from "antd";
+import { Rate, Spin, Modal, DatePicker } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BiEnvelope, BiPlus, BiSearch, BiTime } from "react-icons/bi";
 import { BsCheckCircle, BsClock, BsTruck, BsX } from "react-icons/bs";
 
 interface SelectedMaterial {
   material_id: string;
+  ui_id: string;
   quantity: number;
 }
 
@@ -30,11 +32,12 @@ export default function PurchaseManagement() {
   const { materials } = useProduction();
 
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
+  // const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [supplierId, setSupplierId] = useState<number | null>(null);
   const [quotePopupMaterial, setQuotePopupMaterial] = useState<{
     material_id: string | number;
+    ui_id: string; // Added ui_id
     material_name: string;
     quantity: number;
     unit: string;
@@ -44,7 +47,7 @@ export default function PurchaseManagement() {
     SelectedMaterial[]
   >([]);
   const [supplier, setSupplier] = useState("Chọn nhà cung cấp");
-  const [deliveryDate, setDeliveryDate] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState<dayjs.Dayjs | null>(null);
   const [materialQuantities, setMaterialQuantities] = useState<
     Record<string, number>
   >({});
@@ -58,20 +61,23 @@ export default function PurchaseManagement() {
     // Lưu supplier đã chọn
     setSelectedSuppliers((prev) => ({
       ...prev,
-      [quotePopupMaterial.material_id]: supplier,
+      [quotePopupMaterial.material_id]: supplier, // Keep using material_id for supplier cache? Or ui_id?
+      // If we authorize different suppliers for split lines of same material, we should use ui_id?
+      // But selectedSuppliers seems to be a cache map.
+      // Let's keep material_id for general cache, but for selectedMaterials update we MUST use ui_id.
     }));
 
     // Cập nhật selectedMaterials nếu material đó đang được chọn
     setSelectedMaterials((prev) =>
       prev.map((item) =>
-        item.material_id === quotePopupMaterial.material_id
+        item.ui_id === quotePopupMaterial.ui_id // Match by UI ID
           ? {
-              ...item,
-              supplier_id: supplier.id,
-              supplier_name: supplier.name,
-              price: supplier.price,
-              total_price: supplier.price * quotePopupMaterial.quantity,
-            }
+            ...item,
+            supplier_id: supplier.id,
+            supplier_name: supplier.name,
+            price: supplier.price,
+            total_price: supplier.price * quotePopupMaterial.quantity,
+          }
           : item
       )
     );
@@ -137,6 +143,103 @@ export default function PurchaseManagement() {
     },
   });
 
+  const [displayMaterials, setDisplayMaterials] = useState<any[]>([]);
+  const [isDataInitialized, setIsDataInitialized] = useState(false);
+
+  // Sync missing_materials to displayMaterials
+  useEffect(() => {
+    if (missing_materials && missing_materials.length > 0 && !isDataInitialized) {
+      // Initialize with unique IDs
+      const initialized = missing_materials.map((m: any, index: number) => ({
+        ...m,
+        ui_id: `${m.material_id}-${Date.now()}-${index}`, // Simple unique ID
+        quantity: m.needed, // Initialize quantity
+        originalNeeded: m.needed // Track original if needed for logic, though splitting changes this context
+      }));
+      setDisplayMaterials(initialized);
+      setIsDataInitialized(true);
+    }
+  }, [missing_materials, isDataInitialized]);
+
+  // Also handle refetch if needed (reset). For now, assume single load.
+
+  const handleQuantityBlur = (ui_id: string, newQuantity: number) => {
+    // Valid Implementation outside setState
+    const currentItem = displayMaterials.find((item) => item.ui_id === ui_id);
+    if (!currentItem) return;
+
+    // Check condition
+    if (newQuantity < currentItem.needed && newQuantity > 0) {
+      Modal.confirm({
+        title: "Xác nhận tách dòng",
+        content: (
+          <div>
+            <p>Bạn có muốn tách nguyên vật liệu này thành 2 yêu cầu mua hàng không?</p>
+            {/* <ul className="mt-2 list-disc list-inside">
+              <li>
+                Dòng 1: <b>{newQuantity}</b> {currentItem.unit}
+              </li>
+              <li>
+                Dòng 2: <b>{(currentItem.needed - newQuantity).toFixed(1)}</b>{" "}
+                {currentItem.unit}
+              </li>
+            </ul> */}
+          </div>
+        ),
+        okText: "Đồng ý",
+        cancelText: "Không",
+        onOk() {
+          setDisplayMaterials((prev) => {
+            const idx = prev.findIndex((item) => item.ui_id === ui_id);
+            if (idx === -1) return prev;
+
+            const item = prev[idx];
+            const remainder = item.needed - newQuantity;
+
+            // Update Current Item
+            const updatedItem = {
+              ...item,
+              quantity: newQuantity,
+              needed: newQuantity, // Update needed to match the new split reality
+            };
+
+            // Create New Item
+            const newItem = {
+              ...item,
+              ui_id: `${item.material_id}-${Date.now()}-${Math.random()
+                .toString(36)
+                .substr(2, 9)}`,
+              quantity: remainder,
+              needed: remainder,
+            };
+
+            const newArr = [...prev];
+            newArr[idx] = updatedItem;
+            newArr.splice(idx + 1, 0, newItem); // Insert after
+
+            return newArr;
+          });
+        },
+        onCancel() {
+          // User denied split.
+          // Just update the quantity but allow it to be less than needed
+          setDisplayMaterials((prev) =>
+            prev.map((item) =>
+              item.ui_id === ui_id ? { ...item, quantity: newQuantity } : item
+            )
+          );
+        },
+      });
+    } else {
+      // Just update quantity
+      setDisplayMaterials((prev) =>
+        prev.map((item) =>
+          item.ui_id === ui_id ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    }
+  };
+
   // Lấy nhà cung cấp theo material id khi mở popup khảo giá
   const {
     data: suppliers = [],
@@ -194,9 +297,17 @@ export default function PurchaseManagement() {
     }
 
     // Chuẩn bị request body
+    // If we have multiple lines for same material, we should probably merge them if backend expects unique materialId per PO?
+    // Or maybe backend allows duplicates?
+    // User wanted to split lines. Usually that implies they might order one line now and another later.
+    // So if they select BOTH, it effectively means ordering both.
+
+    // For safety, let's just map as is. If backend errors on duplicate keys, we might need to merge.
+    // Assuming backend handles list of items.
+
     const requestBody = {
       supplierId: supplierId,
-      etaDate: new Date(deliveryDate).toISOString(),
+      etaDate: deliveryDate?.toISOString(),
       items: selectedMaterials.map((item: SelectedMaterial) => ({
         materialId: item.material_id,
         quantity: item.quantity,
@@ -221,7 +332,7 @@ export default function PurchaseManagement() {
         setSelectedMaterials([]);
         setMaterialQuantities({});
         // setSupplierId("");
-        setDeliveryDate("");
+        setDeliveryDate(null);
 
         // Có thể refetch data nếu cần
         // refetchMissingMaterials();
@@ -239,7 +350,7 @@ export default function PurchaseManagement() {
     setSelectedMaterials([]);
     setSupplierId(null);
     // setSupplierName("");
-    setDeliveryDate("");
+    setDeliveryDate(null);
   };
 
   // Tính min date (hôm nay)
@@ -268,6 +379,7 @@ export default function PurchaseManagement() {
   const handleOpenQuotePopup = (pr: any, currentQuantity: number) => {
     setQuotePopupMaterial({
       material_id: pr.material_id,
+      ui_id: pr.ui_id,
       material_name: pr.material_name,
       quantity: currentQuantity,
       unit: pr.unit,
@@ -297,7 +409,7 @@ export default function PurchaseManagement() {
   // };
 
   const handleDateChange = (date: dayjs.Dayjs | null) => {
-    setSelectedDate(date);
+    setDeliveryDate(date);
   };
 
   return (
@@ -336,33 +448,30 @@ export default function PurchaseManagement() {
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab("pending")}
-            className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${
-              activeTab === "pending"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${activeTab === "pending"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
           >
             <BsClock className="w-4 h-4" />
             Chờ đặt hàng ({missing_materials.length})
           </button>
           <button
             onClick={() => setActiveTab("ordered")}
-            className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${
-              activeTab === "ordered"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${activeTab === "ordered"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
           >
             <BsTruck className="w-4 h-4" />
             Đang chờ giao ({getPurchaseOrdersByStatus("Ordered").length})
           </button>
           <button
             onClick={() => setActiveTab("received")}
-            className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${
-              activeTab === "received"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${activeTab === "received"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
           >
             <BsCheckCircle className="w-4 h-4" />
             Đã nhận hàng ({getPurchaseOrdersByStatus("Delivered").length})
@@ -390,7 +499,7 @@ export default function PurchaseManagement() {
                           type="checkbox"
                           checked={
                             selectedMaterials.length ===
-                              missing_materials.length &&
+                            missing_materials.length &&
                             missing_materials.length > 0
                           }
                           onChange={(e) => {
@@ -432,42 +541,41 @@ export default function PurchaseManagement() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {missing_materials.map((pr: any) => {
-                      const currentQuantity =
-                        materialQuantities[pr.material_id] || pr.needed;
+                    {displayMaterials.map((pr: any) => {
+                      const currentQuantity = Math.round(parseFloat(pr.quantity) || 0);
+                      // const displayValue = currentQuantity.toFixed(0);
 
                       return (
                         <tr
-                          key={pr.material_id}
-                          className={`hover:bg-gray-50 ${
-                            selectedMaterials.includes(pr.material_id)
-                              ? "bg-blue-50"
-                              : ""
-                          }`}
+                          key={pr.ui_id}
+                          className={`hover:bg-gray-50 ${selectedMaterials.some(
+                            (m) => m.ui_id === pr.ui_id
+                          )
+                            ? "bg-blue-50"
+                            : ""
+                            }`}
                         >
                           <td className="px-4 py-3">
                             <input
                               type="checkbox"
                               checked={selectedMaterials.some(
-                                (m) => m.material_id === pr.material_id
+                                (m) => m.ui_id === pr.ui_id
                               )}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  const quantityToUse =
-                                    materialQuantities[pr.material_id] ||
-                                    pr.needed;
                                   setSelectedMaterials([
                                     ...selectedMaterials,
                                     {
                                       material_id: pr.material_id,
-                                      quantity: quantityToUse,
+                                      ui_id: pr.ui_id,
+                                      quantity: currentQuantity,
                                     },
                                   ]);
                                 } else {
                                   setSelectedMaterials(
                                     selectedMaterials.filter(
                                       (item) =>
-                                        item.material_id !== pr.material_id
+                                        item.ui_id !== pr.ui_id
                                     )
                                   );
                                 }
@@ -489,35 +597,32 @@ export default function PurchaseManagement() {
                             <div className="font-medium text-gray-900 text-end">
                               <input
                                 type="number"
-                                value={currentQuantity.toFixed(1)}
-                                onChange={(e) => {
+                                value={currentQuantity || 0}
+                                onBlur={(e) => {
                                   const newValue =
                                     parseFloat(e.target.value) || 0;
-
-                                  // Cập nhật quantity trong state
-                                  setMaterialQuantities((prev) => ({
-                                    ...prev,
-                                    [pr.material_id]: newValue,
-                                  }));
-
-                                  // Nếu material đã được chọn, cập nhật quantity trong selectedMaterials
-                                  setSelectedMaterials((prev) =>
+                                  handleQuantityBlur(pr.ui_id, newValue);
+                                }}
+                                onChange={(e) => {
+                                  const newValue = e.target.value;
+                                  // Temporary update for input responsiveness
+                                  setDisplayMaterials((prev: any[]) =>
                                     prev.map((item) =>
-                                      item.material_id === pr.material_id
+                                      item.ui_id === pr.ui_id
                                         ? { ...item, quantity: newValue }
                                         : item
                                     )
                                   );
                                 }}
                                 min="0"
-                                step="0.1"
+                                step="1"
                                 className="text-end w-30"
                               />
                             </div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-medium text-gray-900 text-end">
-                              {pr.available}
+                              {pr.available.toFixed(0)}
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -672,7 +777,7 @@ export default function PurchaseManagement() {
                       <div className="relative">
                         <div
                           onClick={() => setShowSupplierPopup(true)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer flex items-center justify-between hover:bg-gray-50"
+                          className="w-full px-4 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer flex items-center justify-between hover:bg-gray-50"
                         >
                           <span
                             className={
@@ -780,11 +885,10 @@ export default function PurchaseManagement() {
                                         setSupplier(s.name);
                                         setShowSupplierPopup(false);
                                       }}
-                                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                                        supplier === s.name
-                                          ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
-                                          : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-                                      }`}
+                                      className={`p-4 border rounded-lg cursor-pointer transition-all ${supplier === s.name
+                                        ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+                                        : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                                        }`}
                                     >
                                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex-1">
@@ -864,7 +968,7 @@ export default function PurchaseManagement() {
                             </div>
 
                             {/* Popup Footer */}
-                            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between">
+                            <div className="px-6 py-2 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
                               <div className="text-sm text-gray-600">
                                 Đã chọn:{" "}
                                 <span className="font-semibold">
@@ -897,12 +1001,12 @@ export default function PurchaseManagement() {
                     </div>
 
                     {/* pick time */}
-                    {/* <div>
+                    <div>
                       <label className="block text-gray-700 mb-2">
                         Ngày giao dự kiến
-                      </label> */}
-                      {/* <DatePicker
-                        value={selectedDate}
+                      </label>
+                      <DatePicker
+                        value={deliveryDate}
                         onChange={handleDateChange}
                         disabledDate={disabledDate}
                         format="DD/MM/YYYY"
@@ -910,13 +1014,13 @@ export default function PurchaseManagement() {
                         style={{ width: "100%" }}
                         className="w-full"
                         allowClear
-                      /> */}
+                      />
                       {/* <div className="text-xs text-gray-500 mt-1">
                         Chọn ngày từ{" "}
                         {new Date(getMinDate()).toLocaleDateString("vi-VN")} đến{" "}
                         {new Date(getMaxDate()).toLocaleDateString("vi-VN")}
-                      </div>
-                    </div> */}
+                      </div> */}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-4">

@@ -574,7 +574,7 @@ export default function GuestOrderPage() {
                         />
                       </Form.Item>
 
-                      <Form.Item
+                      {/* <Form.Item
                         name="desiredDate"
                         label={
                           <span className={labelStyle}>
@@ -593,7 +593,7 @@ export default function GuestOrderPage() {
                           className="w-full"
                           allowClear
                         />
-                      </Form.Item>
+                      </Form.Item> */}
                     </Space>
                   </Row>
 

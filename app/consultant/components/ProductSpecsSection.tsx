@@ -55,7 +55,7 @@ export default function ProductSpecsSection({
                 label: name,
                 value: name,
               }))}
-              disabled={!!orderId}
+              // disabled={!!orderId}
               className={orderId ? "bg-gray-50" : ""}
               required
             />

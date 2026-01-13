@@ -80,23 +80,23 @@ const SupplierQuoteCard: React.FC<SupplierQuoteCardProps> = ({
           )}
         </div>
 
-        {/* <div className="flex-shrink-0 space-y-2">
-          <button
+        <div className="flex-shrink-0 space-y-2">
+          {/* <button
             className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm w-full"
             onClick={() => onSelect(supplier)}
           >
-            <BiCheck className="w-4 h-4" />
-            Chọn nhà cung cấp
-          </button>
 
-          <button
+            Chọn nhà cung cấp
+          </button> */}
+
+          {/* <button
             className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm w-full"
             onClick={() => (window.location.href = `tel:${supplier.phone}`)}
           >
             <BiPhone className="w-4 h-4" />
             Gọi điện liên hệ
-          </button>
-        </div> */}
+          </button> */}
+        </div>
       </div>
     </div>
   );
