@@ -164,7 +164,7 @@ export default function ProductionDetailPage() {
   //   const stage = stages.find((s) => s.id === stageId);
   //   return stage?.status || "pending";
   // };
-
+  const remainingAmount = apiData.final_total_cost - apiData.deposit_amount;
   return (
     <div className="min-h-screen bg-gray-50 ">
       <button
@@ -190,23 +190,22 @@ export default function ProductionDetailPage() {
 
                   {/* Status badge */}
                   <div
-                    className={`px-1.5 py-0.5 rounded-lg text-sm font-semibold ${
-                      apiData.status === "completed"
-                        ? "bg-green-100 text-green-700 border border-green-200"
-                        : apiData.status === "in_production"
+                    className={`px-1.5 py-0.5 rounded-lg text-sm font-semibold ${apiData.status === "completed"
+                      ? "bg-green-100 text-green-700 border border-green-200"
+                      : apiData.status === "in_production"
                         ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
                         : apiData.status === "scheduled"
-                        ? "bg-blue-100 text-blue-700 border border-blue-200"
-                        : "bg-gray-100 text-gray-700 border border-gray-200"
-                    }`}
+                          ? "bg-blue-100 text-blue-700 border border-blue-200"
+                          : "bg-gray-100 text-gray-700 border border-gray-200"
+                      }`}
                   >
                     {apiData.status === "completed"
                       ? "ĐÃ HOÀN THÀNH"
                       : apiData.status === "in_production"
-                      ? "ĐANG SẢN XUẤT"
-                      : apiData.status === "scheduled"
-                      ? "ĐÃ LÊN LỊCH"
-                      : "CHỜ XỬ LÝ"}
+                        ? "ĐANG SẢN XUẤT"
+                        : apiData.status === "scheduled"
+                          ? "ĐÃ LÊN LỊCH"
+                          : "CHỜ XỬ LÝ"}
                   </div>
                 </div>
               </div>
@@ -328,22 +327,20 @@ export default function ProductionDetailPage() {
       <div className="flex border-b border-gray-200">
         <button
           onClick={() => setActiveTab("info")}
-          className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${
-            activeTab === "info"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${activeTab === "info"
+            ? "border-blue-600 text-blue-600"
+            : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
         >
           <BsClock className="w-4 h-4" />
           Thông tin đơn hàng
         </button>
         <button
           onClick={() => setActiveTab("scheduled")}
-          className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${
-            activeTab === "scheduled"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${activeTab === "scheduled"
+            ? "border-blue-600 text-blue-600"
+            : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
         >
           <BsPrinter className="w-4 h-4" />
           Lịch sản xuất
@@ -420,19 +417,18 @@ export default function ProductionDetailPage() {
                     Trạng thái thanh toán
                   </div>
                   <div
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                      apiData.payment_status === "paid"
-                        ? "bg-green-100 text-green-800"
-                        : apiData.payment_status === "pending"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${apiData.payment_status === "paid"
+                      ? "bg-green-100 text-green-800"
+                      : apiData.payment_status === "pending"
                         ? "bg-yellow-100 text-yellow-800"
                         : "bg-red-100 text-red-800"
-                    }`}
+                      }`}
                   >
                     {apiData.payment_status === "paid"
                       ? "Đã thanh toán"
                       : apiData.payment_status === "pending"
-                      ? "Chờ thanh toán"
-                      : "Chưa thanh toán"}
+                        ? "Chờ thanh toán"
+                        : "Chưa thanh toán"}
                   </div>
                 </div>
               </div>
@@ -450,19 +446,19 @@ export default function ProductionDetailPage() {
                 <div className="flex justify-between items-center py-1">
                   <div className="text-sm text-gray-600">Chi phí sản xuất</div>
                   <div className="font-medium text-sm">
-                    {(apiData.production_cost || 0).toLocaleString()} ₫
+                    {(apiData.final_total_cost
+                      || 0).toLocaleString()} ₫
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center py-1">
                   <div className="text-sm text-gray-600">Phí gấp</div>
                   <div
-                    className={`text-sm font-medium ${
-                      apiData.rush_amount ? "text-orange-600" : "text-gray-600"
-                    }`}
+                    className={`text-sm font-medium ${apiData.rush_amount.toLocaleString('vi-VN') ? "text-orange-600" : "text-gray-600"
+                      }`}
                   >
                     {apiData.rush_amount
-                      ? `+${apiData.rush_amount.toLocaleString()} ₫`
+                      ? `+${apiData.rush_amount.toFixed(0).toLocaleString('vi-VN')} ₫`
                       : "0 ₫"}
                   </div>
                 </div>
@@ -498,9 +494,7 @@ export default function ProductionDetailPage() {
                     <div className="flex justify-between mt-1">
                       <span className="text-blue-600">Còn lại:</span>
                       <span className="font-medium">
-                        {(
-                          apiData.estimate_total - apiData.deposit_amount
-                        ).toLocaleString()}{" "}
+                        {remainingAmount.toLocaleString()}{" "}
                         ₫
                       </span>
                     </div>
@@ -659,11 +653,10 @@ export default function ProductionDetailPage() {
                     Ghi chú khách hàng
                   </div>
                   <div
-                    className={`p-3 rounded border text-sm min-h-[80px] ${
-                      apiData.note
-                        ? "bg-gray-50 border-gray-200"
-                        : "bg-gray-50 border-gray-200"
-                    }`}
+                    className={`p-3 rounded border text-sm min-h-[80px] ${apiData.note
+                      ? "bg-gray-50 border-gray-200"
+                      : "bg-gray-50 border-gray-200"
+                      }`}
                   >
                     {apiData.note ? (
                       <div className="text-gray-700 whitespace-pre-line">
@@ -682,11 +675,10 @@ export default function ProductionDetailPage() {
                     Ghi chú nội bộ
                   </div>
                   <div
-                    className={`p-3 rounded border text-sm min-h-[80px] ${
-                      apiData.internal_note
-                        ? "bg-red-50 border-red-100"
-                        : "bg-gray-50 border-gray-200"
-                    }`}
+                    className={`p-3 rounded border text-sm min-h-[80px] ${apiData.internal_note
+                      ? "bg-red-50 border-red-100"
+                      : "bg-gray-50 border-gray-200"
+                      }`}
                   >
                     {apiData.internal_note ? (
                       <div className="text-red-700 whitespace-pre-line">
@@ -744,13 +736,12 @@ export default function ProductionDetailPage() {
                 >
                   {/* Timeline dot */}
                   <div
-                    className={`absolute -left-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${
-                      isCompleted
-                        ? "bg-green-500"
-                        : isInProgress
+                    className={`absolute -left-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${isCompleted
+                      ? "bg-green-500"
+                      : isInProgress
                         ? "bg-yellow-500"
                         : "bg-gray-300"
-                    }`}
+                      }`}
                   >
                     {isCompleted ? (
                       <BiCheckCircle className="w-4 h-4 text-white" />
@@ -771,19 +762,18 @@ export default function ProductionDetailPage() {
                           {stage.process_name} {stage.machine}
                         </h3>
                         <p
-                          className={`text-sm ${
-                            isCompleted
-                              ? "text-green-600"
-                              : isInProgress
+                          className={`text-sm ${isCompleted
+                            ? "text-green-600"
+                            : isInProgress
                               ? "text-yellow-600"
                               : "text-gray-500"
-                          }`}
+                            }`}
                         >
                           {isCompleted
                             ? " Đã hoàn thành"
                             : isInProgress
-                            ? " Đang thực hiện"
-                            : " Chờ xử lý"}
+                              ? " Đang thực hiện"
+                              : " Chờ xử lý"}
                         </p>
                       </div>
                     </div>

@@ -1,6 +1,8 @@
 "use client";
 import { productionsApi } from "@/apiRequests/productions";
 import { FinishTaskBody, tasksApi } from "@/apiRequests/tasks";
+import Loading from "@/app/manager/loading";
+import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
@@ -90,8 +92,8 @@ export default function ProductionDetailPage() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [finishFormData, setFinishFormData] = useState<FinishTaskBody>({
     token: "",
-    scanner_id: "",
-    operator_id: 0,
+    scanner_id: "1",
+    operator_id: 1,
     qty_good: 0,
     qty_bad: 0,
   });
@@ -108,21 +110,13 @@ export default function ProductionDetailPage() {
     try {
       const response = await tasksApi.finishTask(finishFormData);
       if (response) {
-        alert("Hoàn thành task thành công!");
+        showSuccessToast("Hoàn thành task thành công!");
         setShowFinishModal(false);
-        // Refresh data
-        // NOTE: invalidating 'productionSchedules' query would be better if we had access to queryClient, 
-        // but here we can't easily access it without useQueryClient hook or similar. 
-        // Assuming we rely on a manual refresh or we could re-trigger the query if we had it.
-        // Since we don't have queryClient in scope, we can rely on router.refresh() 
-        // or force a refetch if we destructured 'refetch' from useQuery.
-        // Let's reload the page or add a refetch method.
-        // Editing the useQuery above to get 'refetch' is a good idea.
         window.location.reload();
       }
     } catch (error) {
       console.error("Failed to finish task:", error);
-      alert("Có lỗi xảy ra khi hoàn thành task.");
+      showErrorToast("Có lỗi xảy ra khi hoàn thành task.");
     }
   };
 
@@ -145,7 +139,7 @@ export default function ProductionDetailPage() {
       }
     } catch (error) {
       console.error("Failed to create QR code:", error);
-      alert("Không thể tạo mã QR. Vui lòng thử lại.");
+      showErrorToast("Không thể tạo mã QR. Vui lòng thử lại.");
     }
   };
 
@@ -221,7 +215,7 @@ export default function ProductionDetailPage() {
   });
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div><Loading text="Đang tải thông tin sản xuất" /></div>;
   }
 
   console.log("production", productionSchedules);
@@ -605,7 +599,7 @@ export default function ProductionDetailPage() {
                   onChange={(e) => setFinishFormData({ ...finishFormData, token: e.target.value })}
                 />
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Scanner ID</label>
                 <input
                   type="text"
@@ -622,7 +616,7 @@ export default function ProductionDetailPage() {
                   value={finishFormData.operator_id}
                   onChange={(e) => setFinishFormData({ ...finishFormData, operator_id: Number(e.target.value) })}
                 />
-              </div>
+              </div> */}
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Qty Good</label>
