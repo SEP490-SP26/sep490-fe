@@ -1,5 +1,6 @@
 "use client";
 import Masonry from "@/components/Bits/Masonry";
+import ZaloChat from "@/components/ZaloChatProps/ZaloChatProps";
 import { useRouter } from "next/navigation";
 
 const data = [
@@ -172,6 +173,7 @@ export default function HomePage() {
           <div className="py-8"> </div>
         </div>
       </main>
+      <ZaloChat/>
     </div>
   );
 }
