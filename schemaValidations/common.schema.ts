@@ -333,6 +333,17 @@ export interface OrderDetailResponse {
   file_url: string;
 }
 
+export interface CreateQRBody {
+  task_id: number;
+  ttl_minutes: number;
+}
+
+export interface CreateQRResponse {
+  task_id: number;
+  token: string;
+  expires_at_unix: number;
+}
+
 // Deposit Response for GET /api/Estimates/deposit/by-request/{requestId}
 export interface DepositResponse {
   order_request_id: number;

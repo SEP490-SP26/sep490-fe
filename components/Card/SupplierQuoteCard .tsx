@@ -1,5 +1,5 @@
 import { Rate } from "antd";
-import { BiPhone, BiEnvelope, BiTime, BiCheck } from "react-icons/bi";
+import { BiEnvelope, BiTime } from "react-icons/bi";
 
 interface SupplierQuoteCardProps {
   supplier: any;

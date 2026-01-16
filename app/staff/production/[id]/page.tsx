@@ -1,36 +1,212 @@
 "use client";
 import { productionsApi } from "@/apiRequests/productions";
-import { useProduction } from "@/context/ProductionContext";
+import { FinishTaskBody, tasksApi } from "@/apiRequests/tasks";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
+import { QRCodeCanvas } from "qrcode.react";
+import { useState } from "react";
 import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
 import {
   BsArrowLeft,
   BsClock,
+  BsDownload,
   BsLayers,
   BsPrinter,
   BsScissors,
+  BsX,
 } from "react-icons/bs";
-import { QRCodeCanvas } from "qrcode.react";
-import { useState } from "react";
+
+export interface Material {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+export interface OutputProduct {
+  name: string;
+  code: string;
+  quantity: number;
+  unit: string;
+}
+
+export interface ProductionLog {
+  log_id: number;
+  task_id: number;
+  action_type: string;
+  qty_good: number;
+  qty_bad: number;
+  operator_id: number;
+  log_time: string; // ISO Date string
+  scanner_id: string;
+  scanned_code: string;
+}
+
+export interface ProductionStage {
+  process_id: number;
+  seq_num: number;
+  process_name: string;
+  process_code: string;
+  machine: string;
+  task_id: number;
+  task_name: string;
+  status: 'Finished' | 'InProcessing' | 'Ready' | string;
+  start_time?: string; // ISO Date string
+  end_time?: string;   // ISO Date string
+  last_scan_time?: string;
+  qty_good: number;
+  qty_bad: number;
+  waste_percent: number;
+  logs: ProductionLog[];
+  input_materials: Material[];
+  output_product: OutputProduct;
+}
+
+export interface ProductionResponse {
+  prod_id: number;
+  production_code: string;
+  production_status: 'InProcessing' | 'Finished' | 'Pending' | string;
+  start_date: string; // ISO Date string
+  order_id: number;
+  order_code: string;
+  delivery_date: string; // ISO Date string
+  customer_name: string;
+  product_name: string;
+  quantity: number;
+  length_mm: number;
+  width_mm: number;
+  height_mm: number;
+  stages: ProductionStage[];
+}
+
+
 
 export default function ProductionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
   const [showQRPopup, setShowQRPopup] = useState(false);
+  const [qrToken, setQrToken] = useState<string>("");
+  // State for Finish Task Modal
+  const [showFinishModal, setShowFinishModal] = useState(false);
+  const [finishFormData, setFinishFormData] = useState<FinishTaskBody>({
+    token: "",
+    scanner_id: "",
+    operator_id: 0,
+    qty_good: 0,
+    qty_bad: 0,
+  });
 
-  const {
-    // productionSchedules,
-    getProductionStages,
-  } = useProduction();
+  // Handler to open modal and set initial state if needed
+  const openFinishModal = () => {
+    // We can pre-fill token if it exists from the QR step, otherwise empty
+    setFinishFormData((prev) => ({ ...prev, token: qrToken || "" }));
+    setShowFinishModal(true);
+  };
 
-  // const order = orders.find((o) => o.order_id === id);
-  // const schedule = productionSchedules.find((s) => s.order_id === id);
-  // const product = products.find((p) => p.id === order?.product_id);
-  // const stages = getProductionStages(id as string);
+  // Handler to submit finish task
+  const handleFinishTask = async () => {
+    try {
+      const response = await tasksApi.finishTask(finishFormData);
+      if (response) {
+        alert("Hoàn thành task thành công!");
+        setShowFinishModal(false);
+        // Refresh data
+        // NOTE: invalidating 'productionSchedules' query would be better if we had access to queryClient, 
+        // but here we can't easily access it without useQueryClient hook or similar. 
+        // Assuming we rely on a manual refresh or we could re-trigger the query if we had it.
+        // Since we don't have queryClient in scope, we can rely on router.refresh() 
+        // or force a refetch if we destructured 'refetch' from useQuery.
+        // Let's reload the page or add a refetch method.
+        // Editing the useQuery above to get 'refetch' is a good idea.
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Failed to finish task:", error);
+      alert("Có lỗi xảy ra khi hoàn thành task.");
+    }
+  };
 
-  const { data: productionSchedules, isLoading } = useQuery({
+  const [selectedTaskName, setSelectedTaskName] = useState<string>("");
+
+  const handleCreateQR = async (taskId: number, taskName: string) => {
+    try {
+      console.log('taskId ', taskId);
+      const response = await tasksApi.createQRByStageId({
+        task_id: taskId,
+        ttl_minutes: 120,
+      });
+      console.log('response ', response);
+      console.log('response.token ', response.token);
+      if (response && response.token) {
+        // Response có token ngay ở top level
+        setQrToken(response.token);
+        setSelectedTaskName(taskName);
+        setShowQRPopup(true);
+      }
+    } catch (error) {
+      console.error("Failed to create QR code:", error);
+      alert("Không thể tạo mã QR. Vui lòng thử lại.");
+    }
+  };
+
+  const handleDownloadQR = () => {
+    const canvas = document.getElementById("qr-code-canvas") as HTMLCanvasElement;
+    if (canvas) {
+      const pngUrl = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = `QR_${selectedTaskName || "task"}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
+
+  const handlePrintQR = () => {
+    const canvas = document.getElementById("qr-code-canvas") as HTMLCanvasElement;
+    if (canvas) {
+      const dataUrl = canvas.toDataURL();
+      const windowContent = `
+         <!DOCTYPE html>
+         <html>
+           <head>
+             <title>In QR Code</title>
+             <style>
+               body {
+                 display: flex;
+                 flex-direction: column;
+                 align-items: center;
+                 justify-content: center;
+                 height: 100vh;
+                 margin: 0;
+               }
+               h2 { margin-bottom: 20px; font-family: sans-serif; }
+               img { max-width: 100%; height: auto; }
+             </style>
+           </head>
+           <body>
+             <h2>${selectedTaskName}</h2>
+             <img src="${dataUrl}" />
+             <script>
+               window.onload = function() {
+                 window.print();
+                 window.onafterprint = function() { window.close(); }
+               }
+             </script>
+           </body>
+         </html>
+       `;
+      const printWindow = window.open("", "", "width=600,height=600");
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(windowContent);
+        printWindow.document.close();
+      }
+    }
+  };
+
+
+  const { data: productionSchedules, isLoading } = useQuery<ProductionResponse>({
     queryKey: ["productionSchedules"],
     queryFn: async () => {
       if (!id) {
@@ -49,112 +225,6 @@ export default function ProductionDetailPage() {
   }
 
   console.log("production", productionSchedules);
-
-  // Dữ liệu dựa trên phiếu lệnh sản xuất
-  // const productionProcess = [
-  //   {
-  //     id: "ralo",
-  //     name: "Ralo",
-  //     code: "25-557",
-  //     inputMaterials: [
-  //       { name: "Giấy Duplex 350", quantity: 320, unit: "tờ", code: "VT00798" },
-  //     ],
-  //     outputMaterial: "Giấy đã ralo (300x90x230)mm",
-  //     outputQuantity: 320,
-  //     outputUnit: "tờ",
-  //     note: "Khổ 1000, chặt 440",
-  //   },
-  //   {
-  //     id: "cut",
-  //     name: "Cắt",
-  //     code: "25-557",
-  //     inputMaterials: [{ name: "Giấy đã ralo", quantity: 320, unit: "tờ" }],
-  //     outputMaterial: "Giấy đã cắt (300x90x230)mm",
-  //     outputQuantity: 320,
-  //     outputUnit: "tờ",
-  //     note: "Cắt hớt 2 chiều 440 về 435",
-  //   },
-  //   {
-  //     id: "print",
-  //     name: "In",
-  //     code: "25-557",
-  //     inputMaterials: [
-  //       { name: "Giấy đã cắt", quantity: 70, unit: "tờ" },
-  //       { name: "Kẽm in", quantity: 4, unit: "bản", code: "VT007" },
-  //       { name: "Mực các loại", quantity: 0.1, unit: "kg", code: "VT00433" },
-  //     ],
-  //     outputMaterial: "Giấy đã in (300x90x230)mm",
-  //     outputQuantity: 70,
-  //     outputUnit: "tờ",
-  //   },
-  //   {
-  //     id: "laminate",
-  //     name: "Cán màng",
-  //     code: "25-557",
-  //     inputMaterials: [
-  //       { name: "Giấy đã in", quantity: 60, unit: "tờ" },
-  //       {
-  //         name: "Màng BÓNG nhiệt 1205",
-  //         quantity: 0.42,
-  //         unit: "kg",
-  //         code: "VT00684",
-  //         note: "mix khổ 480",
-  //       },
-  //     ],
-  //     outputMaterial: "Giấy đã cán màng (300x90x230)mm",
-  //     outputQuantity: 60,
-  //     outputUnit: "tờ",
-  //     note: "Màng Bóng",
-  //   },
-  //   {
-  //     id: "corrugate",
-  //     name: "Bồi sóng",
-  //     code: "25-557",
-  //     inputMaterials: [
-  //       { name: "Giấy đã cán màng", quantity: 50, unit: "tờ" },
-  //       { name: "Kéo phù bài", quantity: 0.08, unit: "kg", code: "VT00434" },
-  //       {
-  //         name: "Sóng E nâu",
-  //         quantity: 60,
-  //         unit: "tờ",
-  //         code: "VTHT00106",
-  //         note: "khổ 430 x dài 815mm",
-  //       },
-  //     ],
-  //     outputMaterial: "Giấy đã bồi sóng (300x90x230)mm",
-  //     outputQuantity: 50,
-  //     outputUnit: "tờ",
-  //     note: "Sóng mẫu HT",
-  //   },
-  //   {
-  //     id: "crease",
-  //     name: "Bể",
-  //     code: "25-557",
-  //     inputMaterials: [{ name: "Giấy đã bồi sóng", quantity: 40, unit: "tờ" }],
-  //     outputMaterial: "Giấy đã bể (300x90x230)mm",
-  //     outputQuantity: 40,
-  //     outputUnit: "tờ",
-  //   },
-  //   {
-  //     id: "diecut",
-  //     name: "Dứt",
-  //     code: "25-557",
-  //     inputMaterials: [{ name: "Giấy đã bể", quantity: 40, unit: "tờ" }],
-  //     outputMaterial: "Giấy đã dứt (300x90x230)mm",
-  //     outputQuantity: 40,
-  //     outputUnit: "tờ",
-  //   },
-  //   {
-  //     id: "glue",
-  //     name: "Dán",
-  //     code: "25-557",
-  //     inputMaterials: [{ name: "Giấy đã dứt", quantity: 30, unit: "tờ" }],
-  //     outputMaterial: "Thành phẩm hoàn chỉnh",
-  //     outputQuantity: 30,
-  //     outputUnit: "chiếc",
-  //     finalProduct: true,
-  //   },
-  // ];
 
   const productionStages = [
     {
@@ -207,21 +277,6 @@ export default function ProductionDetailPage() {
     },
   ];
 
-  // const handleUpdateStage = (stageId: string) => {
-  //   if (schedule) {
-  //     updateProductionStage(schedule.id, stageId);
-  //   }
-  // };
-
-  // const getStageStatus = (stageId: string) => {
-  //   const stage = stages.find((s) => s.id === stageId);
-  //   return stage?.status || "pending";
-  // };
-
-  // const getProcessInfo = (stageId: string) => {
-  //   return productionProcess.find((p) => p.id === stageId);
-  // };
-
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <button
@@ -237,161 +292,44 @@ export default function ProductionDetailPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           {/* Left side - Order info */}
           <div className="flex-1">
-            {/* <div className="flex items-start gap-4 mb-4">
-              <div className="bg-blue-600 text-white p-3 rounded-lg">
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    LỆNH SẢN XUẤT
-                  </h1>
-                  {/* Status badge */}
-            {/* <div
-                    className={`px-2 py-1 rounded-lg text-sm font-semibold  inline-block ${
-                      productionSchedules.status === "completed"
-                        ? "bg-green-100 text-green-700 border border-green-200"
-                        : productionSchedules.status === "in_production"
-                        ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                        : productionSchedules.status === "scheduled"
-                        ? "bg-blue-100 text-blue-700 border border-blue-200"
-                        : "bg-gray-100 text-gray-700 border border-gray-200"
-                    }`}
-                  >
-                    {productionSchedules.status === "completed"
-                      ? " ĐÃ HOÀN THÀNH"
-                      : productionSchedules.status === "in_production"
-                      ? " ĐANG SẢN XUẤT"
-                      : productionSchedules.status === "scheduled"
-                      ? " ĐÃ LÊN LỊCH"
-                      : " CHỜ XỬ LÝ"}
-                  </div> */}
-            {/* </div>
-                <div className="text-gray-600">
-                  <span className="font-medium">Mã:</span> LSX-
-                  {productionSchedules.order_id}
-                </div>
-              </div>
-            </div>  */}
-
             {/* Order details in cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">Lệnh sản xuất</div>
                 <div className="font-medium text-gray-900 truncate">
-                  Mã {productionSchedules.production_code || "Khách lẻ"}
+                  Mã {productionSchedules?.order_code || "Khách lẻ"}
                 </div>
               </div>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">KHÁCH HÀNG</div>
                 <div className="font-medium text-gray-900 truncate">
-                  {productionSchedules.customer_name || "Khách lẻ"}
+                  {productionSchedules?.customer_name || "Khách lẻ"}
                 </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">SẢN PHẨM</div>
-                {/* <div className="font-medium text-gray-900">{product?.type}</div> */}
-                <div className="text-xs text-gray-500 mt-1">Mã: 2025NL0052</div>
+                <div className="font-medium text-gray-900">{productionSchedules?.product_name}</div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">SỐ LƯỢNG</div>
                 <div className="font-medium text-gray-900">
-                  {productionSchedules.quantity} chiếc
+                  {productionSchedules?.quantity} chiếc
                 </div>
               </div>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">NGÀY GIAO</div>
                 <div className="font-medium text-gray-900">
-                  {new Date(
-                    productionSchedules.delivery_date
-                  ).toLocaleDateString("vi-VN")}
+                  {productionSchedules?.delivery_date
+                    ? new Date(
+                      productionSchedules.delivery_date
+                    ).toLocaleDateString("vi-VN")
+                    : "-"}
                 </div>
               </div>
-              {/* Schedule info */}
-              {/* {productionSchedules && (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
-                  <div className="text-sm font-medium text-blue-700 mb-1">
-                    LỊCH SẢN XUẤT
-                  </div>
-                  <div className="text-xs text-blue-600">
-                    <div className="flex items-center gap-1 mb-1">
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Bắt đầu:{" "}
-                      {new Date(
-                        productionSchedules.start_date
-                      ).toLocaleDateString("vi-VN")}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Kết thúc:{" "}
-                      {new Date(
-                        productionSchedules.end_date
-                      ).toLocaleDateString("vi-VN")}
-                    </div>
-                  </div>
-                </div>
-              )} */}
             </div>
-
-            {/* Specifications */}
-            {/* <div className="mt-4 flex flex-wrap gap-2">
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium">Quy cách:</span> 300x90x230mm
-              </div>
-
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium">Chất liệu:</span> Giấy Duplex 350
-              </div>
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium"></span> Người tạo: Quản lý sản
-                xuất
-              </div>
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium"></span> Ngày tạo:{" "}
-                {new Date(productionSchedules.created_at).toLocaleDateString(
-                  "vi-VN"
-                )}
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
@@ -403,7 +341,7 @@ export default function ProductionDetailPage() {
           QUY TRÌNH SẢN XUẤT CHI TIẾT
         </h2>
         <div className="space-y-8">
-          {productionSchedules.stages.map((stage: any) => {
+          {productionSchedules?.stages.map((stage: any) => {
             const stageInfo = productionStages.find(
               (s) => s.id === stage.process_id
             );
@@ -419,13 +357,12 @@ export default function ProductionDetailPage() {
               >
                 {/* Timeline dot */}
                 <div
-                  className={`absolute -left-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${
-                    isCompleted
-                      ? "bg-green-500"
-                      : isInProgress
+                  className={`absolute -left-3 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${isCompleted
+                    ? "bg-green-500"
+                    : isInProgress
                       ? "bg-yellow-500"
                       : "bg-gray-300"
-                  }`}
+                    }`}
                 >
                   {isCompleted ? (
                     <BiCheckCircle className="w-4 h-4 text-white" />
@@ -446,77 +383,48 @@ export default function ProductionDetailPage() {
                         {stage.process_name} {stage.machine}
                       </h3>
                       <p
-                        className={`text-sm ${
-                          isCompleted
-                            ? "text-green-600"
-                            : isInProgress
+                        className={`text-sm ${isCompleted
+                          ? "text-green-600"
+                          : isInProgress
                             ? "text-yellow-600"
                             : "text-gray-500"
-                        }`}
+                          }`}
                       >
                         {isCompleted
                           ? " Đã hoàn thành"
                           : isInProgress
-                          ? " Sẵn sàng"
-                          : " Chờ xử lý"}
+                            ? " Sẵn sàng"
+                            : " Chờ xử lý"}
                       </p>
                     </div>
                   </div>
+
                   <div className="flex items-center gap-4">
-                    {stage.task_name && (
+                    {stage.task_id && (
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                         {stage.task_name}
                       </span>
                     )}
-                    <button
-                      className="bg-accent py-1 px-2 rounded-md"
-                      onClick={() => setShowQRPopup(true)}
-                    >
-                      Xem QR
-                    </button>
-                  </div>
-
-                  {showQRPopup && (
-                    <div
-                      className="fixed inset-0 z-50 flex items-center justify-center  px-4"
-                      // key={`qr-popup-${stage.id}`}
-                    >
-                      {/* header */}
-                      <div className="flex items-center justify-between border-b px-6 py-4">
+                    {isInProgress && (
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setShowQRPopup(false)}
-                          className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                          className="bg-accent py-1 px-2 rounded-md hover:bg-black/80 transition-colors text-white"
+                          onClick={() => handleCreateQR(stage.task_id, stage.task_name || stage.process_name)}
                         >
-                          ✕
+                          Tạo QR
+                        </button>
+                        <button
+                          className="bg-green-500 py-1 px-2 rounded-md hover:bg-black/80 transition-colors text-white"
+                          onClick={() => {
+                            // Set task info if needed, but the API relies on body fields
+                            openFinishModal();
+                          }}
+                        >
+                          Hoàn thành
                         </button>
                       </div>
-                      {/* Popup container */}
-                      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-                        {stage.logs.map((logItem: any, index: number) => (
-                          <div
-                            key={index}
-                            className="flex flex-col items-center gap-2 rounded-xl border p-3"
-                          >
-                            <QRCodeCanvas
-                              value={logItem.scanned_code || "N/A"}
-                              size={120}
-                              level="H"
-                            />
-                          </div>
-                        ))}
-
-                        {/* Footer */}
-                        {/* <div className="border-t px-6 py-4">
-                          <button
-                            onClick={() => setShowQRPopup(false)}
-                            className="w-full rounded-xl bg-black py-2 text-white hover:bg-gray-800 transition"
-                          >
-                            Đóng
-                          </button>
-                        </div> */}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Input Materials Table */}
@@ -618,6 +526,142 @@ export default function ProductionDetailPage() {
           })}
         </div>
       </div>
+
+      {showQRPopup && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">
+                Mã QR cho Task
+              </h3>
+              <button
+                onClick={() => setShowQRPopup(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <BsX className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-6">
+              <div className="p-4 bg-white border-2 border-dashed border-gray-200 rounded-lg">
+                <QRCodeCanvas
+                  id="qr-code-canvas"
+                  value={qrToken}
+                  size={200}
+                  level={"H"}
+                  includeMargin={true}
+                />
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-1">Task</p>
+                <p className="font-medium text-gray-900">{selectedTaskName}</p>
+              </div>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={handlePrintQR}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                >
+                  <BsPrinter className="w-4 h-4" />
+                  In QR
+                </button>
+                <button
+                  onClick={handleDownloadQR}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  <BsDownload className="w-4 h-4" />
+                  Tải về
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Hoàn Thành Task - Code mới thêm vào */}
+      {showFinishModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">
+                Hoàn thành Task
+              </h3>
+              <button
+                onClick={() => setShowFinishModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <BsX className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md p-2"
+                  value={finishFormData.token}
+                  onChange={(e) => setFinishFormData({ ...finishFormData, token: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Scanner ID</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md p-2"
+                  value={finishFormData.scanner_id}
+                  onChange={(e) => setFinishFormData({ ...finishFormData, scanner_id: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Operator ID</label>
+                <input
+                  type="number"
+                  className="w-full border border-gray-300 rounded-md p-2"
+                  value={finishFormData.operator_id}
+                  onChange={(e) => setFinishFormData({ ...finishFormData, operator_id: Number(e.target.value) })}
+                />
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Qty Good</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-md p-2"
+                    value={finishFormData.qty_good}
+                    onChange={(e) => setFinishFormData({ ...finishFormData, qty_good: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Qty Bad</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-md p-2"
+                    value={finishFormData.qty_bad}
+                    onChange={(e) => setFinishFormData({ ...finishFormData, qty_bad: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowFinishModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleFinishTask}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
