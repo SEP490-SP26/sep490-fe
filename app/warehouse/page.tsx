@@ -20,7 +20,7 @@ import { FiZap } from "react-icons/fi";
 
 export default function ProductionScheduling() {
   const queryClient = useQueryClient();
-  
+
   const {
     products,
     orders,
@@ -159,9 +159,8 @@ export default function ProductionScheduling() {
       weekEnd.setDate(weekStart.getDate() + 6);
 
       weeks.push({
-        label: `Tuần ${weekStart.getDate()}/${
-          weekStart.getMonth() + 1
-        } - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`,
+        label: `Tuần ${weekStart.getDate()}/${weekStart.getMonth() + 1
+          } - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`,
         start: weekStart,
         end: weekEnd,
       });
@@ -305,7 +304,7 @@ export default function ProductionScheduling() {
       <h1 className="mb-8">Lập lịch Sản xuất</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-   
+
         {/* Đã lên lịch */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="mb-4 flex items-center gap-2">
@@ -371,20 +370,19 @@ export default function ProductionScheduling() {
                   {/* Right side: Action button */}
                   <button
                     onClick={() => handleStart(order.order_id)}
-                    className={`px-3 py-1.5 rounded-lg transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                      mutation.isPending &&
-                      mutation.variables === order.order_id
+                    className={`px-3 py-1.5 rounded-lg transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 ${mutation.isPending &&
+                        mutation.variables === order.order_id
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-yellow-600 hover:bg-yellow-700 text-white"
-                    }`}
-                    // disabled={
-                    //   !order.schedule ||
-                    //   (mutation.isPending &&
-                    //     mutation.variables === order.order_id)
-                    // }
+                      }`}
+                  // disabled={
+                  //   !order.schedule ||
+                  //   (mutation.isPending &&
+                  //     mutation.variables === order.order_id)
+                  // }
                   >
                     {mutation.isPending &&
-                    mutation.variables === order.order_id ? (
+                      mutation.variables === order.order_id ? (
                       <>
                         <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                         Đang xử lý...
@@ -402,15 +400,15 @@ export default function ProductionScheduling() {
             {scheduledOrders.filter(
               (o: any) => o.production_status === "Scheduled"
             ).length === 0 && (
-              <div className="text-center py-4">
-                <div className="text-gray-400 text-sm mb-1">
-                  Không có lịch sản xuất
+                <div className="text-center py-4">
+                  <div className="text-gray-400 text-sm mb-1">
+                    Không có lịch sản xuất
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Vui lòng lên lịch cho đơn hàng
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500">
-                  Vui lòng lên lịch cho đơn hàng
-                </div>
-              </div>
-            )}
+              )}
           </div>
         </div>
         {/* Đang sản xuất */}
@@ -479,13 +477,12 @@ export default function ProductionScheduling() {
                             return (
                               <div
                                 key={index}
-                                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                                  isCurrent
+                                className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${isCurrent
                                     ? "bg-blue-100 text-blue-700 border border-blue-300"
                                     : isCompleted
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-gray-100 text-gray-500"
-                                }`}
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-gray-100 text-gray-500"
+                                  }`}
                               >
                                 {/* <StageIcon className="w-3 h-3" /> */}
                                 {stage}
@@ -521,7 +518,7 @@ export default function ProductionScheduling() {
                       )}
                     </div> */}
                     <Link
-                      href={`/staff/production/${order.order_id}`}
+                      href={`/warehouse/production/${order.order_id}`}
                       className="w-full mt-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex items-center justify-center gap-2"
                     >
                       <BsEye className="w-4 h-4" />
@@ -537,10 +534,10 @@ export default function ProductionScheduling() {
             {scheduledOrders.filter(
               (o: any) => o.production_status === "InProcessing"
             ).length === 0 && (
-              <div className="text-gray-400 text-center py-8 text-sm">
-                {/* Không có đơn đang sản xuất */}
-              </div>
-            )}
+                <div className="text-gray-400 text-center py-8 text-sm">
+                  {/* Không có đơn đang sản xuất */}
+                </div>
+              )}
           </div>
         </div>
       </div>

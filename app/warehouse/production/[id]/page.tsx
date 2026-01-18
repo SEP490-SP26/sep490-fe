@@ -599,7 +599,7 @@ export default function ProductionDetailPage() {
                   onChange={(e) => setFinishFormData({ ...finishFormData, token: e.target.value })}
                 />
               </div>
-              {/* <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Scanner ID</label>
                 <input
                   type="text"
@@ -616,7 +616,7 @@ export default function ProductionDetailPage() {
                   value={finishFormData.operator_id}
                   onChange={(e) => setFinishFormData({ ...finishFormData, operator_id: Number(e.target.value) })}
                 />
-              </div> */}
+              </div>
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Qty Good</label>

@@ -15,12 +15,12 @@ export default function layoutManager({
       label: "Lịch Sản Xuất",
       icon: FiShoppingCart,
     },
-        {
+    {
       path: "/inventory",
       label: "Tồn Kho",
       icon: FaWarehouse,
     },
-    { path: "/staff", label: "Đăng xuất", icon: FiLogOut },
+    { path: "/", label: "Đăng xuất", icon: FiLogOut },
   ];
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,13 +37,12 @@ export default function layoutManager({
 
             return (
               <Link
-                href={"/staff" + item.path}
+                href={"/warehouse" + item.path}
                 key={item.path}
-                className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${isActive
                     ? "bg-blue-50 text-blue-600"
                     : "text-gray-700 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
