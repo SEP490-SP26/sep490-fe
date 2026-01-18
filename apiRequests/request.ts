@@ -1,5 +1,5 @@
 import http from "@/lib/httpAxios";
-import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant } from "../schemaValidations/common.schema";
+import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, UpdateRequestBody } from "../schemaValidations/common.schema";
 
 export const requestOrderApi = {
   getList: (page: number = 1, pageSize: number = 5) =>
@@ -13,7 +13,7 @@ export const requestOrderApi = {
 
   getDetail: (id: string) => http.get<CommonResType>(`/api/requests/${id}`),
 
-  updateRequest: (id: string, body: Partial<CreateRequestBody>) =>
+  updateRequest: (id: string, body: Partial<UpdateRequestBody>) =>
     http.put<CommonResType>(`/api/requests/${id}`, body),
 
   deleteRequest: (id: string) =>

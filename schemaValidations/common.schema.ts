@@ -63,6 +63,53 @@ export interface CreateRequestBody {
   detail_address?: string;
 }
 
+export interface UpdateRequestBody {
+  // Thông tin khách hàng
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+
+  // Thông tin chung về đơn hàng
+  order_request_date: string; // ISO Date string
+  delivery_date: string;      // ISO Date string
+  processing_status: string;
+  description: string;
+
+  // Thông tin sản phẩm
+  product_name: string;
+  product_type: string;
+  quantity: number;
+  design_file_path: string;
+  is_send_design: boolean;
+
+  // Thông tin địa chỉ giao hàng
+  province: string;
+  district: string;
+  detail_address: string;
+
+  // Thông số kỹ thuật sản xuất
+  number_of_plates: number;
+  paper_code: string;
+  paper_name: string;
+  coating_type: string;
+  wave_type: string;
+
+  // Kích thước kỹ thuật (mm)
+  product_length_mm: number;
+  product_width_mm: number;
+  product_height_mm: number;
+  glue_tab_mm: number;      // Mép dán
+  bleed_mm: number;         // Tràn lề
+
+  // Thông số in ấn
+  is_one_side_box: boolean;
+  print_width_mm: number;
+  print_height_mm: number;
+
+  // Quy trình sản xuất (có thể là chuỗi JSON hoặc danh sách các bước)
+  production_processes: string;
+}
+
 export interface UploadResponse {
   url: string;
 }

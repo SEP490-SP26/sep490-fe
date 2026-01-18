@@ -16,6 +16,7 @@ import {
   MachineCapacity,
   Material,
   ProductType,
+  UpdateRequestBody,
 } from "@/schemaValidations/common.schema";
 import {
   CodeSandboxOutlined,
@@ -405,11 +406,11 @@ function ConsultantForm() {
         height: profile.product_height_mm,
         number_of_plates: profile.number_of_plates,
         coating_type: profile.coating_type,
-        quantity: profile.default_quantity,
-        ...(selectedProductTypeCode === "HOP_MAU" && {
-          glueTab: profile.glue_tab_mm,
-          isOneSideBox: profile.is_one_side_box,
-        }),
+        // quantity: profile.default_quantity,
+        // ...(selectedProductTypeCode === "HOP_MAU" && {
+        //   glueTab: profile.glue_tab_mm,
+        //   isOneSideBox: profile.is_one_side_box,
+        // }),
       };
       form.setFieldsValue(newValues);
       setTimeout(() => calculatePaperEstimate(), 100);
@@ -498,113 +499,120 @@ function ConsultantForm() {
   };
 
 
-  const onFinish = (values: any) => {
+  const onFinish = async (values: any) => {
     setLoading(true);
-    createRequestOrder.mutate(values);
 
-    // Simplification: In a real refactor, `designItems` would be managed better.
-    // Assuming `designFilePath` is enough for now or reusing existing logic if needed.
-    // For this refactor, I'm sticking to single file path as per standard flow in `CustomerInfo` typically or logic.
-    // If multiple colors needed from DesignUpload, state needs lifting.
-    // For now assuming just URL from designFilePath.
-
-    const finalNote = values.description || "";
-
-    const orderData = {
-      product_id: values.paper_code,
-      product_name: values.product_name,
-      quantity: values.quantity,
-      delivery_date: values.delivery_date.format("YYYY-MM-DD"),
-      system_delivery_date: estimate?.systemDate,
-      customer_name: values.customer_name,
-      customer_phone: values.customer_phone,
-      process_status: "consultant_verified" as const,
-      final_price: values.final_price,
-      rush_fee: estimate?.rushFee,
-      design_file_url: designFilePath || "",
-      specs: {
-        width: values.width,
-        height: values.height,
-        length: values.length,
-        paper_id: values.paper_code,
-        colors: [], // Simplified for this file refactor level
-        processing: values.production_processes,
-      },
-      note: finalNote,
-      contract_file: values.contract_file ? "contract.pdf" : undefined,
-    };
-
-    const handleSubmitOrder = async () => {
+    // CHỈ tạo đơn mới khi thực sự là đơn hoàn toàn mới (không có orderId)
+    if (!orderId && !createdOrderId) {
       try {
-        if (orderId) {
-          if (isNegotiateMode) {
-            const finalPrice = form.getFieldValue("final_price");
-            if (!finalPrice || finalPrice <= 0) {
-              message.warning("Vui lòng nhập giá chốt hợp lệ trước khi gửi báo giá!");
-              setLoading(false);
-              return;
-            }
+        // Tạo thông tin khách hàng trước
+        const payload: CreateRequestBodyForConsultant = {
+          customer_name: values.customer_name,
+          customer_phone: values.customer_phone,
+          customer_email: values.customer_email,
+          detail_address: values.detail_address,
+        };
 
-            try {
-              await estimatesApi.adjustCost(parseInt(orderId), finalPrice);
-            } catch (adjustError) {
-              console.error("Error adjusting cost:", adjustError);
-              message.error("Có lỗi khi cập nhật giá. Vui lòng thử lại.");
-              setLoading(false);
-              return;
-            }
+        const res: any = await requestOrderApi.createRequestOrderByConsultant(payload);
+        const newId = res?.order_request_id || res?.data?.order_request_id;
 
-            const response = await requestOrderApi.sendDeal(parseInt(orderId));
-            if (response.message === "Sent deal email") {
-              updateOrder(orderId, {
-                ...orderData,
-                process_status: "waiting_customer_confirm",
-                contract_file: undefined,
-              });
-              message.success("Đã gửi báo giá cho khách hàng! Chờ khách xác nhận qua email.");
-            } else {
-              message.error(response.detail || "Có lỗi khi gửi báo giá.");
-              setLoading(false);
-              return;
-            }
-          } else {
-            updateOrder(orderId, {
-              ...orderData,
-              process_status: "consultant_verified",
-            });
-            message.success("Đã tạo đơn hàng và gửi cho Manager duyệt!");
-          }
-        } else if (estimate && estimate.isStockEnough) {
-          addOrder({
-            ...orderData,
-            order_id: orderId || "",
-            code: `ORD-${orderId}`,
-            can_fulfill: true,
-            process_status: "waiting_customer_confirm",
-            contract_file: undefined,
-          });
-          message.success("Đã tạo báo giá và gửi cho khách hàng!");
+        if (newId) {
+          setCreatedOrderId(newId);
+          // Tiếp tục xử lý với orderId mới
+          await processOrderSubmission(newId.toString(), values);
         } else {
-          addOrder({
-            ...orderData,
-            order_id: orderId || "",
-            code: `ORD-${orderId}`,
-            can_fulfill: false,
-            process_status: "waiting_customer_confirm",
-            contract_file: undefined,
-          });
-          message.success("Đã tạo báo giá và gửi cho khách hàng!");
+          throw new Error("Không thể tạo ID đơn hàng mới");
         }
+      } catch (error) {
+        console.error("Error creating new order:", error);
+        message.error("Lỗi khi tạo đơn hàng mới");
         setLoading(false);
-        router.push("/consultant/orders");
-      } catch (error: any) {
-        console.error("Error sending deal:", error);
-        message.error(error?.response?.data?.detail || "Có lỗi xảy ra. Vui lòng thử lại.");
-        setLoading(false);
+        return;
       }
-    };
+    } else {
+      // Nếu đã có orderId (chỉnh sửa đơn cũ)
+      await processOrderSubmission(orderId || createdOrderId?.toString() || "", values);
+    }
+  };
 
-    handleSubmitOrder();
+  // Hàm xử lý submit riêng
+  const processOrderSubmission = async (currentOrderId: string, values: any) => {
+    try {
+      const finalPrice = form.getFieldValue("final_price");
+      const finalNote = values.description || "";
+
+      const orderData = {
+        product_id: values.paper_code,
+        product_name: values.product_name,
+        quantity: values.quantity,
+        delivery_date: values.delivery_date.format("YYYY-MM-DD"),
+        system_delivery_date: estimate?.systemDate,
+        customer_name: values.customer_name,
+        customer_phone: values.customer_phone,
+        final_price: finalPrice,
+        rush_fee: estimate?.rushFee,
+        design_file_url: designFilePath || "",
+        specs: {
+          width: values.width,
+          height: values.height,
+          length: values.length,
+          paper_id: values.paper_code,
+          colors: [],
+          processing: values.production_processes,
+        },
+        note: finalNote,
+      };
+
+      if (isNegotiateMode) {
+        // Chế độ negotiate: CẬP NHẬT đơn hiện tại
+        if (!finalPrice || finalPrice <= 0) {
+          message.warning("Vui lòng nhập giá chốt hợp lệ!");
+          setLoading(false);
+          return;
+        }
+
+        // 1. Cập nhật giá
+        await estimatesApi.adjustCost(parseInt(currentOrderId), finalPrice);
+
+        // 2. Gửi email báo giá
+        const response = await requestOrderApi.sendDeal(parseInt(currentOrderId));
+
+        if (response.message === "Sent deal email") {
+          // 3. Cập nhật trạng thái trong context/local
+          if (existingOrder) {
+            updateOrder(currentOrderId, {
+              ...orderData,
+              process_status: "waiting_customer_confirm",
+              order_id: currentOrderId,
+              code: `ORD-${currentOrderId}`,
+            });
+          } else {
+            // Nếu không có trong context, thêm mới
+            addOrder({
+              ...orderData,
+              order_id: currentOrderId,
+              code: `ORD-${currentOrderId}`,
+              process_status: "waiting_customer_confirm",
+              can_fulfill: estimate?.isStockEnough || false,
+            });
+          }
+
+          message.success("Đã gửi báo giá cho khách hàng!");
+        } else {
+          throw new Error(response.detail || "Lỗi gửi email");
+        }
+      } else {
+        // Chế độ create: Tạo đơn mới
+        // ... logic cho create mode
+      }
+
+      router.push("/consultant/orders");
+    } catch (error: any) {
+      console.error("Error processing order:", error);
+      message.error(error?.response?.data?.detail || error.message || "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAdjustPrice = async () => {
@@ -755,8 +763,9 @@ function ConsultantForm() {
                 />
 
                 <Row gutter={16}>
+                  {/* read only */}
                   <Col span={isCreateMode ? 12 : 24}>
-                    <Form.Item name="description" label="Ghi Chú" className="mb-2">
+                    <Form.Item name="description" label="Ghi Chú khách hàng" className="mb-2">
                       <Input.TextArea rows={1} placeholder="Ghi chú thêm..." />
                     </Form.Item>
                   </Col>
@@ -812,8 +821,8 @@ function ConsultantForm() {
                       : estimate?.caseType === 3
                         ? "CHỐT GIÁ & GỬi KHÁCH HÀNG"
                         : estimate?.caseType === 2
-                          ? "GỬi BÁO GIÁ ƯU TIÊN"
-                          : "GỬi BÁO GIÁ CHO KHÁCH HÀNG"}
+                          ? "GỬI BÁO GIÁ ƯU TIÊN"
+                          : "GỬI BÁO GIÁ CHO KHÁCH HÀNG"}
                   </Button>
                 </Form.Item>
               </Card>
