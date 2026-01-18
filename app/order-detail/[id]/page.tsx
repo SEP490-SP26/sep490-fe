@@ -5,36 +5,43 @@ import { uploadApi } from "@/apiRequests/uploads";
 import {
   ArrowLeftOutlined,
   CalendarOutlined,
+  CheckCircleFilled,
+  ClockCircleFilled,
+  CloudUploadOutlined,
   EnvironmentOutlined,
   FileImageOutlined,
+  HomeOutlined,
+  InfoCircleOutlined,
   MailOutlined,
   PhoneOutlined,
-  PlusOutlined,
   ShoppingOutlined,
-  UploadOutlined,
+  SyncOutlined,
   UserOutlined,
+  CloseCircleFilled,
+  DownloadOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
 import {
   Image as AntImage,
   Button,
   Card,
-  Col,
   Descriptions,
   Divider,
   Empty,
   message,
-  Row,
   Skeleton,
   Tag,
   Typography,
   Upload,
+  Breadcrumb,
+  Tooltip,
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 // Interface dựa trên response từ GET /api/Requests/{id}
 interface OrderDetail {
@@ -141,25 +148,55 @@ export default function OrderDetailPage() {
     setDesignFiles((prev) => prev.filter((f) => f.uid !== file.uid));
   };
 
-  const getStatusTag = (status: string) => {
-    const statusMap: { [key: string]: { color: string; text: string } } = {
-      PENDING: { color: "orange", text: "Chờ xử lý" },
-      PROCESSING: { color: "blue", text: "Đang xử lý" },
-      CONFIRMED: { color: "green", text: "Đã xác nhận" },
-      COMPLETED: { color: "cyan", text: "Hoàn thành" },
-      CANCELLED: { color: "red", text: "Đã hủy" },
+  const getStatusBadge = (status: string) => {
+    const styles: { [key: string]: string } = {
+      PENDING: "bg-amber-50 text-amber-700 border-amber-200 ring-amber-100",
+      PROCESSING: "bg-blue-50 text-blue-700 border-blue-200 ring-blue-100",
+      CONFIRMED: "bg-cyan-50 text-cyan-700 border-cyan-200 ring-cyan-100",
+      COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100",
+      CANCELLED: "bg-red-50 text-red-700 border-red-200 ring-red-100",
     };
-    const config = statusMap[status] || { color: "default", text: status };
-    return <Tag color={config.color}>{config.text}</Tag>;
+    const icons: { [key: string]: any } = {
+      PENDING: <ClockCircleFilled />,
+      PROCESSING: <SyncOutlined spin />,
+      CONFIRMED: <CheckCircleFilled />,
+      COMPLETED: <CheckCircleFilled />,
+      CANCELLED: <CloseCircleFilled />,
+    };
+
+    const style = styles[status] || "bg-slate-50 text-slate-700 border-slate-200 ring-slate-100";
+    const icon = icons[status] || <InfoCircleOutlined />;
+
+    // Status text mapping needs to be handled cautiously if the status is not standard
+    const textMap: Record<string, string> = {
+      PENDING: "Chờ xử lý",
+      PROCESSING: "Đang xử lý",
+      CONFIRMED: "Đã xác nhận",
+      COMPLETED: "Hoàn thành",
+      CANCELLED: "Đã hủy"
+    };
+
+    return (
+      <div className={`px-4 py-2 rounded-full border ring-2 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all duration-300 hover:scale-105 ${style}`}>
+        {icon}
+        <span>{textMap[status] || status}</span>
+      </div>
+    );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg rounded-2xl">
-            <Skeleton active paragraph={{ rows: 10 }} />
-          </Card>
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="max-w-6xl mx-auto">
+          <Skeleton.Button active size="large" className="mb-8" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8">
+              <Card className="shadow-sm rounded-2xl"><Skeleton active paragraph={{ rows: 8 }} /></Card>
+            </div>
+            <div className="lg:col-span-4">
+              <Card className="shadow-sm rounded-2xl"><Skeleton.Image active className="w-full h-48" /></Card>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -167,267 +204,263 @@ export default function OrderDetailPage() {
 
   if (!orderDetail) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
-        <Card className="shadow-lg rounded-2xl">
-          <Empty description="Không tìm thấy đơn hàng" />
-          <div className="text-center mt-4">
-            <Button type="primary" onClick={() => router.back()}>
-              Quay lại
-            </Button>
-          </div>
+      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+        <Card className="shadow-lg rounded-2xl max-w-md w-full text-center py-12">
+          <Empty description={<span className="text-slate-500 font-medium">Không tìm thấy đơn hàng</span>}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+          <Button type="primary" size="large" onClick={() => router.back()} className="mt-8 bg-cyan-600 hover:bg-cyan-500">
+            Quay lại danh sách
+          </Button>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          {/* <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => router.back()}
-            className="mb-4"
-          >
-            Quay lại
-          </Button> */}
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 pb-20">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-r from-cyan-600 to-blue-600 opacity-10 pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative animate-fade-in-up">
+        {/* Navigation & Header */}
+        <div className="mb-8">
+          <Breadcrumb
+            items={[
+              { href: '/', title: <HomeOutlined /> },
+              { title: 'Chi tiết đơn hàng' },
+            ]}
+            className="mb-4 text-slate-500"
+          />
+
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <Title level={2} className="!mb-1">
-                Chi tiết đơn hàng #{orderDetail.order_request_id}
-              </Title>
-              <Text type="secondary">
-                Ngày đặt:{" "}
-                {dayjs(orderDetail.order_request_date).format(
-                  "DD/MM/YYYY HH:mm"
-                )}
-              </Text>
+              <div className="flex items-center gap-3 mb-2">
+                <Title level={2} className="!mb-0 !text-slate-800 tracking-tight">
+                  Đơn hàng #{orderDetail.order_request_id}
+                </Title>
+              </div>
+              <div className="flex items-center gap-4 text-slate-500">
+                <span className="flex items-center gap-1.5"><CalendarOutlined /> {dayjs(orderDetail.order_request_date).format("DD/MM/YYYY HH:mm")}</span>
+              </div>
             </div>
-            {orderDetail.process_status &&
-              getStatusTag(orderDetail.process_status)}
+
+            {/* <div className="flex flex-col items-end gap-2">
+              {orderDetail.process_status && getStatusBadge(orderDetail.process_status)}
+            </div> */}
           </div>
         </div>
 
-        <Row gutter={[24, 24]}>
-          {/* Thông tin đơn hàng */}
-          <Col xs={24} lg={14}>
-            <Card
-              className="shadow-lg rounded-2xl h-full"
-              title={
-                <span className="flex items-center gap-2 text-lg font-semibold">
-                  <ShoppingOutlined className="text-blue-500" />
-                  Thông tin đơn hàng
-                </span>
-              }
-            >
-              <Descriptions column={1} labelStyle={{ fontWeight: 500 }}>
-                <Descriptions.Item
-                  label={
-                    <span className="flex items-center gap-2">
-                      <UserOutlined /> Khách hàng
-                    </span>
-                  }
-                >
-                  <Text strong>{orderDetail.customer_name}</Text>
-                </Descriptions.Item>
-
-                <Descriptions.Item
-                  label={
-                    <span className="flex items-center gap-2">
-                      <PhoneOutlined /> Số điện thoại
-                    </span>
-                  }
-                >
-                  <a
-                    href={`tel:${orderDetail.customer_phone}`}
-                    className="text-blue-600"
-                  >
-                    {orderDetail.customer_phone}
-                  </a>
-                </Descriptions.Item>
-
-                <Descriptions.Item
-                  label={
-                    <span className="flex items-center gap-2">
-                      <MailOutlined /> Email
-                    </span>
-                  }
-                >
-                  <a
-                    href={`mailto:${orderDetail.customer_email}`}
-                    className="text-blue-600"
-                  >
-                    {orderDetail.customer_email}
-                  </a>
-                </Descriptions.Item>
-
-                <Descriptions.Item
-                  label={
-                    <span className="flex items-center gap-2">
-                      <EnvironmentOutlined /> Địa chỉ giao hàng
-                    </span>
-                  }
-                >
-                  {orderDetail.detail_address || (
-                    <Text type="secondary" italic>
-                      Chưa có địa chỉ
-                    </Text>
-                  )}
-                </Descriptions.Item>
-              </Descriptions>
-
-              <Divider />
-
-              <Descriptions column={1} labelStyle={{ fontWeight: 500 }}>
-                <Descriptions.Item label="Tên sản phẩm">
-                  <Text strong className="text-lg">
-                    {orderDetail.product_name}
-                  </Text>
-                </Descriptions.Item>
-
-                <Descriptions.Item label="Số lượng">
-                  <Tag color="blue" className="text-base px-3 py-1">
-                    {orderDetail.quantity.toLocaleString("vi-VN")} sản phẩm
-                  </Tag>
-                </Descriptions.Item>
-
-                <Descriptions.Item label="Mô tả">
-                  {orderDetail.description || (
-                    <Text type="secondary" italic>
-                      Không có mô tả
-                    </Text>
-                  )}
-                </Descriptions.Item>
-
-                <Descriptions.Item
-                  label={
-                    <span className="flex items-center gap-2">
-                      <CalendarOutlined /> Ngày giao dự kiến
-                    </span>
-                  }
-                >
-                  <Tag color="green" className="text-base px-3 py-1">
-                    {dayjs(orderDetail.delivery_date).format("DD/MM/YYYY")}
-                  </Tag>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-          </Col>
-
-          {/* Upload file thiết kế */}
-          <Col xs={24} lg={10}>
-            <Card
-              className="shadow-lg rounded-2xl h-full"
-              title={
-                <span className="flex items-center gap-2 text-lg font-semibold">
-                  <FileImageOutlined className="text-purple-500" />
-                  File thiết kế
-                </span>
-              }
-            >
-              {/* Hiển thị file đã có */}
-              {orderDetail.design_file_path && (
-                <div className="mb-4">
-                  <Text type="secondary" className="block mb-2">
-                    File thiết kế hiện tại:
-                  </Text>
-                  <AntImage
-                    src={orderDetail.design_file_path}
-                    alt="Design file"
-                    className="rounded-lg border"
-                    style={{ maxHeight: 200, objectFit: "contain" }}
-                    placeholder={
-                      <div className="flex items-center justify-center h-32 bg-gray-100">
-                        <Text type="secondary">Đang tải...</Text>
-                      </div>
-                    }
-                  />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Info Column */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Customer & Address Card */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600">
+                  <UserOutlined className="text-xl" />
                 </div>
-              )}
+                <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin khách hàng</h3>
+              </div>
 
-              {/* Hiển thị files đã upload */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8">
+                <div>
+                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Họ và tên</Text>
+                  <Paragraph className="text-slate-700 font-medium text-base mt-1">{orderDetail.customer_name}</Paragraph>
+                </div>
+                <div>
+                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Số điện thoại</Text>
+                  <Paragraph className="text-base mt-1">
+                    <a href={`tel:${orderDetail.customer_phone}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
+                      <PhoneOutlined /> {orderDetail.customer_phone}
+                    </a>
+                  </Paragraph>
+                </div>
+                <div>
+                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Email</Text>
+                  <Paragraph className="text-base mt-1">
+                    <a href={`mailto:${orderDetail.customer_email}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
+                      <MailOutlined /> {orderDetail.customer_email}
+                    </a>
+                  </Paragraph>
+                </div>
+                <div className="md:col-span-2">
+                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Địa chỉ giao hàng</Text>
+                  <Paragraph className="text-slate-700 text-base mt-1 flex items-start gap-2">
+                    <EnvironmentOutlined className="mt-1 text-slate-400" />
+                    {orderDetail.detail_address || <span className="text-slate-400 italic">Chưa cập nhật địa chỉ</span>}
+                  </Paragraph>
+                </div>
+              </div>
+            </div>
+
+            {/* Product Details Card */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                  <ShoppingOutlined className="text-xl" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 m-0">Chi tiết sản phẩm</h3>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  <div>
+                    <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Sản phẩm</Text>
+                    <div className="text-xl font-bold text-slate-800 mt-1">{orderDetail.product_name}</div>
+                  </div>
+                  <div className="flex items-center gap-8">
+                    <div>
+                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text>
+                      <Tag bordered={false} className="bg-white text-slate-700 font-bold text-lg px-4 py-1 rounded-lg border border-slate-200">
+                        {orderDetail.quantity.toLocaleString("vi-VN")}
+                      </Tag>
+                    </div>
+                    <div>
+                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng dự kiến</Text>
+                      <Tag icon={<CalendarOutlined />} bordered={false} color="cyan" className="text-base px-3 py-1 m-0">
+                        {dayjs(orderDetail.delivery_date).format("DD/MM/YYYY")}
+                      </Tag>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Mô tả yêu cầu</Text>
+                  <div className="mt-2 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[100px]">
+                    {orderDetail.description || <span className="text-slate-400 italic">Không có mô tả chi tiết</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar - Design Files */}
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 sticky top-6">
+              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
+                  <FileImageOutlined className="text-xl" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 m-0">File thiết kế</h3>
+              </div>
+
+              {/* Current Design File Display */}
+              <div className="mb-6">
+                {orderDetail.design_file_path ? (
+                  <div className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50 transition-all hover:border-cyan-300">
+
+                    <div className="flex items-center justify-center">
+                      <AntImage
+                        src={orderDetail.design_file_path}
+                        alt="Design file"
+                        className="w-full object-contain bg-slate-100"
+                        style={{ height: 300, width: '100%' }}
+                        fallback="https://placehold.co/600x400?text=No+Preview"
+                      />
+                    </div>
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Tooltip title="Tải xuống">
+                        <Button shape="circle" icon={<DownloadOutlined />} href={orderDetail.design_file_path} target="_blank" />
+                      </Tooltip>
+                    </div>
+                    <div className="p-3 bg-white border-t border-slate-100">
+                      <Text ellipsis className="text-slate-500 text-xs block">File hiện tại</Text>
+                      <Text strong className="text-gray-700 text-sm">Design_{orderDetail.order_request_id}.png</Text>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-40 rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 mb-4">
+                    <FileImageOutlined className="text-3xl mb-2 opacity-50" />
+                    <span className="text-sm">Chưa có file thiết kế</span>
+                  </div>
+                )}
+              </div>
+
+              {/* New Uploads List */}
               {designFiles.length > 0 && (
-                <div className="mb-4">
-                  <Text type="secondary" className="block mb-2">
-                    Files mới tải lên:
-                  </Text>
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="mb-6">
+                  <Text className="text-slate-800 font-semibold mb-3 block">File mới tải lên ({designFiles.length})</Text>
+                  <div className="space-y-3">
                     {designFiles.map((file) => (
-                      <div
-                        key={file.uid}
-                        className="relative group rounded-lg overflow-hidden border"
-                      >
-                        <AntImage
-                          src={file.url}
-                          alt={file.name}
-                          className="w-full h-24 object-cover"
-                        />
-                        <Button
-                          size="small"
-                          danger
-                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleRemoveFile(file)}
-                        >
-                          Xóa
-                        </Button>
+                      <div key={file.uid} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                        <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 overflow-hidden flex-shrink-0">
+                          <AntImage src={file.url} className="w-full h-full object-cover" preview={false} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Text strong className="block text-sm truncate">{file.name}</Text>
+                          <Text type="secondary" className="text-xs">Vừa tải lên</Text>
+                        </div>
+                        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleRemoveFile(file)} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Upload area */}
-              {orderDetail.design_file_path === '' && (
-                <div>
+              {/* Upload Area */}
+              <div className="mt-2">
+                {!orderDetail.design_file_path ? (
                   <Upload
                     customRequest={handleUpload}
                     showUploadList={false}
                     accept="image/*,.pdf"
                     disabled={uploading}
+                    className="block w-full"
                   >
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
-                      <div className="flex flex-col items-center gap-2">
+                    <div className={`
+                            border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-300
+                            ${uploading ? 'border-cyan-400 bg-cyan-50' : 'border-slate-300 hover:border-cyan-500 hover:bg-slate-50'}
+                         `}>
+                      <div className="flex flex-col items-center gap-3">
                         {uploading ? (
-                          <>
-                            <UploadOutlined className="text-3xl text-blue-500 animate-pulse" />
-                            <Text>Đang tải lên...</Text>
-                          </>
+                          <SyncOutlined spin className="text-3xl text-cyan-500" />
                         ) : (
-                          <>
-                            <PlusOutlined className="text-3xl text-gray-400" />
-                            <Text type="secondary">
-                              Nhấn để tải file thiết kế
-                            </Text>
-                            <Text type="secondary" className="text-xs">
-                              Hỗ trợ: JPG, PNG, PDF
-                            </Text>
-                          </>
+                          <CloudUploadOutlined className="text-4xl text-cyan-500 drop-shadow-sm" />
                         )}
+                        <div className="text-slate-700 font-semibold">
+                          {uploading ? "Đang tải lên..." : "Tải lên file thiết kế"}
+                        </div>
+                        <Text type="secondary" className="text-xs max-w-[200px] mx-auto">
+                          Kéo thả hoặc nhấn để chọn file (JPG, PNG, PDF)
+                        </Text>
                       </div>
                     </div>
                   </Upload>
-
-                  {/* Ghi chú */}
-                  <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <Text type="warning" className="text-sm">
-                      💡 <strong>Lưu ý:</strong> Vui lòng tải lên file thiết kế
-                      rõ ràng, độ phân giải cao để đảm bảo chất lượng in ấn tốt
-                      nhất.
-                    </Text>
+                ) : (
+                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 text-amber-700 text-sm">
+                    {/* <InfoCircleOutlined className="mt-1 flex-shrink-0" />
+                    <span>Đã có file thiết kế. Nếu cần thay đổi, vui lòng liên hệ quản trị viên.</span> */}
                   </div>
-                </div>
-              )}
-            </Card>
-          </Col>
-        </Row>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
-        {/* Action buttons */}
-        <div className="mt-6 flex justify-center gap-4">
-          <Button size="large" onClick={() => router.push('/')}>
-            Quay lại trang chủ 
+        {/* Back Actions */}
+        <div className="mt-12 flex justify-center pb-8">
+          <Button size="large" onClick={() => router.back()} icon={<ArrowLeftOutlined />} className="h-12 px-8 rounded-xl font-medium border-slate-300 text-slate-600 hover:border-cyan-500 hover:text-cyan-600">
+            Quay lại danh sách
           </Button>
         </div>
+
+        {/* Animation Styles Injection */}
+        <style jsx global>{`
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translate3d(0, 20px, 0);
+            }
+            to {
+              opacity: 1;
+              transform: translate3d(0, 0, 0);
+            }
+          }
+          .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+          }
+        `}</style>
       </div>
     </div>
   );

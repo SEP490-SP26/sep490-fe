@@ -17,7 +17,7 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <div className="text-xl font-bold">
             <Link href="/">
-              <span className="text-accent uppercase ">Công TY Cô Phần In ấn</span>
+              <span className="text-primary uppercase ">Công TY Cô Phần In ấn</span>
             </Link>
           </div>
 
@@ -29,7 +29,7 @@ export default function Header() {
                   <Avatar
                     size="default"
                     icon={<UserOutlined />}
-                    className="bg-accent cursor-pointer hover:bg-green-700 transition-colors"
+                    className="bg-primary cursor-pointer hover:bg-green-700 transition-colors"
                   />
                 </Link>
               ) : (
@@ -69,20 +69,12 @@ export default function Header() {
             ) : (
               <Space size="middle">
                 <Link href="/login">
-                  <Button 
-                    type="primary" 
-                    ghost 
+                  <Button
+                    type="primary"
+                    ghost
                     className="border-green-500 text-accent hover:border-green-400 hover:text-green-400"
                   >
                     Đăng nhập
-                  </Button>
-                </Link>
-                <Link href="/register">
-                  <Button 
-                    type="primary"
-                    className="bg-green-600 hover:bg-green-700 border-green-600"
-                  >
-                    Đăng ký
                   </Button>
                 </Link>
               </Space>
