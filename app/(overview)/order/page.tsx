@@ -115,7 +115,7 @@ export default function GuestOrderPage() {
   // OTP state
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState("");
   const [loadingOtp, setLoadingOtp] = useState(false);
 
   // File upload state
@@ -147,23 +147,6 @@ export default function GuestOrderPage() {
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
 
-  // OTP handlers for Email
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) value = value.slice(-1);
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value && index < 5) {
-      document.getElementById(`otp-${index + 1}`)?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      document.getElementById(`otp-${index - 1}`)?.focus();
-    }
-  };
-
   const onSendOtp = async () => {
     const email = form.getFieldValue("email");
     if (!email) {
@@ -188,14 +171,13 @@ export default function GuestOrderPage() {
 
   const onVerifyOtp = async () => {
     const email = form.getFieldValue("email");
-    const otpCode = otp.join("");
-    if (otpCode.length !== 6) {
+    if (otp.length !== 6) {
       message.error("Vui lòng nhập đủ 6 số OTP!");
       return;
     }
     setLoadingOtp(true);
     try {
-      const response = await otpsApi.verifyOtp({ email, otp: otpCode });
+      const response = await otpsApi.verifyOtp({ email, otp });
       if (response?.message === "OTP verified") {
         setIsVerified(true);
         setIsOtpSent(false);
@@ -300,7 +282,7 @@ export default function GuestOrderPage() {
                   form.resetFields();
                   setIsVerified(false);
                   setIsOtpSent(false);
-                  setOtp(["", "", "", "", "", ""]);
+                  setOtp("");
                   setFileList([]);
                   setSelectedAddress(undefined);
                 }}
@@ -423,24 +405,7 @@ export default function GuestOrderPage() {
                             </Button>
                           ) : (
                             <div className="flex gap-1 items-center">
-                              {otp.map((digit, index) => (
-                                <input
-                                  key={index}
-                                  id={`otp-${index}`}
-                                  type="text"
-                                  inputMode="numeric"
-                                  maxLength={1}
-                                  value={digit}
-                                  onChange={(e) =>
-                                    handleOtpChange(
-                                      index,
-                                      e.target.value.replace(/\D/g, "")
-                                    )
-                                  }
-                                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                                  className="w-8 h-8 text-center text-sm font-bold border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
-                                />
-                              ))}
+                              <Input.OTP length={6} value={otp} onChange={setOtp} />
                               <Button
                                 type="primary"
                                 size="small"
@@ -455,7 +420,7 @@ export default function GuestOrderPage() {
                                 danger
                                 onClick={() => {
                                   setIsOtpSent(false);
-                                  setOtp(["", "", "", "", "", ""]);
+                                  setOtp("");
                                 }}
                               >
                                 Gửi lại
@@ -474,9 +439,8 @@ export default function GuestOrderPage() {
 
                   {/* Shipping Address - Map Picker */}
                   <div
-                    className={`pt-4 border-t ${
-                      !isVerified ? "opacity-50 pointer-events-none" : ""
-                    }`}
+                    className={`pt-4 border-t ${!isVerified ? "opacity-50 pointer-events-none" : ""
+                      }`}
                   >
                     <div className={`${labelStyle} mb-3`}>
                       Địa chỉ giao hàng <span className="text-red-500">*</span>
@@ -574,7 +538,7 @@ export default function GuestOrderPage() {
                         />
                       </Form.Item>
 
-                      {/* <Form.Item
+                      <Form.Item
                         name="desiredDate"
                         label={
                           <span className={labelStyle}>
@@ -593,7 +557,7 @@ export default function GuestOrderPage() {
                           className="w-full"
                           allowClear
                         />
-                      </Form.Item> */}
+                      </Form.Item>
                     </Space>
                   </Row>
 
@@ -655,9 +619,8 @@ export default function GuestOrderPage() {
                 size="large"
                 disabled={!isVerified || isSubmitting}
                 loading={isSubmitting}
-                className={`h-14 text-xl font-bold ${
-                  !isVerified ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-                }`}
+                className={`h-14 text-xl font-bold ${!isVerified ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                  }`}
               >
                 {isSubmitting ? "Đang gửi..." : "GỬI YÊU CẦU BÁO GIÁ"}
               </Button>

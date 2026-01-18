@@ -35,16 +35,16 @@ export default function CustomerHistoryPage() {
   // State cho form
   const [phoneNumber, setPhoneNumber] = useState('')
   const [otpCode, setOtpCode] = useState('')
-  
+
   // State cho flow
   const [step, setStep] = useState<'phone' | 'otp' | 'result'>('phone')
   const [loading, setLoading] = useState(false)
   const [sendingOtp, setSendingOtp] = useState(false)
-  
+
   // State cho kết quả
   const [myOrders, setMyOrders] = useState<OrderHistoryItem[]>([])
   const [pagination, setPagination] = useState({ page: 1, pageSize: 15, hasNext: false })
-  
+
   // Router để navigate
   const router = useRouter()
 
@@ -54,11 +54,11 @@ export default function CustomerHistoryPage() {
       message.warning('Vui lòng nhập số điện thoại!')
       return
     }
-    
+
     setSendingOtp(true)
     try {
       const response = await publicOrdersApi.sendOtp(phoneNumber)
-      
+
       if (response.message.includes('OTP đã được gửi')) {
         message.success('Mã OTP đã được gửi đến email của bạn!')
         setStep('otp')
@@ -82,23 +82,23 @@ export default function CustomerHistoryPage() {
       message.warning('Vui lòng nhập mã OTP!')
       return
     }
-    
+
     setLoading(true)
     try {
       const response = await publicOrdersApi.getHistory(phoneNumber, otpCode, page, 15)
-      
+
       setMyOrders(response.data || [])
       setPagination({
         page: response.page,
         pageSize: response.pageSize,
         hasNext: response.hasNext,
       })
-      
+
       // Lưu phone đã xác thực vào sessionStorage để bảo vệ trang chi tiết
       sessionStorage.setItem('verified_phone', phoneNumber)
-      
+
       setStep('result')
-      
+
       if (response.data?.length === 0) {
         message.info('Không tìm thấy đơn hàng nào.')
       } else {
@@ -248,33 +248,33 @@ export default function CustomerHistoryPage() {
         {step === 'phone' && (
           <div className="flex justify-center">
             <Card className="w-full max-w-md shadow-lg">
-            <div className="text-center mb-4">
-              <MobileOutlined className="text-4xl text-blue-500 mb-2" />
-              <Title level={4}>Nhập số điện thoại</Title>
-              <Text type="secondary">
-                Chúng tôi sẽ gửi mã OTP đến email gắn với số điện thoại này
-              </Text>
-            </div>
-            
-            <Input
-              size="large"
-              placeholder="Nhập số điện thoại (VD: 0912345678)"
-              prefix={<MobileOutlined className="text-gray-400" />}
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              onPressEnter={handleSendOtp}
-              className="mb-4"
-            />
-            
-            <Button
-              type="primary"
-              size="large"
-              block
-              onClick={handleSendOtp}
-              loading={sendingOtp}
-            >
-              Gửi mã OTP
-            </Button>
+              <div className="text-center mb-4">
+                <MobileOutlined className="text-4xl text-blue-500 mb-2" />
+                <Title level={4}>Nhập số điện thoại</Title>
+                <Text type="secondary">
+                  Chúng tôi sẽ gửi mã OTP đến email gắn với số điện thoại này
+                </Text>
+              </div>
+
+              <Input
+                size="large"
+                placeholder="Nhập số điện thoại (VD: 0912345678)"
+                prefix={<MobileOutlined className="text-gray-400" />}
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                onPressEnter={handleSendOtp}
+                className="mb-4"
+              />
+
+              <Button
+                type="primary"
+                size="large"
+                block
+                onClick={handleSendOtp}
+                loading={sendingOtp}
+              >
+                Gửi mã OTP
+              </Button>
             </Card>
           </div>
         )}
@@ -283,53 +283,50 @@ export default function CustomerHistoryPage() {
         {step === 'otp' && (
           <div className="flex justify-center">
             <Card className="w-full max-w-md shadow-lg">
-            <div className="text-center mb-4">
-              <MailOutlined className="text-4xl text-green-500 mb-2" />
-              <Title level={4}>Xác thực OTP</Title>
-              <Text type="secondary">
-                Nhập mã OTP đã được gửi đến email của bạn
-              </Text>
-              <div className="mt-2">
-                <Tag color="blue">{phoneNumber}</Tag>
+              <div className="text-center mb-4">
+                <MailOutlined className="text-4xl text-green-500 mb-2" />
+                <Title level={4}>Xác thực OTP</Title>
+                <Text type="secondary">
+                  Nhập mã OTP đã được gửi đến email của bạn
+                </Text>
+                <div className="mt-2">
+                  <Tag color="blue">{phoneNumber}</Tag>
+                </div>
               </div>
-            </div>
-            
-            <Input
-              size="large"
-              placeholder="Nhập mã OTP"
-              prefix={<MailOutlined className="text-gray-400" />}
-              value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value)}
-              onPressEnter={() => handleVerifyOtp()}
-              className="mb-4"
-              maxLength={6}
-            />
-            
-            <div className="flex gap-2">
-              <Button
-                type="primary"
-                size="large"
-                block
-                onClick={() => handleVerifyOtp()}
-                loading={loading}
-              >
-                Xác nhận
-              </Button>
-            </div>
-            
-            <div className="text-center mt-4">
-              <Button
-                type="link"
-                icon={<ReloadOutlined />}
-                onClick={handleResendOtp}
-                loading={sendingOtp}
-              >
-                Gửi lại mã OTP
-              </Button>
-              <Button type="link" onClick={() => setStep('phone')}>
-                Đổi số điện thoại
-              </Button>
-            </div>
+
+              <div className="flex justify-center mb-4">
+                <Input.OTP
+                  length={6}
+                  value={otpCode}
+                  onChange={(text) => setOtpCode(text)}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  onClick={() => handleVerifyOtp()}
+                  loading={loading}
+                >
+                  Xác nhận
+                </Button>
+              </div>
+
+              <div className="text-center mt-4">
+                <Button
+                  type="link"
+                  icon={<ReloadOutlined />}
+                  onClick={handleResendOtp}
+                  loading={sendingOtp}
+                >
+                  Gửi lại mã OTP
+                </Button>
+                <Button type="link" onClick={() => setStep('phone')}>
+                  Đổi số điện thoại
+                </Button>
+              </div>
             </Card>
           </div>
         )}
@@ -346,7 +343,7 @@ export default function CustomerHistoryPage() {
                 Tra cứu số khác
               </Button>
             </div>
-            
+
             <Table
               columns={columns}
               dataSource={myOrders}
@@ -361,7 +358,7 @@ export default function CustomerHistoryPage() {
               }}
               loading={loading}
             />
-            
+
             <div className="text-center mt-4">
               <Link href="/order">
                 <Button type="dashed">Đặt đơn hàng mới</Button>
