@@ -5,3 +5,15 @@ export const formatDate = (dateString: string) => {
     year: "numeric",
   });
 };
+
+
+export const formatVietnameseNumber = (value: number | string) => {
+  if (!value && value !== 0) return '';
+
+  const stringValue = value.toString().replace(/\./g, '');
+  const numberValue = parseFloat(stringValue);
+
+  if (isNaN(numberValue)) return '';
+
+  return numberValue.toLocaleString('vi-VN');
+};

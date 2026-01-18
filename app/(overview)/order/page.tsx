@@ -39,6 +39,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { disabledDate } from "@/utils/vietnamHolidays";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
+import { formatVietnameseNumber } from "@/utils/format";
 
 const { Title, Text } = Typography;
 
@@ -430,7 +431,7 @@ export default function GuestOrderPage() {
                         </>
                       )}
                       {isVerified && (
-                        <span className="text-green-600 text-sm flex items-center">
+                        <span className="text-green-600 text-sm flex items-center pt-1.5">
                           <CheckCircleOutlined className="mr-1" /> Đã xác minh
                         </span>
                       )}
@@ -523,18 +524,40 @@ export default function GuestOrderPage() {
 
                       <Form.Item
                         name="quantity"
-                        label={<span className={labelStyle}>Số lượng </span>}
-                        rules={[{ required: true, message: "Nhập số lượng" }]}
+                        label={<span className={labelStyle}>Số lượng</span>}
+                        rules={[{
+                          required: true,
+                          message: "Nhập số lượng"
+                        }]}
                       >
                         <FloatingInputAntd
                           className="w-full text-right"
                           valueType="number"
                           style={{ width: 100 }}
-                          min={1}
-                          formatter={(value: any) =>
-                            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                          }
+                          min={100} // Đặt min là 100 để tránh nhập số quá nhỏ
+                          formatter={(value: any) => formatVietnameseNumber(value)}
+                          parser={(value: any) => {
+                            if (!value) return 0;
+                            return Number(value.toString().replace(/,/g, ''));
+                          }}
                           placeholder="VD: 1,000"
+                          onBlur={(e: any) => {
+                            const value = e.target.value;
+                            if (value) {
+                              const numValue = Number(value.toString().replace(/,/g, ''));
+
+                              // Chỉ làm tròn nếu số không chia hết cho 100
+                              if (numValue % 100 !== 0) {
+                                const roundedValue = Math.round(numValue / 100) * 100;
+
+                                // Update giá trị trong form
+                                form.setFieldsValue({ quantity: roundedValue });
+
+                                // Hiển thị thông báo
+                                message.info(`Số lượng đã được làm tròn thành ${formatVietnameseNumber(roundedValue)}`);
+                              }
+                            }
+                          }}
                         />
                       </Form.Item>
 

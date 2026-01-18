@@ -2,7 +2,8 @@
 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
+import React from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 
 // Fix for default marker icon in Leaflet with webpack
@@ -68,10 +69,14 @@ export default function AddressMapPicker({
     value ? [value.lat, value.lng] : null
   )
   const [address, setAddress] = useState(value?.formattedAddress || '')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(value?.formattedAddress || '')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+
+  // Ref to control when to trigger search
+  // Prevents search from triggering when we programmatically set the input value
+  const shouldSearchRef = React.useRef(true)
 
   // Reverse geocoding using Nominatim
   const reverseGeocode = useCallback(
@@ -82,7 +87,11 @@ export default function AddressMapPicker({
         )
         const data = await response.json()
         const formattedAddress = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+
+        // Update input and prevent search
+        shouldSearchRef.current = false
         setAddress(formattedAddress)
+        setSearchQuery(formattedAddress)
 
         if (onChange) {
           onChange({
@@ -95,7 +104,11 @@ export default function AddressMapPicker({
       } catch (error) {
         console.error('Reverse geocoding error:', error)
         const fallbackAddress = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+
+        shouldSearchRef.current = false
         setAddress(fallbackAddress)
+        setSearchQuery(fallbackAddress)
+
         if (onChange) {
           onChange({ lat, lng, formattedAddress: fallbackAddress })
         }
@@ -141,7 +154,7 @@ export default function AddressMapPicker({
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchQuery) {
+      if (searchQuery && shouldSearchRef.current) {
         searchAddress(searchQuery)
       }
     }, 500)
@@ -154,7 +167,11 @@ export default function AddressMapPicker({
     const lng = parseFloat(result.lon)
     setPosition([lat, lng])
     setAddress(result.display_name)
-    setSearchQuery('')
+
+    // Update input and prevent search
+    shouldSearchRef.current = false
+    setSearchQuery(result.display_name)
+
     setShowResults(false)
     setSearchResults([])
 
@@ -172,10 +189,13 @@ export default function AddressMapPicker({
     <div className='address-map-picker'>
       {/* Search Input */}
       <div className='relative mb-2'>
-        <input
-          type='text'
+        <textarea
+          rows={2}
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            shouldSearchRef.current = true
+            setSearchQuery(e.target.value)
+          }}
           onFocus={() => searchResults.length > 0 && setShowResults(true)}
           placeholder={placeholder}
           className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
@@ -225,13 +245,13 @@ export default function AddressMapPicker({
         </div>
       )}
 
-      {/* Selected Address Display */}
-      {address && (
+      {/* Selected Address Display - Removed as requested by user to have it in input instead */}
+      {/* {address && (
         <div className='mt-2 p-2 bg-green-50 border border-green-200 rounded-lg'>
           <div className='text-xs text-gray-500 mb-1'>Địa chỉ đã chọn:</div>
           <div className='text-sm text-green-800 font-medium'>{address}</div>
         </div>
-      )}
+      )} */}
 
       {/* Click hint */}
       {showMap && !position && (
