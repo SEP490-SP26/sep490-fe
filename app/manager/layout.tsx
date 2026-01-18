@@ -72,7 +72,7 @@ export default function layoutManager({
         }}
         navItems={[...managerNavItems]}
         onLogout={() => {
-          // Xử lý logout
+          
           console.log("Logout clicked");
         }}
         onItemClick={(item) => {

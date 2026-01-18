@@ -133,10 +133,10 @@ export default function LoginPage() {
           router.replace("/manager");
           break;
         case 5:
-          router.replace("/staff");
+          router.replace("/warehouse");
           break;
         default:
-          router.replace("/dashboard");
+          router.replace("/home");
       }
     } catch (err: any) {
       console.error("Login error:", err);
@@ -172,9 +172,9 @@ export default function LoginPage() {
     }
   };
 
-/* =========================
-     GOOGLE LOGIN
-     ========================= */
+  /* =========================
+       GOOGLE LOGIN
+       ========================= */
 
   useEffect(() => {
     if (document.getElementById("google-gsi")) return;
@@ -187,59 +187,59 @@ export default function LoginPage() {
     document.body.appendChild(script);
   }, []);
 
-const handleCredentialResponse = async (response: any) => {
-  try {
-    const res = await authApiRequest.loginWithGoogle(
-      response.credential
-    );
-    // BE Google trả access_token
-    const token: string = res.access_token.result;
-    if (typeof token !== "string") throw new Error("Token không hợp lệ");
-    // Decode JWT để lấy role
-    const decoded = jwtDecode<GoogleJwtPayload>(token);
+  const handleCredentialResponse = async (response: any) => {
+    try {
+      const res = await authApiRequest.loginWithGoogle(
+        response.credential
+      );
+      // BE Google trả access_token
+      const token: string = res.access_token.result;
+      if (typeof token !== "string") throw new Error("Token không hợp lệ");
+      // Decode JWT để lấy role
+      const decoded = jwtDecode<GoogleJwtPayload>(token);
 
-    if (!decoded.roleid) {
-      throw new Error("JWT không chứa roleid");
+      if (!decoded.roleid) {
+        throw new Error("JWT không chứa roleid");
+      }
+
+      const role_id = Number(decoded.roleid);
+
+      // Lưu token
+      setCookie("token", token, {
+        path: "/",
+        sameSite: "lax",
+      });
+
+      // Lưu auth context
+      login(token, {
+        user_id: 0, // BE Google chưa trả
+        role_id,
+        full_name: decoded.name,
+      });
+
+      console.log(role_id);
+      //Redirect giống login thường
+      switch (role_id) {
+        case 1:
+          router.replace("/admin/dashboard");
+          break;
+        case 2:
+          router.replace("/consultant");
+          break;
+        case 3:
+          router.replace("/manager");
+          break;
+        case 5:
+          router.replace("/warehouse");
+          break;
+        default:
+          router.replace("/");
+      }
+    } catch (err) {
+      console.error("Google login error:", err);
+      setError("Đăng nhập Google thất bại");
     }
-
-    const role_id = Number(decoded.roleid);
-
-    // Lưu token
-    setCookie("token", token, {
-      path: "/",
-      sameSite: "lax",
-    });
-
-    // Lưu auth context
-    login(token, {
-      user_id: 0, // BE Google chưa trả
-      role_id,
-      full_name: decoded.name,
-    });
-
-    console.log(role_id);
-    //Redirect giống login thường
-    switch (role_id) {
-      case 1:
-        router.replace("/admin/dashboard");
-        break;
-      case 2:
-        router.replace("/consultant");
-        break;
-      case 3:
-        router.replace("/manager");
-        break;
-      case 5:
-        router.replace("/staff");
-        break;
-      default:
-        router.replace("/dashboard");
-    }
-  } catch (err) {
-    console.error("Google login error:", err);
-    setError("Đăng nhập Google thất bại");
-  }
-};
+  };
 
 
 
@@ -250,9 +250,9 @@ const handleCredentialResponse = async (response: any) => {
       client_id:
         "222419838594-dicvpm40bukb6e5mdk2chtrhfbigg8eo.apps.googleusercontent.com",
       callback: handleCredentialResponse,
-        use_fedcm: false,
-        auto_select: false,
-        cancel_on_tap_outside: true,
+      use_fedcm: false,
+      auto_select: false,
+      cancel_on_tap_outside: true,
     });
     window.google.accounts.id.prompt();
   };
@@ -398,29 +398,29 @@ const handleCredentialResponse = async (response: any) => {
               )}
             </button>
             <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-gray-50 text-gray-500">Hoặc</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Hoặc</span>
-              </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="mt-6 w-full flex items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <Image
-                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                alt="Google"
-                width={20}
-                height={20}
-                priority
-              />
-              Đăng nhập bằng Google
-            </button>
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="mt-6 w-full flex items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <Image
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                  width={20}
+                  height={20}
+                  priority
+                />
+                Đăng nhập bằng Google
+              </button>
             </div>
           </div>
 

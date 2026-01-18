@@ -1,6 +1,7 @@
 "use client";
 import { consultantNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
 
@@ -9,6 +10,7 @@ export default function LayoutManager({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
@@ -21,6 +23,7 @@ export default function LayoutManager({
         navItems={[...consultantNavItems]}
         onLogout={() => {
           // Xử lý logout
+          router.push("/");
           console.log("Logout clicked");
         }}
         onItemClick={(item) => {

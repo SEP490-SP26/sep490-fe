@@ -307,7 +307,7 @@ export default function GuestOrderPage() {
               >
                 Đặt đơn khác
               </Button>,
-              <Link href="/customer/history" key="history">
+              <Link href="/history" key="history">
                 <Button size="large">Tra cứu đơn hàng</Button>
               </Link>,
             ]}

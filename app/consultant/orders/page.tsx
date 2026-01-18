@@ -554,7 +554,7 @@ export default function ConsultantOrdersPage() {
               />
             }
           />
-          <div className="flex justify-between mt-1">
+          {/* <div className="flex justify-between mt-1">
             <Link
               href="/consultant"
               className="text-sm text-blue-600 hover:underline"
@@ -567,7 +567,7 @@ export default function ConsultantOrdersPage() {
             >
               Xem tất cả đơn (Manager) →
             </Link>
-          </div>
+          </div> */}
         </div>
       </div>
 

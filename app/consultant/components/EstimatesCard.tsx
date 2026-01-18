@@ -482,12 +482,7 @@ export default function EstimatesCard({
                 )}
               </Col>
             </Row>
-
-
-
-
-
-            <div className="border-t pt-4">
+            {/* <div className="border-t pt-4">
               <h4 className="font-semibold text-gray-700 mb-2">
                 Tiến độ dự kiến:
               </h4>
@@ -520,7 +515,7 @@ export default function EstimatesCard({
                   },
                 ]}
               />
-            </div>
+            </div> */}
           </div>
         )}
       </Card>

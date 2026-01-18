@@ -73,7 +73,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
 
         <div className="flex gap-3">
-          <Link href="/staff">Chuyển đến giao diện Nhân viên lập lịch</Link>
+          <Link href="/warehouse">Chuyển đến giao diện Nhân viên lập lịch</Link>
         </div>
       </div>
 
@@ -203,11 +203,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs ${
-                      schedule.status === "in_progress"
+                    className={`px-3 py-1 rounded-full text-xs ${schedule.status === "in_progress"
                         ? "bg-yellow-100 text-yellow-700"
                         : "bg-blue-100 text-blue-700"
-                    }`}
+                      }`}
                   >
                     {schedule.status === "in_progress"
                       ? "Đang sản xuất"
