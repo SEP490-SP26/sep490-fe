@@ -6,7 +6,7 @@ import { materialsApi } from "@/apiRequests/materials";
 import { productionsApi } from "@/apiRequests/productions";
 import { productTypesApi } from "@/apiRequests/producttypes";
 import { requestOrderApi } from "@/apiRequests/request";
-import { Order, useProduction } from "@/context/ProductionContext";
+import { Order, ProductTemplate, useProduction } from "@/context/ProductionContext";
 import {
   CreateRequestBody,
   CreateRequestBodyForConsultant,
@@ -387,7 +387,7 @@ function ConsultantForm() {
   };
 
   // Template Fetch
-  const { data: productTempalte } = useQuery({
+  const { data: productTempalte } = useQuery<ProductTemplate[]>({
     queryKey: ["product-tempalte", selectProductTypeId],
     queryFn: async () => {
       if (!selectProductTypeId) return null;
@@ -406,6 +406,14 @@ function ConsultantForm() {
         height: profile.product_height_mm,
         number_of_plates: profile.number_of_plates,
         coating_type: profile.coating_type,
+        wave_type: profile.wave_type,
+        glue_tab: profile.glue_tab_mm,
+        is_one_side_box: profile.is_one_side_box,
+        print_width: profile.print_width_mm,
+        print_height: profile.print_height_mm,
+        production_processes: profile.production_processes,
+        bleed: profile.bleed_mm,
+        default_quantity: profile.default_quantity,
         // quantity: profile.default_quantity,
         // ...(selectedProductTypeCode === "HOP_MAU" && {
         //   glueTab: profile.glue_tab_mm,
@@ -678,7 +686,7 @@ function ConsultantForm() {
   };
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen">
+    <div className="p-4 bg-gradient-to-br from-primary-dark to-primary-light min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="mb-4 flex justify-between items-center bg-white p-3 rounded shadow-sm">

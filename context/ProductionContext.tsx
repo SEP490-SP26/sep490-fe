@@ -63,6 +63,46 @@ export interface Order {
   contract_file?: string;
 }
 
+export interface DesignTemplate {
+  // Định danh và Trạng thái
+  design_profile_id: number;
+  template_code: string;
+  template_name: string;
+  is_active: boolean;
+  created_at: string; // ISO Date string
+
+  // Thông tin sản phẩm & Phân loại
+  product_type_id: number;
+  product_name?: string; // Tùy chọn nếu cần map từ template_name
+  description: string;
+  default_quantity: number;
+
+  // Thông số vật liệu
+  paper_code: string;
+  paper_name: string;
+  coating_type: string;  // Kiểu phủ (VD: KEO_NUOC)
+  wave_type: string;     // Loại sóng (VD: SÓNG B)
+
+  // Kích thước thành phẩm (mm)
+  product_length_mm: number;
+  product_width_mm: number;
+  product_height_mm: number;
+
+  // Thông số kỹ thuật in ấn & Bình bản
+  print_width_mm: number;
+  print_height_mm: number;
+  number_of_plates: number; // Số bản kẽm
+  is_one_side_box: boolean;
+  
+  // Thông số bù hao kỹ thuật
+  glue_tab_mm: number;      // Mép dán
+  bleed_mm: number;         // Tràn lề
+
+  // Quy trình sản xuất
+  // Lưu ý: Dữ liệu trả về dạng "RALO,CAT,IN..."
+  production_processes: string; 
+}
+
 export interface Printer {
   id: string;
   name: string;
