@@ -17,18 +17,18 @@ export default function ConfirmRejectPage() {
     const [loadingOtp, setLoadingOtp] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
 
-    const fetchDetail = async () => {
-        try {
-            setLoading(true);
-            setError("");
-            const response = await requestOrderApi.getDetail(orderId);
-            console.log(response);
-        } catch (err: any) {
-            setError(err.response?.data?.message || "Lấy thông tin thất bại");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // const fetchDetail = async () => {
+    //     try {
+    //         setLoading(true);
+    //         setError("");
+    //         const response = await requestOrderApi.getDetail(orderId);
+    //         console.log(response);
+    //     } catch (err: any) {
+    //         setError(err.response?.data?.message || "Lấy thông tin thất bại");
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
 
 
     const handleSendOtp = async () => {
