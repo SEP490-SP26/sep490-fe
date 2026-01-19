@@ -2,11 +2,11 @@
 import { productionsApi } from "@/apiRequests/productions";
 import { FinishTaskBody, tasksApi } from "@/apiRequests/tasks";
 import Loading from "@/app/manager/loading";
-import { showErrorToast, showSuccessToast } from "@/utils/toastService";
+import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
 import {
   BsArrowLeft,
@@ -135,6 +135,60 @@ export default function ProductionDetailPage() {
     }
   };
 
+  // Scanner Logic
+  const barcodeBuffer = useRef<string>("");
+  const lastKeyTime = useRef<number>(0);
+
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastKeyTime.current;
+
+      // If time difference is too large (manual typing), reset buffer
+      // Scanners usually type very fast (< 50ms per char)
+      if (timeDiff > 100 && barcodeBuffer.current.length > 0) {
+        barcodeBuffer.current = "";
+      }
+
+      lastKeyTime.current = currentTime;
+
+      if (e.key === "Enter") {
+        // Process the buffer
+        const token = barcodeBuffer.current;
+        if (token.length > 10) { // Simple validation for minimum length
+          try {
+            console.log("Scanned Token:", token);
+            showInfoToast("Đang xử lý mã quét...");
+            const response = await tasksApi.finishTask({ token });
+            if (response) {
+              showSuccessToast("Hoàn thành công đoạn thành công!");
+              window.location.reload();
+            }
+          } catch (error) {
+            console.error("Auto scan error:", error);
+            showErrorToast("Lỗi khi xử lý mã quét. Vui lòng thử lại.");
+          }
+        }
+        barcodeBuffer.current = ""; // Reset after Enter
+      } else if (e.key.length === 1) {
+        // Only append printable characters
+        barcodeBuffer.current += e.key;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   const handleDownloadQR = () => {
     const canvas = document.getElementById("qr-code-canvas") as HTMLCanvasElement;
     if (canvas) {
@@ -206,9 +260,6 @@ export default function ProductionDetailPage() {
     enabled: !!id,
   });
 
-  if (isLoading) {
-    return <div><Loading text="Đang tải thông tin sản xuất" /></div>;
-  }
 
   console.log("production", productionSchedules);
 
