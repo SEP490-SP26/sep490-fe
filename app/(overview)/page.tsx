@@ -134,8 +134,8 @@ export default function HomePage() {
     <div className="bg-gray-100 ">
       <section className="relative  min-h-[600px] md:min-h-auto bg-linear-to-b from-gray-900 to-gray-100 py-20 text-center">
         <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-white mb-4 uppercase">
-            Công ty cổ phần In Ấn
+          <h2 className="text-2xl font-bold text-primary-light mb-4 uppercase">
+            Công Ty TNHH Thương Mại Và Dịch Vụ In & Bao Bì Đại Phúc Hải
           </h2>
           <p className="text-lg text-gray-200 max-w-2xl mx-auto">
             Chúng tôi cung cấp dịch vụ in ấn chuyên nghiệp với công nghệ hiện
@@ -173,7 +173,7 @@ export default function HomePage() {
           <div className="py-8"> </div>
         </div>
       </main>
-      <ZaloChat/>
+      <ZaloChat />
     </div>
   );
 }

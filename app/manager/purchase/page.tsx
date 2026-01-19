@@ -21,6 +21,7 @@ interface SelectedMaterial {
   material_id: string;
   ui_id: string;
   quantity: number;
+  price: number;
 }
 
 export default function PurchaseManagement() {
@@ -47,7 +48,7 @@ export default function PurchaseManagement() {
     SelectedMaterial[]
   >([]);
   const [supplier, setSupplier] = useState("Chọn nhà cung cấp");
-  const [deliveryDate, setDeliveryDate] = useState<dayjs.Dayjs | null>(null);
+  // const [deliveryDate, setDeliveryDate] = useState<dayjs.Dayjs | null>(null);
   const [materialQuantities, setMaterialQuantities] = useState<
     Record<string, number>
   >({});
@@ -113,7 +114,7 @@ export default function PurchaseManagement() {
   });
 
   // Lấy danh sách đơn đặt hàng
-  const { isPending: poLoading, data: poData } = useQuery({
+  const { isPending: poLoading, data: poData, refetch: refetchPO } = useQuery({
     queryKey: ["purchase-orders"],
     queryFn: async () => {
       try {
@@ -129,7 +130,7 @@ export default function PurchaseManagement() {
   // console.log("poData", poData);
 
   // Lấy danh sách vật tư cần đặt hàng
-  const { data: missing_materials, isPending: materialLoading } = useQuery({
+  const { data: missing_materials, isPending: materialLoading, refetch: refetchMissingMaterials } = useQuery({
     queryKey: ["missing-materials"],
     queryFn: async () => {
       try {
@@ -291,40 +292,31 @@ export default function PurchaseManagement() {
       return;
     }
 
-    if (!supplierId || !deliveryDate) {
-      showWarningToast("Vui lòng chọn nhà cung cấp và ngày giao hàng");
-      return;
-    }
+    // if (!supplierId || !deliveryDate) {
+    //   showWarningToast("Vui lòng chọn nhà cung cấp và ngày giao hàng");
+    //   return;
+    // }
 
-    // Chuẩn bị request body
-    // If we have multiple lines for same material, we should probably merge them if backend expects unique materialId per PO?
-    // Or maybe backend allows duplicates?
-    // User wanted to split lines. Usually that implies they might order one line now and another later.
-    // So if they select BOTH, it effectively means ordering both.
-
-    // For safety, let's just map as is. If backend errors on duplicate keys, we might need to merge.
-    // Assuming backend handles list of items.
 
     const requestBody = {
-      supplierId: supplierId,
-      etaDate: deliveryDate?.toISOString(),
+      supplier_id: supplierId,
+      // etaDate: deliveryDate?.toISOString(),
       items: selectedMaterials.map((item: SelectedMaterial) => ({
-        materialId: item.material_id,
+        material_id: item.material_id,
         quantity: item.quantity,
+        supplier_id: supplierId,
+        price: 0,
       })),
     };
 
-    // console.log("Request body:", requestBody);
+    console.log("Request body:", requestBody);
 
     try {
       const response = await purchasesApi.createPO(requestBody);
       // console.log("Create PO response:", response);
 
       if (
-        response?.success === true ||
-        response?.data?.success === true ||
-        response?.status === 200 ||
-        response?.status === 201
+        response
       ) {
         showSuccessToast("Tạo đơn đặt hàng thành công!");
 
@@ -332,12 +324,18 @@ export default function PurchaseManagement() {
         setSelectedMaterials([]);
         setMaterialQuantities({});
         // setSupplierId("");
-        setDeliveryDate(null);
+        // setDeliveryDate(null);
+
+        // Chuyển tab và refetch
+        setActiveTab("ordered");
+        refetchPO();
+        setIsDataInitialized(false);
+        refetchMissingMaterials();
 
         // Có thể refetch data nếu cần
         // refetchMissingMaterials();
       } else {
-        showErrorToast(response.message || "Tạo đơn đặt hàng thành công!");
+        showErrorToast(response.message || "Tạo đơn hàng thất bại!");
       }
     } catch (error) {
       console.error("Error creating PO:", error);
@@ -345,27 +343,7 @@ export default function PurchaseManagement() {
     }
   };
 
-  // Reset khi thành công
-  const resetForm = () => {
-    setSelectedMaterials([]);
-    setSupplierId(null);
-    // setSupplierName("");
-    setDeliveryDate(null);
-  };
 
-  // Tính min date (hôm nay)
-  const getMinDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  };
-
-  // Tính max date (30 ngày sau)
-  const getMaxDate = () => {
-    const today = new Date();
-    const maxDate = new Date(today);
-    maxDate.setDate(today.getDate() + 90);
-    return maxDate.toISOString().split("T")[0];
-  };
 
   // Lấy danh sách đơn hàng theo trạng thái
   const getPurchaseOrdersByStatus = (status: "Ordered" | "Delivered") => {
@@ -408,9 +386,9 @@ export default function PurchaseManagement() {
   //   return isVietnamHoliday(current);
   // };
 
-  const handleDateChange = (date: dayjs.Dayjs | null) => {
-    setDeliveryDate(date);
-  };
+  // const handleDateChange = (date: dayjs.Dayjs | null) => {
+  //   setDeliveryDate(date);
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 ">
@@ -569,6 +547,7 @@ export default function PurchaseManagement() {
                                       material_id: pr.material_id,
                                       ui_id: pr.ui_id,
                                       quantity: currentQuantity,
+                                      price: 0,
                                     },
                                   ]);
                                 } else {
@@ -1001,7 +980,7 @@ export default function PurchaseManagement() {
                     </div>
 
                     {/* pick time */}
-                    <div>
+                    {/* <div>
                       <label className="block text-gray-700 mb-2">
                         Ngày giao dự kiến
                       </label>
@@ -1015,12 +994,8 @@ export default function PurchaseManagement() {
                         className="w-full"
                         allowClear
                       />
-                      {/* <div className="text-xs text-gray-500 mt-1">
-                        Chọn ngày từ{" "}
-                        {new Date(getMinDate()).toLocaleDateString("vi-VN")} đến{" "}
-                        {new Date(getMaxDate()).toLocaleDateString("vi-VN")}
-                      </div> */}
-                    </div>
+                     
+                    </div> */}
                   </div>
 
                   <div className="flex items-center gap-4">
@@ -1033,7 +1008,7 @@ export default function PurchaseManagement() {
                     </div>
                     <button
                       onClick={handleCreateBulkPO}
-                      disabled={!supplier || !deliveryDate}
+                      disabled={!supplier}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm font-medium"
                     >
                       Tạo đơn hàng
@@ -1047,181 +1022,182 @@ export default function PurchaseManagement() {
 
         {/* Tab 2: Đang chờ giao */}
         {activeTab === "ordered" && (
-          <div className="space-y-6">
-            {getPurchaseOrdersByStatus("Ordered").map((orderGroup: any) => (
-              <div
-                key={orderGroup.id}
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-              >
-                {/* Card Header */}
-                <div className="bg-blue-50 border-b border-blue-100 p-4">
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-                    <div>
-                      <div className="font-semibold text-blue-700">
-                        {orderGroup.supplier}
-                      </div>
-                      <div className="text-sm text-blue-600">
-                        Dự kiến giao:{" "}
-                        {new Date(orderGroup.etaDate).toLocaleDateString(
-                          "vi-VN"
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <BsTruck className="w-5 h-5 text-blue-500" />
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
-                        Đang vận chuyển
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Body - Danh sách sản phẩm */}
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {orderGroup.items.map((item: any) => (
-                      <div
-                        key={item.id}
-                        className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      STT
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nhà cung cấp
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Người đặt
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ngày đặt
+                    </th>
+                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Dự kiến giao
+                    </th> */}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sản phẩm
+                    </th>
+                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Trạng thái
+                    </th> */}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {getPurchaseOrdersByStatus("Ordered").map(
+                    (orderGroup: any, index: number) => (
+                      <tr key={orderGroup.purchaseId} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {orderGroup.code}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {orderGroup.supplierName}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {orderGroup.createdByName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(orderGroup.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </td>
+                        {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(orderGroup.etaDate).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </td> */}
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <ul className="list-disc list-inside">
+                            {orderGroup.items.map((item: any) => (
+                              <li key={item.id} className="truncate max-w-xs">
+                                {item.materialName} ({item.qtyOrdered}{" "}
+                                {item.unit})
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                        {/* <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            Đang vận chuyển
+                          </span>
+                        </td> */}
+                      </tr>
+                    )
+                  )}
+                  {getPurchaseOrdersByStatus("Ordered").length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-12 text-center text-gray-500"
                       >
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {item.materialName}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-gray-900">
-                            {item.qtyOrdered} {item.unit}
-                          </div>
-                          {/* <div className="text-xs text-gray-500">
-                            Mã: {item.pr?.material_id}
-                          </div> */}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Card Footer */}
-                <div className="bg-gray-50 border-t border-gray-100 p-4">
-                  <div className="flex justify-between items-center text-sm text-gray-600">
-                    <div>
-                      <span className="font-medium">Người đặt:</span>{" "}
-                      {orderGroup.createdByName}
-                    </div>
-                    <div>
-                      Đặt ngày:{" "}
-                      {new Date(orderGroup.createdAt).toLocaleDateString(
-                        "vi-VN"
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {getPurchaseOrdersByStatus("Ordered").length === 0 && (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                <BsTruck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-400">Không có đơn hàng đang chờ giao</p>
-              </div>
-            )}
+                        <BsTruck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p>Không có đơn hàng nào đang chờ giao</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* Tab 3: Đã nhận hàng */}
         {activeTab === "received" && (
-          <div className="space-y-6">
-            {poData
-              .filter((po: any) => po.status === "Delivered")
-              .map((po: any) => (
-                <div
-                  key={po.purchaseId}
-                  className="bg-white rounded-lg border border-green-500 shadow-md overflow-hidden"
-                >
-                  {/* Card Header */}
-                  <div className="bg-green-50 border-b border-green-100 p-4">
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-                      <div>
-                        <div className="font-semibold text-green-700">
-                          {po.supplierName}
-                        </div>
-                        <div className="text-sm text-green-600">
-                          Đã giao:{" "}
-                          {new Date(po.etaDate).toLocaleDateString("vi-VN")}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <BsCheckCircle className="w-5 h-5 text-green-500" />
-                        <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                          Đã nhập kho
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Body - Danh sách sản phẩm */}
-                  <div className="p-4">
-                    <div className="space-y-3">
-                      {po.items.map((item: any) => (
-                        <div
-                          key={item.id}
-                          className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      STT
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nhà cung cấp
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ngày đặt
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ngày nhận
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Người nhận
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sản phẩm
+                    </th>
+                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Trạng thái
+                    </th> */}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {poData
+                    .filter((po: any) => po.status === "Delivered")
+                    .map((po: any, index: number) => (
+                      <tr key={po.purchaseId} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {index + 1}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {po.supplierName}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(
+                            po.createdAt
+                          ).toLocaleDateString("vi-VN")}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(po.receivedAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          Quản kho B
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <ul className="list-disc list-inside">
+                            {po.items.map((item: any) => (
+                              <li key={item.id} className="truncate max-w-xs">
+                                {item.materialName} ({item.qtyOrdered}{" "}
+                                {item.unit})
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                        {/* <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Đã nhập kho
+                          </span>
+                        </td> */}
+                      </tr>
+                    ))}
+                  {poData.filter((po: any) => po.status === "Delivered")
+                    .length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-6 py-12 text-center text-gray-500"
                         >
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {item.materialName}
-                            </div>
-                            {/* <div className="text-sm text-gray-500">
-                              Cho đơn: {item.materialName}
-                            </div> */}
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium text-gray-900">
-                              {item.qtyOrdered} {item.unit}
-                            </div>
-                            {/* <div className="text-xs text-gray-500">
-                              Mã: {item.pr?.material_id}
-                            </div> */}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Card Footer */}
-                  <div className="bg-green-50 border-t border-green-100 p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                      <div>
-                        <span className="font-medium">Người đặt:</span> Quản lý
-                        A
-                      </div>
-                      <div>
-                        <span className="font-medium">Ngày đặt:</span>{" "}
-                        {new Date(po.items[0]?.created_at).toLocaleDateString(
-                          "vi-VN"
-                        )}
-                      </div>
-                      <div>
-                        <span className="font-medium">Người nhận:</span> Quản
-                        kho B
-                      </div>
-
-                      <div>
-                        <span className="font-medium">Ngày nhận:</span>{" "}
-                        {new Date(po.deliveryDate).toLocaleDateString("vi-VN")}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-            {getPurchaseOrdersByStatus("Delivered").length === 0 && (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                <BsCheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-400">Chưa có đơn hàng nào đã nhận</p>
-              </div>
-            )}
+                          <BsCheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p>Chưa có đơn hàng nào đã nhận</p>
+                        </td>
+                      </tr>
+                    )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -1267,7 +1243,7 @@ export default function PurchaseManagement() {
                     />
                   </div>
 
-                  <div>
+                  {/* <div>
                     <label className="block text-gray-700 mb-2">
                       Nhà cung cấp
                     </label>
@@ -1279,7 +1255,7 @@ export default function PurchaseManagement() {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="flex gap-3 pt-4">
