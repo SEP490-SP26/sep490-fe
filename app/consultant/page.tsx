@@ -99,6 +99,7 @@ function ConsultantForm() {
 
   // State
   const [designFilePath, setDesignFilePath] = useState<string | null>(null);
+  const [isSendDesign, setIsSendDesign] = useState<boolean>(true);
   const [paperTypes, setPaperTypes] = useState<
     { code: string; name: string; stock: number; value: string }[]
   >([]);
@@ -271,6 +272,9 @@ function ConsultantForm() {
 
           if (orderData.design_file_path) {
             setDesignFilePath(orderData.design_file_path);
+          }
+          if (orderData.is_send_design !== undefined) {
+            setIsSendDesign(orderData.is_send_design);
           }
 
           if (orderData.quantity) {
@@ -455,6 +459,7 @@ function ConsultantForm() {
         coating_type: coatingType || "KEO_NUOC",
         discount_percent: 0,
         wave_type: productionProcesses.includes("BOI") && waveType ? waveType : "", // wave_type: handled in paper estimate logic mostly or implicitly if needed here
+        is_send_design: isSendDesign,
       });
 
       if (response) {
@@ -505,6 +510,12 @@ function ConsultantForm() {
       setselectProductTypeId(selected?.product_type_id);
     }
   };
+
+  useEffect(() => {
+    if (form.getFieldValue("paper_code") && form.getFieldValue("quantity")) {
+      calculatePaperEstimate();
+    }
+  }, [isSendDesign]);
 
 
   const onFinish = async (values: any) => {
@@ -568,6 +579,7 @@ function ConsultantForm() {
           colors: [],
           processing: values.production_processes,
         },
+        is_send_design: isSendDesign,
         note: finalNote,
       };
 
@@ -768,6 +780,12 @@ function ConsultantForm() {
                   designFilePath={designFilePath}
                   setDesignFilePath={setDesignFilePath}
                   orderId={orderId}
+                  isSendDesign={isSendDesign}
+                  setIsSendDesign={(val) => {
+                    setIsSendDesign(val);
+                    // Trigger recalculation if needed when this changes
+                    // calculatePaperEstimate(); // Or just update state and let useEffect/debounce handle it if we add it to diff deps
+                  }}
                 />
 
                 <Row gutter={16}>

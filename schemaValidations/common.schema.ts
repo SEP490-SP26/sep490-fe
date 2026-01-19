@@ -194,6 +194,7 @@ export interface EstimateCostRequest {
   coating_type?: string;
   discount_percent?: number;
   wave_type?: string;
+  is_send_design?: boolean;
 }
 
 export interface MaterialCostDetail {

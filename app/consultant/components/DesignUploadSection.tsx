@@ -7,12 +7,16 @@ interface DesignUploadSectionProps {
   designFilePath: string | null;
   setDesignFilePath: (url: string | null) => void;
   orderId: string | null;
+  isSendDesign: boolean;
+  setIsSendDesign: (val: boolean) => void;
 }
 
 export default function DesignUploadSection({
   designFilePath,
   setDesignFilePath,
   orderId,
+  isSendDesign,
+  setIsSendDesign,
 }: DesignUploadSectionProps) {
   return (
     <Row gutter={16}>
@@ -20,7 +24,7 @@ export default function DesignUploadSection({
         <Form.Item label="File Thiết Kế" className="mb-2">
           {designFilePath ? (
             <div className="flex items-center gap-2">
-              {/* <AntImage
+              <AntImage
                 src={designFilePath}
                 alt="File thiết kế"
                 width={60}
@@ -30,34 +34,16 @@ export default function DesignUploadSection({
                   cover: <span className="text-xs">Xem</span>,
                 }}
               />
-              <div className="flex flex-col gap-1">
-                <Button
-                  size="small"
-                  icon={<DownloadOutlined />}
-                  onClick={() => {
-                    const link = document.createElement("a");
-                    link.href = designFilePath;
-                    link.target = "_blank";
-                    link.download = `design_${orderId || "new"}.png`;
-                    link.click();
-                  }}
-                >
-                  Tải
-                </Button>
-                <Button
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => setDesignFilePath(null)}
-                >
-                  Xóa
-                </Button>
-              </div> */}
               <h1>File thiết kế đã được khách hàng tải lên</h1>
             </div>
           ) : (
             <div>
-              <Checkbox> Khách hàng dùng file thiết kế của công ty</Checkbox>
+              <Checkbox
+                checked={!isSendDesign}
+                onChange={(e) => setIsSendDesign(!e.target.checked)}
+              >
+                Khách hàng dùng file thiết kế của công ty
+              </Checkbox>
             </div>
             // <Upload
             //   showUploadList={false}
