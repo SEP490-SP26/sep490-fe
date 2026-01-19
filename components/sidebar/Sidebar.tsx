@@ -163,22 +163,19 @@ export default function Sidebar({
               ) : (
                 <Link
                   href={href}
-                  className={`flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition-all duration-200 ${
-                    isActive
+                  className={`flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition-all duration-200 ${isActive
                       ? `bg-${primaryColor}/10 text-${primaryColor} shadow-lg shadow-${accentColor}/20 border-l-4 border-${accentColor} font-semibold`
                       : "text-gray-700 hover:bg-primary/5 hover:text-primary"
-                  }`}
+                    }`}
                   onClick={() => handleItemClick(item)}
                 >
                   <Icon
-                    className={`w-5 h-5 ${
-                      isActive ? `text-${primaryColor}` : ""
-                    }`}
+                    className={`w-5 h-5 ${isActive ? `text-${primaryColor}` : ""
+                      }`}
                   />
                   <span
-                    className={`font-medium ${
-                      isActive ? `text-${primaryColor}` : ""
-                    }`}
+                    className={`font-medium ${isActive ? `text-${primaryColor}` : ""
+                      }`}
                   >
                     {item.label}
                   </span>

@@ -144,7 +144,7 @@ export default function HomePage() {
           </p>
           <div>
             <button
-              className="mt-2 bg-primary-light px-4 py-2 rounded-md text-secondary uppercase hover:bg-primary hover:text-accent border border-primary transition-all"
+              className="mt-2 bg-primary-light px-4 py-2 rounded-md text-secondary uppercase hover:bg-primary hover:text-accent border border-gray-200 transition-all"
               onClick={() => router.push("/order")}
             >
               Đặt In Nhanh{" "}

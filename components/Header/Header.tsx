@@ -17,7 +17,7 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <div className="text-xl font-bold">
             <Link href="/">
-              <span className="text-primary uppercase ">Công TY Cô Phần In ấn</span>
+              <span className="text-primary uppercase ">In Ấn Đại Phúc Hải</span>
             </Link>
           </div>
 

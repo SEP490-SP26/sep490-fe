@@ -33,9 +33,9 @@ export default function LayoutManager({
       />
 
       {/* Main content */}
-      <main className="ml-72 min-h-screen p-4">
+      <main className="ml-72 min-h-screen ">
         {/* Content */}
-        <div className="bg-white ">{children}</div>
+        <div className="bg-gradient-to-br from-primary-dark to-primary-light ">{children}</div>
 
         {/* Footer main */}
         <footer className="mt-8 pt-6 border-t border-gray-100">

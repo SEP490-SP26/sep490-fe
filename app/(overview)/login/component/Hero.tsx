@@ -3,8 +3,8 @@
 import authApiRequest from "@/apiRequests/auth";
 import { useAuth } from "@/lib/auth-context";
 import {
-    LoginBodyAlternative,
-    LoginBodyAlternativeType,
+  LoginBodyAlternative,
+  LoginBodyAlternativeType,
 } from "@/schemaValidations/auth.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { setCookie } from "cookies-next";
@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-export default function LoginPage() {
+export default function Hero() {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"username" | "email">("email");
@@ -84,7 +84,7 @@ export default function LoginPage() {
             <p className="text-blue-100 text-lg">
               Đăng nhập để quản lý đơn hàng, thiết kế và theo dõi tiến độ in ấn của bạn
             </p>
-            
+
             <div className="mt-12 grid grid-cols-2 gap-6">
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
                 <div className="text-white font-semibold mb-2">In nhanh</div>

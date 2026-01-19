@@ -218,13 +218,13 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-slate-50 pb-8">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-r from-cyan-600 to-blue-600 opacity-10 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative animate-fade-in-up">
         {/* Navigation & Header */}
-        <div className="mb-8">
+        <div className="mb-4">
           <Breadcrumb
             items={[
               { href: '/', title: <HomeOutlined /> },
@@ -284,7 +284,7 @@ export default function OrderDetailPage() {
                     </a>
                   </Paragraph>
                 </div>
-                <div className="md:col-span-2">
+                <div className="md:col-span-4">
                   <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Địa chỉ giao hàng</Text>
                   <Paragraph className="text-slate-700 text-base mt-1 flex items-start gap-2">
                     <EnvironmentOutlined className="mt-1 text-slate-400" />
@@ -439,7 +439,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Back Actions */}
-        <div className="mt-12 flex justify-center pb-8">
+        <div className="mt-6 flex justify-center pb-8">
           <Button size="large" onClick={() => router.back()} icon={<ArrowLeftOutlined />} className="h-12 px-8 rounded-xl font-medium border-slate-300 text-slate-600 hover:border-cyan-500 hover:text-cyan-600">
             Quay lại danh sách
           </Button>
