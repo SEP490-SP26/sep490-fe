@@ -6,6 +6,7 @@ import {
   EstimatePaperResponse,
 } from "@/schemaValidations/common.schema";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
+import { formatVietnameseNumber } from "@/utils/format";
 
 interface EstimatesCardProps {
   estimate: {
@@ -231,12 +232,13 @@ export default function EstimatesCard({
                     <FloatingInputAntd
                       valueType="number"
                       className="w-full text-end font-bold text-lg"
+                      min={0}
                       formatter={(value: any) =>
-                        `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                      }
-                      parser={(value: any) =>
-                        value?.replace(/\$\s?|(,*)/g, "") as unknown as number
-                      }
+                        formatVietnameseNumber(value)}
+                      parser={(value: any) => {
+                        if (!value) return 0;
+                        return Number(value.toString().replace(/,/g, ''));
+                      }}
                       // addonAfter="₫"
                       size="large"
                     />
@@ -415,7 +417,7 @@ export default function EstimatesCard({
                               min={0}
                               max={100}
                               value={discountPercent}
-                              onChange={(value: any) => setDiscountPercent(value || 0)}
+                              onChange={(e: any) => setDiscountPercent(Number(e.target.value) || 0)}
                               size="small"
                             />
                             {/* <span className="text-green-800 font-medium">%</span> */}
@@ -459,7 +461,7 @@ export default function EstimatesCard({
                                 Tiền đặt cọc:
                               </span>
                               <span className="font-bold text-lg text-purple-700">
-                                {Math.round(depositAmount).toLocaleString("vi-VN")}{" "}
+                                {(Math.round(depositAmount / 10) * 10).toLocaleString("vi-VN")}{" "}
                                 ₫
                               </span>
                             </div>

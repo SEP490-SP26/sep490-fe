@@ -267,7 +267,6 @@ export default function ProductSpecsSection({
 
       <Row gutter={16}>
         <Col span={24}>
-          {/* Checkbox Group Process */}
           <Form.Item
             name="production_processes"
             label="Gia Công"
@@ -287,15 +286,21 @@ export default function ProductSpecsSection({
                 }
               }}
             >
-              <div className="grid grid-cols-6 ">
+              <div className="grid grid-cols-4 xl:grid-cols-6 gap-y-1">
                 {loadingProcessTypes ? (
-                  <span className="text-gray-400">Đang tải...</span>
+                  <span className="text-gray-400 text-xs">Đang tải...</span>
                 ) : (
                   processTypes
                     .filter((pt) => !["IN", "DUT", "DOT", "CAT"].includes(pt))
                     .map((pt) => (
-                      <Checkbox value={pt} key={pt}>
-                        {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
+                      <Checkbox
+                        value={pt}
+                        key={pt}
+                        className="!flex items-center m-0"
+                      >
+                        <span className="text-[13px] leading-tight">
+                          {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
+                        </span>
                       </Checkbox>
                     ))
                 )}

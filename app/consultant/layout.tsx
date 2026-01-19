@@ -38,7 +38,7 @@ export default function LayoutManager({
         <div className="bg-gradient-to-br from-primary-dark to-primary-light ">{children}</div>
 
         {/* Footer main */}
-        <footer className="mt-8 pt-6 border-t border-gray-100">
+        <footer className=" p-4 border-t border-gray-100">
           <div className="flex justify-between items-center text-sm">
             <p className="text-secondary">
               Hệ thống quản lý công ty in ấn •

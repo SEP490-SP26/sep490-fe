@@ -5,8 +5,6 @@ import { OrderRequest } from "@/schemaValidations/common.schema";
 import {
   CaretDownOutlined,
   CaretUpOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
@@ -14,28 +12,27 @@ import {
   LoadingOutlined,
   MailOutlined,
   ReloadOutlined,
-  SearchOutlined,
-  SendOutlined
+  SearchOutlined
 } from "@ant-design/icons";
+import { useMutation } from "@tanstack/react-query";
 import {
   Button,
   Card,
   Empty,
   Input,
   message,
+  Popconfirm,
   Space,
   Spin,
   Table,
   Tabs,
   Tag,
   Tooltip,
-  Typography,
-  Popconfirm
+  Typography
 } from "antd";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 
 const { Title } = Typography;
 
@@ -246,50 +243,19 @@ export default function ConsultantOrdersPage() {
     [allOrders, sortOrders, filterBySearch]
   );
 
-  // Status tag renderer
-  const getStatusTag = (status: string) => {
-    const statusLower = status?.toLowerCase();
-    switch (statusLower) {
-      case "pending":
-        return (
-          <Tag icon={<ClockCircleOutlined />} color="blue">
-            Mới - Chờ Báo Giá
-          </Tag>
-        );
-      case "waiting":
-        return (
-          <Tag icon={<MailOutlined />} color="orange">
-            Chờ KH Xác Nhận
-          </Tag>
-        );
-      case "accepted":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="green">
-            Đã xác nhận
-          </Tag>
-        );
-      case "pending_order_creation":
-        return (
-          <Tag icon={<FileTextOutlined />} color="purple">
-            Chờ Tạo Đơn
-          </Tag>
-        );
-      case "consultant_verified":
-        return (
-          <Tag icon={<SendOutlined />} color="cyan">
-            Đã Gửi Manager
-          </Tag>
-        );
-      case "manager_approved":
-        return (
-          <Tag icon={<CheckCircleOutlined />} color="green">
-            Đã Duyệt
-          </Tag>
-        );
-      default:
-        return <Tag>{status}</Tag>;
-    }
-  };
+  const rejectedOrders = useMemo(
+    () =>
+      sortOrders(
+        filterBySearch(
+          allOrders.filter(
+            (o) => o.process_status?.toLowerCase() === "rejected" || o.process_status?.toLowerCase() === "cancel"
+          )
+        )
+      ),
+    [allOrders, sortOrders, filterBySearch]
+  );
+
+
 
   // Get action button based on status
   const getActionButton = (record: OrderRequest) => {
@@ -297,28 +263,19 @@ export default function ConsultantOrdersPage() {
     switch (statusLower) {
       case "pending":
         return (
-          <Link
-            href={`/consultant?orderId=${record.order_request_id}&mode=negotiate`}
-          >
-            <Button type="primary" size="small" icon={<EditOutlined />}>
-              Tiếp nhận & Báo giá
-            </Button>
-          </Link>
-        );
-      case "waiting":
-        return (
-          <Space size="small">
-            <Tooltip title="Đang chờ khách hàng xác nhận qua email">
-              <Button size="small" icon={<MailOutlined />} disabled>
-                Chờ xác nhận
+          <Space size="small" >
+            <Link
+              href={`/consultant?orderId=${record.order_request_id}&mode=negotiate`}
+            >
+              <Button type="primary" size="small" icon={<EditOutlined />}>
+                Tiếp nhận & Báo giá
               </Button>
-            </Tooltip>
-
+            </Link>
             <Popconfirm
-              title="Xóa yêu cầu"
-              description="Bạn có chắc chắn muốn xóa yêu cầu này không?"
+              title="Đóng yêu cầu"
+              description="Bạn có chắc chắn muốn đóng yêu cầu này không?"
               onConfirm={() => handleDelete(String(record.order_request_id))}
-              okText="Xóa"
+              okText="Đóng"
               cancelText="Hủy"
               okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
               disabled={deleteMutation.isPending}
@@ -333,7 +290,35 @@ export default function ConsultantOrdersPage() {
                 icon={<DeleteOutlined />}
                 loading={deleteMutation.isPending}
               >
-                Xóa
+
+              </Button>
+            </Popconfirm>
+          </Space>
+
+        );
+      case "waiting":
+        return (
+          <Space size="small">
+            <Popconfirm
+              title="Đóng yêu cầu"
+              description="Bạn có chắc chắn muốn đóng yêu cầu này không?"
+              onConfirm={() => handleDelete(String(record.order_request_id))}
+              okText="Đóng"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
+              disabled={deleteMutation.isPending}
+            >
+              <Button
+                size="small"
+                style={{
+                  color: "red",
+                  border: "1px solid red",
+                  backgroundColor: "transparent",
+                }}
+                icon={<DeleteOutlined />}
+                loading={deleteMutation.isPending}
+              >
+
               </Button>
             </Popconfirm>
           </Space>
@@ -427,15 +412,17 @@ export default function ConsultantOrdersPage() {
           <span className="text-gray-400">-</span>
         ),
     },
+    // {
+    //   title: "Trạng Thái",
+    //   dataIndex: "process_status",
+    //   key: "process_status",
+    //   align: "center" as const,
+    //   render: (status: string) => getStatusTag(status),
+    // },
+
+    { title: 'Tiền cọc', dataIndex: 'deposit_amount', key: 'deposit_amount', align: 'right' as const, render: (val: number) => val ? <b className="text-green-600">{val.toLocaleString()}</b> : <span className="text-gray-400">-</span> },
     {
-      title: "Trạng Thái",
-      dataIndex: "process_status",
-      key: "process_status",
-      align: "center" as const,
-      render: (status: string) => getStatusTag(status),
-    },
-    {
-      title: "Hành Động",
+      // title: "Hành Động",
       key: "action",
       align: "center" as const,
       render: (_: any, record: OrderRequest) => getActionButton(record),
@@ -449,7 +436,7 @@ export default function ConsultantOrdersPage() {
         <span>
           Đơn mới
           {pendingOrders.length > 0 && (
-            <Tag color="red" className="ml-2">
+            <Tag color="blue" className="ml-2">
               {pendingOrders.length}
             </Tag>
           )}
@@ -457,7 +444,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
           dataSource={pendingOrders}
           rowKey="order_request_id"
           pagination={{
@@ -526,6 +513,33 @@ export default function ConsultantOrdersPage() {
         />
       ),
     },
+    {
+      key: "rejected",
+      label: (
+        <span>
+          Đã hủy
+          {rejectedOrders.length > 0 && (
+            <Tag color="red" className="ml-2">
+              {rejectedOrders.length}
+            </Tag>
+          )}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columns.filter((col) => col.key !== "action")}
+          dataSource={rejectedOrders}
+          rowKey="order_request_id"
+          pagination={{
+            pageSize: 10,
+            showTotal: (total) => `Tổng ${total} đơn`,
+          }}
+          locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
+          bordered
+          size="middle"
+        />
+      ),
+    },
   ];
 
   return (
@@ -554,20 +568,7 @@ export default function ConsultantOrdersPage() {
               />
             }
           />
-          {/* <div className="flex justify-between mt-1">
-            <Link
-              href="/consultant"
-              className="text-sm text-blue-600 hover:underline"
-            >
-              + Tạo đơn hàng mới
-            </Link>
-            <Link
-              href="/manager/orders"
-              className="text-sm text-gray-500 hover:underline"
-            >
-              Xem tất cả đơn (Manager) →
-            </Link>
-          </div> */}
+
         </div>
       </div>
 

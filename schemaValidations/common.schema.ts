@@ -63,6 +63,14 @@ export interface CreateRequestBody {
   detail_address?: string;
 }
 
+export interface RejectDealRequest {
+  orderRequestId: number;
+  token: string;
+  reason: string;
+  phone: string;
+  otp: string;
+}
+
 export interface UpdateRequestBody {
   // Thông tin khách hàng
   customer_name: string;
@@ -119,8 +127,17 @@ export interface SendOtpRequest {
   email: string;
 }
 
+export interface SendOtpSMSRequest {
+  phone: string;
+}
+
 export interface VerifyOtpRequest {
   email: string;
+  otp: string;
+}
+
+export interface VerifyOtpSMSRequest {
+  phone: string;
   otp: string;
 }
 

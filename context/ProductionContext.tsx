@@ -63,7 +63,7 @@ export interface Order {
   contract_file?: string;
 }
 
-export interface DesignTemplate {
+export interface ProductTemplate {
   // Định danh và Trạng thái
   design_profile_id: number;
   template_code: string;

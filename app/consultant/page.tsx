@@ -337,7 +337,7 @@ function ConsultantForm() {
     const productTypeCode = selectedProductType?.code || "";
     const productionProcessesStr = Array.isArray(production_processes)
       ? production_processes.join(",")
-      : "";
+      : (typeof production_processes === "string" ? production_processes : "");
 
     setLoadingPaperEstimate(true);
     try {
@@ -411,7 +411,7 @@ function ConsultantForm() {
         is_one_side_box: profile.is_one_side_box,
         print_width: profile.print_width_mm,
         print_height: profile.print_height_mm,
-        production_processes: profile.production_processes,
+        production_processes: profile.production_processes ? profile.production_processes.split(",") : [],
         bleed: profile.bleed_mm,
         default_quantity: profile.default_quantity,
         // quantity: profile.default_quantity,
@@ -774,7 +774,7 @@ function ConsultantForm() {
                   {/* read only */}
                   <Col span={isCreateMode ? 12 : 24}>
                     <Form.Item name="description" label="Ghi Chú khách hàng" className="mb-2">
-                      <Input.TextArea rows={1} placeholder="Ghi chú thêm..." />
+                      <Input.TextArea disabled rows={1} placeholder="Ghi chú thêm..." />
                     </Form.Item>
                   </Col>
                   {isCreateMode && (
