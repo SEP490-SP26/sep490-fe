@@ -1,5 +1,5 @@
 import http from "@/lib/httpAxios";
-import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, UpdateRequestBody } from "../schemaValidations/common.schema";
+import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, RejectDealRequest, UpdateRequestBody } from "../schemaValidations/common.schema";
 
 export const requestOrderApi = {
   getList: (page: number = 1, pageSize: number = 5) =>
@@ -24,6 +24,11 @@ export const requestOrderApi = {
     http.post<{ message: string; detail?: string; orderRequestId: number }>(
       '/api/Requests/send-deal',
       { requestId }
+    ),
+
+  rejectDeal: (body: RejectDealRequest) =>
+    http.post<CommonResType>(
+      '/api/Requests/reject', body
     ),
 
   createRequestOrderByConsultant: (body: CreateRequestBodyForConsultant) =>
