@@ -22,12 +22,12 @@ import {
   Form
 } from 'antd'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 
 const { Title, Text } = Typography
 const { TextArea } = Input
 
-export default function RejectDealPage() {
+function RejectDealContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderRequestId');
@@ -261,5 +261,13 @@ export default function RejectDealPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function RejectDealPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RejectDealContent />
+    </Suspense>
   );
 }
