@@ -394,9 +394,9 @@ export default function EstimatesCard({
                       <div className="border-t-2 border-blue-300 pt-3 mt-3">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-blue-900">
-                            Tổng giá hệ thống:
+                            Tổng giá:
                           </span>
-                          <span className="font-bold text-xl text-blue-700">
+                          <span className="font-bold text-lg text-blue-700">
                             {(
                               Math.round(costEstimate.cost.final_total_cost / 10) *
                               10
