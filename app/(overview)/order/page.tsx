@@ -39,7 +39,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { disabledDate } from "@/utils/vietnamHolidays";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
-import BackgroundAnimation from "@/components/BackgroundAnimation";
 import { formatVietnameseNumber } from "@/utils/format";
 
 const { Title, Text } = Typography;
