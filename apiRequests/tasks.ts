@@ -6,10 +6,6 @@ import {
 
 export interface FinishTaskBody {
     token: string;
-    scanner_id: string;
-    operator_id: number;
-    qty_good: number;
-    qty_bad: number;
 }
 
 export const tasksApi = {

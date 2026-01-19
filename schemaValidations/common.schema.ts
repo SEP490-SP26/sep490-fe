@@ -383,6 +383,7 @@ export interface OrderDetailResponse {
 export interface CreateQRBody {
   task_id: number;
   ttl_minutes: number;
+  qty_good: number;
 }
 
 export interface CreateQRResponse {

@@ -88,53 +88,45 @@ export default function ProductionDetailPage() {
   const { id } = params;
   const [showQRPopup, setShowQRPopup] = useState(false);
   const [qrToken, setQrToken] = useState<string>("");
+  // State for Create QR Input Modal
+  const [showCreateQRInputModal, setShowCreateQRInputModal] = useState(false);
+  const [qtyGoodInput, setQtyGoodInput] = useState<number | "">("");
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+
   // State for Finish Task Modal
   const [showFinishModal, setShowFinishModal] = useState(false);
-  const [finishFormData, setFinishFormData] = useState<FinishTaskBody>({
-    token: "",
-    scanner_id: "1",
-    operator_id: 1,
-    qty_good: 0,
-    qty_bad: 0,
-  });
 
-  // Handler to open modal and set initial state if needed
-  const openFinishModal = () => {
-    // We can pre-fill token if it exists from the QR step, otherwise empty
-    setFinishFormData((prev) => ({ ...prev, token: qrToken || "" }));
-    setShowFinishModal(true);
-  };
 
-  // Handler to submit finish task
-  const handleFinishTask = async () => {
-    try {
-      const response = await tasksApi.finishTask(finishFormData);
-      if (response) {
-        showSuccessToast("Hoàn thành task thành công!");
-        setShowFinishModal(false);
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Failed to finish task:", error);
-      showErrorToast("Có lỗi xảy ra khi hoàn thành task.");
-    }
-  };
+
 
   const [selectedTaskName, setSelectedTaskName] = useState<string>("");
 
-  const handleCreateQR = async (taskId: number, taskName: string) => {
+  const handleOpencreateQRModal = (taskId: number, taskName: string) => {
+    setSelectedTaskId(taskId);
+    setSelectedTaskName(taskName);
+    setQtyGoodInput(""); // Reset input
+    setShowCreateQRInputModal(true);
+  };
+
+  const handleCreateQR = async () => {
+    if (!selectedTaskId || qtyGoodInput === "" || Number(qtyGoodInput) < 0) {
+      showErrorToast("Vui lòng nhập số lượng hợp lệ");
+      return;
+    }
+
     try {
-      console.log('taskId ', taskId);
+      console.log('taskId ', selectedTaskId);
       const response = await tasksApi.createQRByStageId({
-        task_id: taskId,
+        task_id: selectedTaskId,
         ttl_minutes: 120,
+        qty_good: Number(qtyGoodInput),
       });
       console.log('response ', response);
       console.log('response.token ', response.token);
       if (response && response.token) {
         // Response có token ngay ở top level
         setQrToken(response.token);
-        setSelectedTaskName(taskName);
+        setShowCreateQRInputModal(false); // Close input modal
         setShowQRPopup(true);
       }
     } catch (error) {
@@ -403,18 +395,9 @@ export default function ProductionDetailPage() {
                       <div className="flex items-center gap-2">
                         <button
                           className="bg-accent py-1 px-2 rounded-md hover:bg-black/80 transition-colors text-white"
-                          onClick={() => handleCreateQR(stage.task_id, stage.task_name || stage.process_name)}
+                          onClick={() => handleOpencreateQRModal(stage.task_id, stage.task_name || stage.process_name)}
                         >
                           Tạo QR
-                        </button>
-                        <button
-                          className="bg-green-500 py-1 px-2 rounded-md hover:bg-black/80 transition-colors text-white"
-                          onClick={() => {
-                            // Set task info if needed, but the API relies on body fields
-                            openFinishModal();
-                          }}
-                        >
-                          Hoàn thành
                         </button>
                       </div>
                     )}
@@ -573,16 +556,16 @@ export default function ProductionDetailPage() {
         </div>
       )}
 
-      {/* Modal Hoàn Thành Task - Code mới thêm vào */}
-      {showFinishModal && (
+      {/* Modal Nhập Qty Good để tạo QR */}
+      {showCreateQRInputModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-900">
-                Hoàn thành Task
+                Tạo QR Code
               </h3>
               <button
-                onClick={() => setShowFinishModal(false)}
+                onClick={() => setShowCreateQRInputModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <BsX className="w-6 h-6" />
@@ -591,66 +574,32 @@ export default function ProductionDetailPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md p-2"
-                  value={finishFormData.token}
-                  onChange={(e) => setFinishFormData({ ...finishFormData, token: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Scanner ID</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-md p-2"
-                  value={finishFormData.scanner_id}
-                  onChange={(e) => setFinishFormData({ ...finishFormData, scanner_id: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Operator ID</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Số lượng thành phẩm (Good Quantity)
+                </label>
                 <input
                   type="number"
                   className="w-full border border-gray-300 rounded-md p-2"
-                  value={finishFormData.operator_id}
-                  onChange={(e) => setFinishFormData({ ...finishFormData, operator_id: Number(e.target.value) })}
+                  value={qtyGoodInput}
+                  onChange={(e) => setQtyGoodInput(Number(e.target.value))}
+                  placeholder="Nhập số lượng..."
+                  min="0"
                 />
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Qty Good</label>
-                  <input
-                    type="number"
-                    className="w-full border border-gray-300 rounded-md p-2"
-                    value={finishFormData.qty_good}
-                    onChange={(e) => setFinishFormData({ ...finishFormData, qty_good: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Qty Bad</label>
-                  <input
-                    type="number"
-                    className="w-full border border-gray-300 rounded-md p-2"
-                    value={finishFormData.qty_bad}
-                    onChange={(e) => setFinishFormData({ ...finishFormData, qty_bad: Number(e.target.value) })}
-                  />
-                </div>
               </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
               <button
-                onClick={() => setShowFinishModal(false)}
+                onClick={() => setShowCreateQRInputModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Hủy
               </button>
               <button
-                onClick={handleFinishTask}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                onClick={handleCreateQR}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
-                Xác nhận
+                Tạo mã QR
               </button>
             </div>
           </div>
