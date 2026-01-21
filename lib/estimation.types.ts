@@ -1,0 +1,354 @@
+// types/estimation.types.ts
+
+// Cấu trúc dữ liệu cơ bản
+export interface ProductDimensions {
+  length_mm: number;
+  width_mm: number;
+  height_mm: number;
+}
+
+export interface PrintSize {
+  print_width_mm: number;
+  print_height_mm: number;
+}
+
+export interface ProductInfo {
+  product_type: string;
+  form_product?: string;
+  productTypeCode?: string;
+  is_one_side_box: boolean;
+}
+
+// Waste Rules Types
+export interface WasteRules {
+  Printing: {
+    [key: string]: number | undefined; // productTypeCode -> waste sheets
+    default: number;
+    per_plate?: number;
+  };
+  DieCutting: {
+    '<5000'?: number;
+    '5000-20000'?: number;
+    '>=20000'?: number;
+  };
+  Mounting: {
+    '<5000'?: number;
+    '5000-20000'?: number;
+    '>=20000'?: number;
+  };
+  Coating: {
+    '<10000'?: number;
+    '>=10000'?: number;
+  };
+  Lamination: {
+    '<10000'?: number;
+    '>=10000'?: number;
+  };
+  Gluing: {
+    '<100'?: number;
+    '100-500'?: number;
+    '500-2000'?: number;
+    '>=2000'?: number;
+  };
+}
+
+export interface ProcessCost {
+  unit_price: number;
+  unit: string;
+  note?: string;
+}
+
+export interface ProcessCosts {
+  [key: string]: ProcessCost; // process code -> cost config
+}
+
+export interface DesignConfig {
+  default_design_cost: number;
+  rush_percent_by_days_early: {
+    [key: string]: number; // '1', '2-3', '>=4'
+  };
+}
+
+export interface Material {
+  id: string | number;
+  code: string;
+  name: string;
+  sheet_width_mm: number;
+  sheet_height_mm: number;
+  cost_price: number;
+  [key: string]: any;
+}
+
+export interface Machine {
+  id: string | number;
+  name: string;
+  process_name: string;
+  is_active: boolean;
+  daily_capacity: number;
+  capacity_per_hour?: number;
+  quantity?: number;
+}
+
+// Config types
+export interface EstimationConfig {
+  wasteRules?: WasteRules;
+  processCosts?: ProcessCosts;
+  designConfig?: DesignConfig;
+  materials?: Material[];
+  machines?: Machine[];
+  overhead_percent?: number;
+  ink_rates?: {
+    hop_mau: number;
+    gach_noi_dia: number;
+    gach_xk_don_gian: number;
+    gach_nhieu_mau: number;
+  };
+  ink_price_per_kg?: number;
+  coating_glue_rates?: {
+    keo_nuoc: number;
+    keo_dau: number;
+  };
+  coating_glue_prices?: {
+    keo_nuoc: number;
+    keo_dau: number;
+  };
+  mounting_glue_rate?: number;
+  mounting_glue_per_kg?: number;
+  lamination_rate_12mic?: number;
+  lamination_per_kg?: number;
+  rush_threshold_days?: number;
+  rush_percent_by_days_early?: {
+    [key: string]: number;
+  };
+}
+
+// Input types
+export interface EstimationInputs {
+  // Basic inputs
+  paper_code: string;
+  sheet_width_mm: number;
+  sheet_height_mm: number;
+  quantity: number;
+  length_mm: number;
+  width_mm: number;
+  height_mm: number;
+  glue_tab_mm?: number;
+  bleed_mm: number;
+  product_type: string;
+  form_product?: string;
+  is_one_side_box: boolean;
+  production_processes?: string;
+  coating_type?: 'KEO_NUOC' | 'KEO_DAU';
+  wave_type?: string;
+  number_of_plates?: number;
+
+  // Additional data
+  wasteRules?: WasteRules;
+  processCosts?: ProcessCosts;
+  designConfig?: DesignConfig;
+  materials?: Material[];
+  machines?: Machine[];
+
+  // Order info
+  desired_delivery_date: Date;
+  discount_percent?: number;
+  is_send_design?: boolean;
+  has_design_file?: boolean;
+}
+
+// Result types
+export interface WasteResult {
+  wastes: {
+    printing: number;
+    dieCutting: number;
+    mounting: number;
+    coating: number;
+    lamination: number;
+    gluing: number;
+  };
+  totalWaste: number;
+  sheetsWithWaste: number;
+  wastePercent: number;
+}
+
+export interface PrintAreaResult {
+  perUnit: number;
+  total: number;
+}
+
+export interface MaterialCosts {
+  paper: number;
+  ink: number;
+  coatingGlue: number;
+  mountingGlue: number;
+  lamination: number;
+  total: number;
+}
+
+export interface RushFeeResult {
+  isRush: boolean;
+  daysEarly: number;
+  rushPercent: number;
+  rushAmount: number;
+}
+
+export interface EstimationResult {
+  // Basic info
+  productTypeCode: string;
+  printSize: PrintSize;
+  nUp: number;
+  sheetsBase: number;
+
+  // Waste
+  waste: WasteResult;
+
+  // Print area
+  printArea: PrintAreaResult;
+
+  // Costs
+  costs: {
+    material: MaterialCosts;
+    overhead: number;
+    base: number;
+    process: number;
+    design: number;
+  };
+
+  // Production time
+  production: {
+    days: number;
+    rush: RushFeeResult;
+  };
+
+  // Discount
+  discount: {
+    percent: number;
+    amount: number;
+  };
+
+  // Totals
+  totals: {
+    subtotal: number;
+    finalTotalBase: number;
+    finalTotalCost: number;
+  };
+
+  // Debug info
+  debug: {
+    processes: string[];
+    materialInfo?: Material;
+    configUsed?: Partial<EstimationConfig>;
+  };
+}
+
+// Hook return types
+export interface UseProductStandardization {
+  getProductTypeCode: (productType: string, formProduct?: string) => string;
+  calculatePrintSize: (
+    length_mm: number,
+    width_mm: number,
+    height_mm: number,
+    glue_tab_mm: number,
+    bleed_mm: number,
+    is_one_side_box: boolean,
+    productTypeCode: string
+  ) => PrintSize;
+}
+
+export interface UsePaperEstimation {
+  calculateNUp: (
+    sheetWidth: number,
+    sheetHeight: number,
+    printWidth: number,
+    printHeight: number
+  ) => number;
+  calculateBaseSheets: (quantity: number, nUp: number) => number;
+  calculateTotalWaste: (
+    params: {
+      baseSheets: number;
+      productTypeCode: string;
+      numberOfPlates: number;
+      processes: string[];
+      coatingType: 'KEO_NUOC' | 'KEO_DAU';
+      quantity: number;
+    },
+    wasteRules?: WasteRules
+  ) => WasteResult;
+}
+
+export interface UseCostEstimation {
+  calculatePrintArea: (printWidth: number, printHeight: number) => number;
+  calculateTotalPrintArea: (printArea: number, quantity: number) => number;
+  calculatePaperCost: (sheetsWithWaste: number, paperUnitPrice: number) => number;
+  calculateInkCost: (
+    productTypeCode: string,
+    totalPrintArea: number,
+    config?: Partial<EstimationConfig>
+  ) => number;
+  calculateCoatingGlueCost: (
+    hasPhu: boolean,
+    coatingType: 'KEO_NUOC' | 'KEO_DAU',
+    totalPrintArea: number,
+    config?: Partial<EstimationConfig>
+  ) => number;
+  calculateMountingGlueCost: (
+    hasBoi: boolean,
+    totalPrintArea: number,
+    config?: Partial<EstimationConfig>
+  ) => number;
+  calculateLaminationCost: (
+    hasCanMang: boolean,
+    totalPrintArea: number,
+    config?: Partial<EstimationConfig>
+  ) => number;
+  calculateOverheadCost: (materialCost: number, overheadPercent?: number) => number;
+}
+
+export interface UseProductionTime {
+  calculateProductionDays: (
+    sheetsWithWaste: number,
+    quantity: number,
+    processes: string[],
+    machines?: Machine[]
+  ) => number;
+  calculateRushFee: (
+    totalDays: number,
+    desiredDeliveryDate: Date,
+    baseCost: number,
+    config?: Partial<EstimationConfig>
+  ) => RushFeeResult;
+}
+
+export interface UseEstimationCalculator {
+  calculateAll: (inputs: EstimationInputs, config?: Partial<EstimationConfig>) => EstimationResult;
+  getProductTypeCode: (productType: string, formProduct?: string) => string;
+  calculatePrintSize: (
+    length_mm: number,
+    width_mm: number,
+    height_mm: number,
+    glue_tab_mm: number,
+    bleed_mm: number,
+    is_one_side_box: boolean,
+    productTypeCode: string
+  ) => PrintSize;
+  calculateNUp: (
+    sheetWidth: number,
+    sheetHeight: number,
+    printWidth: number,
+    printHeight: number
+  ) => number;
+  calculateBaseSheets: (quantity: number, nUp: number) => number;
+}
+
+export interface UseEstimationConfig {
+  wasteRules: WasteRules | null;
+  processCosts: ProcessCosts | null;
+  designConfig: DesignConfig | null;
+  materials: Material[];
+  machines: Machine[];
+  loading: boolean;
+  error: string | null;
+  getMaterialById: (materialId: string | number) => Material | undefined;
+  getMaterialByCode: (paperCode: string) => Material | undefined;
+  refreshConfig: () => Promise<void>;
+}
