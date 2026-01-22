@@ -1,4 +1,47 @@
-// types/estimation.types.ts
+
+// 1. Giá vật tư (VND/kg)
+export interface MaterialPrices {
+  ink_price_per_kg: number;
+  coating_glue_keo_nuoc_per_kg: number;
+  coating_glue_keo_dau_per_kg: number;
+  mounting_glue_per_kg: number;
+  lamination_per_kg: number;
+}
+
+// 2. Định mức vật tư (Tỷ lệ tiêu hao)
+export interface MaterialRates {
+  ink_rate_gach_noi_dia: number;
+  ink_rate_gach_xk_don_gian: number;
+  ink_rate_hop_mau: number;
+  ink_rate_gach_nhieu_mau: number;
+  coating_glue_rate_keo_nuoc: number;
+  coating_glue_rate_keo_dau: number;
+  mounting_glue_rate: number;
+  lamination_rate_12mic: number;
+}
+
+
+
+// 4. Tham số hệ thống & Phí vận hành
+export interface SystemParameters {
+  overhead_percent: number;
+  default_production_days: number;
+  rush_threshold_days: number;
+  rush_percent_by_days_early: Record<string, number>;
+}
+
+
+// 6. Root Interface
+export interface EstimationConfig {
+  materialPrices: MaterialPrices;
+  materialRates: MaterialRates;
+  wasteRules: WasteRules;
+  systemParameters: SystemParameters;
+  processCosts: ProcessCosts;
+  design: {
+    default_design_cost: number;
+  };
+}
 
 // Cấu trúc dữ liệu cơ bản
 export interface ProductDimensions {
@@ -53,6 +96,8 @@ export interface WasteRules {
 }
 
 export interface ProcessCost {
+  process_code?: string;
+  process_name?: string;
   unit_price: number;
   unit: string;
   note?: string;
@@ -70,57 +115,38 @@ export interface DesignConfig {
 }
 
 export interface Material {
-  id: string | number;
+  material_id: number;
   code: string;
   name: string;
+  unit: string;
+  stock_qty: number;
+  min_stock: number;
+  cost_price: number;
+  description: string;
+  main_material_type: string;
+  boms: [];
+  purchase_items: [];
+  stock_moves: [];
+  supplier_materials: [];
   sheet_width_mm: number;
   sheet_height_mm: number;
-  cost_price: number;
   [key: string]: any;
 }
 
 export interface Machine {
-  id: string | number;
-  name: string;
+  machine_id: number;
   process_name: string;
+  process_code: string;
   is_active: boolean;
   daily_capacity: number;
   capacity_per_hour?: number;
   quantity?: number;
+  capacity_min?: number;
+  capacity_max?: number;
+  working_hours_per_day?: number;
+  efficiency_percent: number;
 }
 
-// Config types
-export interface EstimationConfig {
-  wasteRules?: WasteRules;
-  processCosts?: ProcessCosts;
-  designConfig?: DesignConfig;
-  materials?: Material[];
-  machines?: Machine[];
-  overhead_percent?: number;
-  ink_rates?: {
-    hop_mau: number;
-    gach_noi_dia: number;
-    gach_xk_don_gian: number;
-    gach_nhieu_mau: number;
-  };
-  ink_price_per_kg?: number;
-  coating_glue_rates?: {
-    keo_nuoc: number;
-    keo_dau: number;
-  };
-  coating_glue_prices?: {
-    keo_nuoc: number;
-    keo_dau: number;
-  };
-  mounting_glue_rate?: number;
-  mounting_glue_per_kg?: number;
-  lamination_rate_12mic?: number;
-  lamination_per_kg?: number;
-  rush_threshold_days?: number;
-  rush_percent_by_days_early?: {
-    [key: string]: number;
-  };
-}
 
 // Input types
 export interface EstimationInputs {
@@ -211,6 +237,7 @@ export interface EstimationResult {
     overhead: number;
     base: number;
     process: number;
+    processDetails: ProcessCostDetail[];
     design: number;
   };
 
@@ -340,6 +367,15 @@ export interface UseEstimationCalculator {
   calculateBaseSheets: (quantity: number, nUp: number) => number;
 }
 
+export interface ProcessCostDetail {
+  process: string;
+  unit_price: number;
+  quantity: number;
+  unit: string;
+  total_cost: number;
+  note: string;
+}
+
 export interface UseEstimationConfig {
   wasteRules: WasteRules | null;
   processCosts: ProcessCosts | null;
@@ -352,3 +388,15 @@ export interface UseEstimationConfig {
   getMaterialByCode: (paperCode: string) => Material | undefined;
   refreshConfig: () => Promise<void>;
 }
+
+
+
+export interface ProcessCostRules {
+  process_code: string;
+  process_name: string;
+  unit: 'm2' | 'tờ' | 'sp' | string;
+  unit_price: number;
+  note: string;
+}
+
+// export type ProcessCostRulesList = ProcessCostRules[];

@@ -229,18 +229,16 @@ export default function EstimatesCard({
 
                   {/* Input nhập giá chốt */}
                   <Form.Item name="final_price" className="">
-                    <FloatingInputAntd
-                      valueType="number"
+                    <InputNumber
                       className="w-full text-end font-bold text-lg"
                       min={0}
-                      formatter={(value: any) =>
-                        formatVietnameseNumber(value)}
-                      parser={(value: any) => {
-                        if (!value) return 0;
-                        return Number(value.toString().replace(/,/g, ''));
+                      formatter={(value) => value ? formatVietnameseNumber(value) : ''}
+                      parser={(value) => {
+                        return (value ? value.replace(/\./g, '') : '') as any;
                       }}
-                      // addonAfter="₫"
                       size="large"
+                      placeholder="Nhập giá chốt"
+                      style={{ width: '100%' }}
                     />
 
                   </Form.Item>

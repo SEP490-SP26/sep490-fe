@@ -19,9 +19,20 @@ import {
 } from "react-icons/bs";
 
 export interface Material {
+  material_id: number;
+  code: string;
   name: string;
-  quantity: number;
   unit: string;
+  stock_qty: number;
+  min_stock: number;
+  cost_price: number;
+  description?: string;
+  sheet_width_mm?: number;
+  sheet_height_mm?: number;
+  sheet_length_mm?: number;
+  boms: any[];
+  purchase_items: any[];
+  stock_moves: any[];
 }
 
 export interface OutputProduct {

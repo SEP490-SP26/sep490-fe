@@ -18,6 +18,9 @@ import {
   ProductType,
   UpdateRequestBody,
 } from "@/schemaValidations/common.schema";
+import { useEstimationCalculator } from "@/hooks/useEstimationCalculator";
+import { useEstimationConfig } from "@/hooks/useEstimationConfig";
+import { EstimationInputs } from "@/lib/estimation.types";
 import {
   CodeSandboxOutlined,
   DashboardOutlined,
@@ -74,8 +77,6 @@ const PROCESS_TYPE_LABELS: Record<string, string> = {
 function ConsultantForm() {
   const [form] = Form.useForm();
   const {
-    addOrder,
-    updateOrder,
     orders,
     isBusy,
   } = useProduction();
@@ -142,9 +143,21 @@ function ConsultantForm() {
 
   const totalMachines = machineCapacity?.totalMachines || 8;
   const runningMachines = machineCapacity?.runningMachines || 0;
+
   const isWorkshopFull = runningMachines >= totalMachines * 0.9;
   const workshopFreeInfo = getEstimatedFreeDate(orders);
   const daysUntilFree = workshopFreeInfo.days;
+
+  // --- CLIENT SIDE CALCULATION HOOKS ---
+  const { calculateAll } = useEstimationCalculator();
+  const {
+    wasteRules,
+    processCosts,
+    designConfig,
+    materials,
+    machines,
+    loading: configLoading
+  } = useEstimationConfig();
 
   const createRequestOrder = useMutation({
     mutationFn: async (form: CreateRequestBody) => {
@@ -289,6 +302,7 @@ function ConsultantForm() {
 
     fetchOrderDetails();
   }, [orderId, form]);
+  
 
 
   // --- CALCULATION LOGIC ---
@@ -316,82 +330,7 @@ function ConsultantForm() {
     setEstimate(result);
   };
 
-  const calculatePaperEstimate = async () => {
-    const values = form.getFieldsValue();
-    const {
-      paper_code,
-      quantity,
-      length,
-      width,
-      height,
-      product_type,
-      production_processes,
-      number_of_plates,
-      coating_type,
-    } = values;
-
-    if (!paper_code || !quantity || !length || !width || !height || !product_type) {
-      return;
-    }
-
-    const paperCode = paper_code as string;
-    const selectedProductType = productTypes.find(
-      (pt) => pt.product_type_id === product_type
-    );
-    const productTypeCode = selectedProductType?.code || "";
-    const productionProcessesStr = Array.isArray(production_processes)
-      ? production_processes.join(",")
-      : (typeof production_processes === "string" ? production_processes : "");
-
-    setLoadingPaperEstimate(true);
-    try {
-      const formType = form.getFieldValue("form_product");
-      const isOneSideBox = form.getFieldValue("is_one_side_box") ?? true;
-      const glueTab = form.getFieldValue("glue_tab") ?? 10;
-      const waveType = form.getFieldValue("wave_type");
-
-      // if (!orderId) return; // Removed to allow calculation for new orders
-
-      const payload = {
-        order_request_id: orderId ? parseInt(orderId) : (createdOrderId || 0),
-        paper_code: paperCode,
-        quantity: quantity,
-        length_mm: length,
-        width_mm: width,
-        height_mm: height,
-        glue_tab_mm: glueTab,
-        bleed_mm: 1,
-        is_one_side_box: isOneSideBox,
-        product_type: productTypeCode,
-        form_product: formType || "",
-        number_of_plates: number_of_plates || 1,
-        production_processes: productionProcessesStr,
-        coating_type: coating_type || "KEO_NUOC",
-        wave_type: productionProcessesStr.includes("BOI") && waveType ? waveType : "",
-      };
-
-      console.log("Payload gửi đi (estimatePaper):", payload);
-
-      const response = await estimatesApi.estimatePaper(payload);
-
-      if (response) {
-        setPaperEstimate(response);
-        calculateCostEstimate(
-          response,
-          productTypeCode,
-          productionProcessesStr,
-          coating_type
-        );
-      }
-    } catch (error) {
-      console.error("Error calculating paper estimate:", error);
-    } finally {
-      setLoadingPaperEstimate(false);
-    }
-  };
-
-  // Template Fetch
-  const { data: productTempalte } = useQuery<ProductTemplate[]>({
+   const { data: productTempalte } = useQuery<ProductTemplate[]>({
     queryKey: ["product-tempalte", selectProductTypeId],
     queryFn: async () => {
       if (!selectProductTypeId) return null;
@@ -425,62 +364,185 @@ function ConsultantForm() {
         // }),
       };
       form.setFieldsValue(newValues);
-      setTimeout(() => calculatePaperEstimate(), 100);
+      // setTimeout(() => calculatePaperEstimate(), 100);
     }
   }, [productTempalte, form, selectedProductTypeCode]);
 
-
-  // Cost Estimate
-  const calculateCostEstimate = async (
-    paperData: EstimatePaperResponse,
-    productTypeCode: string,
-    productionProcesses: string,
-    coatingType: string
-  ) => {
+  const calculateEstimates = () => {
     const values = form.getFieldsValue();
-    const { delivery_date } = values;
+    const {
+      paper_code,
+      quantity,
+      length,
+      width,
+      height,
+      product_type,
+      production_processes,
+      number_of_plates,
+      coating_type,
+      form_product,
+      is_one_side_box,
+      glue_tab,
+      wave_type
+    } = values;
 
-    if (!paperData) return;
+    if (!paper_code || !quantity || !length || !width || !height || !product_type || configLoading) {
+      return;
+    }
 
-    setLoadingCostEstimate(true);
+
+
+    // const paperCode = paper_code as string;
+    const selectedProductType = productTypes.find(
+      (pt) => pt.product_type_id === product_type
+    );
+    const productTypeCode = selectedProductType?.code || "";
+
+    // Find material for sheet size
+    const selectedMaterial = materials.find(m => m.code === paper_code);
+    if (!selectedMaterial) return;
+
     try {
-      const formType = form.getFieldValue("form_product");
-      const waveType = form.getFieldValue("wave_type");
-
-      const response = await estimatesApi.estimateCost({
-        order_request_id: orderId ? parseInt(orderId) : (createdOrderId || 0),
-        paper: paperData,
-        desired_delivery_date: delivery_date
-          ? delivery_date.toISOString()
-          : new Date().toISOString(),
+      const inputs: EstimationInputs = {
+        paper_code,
+        sheet_width_mm: selectedMaterial.sheet_width_mm || 0,
+        sheet_height_mm: selectedMaterial.sheet_height_mm || 0,
+        quantity,
+        length_mm: length,
+        width_mm: width,
+        height_mm: height,
+        glue_tab_mm: glue_tab,
+        bleed_mm: 1,
         product_type: productTypeCode,
-        form_product: formType || "",
-        production_processes: productionProcesses,
-        coating_type: coatingType || "KEO_NUOC",
-        discount_percent: 0,
-        wave_type: productionProcesses.includes("BOI") && waveType ? waveType : "", // wave_type: handled in paper estimate logic mostly or implicitly if needed here
+        form_product: form_product || "",
+        is_one_side_box,
+        production_processes: Array.isArray(production_processes) ? production_processes.join(",") : (production_processes || ""),
+        coating_type: coating_type || "KEO_NUOC",
+        wave_type,
+        number_of_plates: number_of_plates || 1,
+
+        // Configs
+        wasteRules: wasteRules || undefined,
+        processCosts: processCosts || undefined,
+        designConfig: designConfig || undefined,
+        materials,
+        machines,
+
+        desired_delivery_date: values.delivery_date ? dayjs(values.delivery_date).toDate() : new Date(),
+        discount_percent: discountPercent,
         is_send_design: isSendDesign,
+        has_design_file: !!designFilePath
+      };
+
+      const result = calculateAll(inputs, {
+        systemParameters: {
+          overhead_percent: 10,
+          default_production_days: 5,
+          rush_threshold_days: 1,
+          rush_percent_by_days_early: {}
+        }
       });
 
-      if (response) {
-        setCostEstimate(response);
-        form.setFieldValue("final_price", Math.round(response.cost.final_total_cost));
+      // Map Map result to PaperEstimate (EstimatePaperResponse)
+      setPaperEstimate({
+        paper_code: inputs.paper_code,
+        sheet_width_mm: inputs.sheet_width_mm,
+        sheet_height_mm: inputs.sheet_height_mm,
+        print_width_mm: result.printSize.print_width_mm,
+        print_height_mm: result.printSize.print_height_mm,
+        n_up: result.nUp,
+        quantity: inputs.quantity,
+        sheets_base: result.sheetsBase,
+        waste_printing: result.waste.wastes.printing,
+        waste_die_cutting: result.waste.wastes.dieCutting,
+        waste_mounting: result.waste.wastes.mounting,
+        waste_coating: result.waste.wastes.coating,
+        waste_lamination: result.waste.wastes.lamination,
+        waste_gluing: result.waste.wastes.gluing,
+        total_waste: result.waste.totalWaste,
+        sheets_with_waste: result.waste.sheetsWithWaste,
+        waste_percent: result.waste.wastePercent,
+        warning_message: ""
+      });
 
-        if (orderId) {
-          try {
-            const depositResponse = await estimatesApi.getDeposit(parseInt(orderId));
-            setDepositAmount(depositResponse.deposit_amount || 0);
-          } catch (depositError) {
-            console.error("Error fetching deposit:", depositError);
-          }
+      // Map result to CostEstimate (EstimateCostResponse)
+      setCostEstimate({
+        cost: {
+          // Paper
+          paper_cost: result.costs.material.paper,
+          paper_sheets_used: result.waste.sheetsWithWaste,
+          paper_unit_price: selectedMaterial.cost_price || 0,
+
+          // Ink
+          ink_cost: result.costs.material.ink,
+          ink_weight_kg: 0,
+          ink_rate_per_m2: 0,
+          ink_unit_price: 0,
+
+          // Coating
+          coating_glue_cost: result.costs.material.coatingGlue,
+          coating_glue_weight_kg: 0,
+          coating_glue_rate_per_m2: 0,
+          coating_glue_unit_price: 0,
+          coating_type: inputs.coating_type || "KEO_NUOC",
+
+          // Mounting
+          mounting_glue_cost: result.costs.material.mountingGlue,
+          mounting_glue_weight_kg: 0,
+          mounting_glue_rate_per_m2: 0,
+          mounting_glue_unit_price: 0,
+
+          // Lamination
+          lamination_cost: result.costs.material.lamination,
+          lamination_weight_kg: 0,
+          lamination_rate_per_m2: 0,
+          lamination_unit_price: 0,
+
+          // Totals
+          material_cost: result.costs.material.total,
+          overhead_percent: 10,
+          overhead_cost: result.costs.overhead,
+          base_cost: result.costs.base,
+          final_total_cost: result.totals.finalTotalCost,
+
+          // Rush
+          rush_amount: result.production.rush.rushAmount,
+          rush_percent: result.production.rush.rushPercent,
+          is_rush: result.production.rush.isRush,
+          days_early: result.production.rush.daysEarly,
+
+          // Discount
+          subtotal: result.totals.subtotal,
+          discount_percent: discountPercent,
+          discount_amount: result.discount.amount,
+
+          // Misc
+          total_area_m2: result.printArea.total,
+          design_cost: result.costs.design,
+          material_cost_details: [],
+
+          estimated_finish_date: (() => {
+            const date = new Date();
+            date.setDate(date.getDate() + result.production.days);
+            return date.toISOString();
+          })()
+        },
+        process_cost: {
+          order_request_id: orderId ? parseInt(orderId) : 0,
+          total_cost: result.costs.process,
+          details: result.costs.processDetails
         }
-      }
-    } catch (error) {
-      console.error("Error calculating cost estimate:", error);
-    } finally {
-      setLoadingCostEstimate(false);
+      });
+
+      form.setFieldValue("final_price", Math.round(result.totals.finalTotalCost));
+
+    } catch (err) {
+      console.error("Calculation error", err);
     }
   };
+
+  // Old functions removed via replacement
+
 
   // Debounce
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -500,7 +562,7 @@ function ConsultantForm() {
     if (hasRelevantChange) {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
-        calculatePaperEstimate();
+        calculateEstimates();
       }, 800);
     }
 
@@ -513,9 +575,9 @@ function ConsultantForm() {
 
   useEffect(() => {
     if (form.getFieldValue("paper_code") && form.getFieldValue("quantity")) {
-      calculatePaperEstimate();
+      calculateEstimates();
     }
-  }, [isSendDesign]);
+  }, [isSendDesign, configLoading]); // Added configLoading dependency
 
 
   const onFinish = async (values: any) => {
@@ -591,36 +653,86 @@ function ConsultantForm() {
           return;
         }
 
-        // 1. Cập nhật giá
+        // 1. Cập nhật thông tin request xuống BE (để đảm bảo quantity và các thông số mới nhất được lưu)
+        const selectedProductType = productTypes.find(
+          (pt) => pt.product_type_id === values.product_type
+        );
+        const productTypeCode = selectedProductType?.code || "";
+        const paperName = paperTypes.find((p) => p.code === values.paper_code)?.name || "";
+
+        const updateBody: Partial<UpdateRequestBody> = {
+          customer_name: values.customer_name,
+          customer_phone: values.customer_phone,
+          customer_email: values.customer_email,
+          delivery_date: values.delivery_date ? values.delivery_date.toISOString() : new Date().toISOString(),
+          product_name: values.product_name,
+          quantity: values.quantity,
+          description: values.description || "",
+          detail_address: values.detail_address || "",
+
+          // Specs
+          paper_code: values.paper_code,
+          paper_name: paperName,
+          product_type: productTypeCode,
+          number_of_plates: values.number_of_plates,
+          coating_type: values.coating_type,
+          wave_type: values.wave_type,
+
+          product_length_mm: values.length,
+          product_width_mm: values.width,
+          product_height_mm: values.height,
+          glue_tab_mm: values.glue_tab,
+          bleed_mm: values.bleed,
+
+          is_one_side_box: values.is_one_side_box,
+          print_width_mm: values.print_width,
+          print_height_mm: values.print_height,
+
+          production_processes: Array.isArray(values.production_processes)
+            ? values.production_processes.join(",")
+            : values.production_processes,
+
+          is_send_design: isSendDesign,
+          design_file_path: designFilePath || "",
+        };
+
+        try {
+          await requestOrderApi.updateRequest(currentOrderId, updateBody);
+        } catch (updateError) {
+          console.error("Error updating request details:", updateError);
+          message.warning("Cập nhật thông tin chi tiết thất bại, nhưng sẽ tiếp tục cập nhật giá.");
+        }
+
+        // 2. Cập nhật giá
         await estimatesApi.adjustCost(parseInt(currentOrderId), finalPrice);
 
         // 2. Gửi email báo giá
         const response = await requestOrderApi.sendDeal(parseInt(currentOrderId));
 
-        if (response.message === "Sent deal email") {
-          // 3. Cập nhật trạng thái trong context/local
-          if (existingOrder) {
-            updateOrder(currentOrderId, {
-              ...orderData,
-              process_status: "waiting_customer_confirm",
-              order_id: currentOrderId,
-              code: `ORD-${currentOrderId}`,
-            });
-          } else {
-            // Nếu không có trong context, thêm mới
-            addOrder({
-              ...orderData,
-              order_id: currentOrderId,
-              code: `ORD-${currentOrderId}`,
-              process_status: "waiting_customer_confirm",
-              can_fulfill: estimate?.isStockEnough || false,
-            });
-          }
+        // if (response.message === "Sent deal email") {
+        //   // 3. Cập nhật trạng thái trong context/local
+        //   if (existingOrder) {
+        //     updateOrder(currentOrderId, {
+        //       ...orderData,
+        //       process_status: "waiting_customer_confirm",
+        //       order_id: currentOrderId,
+        //       code: `ORD-${currentOrderId}`,
+        //     });
+        //   } else {
+        //     // Nếu không có trong context, thêm mới
+        //     addOrder({
+        //       ...orderData,
+        //       order_id: currentOrderId,
+        //       code: `ORD-${currentOrderId}`,
+        //       process_status: "waiting_customer_confirm",
+        //       can_fulfill: estimate?.isStockEnough || false,
+        //     });
+        //   }
 
-          message.success("Đã gửi báo giá cho khách hàng!");
-        } else {
-          throw new Error(response.detail || "Lỗi gửi email");
-        }
+        //   message.success("Đã gửi báo giá cho khách hàng!");
+        // } else {
+        //   throw new Error(response.detail || "Lỗi gửi email");
+        // }
       } else {
         // Chế độ create: Tạo đơn mới
         // ... logic cho create mode
@@ -663,7 +775,7 @@ function ConsultantForm() {
       message.warning("Vui lòng nhập đầy đủ: Loại giấy, Số lượng, Kích thước, Loại sản phẩm.");
       return;
     }
-    calculatePaperEstimate();
+    calculateEstimates();
   };
 
   const handleCreateCustomerInfo = async (values: any) => {

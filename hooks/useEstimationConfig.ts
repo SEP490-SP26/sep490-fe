@@ -1,14 +1,10 @@
 // Hook lấy và quản lý config
 import { useState, useEffect, useCallback } from 'react';
-import axios, { AxiosResponse } from 'axios';
-import { UseEstimationConfig, WasteRules, ProcessCosts, DesignConfig, Material, Machine } from '@/lib/estimation.types';
-
-
-interface ApiResponse<T> {
-    data: T;
-    status: number;
-    message?: string;
-}
+import { UseEstimationConfig, WasteRules, ProcessCosts, DesignConfig, Material, Machine, EstimationConfig } from '@/lib/estimation.types';
+import { estimatesApi } from '@/apiRequests/estimates';
+import { processCostRulesApi } from '@/apiRequests/processCostRules';
+import { materialsApi } from '@/apiRequests/materials';
+import { machineApi } from '@/apiRequests/machine';
 
 export const useEstimationConfig = (): UseEstimationConfig => {
     const [wasteRules, setWasteRules] = useState<WasteRules | null>(null);
@@ -25,34 +21,90 @@ export const useEstimationConfig = (): UseEstimationConfig => {
             setError(null);
 
             // Gọi API để lấy config
-            const [wasteResponse, processCostResponse, materialsResponse, machinesResponse] = await Promise.all<
-                [
-                    Promise<AxiosResponse<ApiResponse<WasteRules>>>,
-                    Promise<AxiosResponse<ApiResponse<ProcessCosts>>>,
-                    Promise<AxiosResponse<ApiResponse<Material[]>>>,
-                    Promise<AxiosResponse<ApiResponse<Machine[]>>>
-                ]
-            >([
-                axios.get<ApiResponse<WasteRules>>('/api/estimate/base-config'),
-                axios.get<ApiResponse<ProcessCosts>>('/api/ProcessCostRules/get-all-process-cost-rules'),
-                axios.get<ApiResponse<Material[]>>('/api/Materials/get-all-material'),
-                axios.get<ApiResponse<Machine[]>>('/api/machines') // Cần tạo API này
+            const [baseConfigRes, processCostsRes, materialsRes, machinesRes] = await Promise.all([
+                estimatesApi.getBaseConfig(),
+                processCostRulesApi.getAll(),
+                materialsApi.getAll(),
+                machineApi.getAllMachine()
             ]);
 
-            const defaultDesignConfig: DesignConfig = {
-                default_design_cost: 200000,
-                rush_percent_by_days_early: {
-                    '1': 5,
-                    '2-3': 20,
-                    '>=4': 40
-                }
-            };
+            // Xử lý base config (Waste Rules & Design Config)
+            // estimatesApi.getBaseConfig trả về EstimationConfig hoặc payload chứa nó.
+            // Giả sử apiRequests trả về data trực tiếp (theo httpAxios)
+            const baseConfig = baseConfigRes as unknown as EstimationConfig; // Cast để đảm bảo type
 
-            setWasteRules(wasteResponse.data.data);
-            setProcessCosts(processCostResponse.data.data);
-            setDesignConfig(defaultDesignConfig);
-            setMaterials(materialsResponse.data.data || []);
-            setMachines(machinesResponse.data.data || []);
+            if (baseConfig) {
+                setWasteRules(baseConfig.wasteRules || null);
+
+                // Construct DesignConfig from system parameters if available
+                if (baseConfig.design && baseConfig.systemParameters) {
+                    setDesignConfig({
+                        default_design_cost: baseConfig.design.default_design_cost,
+                        rush_percent_by_days_early: baseConfig.systemParameters.rush_percent_by_days_early
+                    });
+                } else if (baseConfig.design) {
+                    // Fallback for rush percent
+                    setDesignConfig({
+                        default_design_cost: baseConfig.design.default_design_cost,
+                        rush_percent_by_days_early: {
+                            '1': 5,
+                            '2-3': 20,
+                            '>=4': 40
+                        }
+                    });
+                } else {
+                    // Fallback hardcoded if missing
+                    setDesignConfig({
+                        default_design_cost: 200000,
+                        rush_percent_by_days_early: {
+                            '1': 5,
+                            '2-3': 20,
+                            '>=4': 40
+                        }
+                    });
+                }
+
+                // Nếu baseConfig có chứa processCosts, ưu tiên sử dụng nó, 
+                // nhưng logic cũ tách biệt nên ta xem xét processCostsRes
+            }
+
+            // Xử lý Process Costs
+            // processCostRulesApi.getAll() trả về mảng rules hoặc map. 
+            // Type definition nói là ProcessCosts[] (mảng các map?) hoặc mảng rules.
+            // Ta sẽ convert về Map ProcessCosts
+            let costsMap: ProcessCosts = {};
+
+            // Checking validation for processCostsRes
+            const rulesData = processCostsRes as any;
+
+            if (Array.isArray(rulesData)) {
+                rulesData.forEach((rule: any) => {
+                    if (rule.process_code) {
+                        costsMap[rule.process_code] = {
+                            unit_price: rule.unit_price,
+                            unit: rule.unit,
+                            note: rule.note,
+                            process_code: rule.process_code,
+                            process_name: rule.process_name
+                        };
+                    }
+                });
+            } else if (typeof rulesData === 'object' && rulesData !== null) {
+                costsMap = rulesData;
+            }
+
+            setProcessCosts(costsMap);
+
+            // Materials & Machines
+            // materialsRes (any[] or object with data property?)
+            // httpAxios typically returns the data. 
+            // materialsApi.getAll() -> Material[]
+            const matList = Array.isArray(materialsRes) ? materialsRes : (materialsRes as any)?.data || [];
+            setMaterials(matList);
+
+            const macList = Array.isArray(machinesRes) ? machinesRes : (machinesRes as any)?.data || [];
+            setMachines(macList);
+
             setLoading(false);
         } catch (error: any) {
             console.error('Error fetching estimation config:', error);
@@ -111,7 +163,7 @@ export const useEstimationConfig = (): UseEstimationConfig => {
     }, [fetchConfig]);
 
     const getMaterialById = useCallback((materialId: string | number): Material | undefined => {
-        return materials.find(m => m.id === materialId);
+        return materials.find(m => m.id === materialId || m.material_id === materialId);
     }, [materials]);
 
     const getMaterialByCode = useCallback((paperCode: string): Material | undefined => {
