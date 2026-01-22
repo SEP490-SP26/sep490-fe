@@ -134,11 +134,11 @@ const request = async <Response>(
     body instanceof FormData
       ? {}
       : {
-          "Content-Type": "application/json",
-        };
+        "Content-Type": "application/json",
+      };
 
   const axiosInstance: AxiosInstance = axios.create({
-    timeout: 10000, // Timeout in milliseconds => 10s
+    timeout: 30000, // Timeout in milliseconds => 10s
     // withCredentials: true
   });
   // Gắn token từ cookie vào Authorization

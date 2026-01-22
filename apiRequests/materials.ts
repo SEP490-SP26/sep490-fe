@@ -1,5 +1,5 @@
+import { Material } from "@/lib/estimation.types";
 import http from "@/lib/httpAxios";
-import { Material } from "@/schemaValidations/common.schema";
 
 export const materialsApi = {
     getAll: () =>
@@ -18,9 +18,9 @@ export const materialsApi = {
     getSongTypes: () =>
         http.get<Material[]>("/api/Materials/get-material-by-type-song"),
 
-      getListMissingMaterial: (page: number = 1, pageSize: number = 10) =>
-    http.get<Material>(
-      `/api/Orders/missing-materials?page=${page}&pageSize=${pageSize}`
-    ),
+    getListMissingMaterial: (page: number = 1, pageSize: number = 10) =>
+        http.get<Material[]>(
+            `/api/Orders/missing-materials?page=${page}&pageSize=${pageSize}`
+        ),
 
 };

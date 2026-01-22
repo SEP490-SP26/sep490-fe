@@ -1,3 +1,4 @@
+import { Machine } from "@/lib/estimation.types";
 import http from "@/lib/httpAxios";
 import { FreeMachine, MachineCapacity } from "@/schemaValidations/common.schema";
 
@@ -7,4 +8,7 @@ export const machineApi = {
 
     getCapacity: () =>
         http.get<MachineCapacity>("/api/Machine/capacity"),
+
+    getAllMachine: () =>
+        http.get<Machine[]>("/api/Machine/get-all-machines"),
 };

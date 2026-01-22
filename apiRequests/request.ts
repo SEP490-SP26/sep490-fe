@@ -16,8 +16,8 @@ export const requestOrderApi = {
   updateRequest: (id: string, body: Partial<UpdateRequestBody>) =>
     http.put<CommonResType>(`/api/requests/${id}`, body),
 
-  deleteRequest: (id: string) =>
-    http.delete<CommonResType>(`/api/Requests/${id}`),
+  deleteRequest: (body: any) =>
+    http.put<CommonResType>(`/api/Requests/cancel-request`, body),
 
   // Gửi báo giá cho khách hàng
   sendDeal: (requestId: number) =>

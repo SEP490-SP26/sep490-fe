@@ -1,3 +1,4 @@
+import { EstimationConfig, WasteRules } from "@/lib/estimation.types";
 import http from "@/lib/httpAxios";
 import {
     AdjustFinalCostRequest,
@@ -33,4 +34,7 @@ export const estimatesApi = {
     // GET /api/Estimates/deposit/by-request/{requestId} - Lấy tiền đặt cọc theo đơn hàng
     getDeposit: (requestId: number) =>
         http.get<DepositResponse>(`/api/Estimates/deposit/by-request/${requestId}`),
+
+    //GET /api/Estimates/base-config
+    getBaseConfig: () => http.get<EstimationConfig>("/api/Estimates/base-config"),
 };

@@ -16,9 +16,9 @@ export const orderApi = {
   // GET /api/Orders/{id} - Lấy chi tiết đơn hàng theo order_id
   getOrderById: (id: number) => http.get<OrderDetailResponse>(`/api/Orders/${id}`),
 
-  updateRequest: (id: string, body: Partial<CreateRequestBody>) =>
+  updateOrder: (id: string, body: Partial<CreateRequestBody>) =>
     http.put<CommonResType>(`/api/Orders/${id}`, body),
 
-  deleteRequest: (id: string) =>
+  deleteOrder: (id: string) =>
     http.delete<CommonResType>(`/api/Orders/${id}`),
 };
