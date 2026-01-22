@@ -7,7 +7,7 @@ import zaloIcon from "@/public/zalo-icon.png";
 /* =====================
    CONFIG – chỉnh tại đây
    ===================== */
-const ZALO_PHONE_NUMBER = "0983614409";
+const ZALO_PHONE_NUMBER = "0373713955";
 const BG_COLOR = "#0068ff"; // màu Zalo chuẩn
 
 export default function ZaloChat() {

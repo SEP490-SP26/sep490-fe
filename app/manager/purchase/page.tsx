@@ -130,13 +130,14 @@ export default function PurchaseManagement() {
   // console.log("poData", poData);
 
   // Lấy danh sách vật tư cần đặt hàng
-  const { data: missing_materials, isPending: materialLoading, refetch: refetchMissingMaterials } = useQuery({
+  const { data: missing_materials = [], isPending: materialLoading, refetch: refetchMissingMaterials } = useQuery({
     queryKey: ["missing-materials"],
     queryFn: async () => {
       try {
         const response = await materialsApi.getListMissingMaterial(1, 100);
         // console.log("Response miss data:", response.data);
-        return response.data;
+        //Chì lấy is_buy = false
+        return response.data.filter((m: any) => m.is_buy === false);
       } catch (error) {
         console.error("Error fetching purchase orders:", error);
         return [];
