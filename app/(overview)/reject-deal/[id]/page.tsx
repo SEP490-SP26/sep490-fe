@@ -9,6 +9,7 @@ export default function ConfirmRejectPage() {
     const params = useParams();
     const router = useRouter();
     const orderId = params.id as string;
+    const token = params.token as string;
     const [reason, setReason] = useState("");
     const [phone, setPhone] = useState("");
     const [otp, setOtp] = useState("");
@@ -62,8 +63,8 @@ export default function ConfirmRejectPage() {
             setLoading(true);
             setError("");
             const bodyResquest = {
-                orderRequestId: Number(orderId),
-                token: "",
+                order_request_id: Number(orderId),
+                token: token,
                 reason,
                 phone,
                 otp
