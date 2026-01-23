@@ -77,7 +77,7 @@ function RejectDealContent() {
     try {
       setLoading(true);
       const bodyResquest = {
-        orderRequestId: Number(orderId),
+        order_request_id: Number(orderId),
         token: token || "",
         reason,
         phone,
@@ -99,7 +99,7 @@ function RejectDealContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-200 flex items-center justify-center p-4 overflow-hidden relative">
+    <div className="min-h-screen bg-primary-dark flex items-center justify-center p-4 overflow-hidden relative">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -left-20 w-72 h-72 bg-gray-200 rounded-full opacity-30 animate-pulse" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-slate-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: '0.5s' }} />
@@ -138,10 +138,8 @@ function RejectDealContent() {
 
         <Card className="shadow-lg rounded-xl border-t-4 border-red-500">
           <div className="mb-6 bg-red-50 p-4 rounded-lg border border-red-100 flex items-center gap-3">
-            <FileExclamationOutlined className="text-2xl text-red-500" />
             <div>
-              <Text type="secondary" className="block text-xs uppercase font-semibold">Mã đơn hàng</Text>
-              <Text strong className="text-lg">{orderId || "---"}</Text>
+              <Text type="secondary" className="block text-xs uppercase font-semibold">Mã đơn hàng: {orderId || "---"}</Text>
             </div>
           </div>
 

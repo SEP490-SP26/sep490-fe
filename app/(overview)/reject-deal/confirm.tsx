@@ -15,7 +15,7 @@ export default function RejectDealSuccess() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100 flex items-center justify-center p-4 overflow-hidden relative">
+    <div className="min-h-screen bg-primary-dark  flex items-center justify-center p-4 overflow-hidden relative">
       {/* Animated background circles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -left-20 w-72 h-72 bg-gray-200 rounded-full opacity-30 animate-pulse" />

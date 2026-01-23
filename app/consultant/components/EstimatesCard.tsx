@@ -1,6 +1,7 @@
 import { Alert, Progress, Steps, Card, InputNumber, Button, Badge, Form, Row, Col } from "antd";
 import { WarningOutlined, CalculatorOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { useEffect } from "react";
 import {
   EstimateCostResponse,
   EstimatePaperResponse,
@@ -59,6 +60,20 @@ export default function EstimatesCard({
   orderId,
 }: EstimatesCardProps) {
   const daysUntilFree = workshopFreeInfo.days;
+
+  // Auto-update final_price when discount changes
+  useEffect(() => {
+    if (costEstimate?.cost?.final_total_cost) {
+      const originalPrice = costEstimate.cost.final_total_cost;
+      const discountedPrice = discountPercent > 0
+        ? (originalPrice * (100 - discountPercent)) / 100
+        : originalPrice;
+
+      const roundedPrice = Math.round(discountedPrice / 1000) * 1000;
+
+      form.setFieldValue("final_price", roundedPrice);
+    }
+  }, [discountPercent, costEstimate, form]);
 
   const renderStatusAlert = () => {
     if (!estimate) return null;
@@ -228,19 +243,36 @@ export default function EstimatesCard({
                   </div>
 
                   {/* Input nhập giá chốt */}
-                  <Form.Item name="final_price" className="">
-                    <InputNumber
+                  <Form.Item
+                    name="final_price"
+                    className="flex justify-end"
+                    rules={[
+                      {
+                        validator: (_, value) => {
+                          const baseCost = costEstimate?.cost?.base_cost || 0;
+                          if (value !== undefined && value < baseCost) {
+                            return Promise.reject(
+                              new Error(
+                                `Không thể thấp hơn giá cơ bản (${Math.round(baseCost).toLocaleString("vi-VN")}đ)`
+                              )
+                            );
+                          }
+                          return Promise.resolve();
+                        },
+                      },
+                    ]}
+                  >
+                    <FloatingInputAntd
+                      type="number"
                       className="w-full text-end font-bold text-lg"
-                      min={0}
-                      formatter={(value) => value ? formatVietnameseNumber(value) : ''}
-                      parser={(value) => {
+                      min={costEstimate?.cost?.base_cost || 0}
+                      formatter={(value: any) => value ? formatVietnameseNumber(value) : ''}
+                      parser={(value: any) => {
                         return (value ? value.replace(/\./g, '') : '') as any;
                       }}
-                      size="large"
                       placeholder="Nhập giá chốt"
                       style={{ width: '100%' }}
                     />
-
                   </Form.Item>
 
                   {/* Nút xác nhận giá */}
@@ -248,7 +280,7 @@ export default function EstimatesCard({
                     type="primary"
                     className="w-full "
                     onClick={handleAdjustPrice}
-                    disabled={!orderId}
+                  // disabled={!orderId}
                   >
                     Xác nhận giá chốt
                   </Button>
@@ -407,13 +439,13 @@ export default function EstimatesCard({
                         <div className="bg-green-50 p-3 rounded-lg mt-3 border border-green-200">
                           <div className="flex items-center justify-between gap-2 ">
                             <span className="text-green-800 font-medium">
-                              Giảm giá (%):
+                              Chiết khấu (%):
                             </span>
                             <FloatingInputAntd
                               className="w-full text-end"
                               valueType="number"
                               min={0}
-                              max={100}
+                              max={50}
                               value={discountPercent}
                               onChange={(e: any) => setDiscountPercent(Number(e.target.value) || 0)}
                               size="small"
@@ -451,20 +483,26 @@ export default function EstimatesCard({
                           )}
                         </div>
 
-                        {/* Tiền đặt cọc */}
-                        {depositAmount > 0 && (
-                          <div className="bg-purple-50 p-3 rounded-lg mt-3 border border-purple-200">
-                            <div className="flex justify-between items-center">
-                              <span className="text-purple-800 font-medium">
-                                Tiền đặt cọc:
-                              </span>
-                              <span className="font-bold text-lg text-purple-700">
-                                {(Math.round(depositAmount / 10) * 10).toLocaleString("vi-VN")}{" "}
-                                ₫
-                              </span>
-                            </div>
+                        {/* Tiền đặt cọc (30%) */}
+                        <div className="bg-purple-50 p-3 rounded-lg mt-3 border border-purple-200">
+                          <div className="flex justify-between items-center">
+                            <span className="text-purple-800 font-medium">
+                              Tiền đặt cọc (30%):
+                            </span>
+                            <span className="font-bold text-lg text-purple-700">
+                              {(() => {
+                                const priceAfterDiscount = discountPercent > 0
+                                  ? (costEstimate.cost.final_total_cost * (100 - discountPercent)) / 100
+                                  : costEstimate.cost.final_total_cost;
+
+                                const deposit = Math.round((priceAfterDiscount * 0.3) / 1000) * 1000;
+
+                                return deposit.toLocaleString("vi-VN");
+                              })()}{" "}
+                              ₫
+                            </span>
                           </div>
-                        )}
+                        </div>
 
                         <div className="flex justify-between mt-3 text-sm">
                           <span className="text-gray-600">

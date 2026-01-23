@@ -1,6 +1,10 @@
 import http from "@/lib/httpAxios";
 import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, RejectDealRequest, UpdateRequestBody } from "../schemaValidations/common.schema";
 
+interface CancelRequestBody {
+  id: number;
+  reason: string;
+}
 export const requestOrderApi = {
   getList: (page: number = 1, pageSize: number = 5) =>
     http.get<CommonResType>(`/api/requests/paged?page=${page}&pageSize=${pageSize}`),
@@ -16,7 +20,7 @@ export const requestOrderApi = {
   updateRequest: (id: string, body: Partial<UpdateRequestBody>) =>
     http.put<CommonResType>(`/api/requests/${id}`, body),
 
-  deleteRequest: (body: any) =>
+  cancelRequest: (body: CancelRequestBody) =>
     http.put<CommonResType>(`/api/Requests/cancel-request`, body),
 
   // Gửi báo giá cho khách hàng

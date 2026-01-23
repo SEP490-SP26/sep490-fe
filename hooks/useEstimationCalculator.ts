@@ -14,7 +14,8 @@ import {
   calculateLaminationCost,
   calculateOverheadCost,
   calculateProductionDays,
-  calculateRushFee
+  calculateRushFee,
+  roundToThousands
 } from '@/lib/estimationUtils';
 import { EstimationConfig, EstimationInputs, EstimationResult, UseEstimationCalculator } from '@/lib/estimation.types';
 
@@ -191,7 +192,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
     const validatedDiscount = Math.min(Math.max(discount_percent, 0), 100);
     const discountAmount = subtotal * validatedDiscount / 100;
     const finalTotalBase = subtotal - discountAmount;
-    const finalTotalCost = finalTotalBase + totalProcessCost + designCost;
+    const finalTotalCost = roundToThousands(finalTotalBase + totalProcessCost + designCost);
 
     return {
       // Thông tin cơ bản

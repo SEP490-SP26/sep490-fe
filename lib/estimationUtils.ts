@@ -447,3 +447,7 @@ export const calculateRushFee = (
         rushAmount
     };
 };
+
+export const roundToThousands = (num: number): number => {
+    return Math.round(num / 1000) * 1000;
+};

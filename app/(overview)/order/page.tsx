@@ -303,7 +303,7 @@ export default function GuestOrderPage() {
   const labelStyle = "font-semibold text-gray-700";
 
   return (
-    <div className="min-h-screen bg-primary-light relative overflow-hidden py-4 px-4">
+    <div className="min-h-screen bg-primary-dark relative overflow-hidden py-4 px-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -left-20 w-72 h-72 bg-gray-200 rounded-full opacity-30 animate-pulse" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-slate-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: '0.5s' }} />
@@ -317,17 +317,17 @@ export default function GuestOrderPage() {
           <div className="text-center mb-4">
             <Title
               level={2}
-              style={{ color: "#1677ff", textTransform: "uppercase" }}
+              style={{ color: "#FFBF00", textTransform: "uppercase" }}
             >
               Đặt In Nhanh
             </Title>
-            <Text type="secondary">
+            <Text type="secondary" style={{ color: "#ffffff" }}>
               Điền thông tin để nhận báo giá từ đội ngũ tư vấn
             </Text>
             <div className="mt-2">
-              <Text type="secondary">
+              <Text type="secondary" style={{ color: "#ffffff" }}>
                 Đã có tài khoản?{" "}
-                <Link href="/login" className="text-blue-600 font-medium">
+                <Link href="/login" className="font-medium " style={{ color: "#FFBF00" }}>
                   Đăng nhập để đặt hàng nhanh hơn
                 </Link>
               </Text>

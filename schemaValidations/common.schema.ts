@@ -1,3 +1,4 @@
+import { ProcessCostDetail } from '@/lib/estimation.types'
 import z from 'zod'
 
 export const MessageRes = z
@@ -64,7 +65,7 @@ export interface CreateRequestBody {
 }
 
 export interface RejectDealRequest {
-  orderRequestId: number;
+  order_request_id: number;
   token: string;
   reason: string;
   phone: string;
@@ -197,6 +198,11 @@ export interface EstimateCostRequest {
   is_send_design?: boolean;
 }
 
+export interface AdjustFinalCostRequest {
+  order_request_id: number;
+  final_total_cost: number;
+}
+
 export interface MaterialCostDetail {
   material_name: string;
   quantity: number;
@@ -205,6 +211,8 @@ export interface MaterialCostDetail {
   total_cost: number;
   note: string;
 }
+
+
 
 // Cost data within EstimateCostResponse
 export interface EstimateCostData {
@@ -277,14 +285,14 @@ export interface AdjustFinalCostRequest {
 }
 
 // Process Cost Breakdown
-export interface ProcessCostDetail {
-  process: string;
-  unit_price: number;
-  quantity: number;
-  unit: string;
-  total_cost: number;
-  note: string;
-}
+// export interface ProcessCostDetail {
+//   process: string;
+//   unit_price: number;
+//   quantity: number;
+//   unit: string;
+//   total_cost: number;
+//   note: string;
+// }
 
 export interface ProcessCostBreakdownResponse {
   order_request_id: number;

@@ -5,6 +5,10 @@ import { jwtVerify } from 'jose'
 const PUBLIC_ROUTES = ['/login', '/register']
 const ADMIN_ROUTES = ['/admin']
 const MANAGER_ROUTES = ['/manager']
+const CONSULTANT_ROUTES = ['/consultant']
+const STAFF_ROUTES = ['/staff']
+const WAREHOUSE_ROUTES = ['/warehouse']
+const CUSTOMER_ROUTES = ['/customer']
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET!

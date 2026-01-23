@@ -20,7 +20,7 @@ import {
 } from "@/schemaValidations/common.schema";
 import { useEstimationCalculator } from "@/hooks/useEstimationCalculator";
 import { useEstimationConfig } from "@/hooks/useEstimationConfig";
-import { EstimationInputs } from "@/lib/estimation.types";
+import { EstimationInputs, OrderEstimationResult } from "@/lib/estimation.types";
 import {
   CodeSandboxOutlined,
   DashboardOutlined,
@@ -51,6 +51,7 @@ import ProductSpecsSection from "./components/ProductSpecsSection";
 import {
   calculateProductionTime,
   getEstimatedFreeDate,
+  mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
 
 const PRODUCT_SUGGESTIONS = [
@@ -302,7 +303,7 @@ function ConsultantForm() {
 
     fetchOrderDetails();
   }, [orderId, form]);
-  
+
 
 
   // --- CALCULATION LOGIC ---
@@ -330,7 +331,7 @@ function ConsultantForm() {
     setEstimate(result);
   };
 
-   const { data: productTempalte } = useQuery<ProductTemplate[]>({
+  const { data: productTempalte } = useQuery<ProductTemplate[]>({
     queryKey: ["product-tempalte", selectProductTypeId],
     queryFn: async () => {
       if (!selectProductTypeId) return null;
@@ -704,7 +705,23 @@ function ConsultantForm() {
         }
 
         // 2. Cập nhật giá
-        await estimatesApi.adjustCost(parseInt(currentOrderId), finalPrice);
+        // await estimatesApi.adjustCost(parseInt(currentOrderId), finalPrice);
+
+        // 2.1 Lưu bảng tính chi tiết (Cost Save)
+        // if (costEstimate && paperEstimate) {
+        //   try {
+        //     const estimationResult = mapToOrderEstimationResult(
+        //       costEstimate,
+        //       paperEstimate,
+        //       currentOrderId,
+        //       values.delivery_date
+        //     );
+
+        //     await estimatesApi.costSave(estimationResult);
+        //   } catch (costError) {
+        //     console.error("Error saving cost breakdown:", costError);
+        //   }
+        // }
 
         // 2. Gửi email báo giá
         const response = await requestOrderApi.sendDeal(parseInt(currentOrderId));
@@ -758,6 +775,21 @@ function ConsultantForm() {
       return;
     }
     try {
+
+      if (costEstimate && paperEstimate) {
+        try {
+          const estimationResult = mapToOrderEstimationResult(
+            costEstimate,
+            paperEstimate,
+            orderId,
+            form.getFieldValue("delivery_date")
+          );
+          await estimatesApi.costSave(estimationResult);
+        } catch (costError) {
+          console.error("Error saving cost breakdown in adjust price:", costError);
+        }
+      }
+
       await estimatesApi.adjustCost(parseInt(orderId), finalPrice);
       message.success("Đã cập nhật giá chốt thành công!");
     } catch (error) {
@@ -796,6 +828,7 @@ function ConsultantForm() {
       if (newId) {
         setCreatedOrderId(newId);
         message.success("Tạo thông tin khách hàng thành công!");
+        router.push(`/consultant?orderId=${newId}&mode=negotiate`);
       } else {
         // Fallback checks or error handling if ID isn't found
         console.warn("No order_request_id found in response", res);

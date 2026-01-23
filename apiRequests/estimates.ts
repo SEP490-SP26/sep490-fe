@@ -1,4 +1,4 @@
-import { EstimationConfig, WasteRules } from "@/lib/estimation.types";
+import { EstimationConfig, OrderEstimationResult, WasteRules } from "@/lib/estimation.types";
 import http from "@/lib/httpAxios";
 import {
     AdjustFinalCostRequest,
@@ -24,8 +24,8 @@ export const estimatesApi = {
         http.post<ProcessCostBreakdownResponse>("/api/Estimates/process-cost-breakdown", body),
 
     // PUT /api/Estimates/adjust-final-total-cost/{id} - Adjust final cost (old)
-    adjustFinalCost: (id: number, body: AdjustFinalCostRequest) =>
-        http.put<void>(`/api/Estimates/adjust-final-total-cost/${id}`, body),
+    // adjustFinalCost: (id: number, body: AdjustFinalCostRequest) =>
+    //     http.put<void>(`/api/Estimates/adjust-final-total-cost/${id}`, body),
 
     // PUT /api/Estimates/adjust-cost/{estimateId} - Điều chỉnh giá chốt với khách hàng
     adjustCost: (estimateId: number, finalCost: number) =>
@@ -37,4 +37,8 @@ export const estimatesApi = {
 
     //GET /api/Estimates/base-config
     getBaseConfig: () => http.get<EstimationConfig>("/api/Estimates/base-config"),
+
+    //POST /api/Estimates/cost-save 
+    costSave: (body: OrderEstimationResult) =>
+        http.post<void>("/api/Estimates/cost-save", body),
 };

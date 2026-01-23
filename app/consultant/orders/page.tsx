@@ -21,6 +21,7 @@ import {
   Empty,
   Input,
   message,
+  Modal,
   Popconfirm,
   Space,
   Spin,
@@ -77,11 +78,12 @@ export default function ConsultantOrdersPage() {
     fetchAllOrders();
   }, []);
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => requestOrderApi.deleteRequest(id),
+  // Cancel mutation
+  const cancelMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => requestOrderApi.cancelRequest({ id, reason }),
     onSuccess: (data) => {
       message.success(data.data?.message || "Xóa yêu cầu thành công");
+      closeCancelModal();
       fetchAllOrders();
     },
     onError: (error: any) => {
@@ -90,8 +92,29 @@ export default function ConsultantOrdersPage() {
     },
   });
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+  // Modal logic
+  const [cancelModal, setCancelModal] = useState<{ open: boolean; orderId: number | null; reason: string }>({
+    open: false,
+    orderId: null,
+    reason: "",
+  });
+
+  const openCancelModal = (orderId: number) => {
+    setCancelModal({ open: true, orderId, reason: "" });
+  };
+
+  const closeCancelModal = () => {
+    setCancelModal((prev) => ({ ...prev, open: false }));
+  };
+
+  const handleConfirmCancel = () => {
+    if (cancelModal.orderId) {
+      if (!cancelModal.reason.trim()) {
+        message.error("Vui lòng nhập lý do đóng yêu cầu");
+        return;
+      }
+      cancelMutation.mutate({ id: cancelModal.orderId, reason: cancelModal.reason });
+    }
   };
 
   // Sorting function
@@ -271,56 +294,39 @@ export default function ConsultantOrdersPage() {
                 Tiếp nhận & Báo giá
               </Button>
             </Link>
-            <Popconfirm
-              title="Đóng yêu cầu"
-              description="Bạn có chắc chắn muốn đóng yêu cầu này không?"
-              onConfirm={() => handleDelete(String(record.order_request_id))}
-              okText="Đóng"
-              cancelText="Hủy"
-              okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
-              disabled={deleteMutation.isPending}
-            >
-              <Button
-                size="small"
-                style={{
-                  color: "red",
-                  border: "1px solid red",
-                  backgroundColor: "transparent",
-                }}
-                icon={<DeleteOutlined />}
-                loading={deleteMutation.isPending}
-              >
 
-              </Button>
-            </Popconfirm>
+            <Button
+              size="small"
+              style={{
+                color: "red",
+                border: "1px solid red",
+                backgroundColor: "transparent",
+              }}
+              icon={<DeleteOutlined />}
+              onClick={() => openCancelModal(record.order_request_id)}
+              disabled={cancelMutation.isPending && cancelModal.orderId === record.order_request_id}
+            >
+
+            </Button>
           </Space>
 
         );
       case "waiting":
         return (
           <Space size="small">
-            <Popconfirm
-              title="Đóng yêu cầu"
-              description="Bạn có chắc chắn muốn đóng yêu cầu này không?"
-              onConfirm={() => handleDelete(String(record.order_request_id))}
-              okText="Đóng"
-              cancelText="Hủy"
-              okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
-              disabled={deleteMutation.isPending}
+            <Button
+              size="small"
+              style={{
+                color: "red",
+                border: "1px solid red",
+                backgroundColor: "transparent",
+              }}
+              icon={<DeleteOutlined />}
+              onClick={() => openCancelModal(record.order_request_id)}
+              disabled={cancelMutation.isPending && cancelModal.orderId === record.order_request_id}
             >
-              <Button
-                size="small"
-                style={{
-                  color: "red",
-                  border: "1px solid red",
-                  backgroundColor: "transparent",
-                }}
-                icon={<DeleteOutlined />}
-                loading={deleteMutation.isPending}
-              >
 
-              </Button>
-            </Popconfirm>
+            </Button>
           </Space>
         );
       case "pending_order_creation":
@@ -606,6 +612,43 @@ export default function ConsultantOrdersPage() {
           </Button>
         </div>
       )}
+
+      {/* Cancel Modal */}
+      <Modal
+        title={
+          <Space>
+            <DeleteOutlined className="text-red-500" />
+            <span>Đóng yêu cầu #{cancelModal.orderId}</span>
+          </Space>
+        }
+        open={cancelModal.open}
+        onCancel={closeCancelModal}
+        footer={[
+          <Button key="back" onClick={closeCancelModal} disabled={cancelMutation.isPending}>
+            Hủy
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            danger
+            loading={cancelMutation.isPending}
+            onClick={handleConfirmCancel}
+          >
+            Đóng yêu cầu
+          </Button>,
+        ]}
+      >
+        <div className="py-4">
+          <p className="mb-2 font-medium">Lý do đóng yêu cầu <span className="text-red-500">*</span>:</p>
+          <Input.TextArea
+            rows={4}
+            value={cancelModal.reason}
+            onChange={(e) => setCancelModal({ ...cancelModal, reason: e.target.value })}
+            placeholder="Nhập lý do đóng yêu cầu..."
+            status={!cancelModal.reason && cancelMutation.isError ? "error" : ""}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

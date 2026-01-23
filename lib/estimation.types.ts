@@ -399,4 +399,82 @@ export interface ProcessCostRules {
   note: string;
 }
 
+export interface ProcessCostDetail {
+  process_code: string;
+  process_name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_cost: number;
+  note: string;
+}
+
+export interface OrderEstimationResult {
+  order_request_id: number;
+  
+  // Chi phí Giấy
+  paper_cost: number;
+  paper_sheets_used: number; // Số tờ thực tế dùng cho sản xuất
+  paper_unit_price: number;
+
+  // Chi phí Mực in
+  ink_cost: number;
+  ink_weight_kg: number;
+  ink_rate_per_m2: number;
+
+  // Chi phí Phủ (Coating)
+  coating_glue_cost: number;
+  coating_glue_weight_kg: number;
+  coating_glue_rate_per_m2: number;
+  coating_type: string;
+
+  // Chi phí Bồi (Mounting)
+  mounting_glue_cost: number;
+  mounting_glue_weight_kg: number;
+  mounting_glue_rate_per_m2: number;
+
+  // Chi phí Cán màng (Lamination)
+  lamination_cost: number;
+  lamination_weight_kg: number;
+  lamination_rate_per_m2: number;
+
+  // Tổng hợp chi phí vật tư & thiết kế
+  material_cost: number;
+  design_cost: number;
+
+  // Chi phí vận hành & phí hệ thống
+  overhead_percent: number;
+  overhead_cost: number;
+  base_cost: number; // Giá thành cơ bản trước khi tính phí gấp/giảm giá
+
+  // Trạng thái đơn hàng gấp
+  is_rush: boolean;
+  rush_percent: number;
+  rush_amount: number;
+  days_early: number;
+
+  // Tổng cộng & Giảm giá
+  subtotal: number;
+  discount_percent: number;
+  discount_amount: number;
+  final_total_cost: number;
+
+  // Thời gian
+  estimated_finish_date: string; // ISO Date
+  desired_delivery_date: string; // ISO Date
+  created_at: string;            // ISO Date
+
+  // Thông số bình bản & Bù hao giấy
+  sheets_required: number; // Số tờ thành phẩm lý thuyết
+  sheets_waste: number;    // Số tờ bù hao (printing + die-cutting + ...)
+  sheets_total: number;    // Tổng số tờ cần xuất kho (required + waste)
+  n_up: number;            // Số con trên một bản in (số sản phẩm/tờ)
+  total_area_m2: number;   // Tổng diện tích bản in (phục vụ tính mực/phủ)
+
+  // Chi tiết các công đoạn sản xuất (Labor costs)
+  process_costs: ProcessCostDetail[];
+  
+  cost_note: string;
+}
+
 // export type ProcessCostRulesList = ProcessCostRules[];

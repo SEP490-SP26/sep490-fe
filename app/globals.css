@@ -9,11 +9,16 @@
   /* Key/Black - Secondary */
   --color-secondary: #334155;    /* Slate 700 - Balanced secondary */
   
-  /* Magenta - Accent */
-  --color-accent: #ec4899;       /* Pink 500 - Close to Magenta */
+   /* Yellow - Accent */
+  --color-accent: #f59e0b;       /* Amber 500 - Close to Yellow */
+  --color-accent-light: #FFBF00; /* Amber 600 - Close to Yellow */
+  --color-accent-dark: #FB923C; /* Amber 600 - Close to Yellow */
+  /* --color-accent: #ec4899;      */
+    /* Pink 500 - Close to Magenta */
   /* Neutral Backgrounds */
   --background: #ffffff;
   --foreground: #0f172a;         /* Slate 900 */
+  
   
   /* Additional suggestions for premium feel */
   --color-surface: #f8fafc;      /* Slate 50 */
