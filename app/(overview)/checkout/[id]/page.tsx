@@ -97,6 +97,7 @@ export default function RequestDetailPage() {
   const [designFiles, setDesignFiles] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string>("");
+  const [expiredTime, setExpiredTime] = useState<Date>(new Date());
 
   // Fetch order detail từ API
   useEffect(() => {
@@ -155,9 +156,11 @@ export default function RequestDetailPage() {
       if (!requestId) return;
       try {
         const res = await paymentApi.getPaymentQR(requestId);
-        if (res?.data?.checkout_url) {
-          setCheckoutUrl(res.data.checkout_url);
+        const data = (res as any).data || res;
+        if (data?.checkout_url) {
+          setCheckoutUrl(data.checkout_url);
         }
+        setExpiredTime(new Date(data?.expired_at));
       } catch (error) {
         console.error("Error fetching payment QR:", error);
       }
@@ -166,17 +169,7 @@ export default function RequestDetailPage() {
     fetchPaymentQR();
   }, [requestId]);
 
-  const handlePayment = async () => {
-    const res = await paymentApi.getPaymentQR(requestId);
-    console.log(res);
 
-    const checkoutUrl = res?.data?.checkout_url;
-    if (checkoutUrl) {
-      window.location.href = checkoutUrl;
-    }
-
-    const expiredTime = new Date(res?.data?.expired_at);
-  }
 
   // Handle design file upload - Sử dụng API update-design-file
   const handleUpload: UploadProps["customRequest"] = async (options) => {
@@ -573,13 +566,35 @@ export default function RequestDetailPage() {
 
           {/* Sidebar - Design Files + QR Payment */}
           <div className="lg:col-span-4 space-y-8">
-            <QRCodeCanvas
-              value={checkoutUrl}
-              size={256}
-              level={"H"}
-              includeMargin={true}
-            />
+            {checkoutUrl && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <QrcodeOutlined className="text-xl" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 m-0">Thanh toán</h3>
+                </div>
+
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-4 bg-white border-2 border-slate-100 rounded-xl">
+                    <QRCodeCanvas
+                      value={checkoutUrl}
+                      size={200}
+                      level={"H"}
+                      includeMargin={true}
+                    />
+                  </div>
+                  <p className="text-sm text-slate-500 text-center font-medium">
+                    Quét mã QR bằng ứng dụng ngân hàng<br />để thanh toán nhanh
+                  </p>
+                </div>
+                <p className="text-sm text-slate-500 text-center font-medium">
+                  Hết hạn thanh toán: {expiredTime.toLocaleString('vi-VN')}
+                </p>
+              </div>
+            )}
           </div>
+
         </div>
 
         {/* Back Actions */}

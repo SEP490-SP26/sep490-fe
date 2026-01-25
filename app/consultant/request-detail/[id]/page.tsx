@@ -138,9 +138,9 @@ export default function ConsultantRequestDetailPage() {
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <Title level={2} className="!mb-0 !text-slate-800 tracking-tight">
+                                <h1 className="!mb-0 tracking-tight text-accent text-3xl font-bold">
                                     Yêu cầu #{orderDetail.request_id}
-                                </Title>
+                                </h1>
                                 <Tag color={
                                     orderDetail.process_status === 'Pending' ? 'blue' :
                                         orderDetail.process_status === 'Accepted' ? 'green' : orderDetail.process_status === 'Rejected' ? 'red' : 'orange'
@@ -197,6 +197,52 @@ export default function ConsultantRequestDetailPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Cost Estimates Card */}
+                        {orderDetail.cost_estimate && orderDetail.cost_estimate.length > 0 && (
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                                    <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                        <DollarOutlined className="text-xl" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin báo giá</h3>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {orderDetail.cost_estimate.map((estimate, index) => (
+                                        <div key={estimate.estimate_id} className="bg-slate-50 rounded-xl p-5 border border-slate-200">
+                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                                                <Tag color="blue" className="px-3 py-1 font-medium bg-blue-50 text-blue-700 border-blue-200">
+                                                    Báo giá #{index + 1}
+                                                </Tag>
+                                                <div className="flex gap-6">
+                                                    <div className="text-right">
+                                                        <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Đặt cọc</Text>
+                                                        <Text strong className="text-orange-500 text-lg">{formatCurrency(estimate.deposit_amount)}</Text>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Tổng chi phí</Text>
+                                                        <Text strong className="text-emerald-600 text-xl">{formatCurrency(estimate.final_total_cost)}</Text>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <Divider dashed className="my-3 border-slate-200" />
+
+                                            <Text className="text-slate-500 font-bold block mb-3 text-sm uppercase tracking-wide">Chi tiết chi phí sản xuất</Text>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                {estimate.process_cost.map((proc) => (
+                                                    <div key={proc.process_cost_id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 hover:border-slate-300 transition-colors">
+                                                        <Tag className="mr-0" bordered={false}>{proc.process_code}</Tag>
+                                                        <Text strong className="text-slate-700">{formatCurrency(proc.cost)}</Text>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Product Details Card */}
                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
@@ -294,51 +340,7 @@ export default function ConsultantRequestDetailPage() {
                             </div>
                         </div>
 
-                        {/* Cost Estimates Card */}
-                        {orderDetail.cost_estimate && orderDetail.cost_estimate.length > 0 && (
-                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-                                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                                    <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                        <DollarOutlined className="text-xl" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin báo giá</h3>
-                                </div>
 
-                                <div className="space-y-6">
-                                    {orderDetail.cost_estimate.map((estimate, index) => (
-                                        <div key={estimate.estimate_id} className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                                                <Tag color="blue" className="px-3 py-1 font-medium bg-blue-50 text-blue-700 border-blue-200">
-                                                    Báo giá #{index + 1}
-                                                </Tag>
-                                                <div className="flex gap-6">
-                                                    <div className="text-right">
-                                                        <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Đặt cọc</Text>
-                                                        <Text strong className="text-orange-500 text-lg">{formatCurrency(estimate.deposit_amount)}</Text>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Tổng chi phí</Text>
-                                                        <Text strong className="text-emerald-600 text-xl">{formatCurrency(estimate.final_total_cost)}</Text>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <Divider dashed className="my-3 border-slate-200" />
-
-                                            <Text className="text-slate-500 font-bold block mb-3 text-sm uppercase tracking-wide">Chi tiết chi phí sản xuất</Text>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {estimate.process_cost.map((proc) => (
-                                                    <div key={proc.process_cost_id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 hover:border-slate-300 transition-colors">
-                                                        <Tag className="mr-0" bordered={false}>{proc.process_code}</Tag>
-                                                        <Text strong className="text-slate-700">{formatCurrency(proc.cost)}</Text>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Sidebar - Design Files */}
