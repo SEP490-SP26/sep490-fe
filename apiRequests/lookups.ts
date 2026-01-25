@@ -1,4 +1,5 @@
 import http from "@/lib/httpAxios";
+import { HistoryDataResponse } from "@/lib/request.types";
 import { OrderHistoryResponse } from "@/schemaValidations/common.schema";
 
 export const lookupsApi = {
@@ -7,16 +8,8 @@ export const lookupsApi = {
         http.post<{ message: string }>('/api/Lookups/send-otp', { phone }),
 
     // POST /api/Lookups/order-history - Lấy lịch sử đơn hàng sau khi xác thực OTP
-    getOrderHistory: (phone: string, otp: string, page: number = 1, pageSize: number = 15) =>
-        http.post<OrderHistoryResponse>('/api/Lookups/order-history', {
-            phone,
-            otp,
-            page,
-            pageSize,
-        }),
-
-    getRequestHistory: (phone: string, otp: string, page: number = 1, pageSize: number = 15) =>
-        http.post<OrderHistoryResponse>('/api/Lookups/request-history', {
+    getHistory: (phone: string, otp: string, page: number = 1, pageSize: number = 15) =>
+        http.post<HistoryDataResponse>('/api/Lookups/order-history', {
             phone,
             otp,
             page,

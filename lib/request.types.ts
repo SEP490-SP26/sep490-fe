@@ -82,7 +82,7 @@ export interface PaginationWrapper<T> {
 
 // --- PHẦN 2: INTERFACE CHÍNH ---
 
-export interface DashboardDataResponse {
+export interface HistoryDataResponse {
   orders: PaginationWrapper<OrderSummary>;
   requests: PaginationWrapper<RequestSummary>;
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { lookupsApi } from '@/apiRequests/lookups'
-import { OrderHistoryItem } from '@/schemaValidations/common.schema'
+import { OrderSummary, RequestSummary } from '@/lib/request.types'
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -42,8 +42,8 @@ export default function CustomerHistoryPage() {
   const [sendingOtp, setSendingOtp] = useState(false)
 
   // State cho kết quả
-  const [myOrders, setMyOrders] = useState<OrderHistoryItem[]>([])
-  const [myRequests, setMyRequests] = useState([])
+  const [myOrders, setMyOrders] = useState<OrderSummary[]>([])
+  const [myRequests, setMyRequests] = useState<RequestSummary[]>([])
   const [paginationOrder, setPaginationOrder] = useState({ page: 1, pageSize: 15, hasNext: false })
   const [paginationRequest, setPaginationRequest] = useState({ page: 1, pageSize: 15, hasNext: false })
 
@@ -88,20 +88,14 @@ export default function CustomerHistoryPage() {
     setLoading(true)
     try {
       console.log('phone', phoneNumber, 'otp', otpCode, 'page', page)
-      const responseOrder = await lookupsApi.getOrderHistory(phoneNumber, otpCode, page, 15)
-      const responseRequest = await lookupsApi.getRequestHistory(phoneNumber, otpCode, page, 15)
+      const response = await lookupsApi.getHistory(phoneNumber, otpCode, page, 15)
 
-      setMyRequests(responseRequest.data || [])
-      setMyOrders(responseOrder.data || [])
+      setMyRequests(response.requests.data || [])
+      setMyOrders(response.orders.data || [])
       setPaginationOrder({
-        page: responseOrder.page,
-        pageSize: responseOrder.pageSize,
-        hasNext: responseOrder.hasNext,
-      })
-      setPaginationRequest({
-        page: responseRequest.page,
-        pageSize: responseRequest.pageSize,
-        hasNext: responseRequest.hasNext,
+        page: response.orders.page,
+        pageSize: response.orders.pageSize,
+        hasNext: response.orders.hasNext,
       })
 
       // Lưu phone đã xác thực vào sessionStorage để bảo vệ trang chi tiết
@@ -109,16 +103,16 @@ export default function CustomerHistoryPage() {
 
       setStep('result')
 
-      if (responseOrder.data?.length === 0) {
+      if (response.orders.data?.length === 0) {
         message.info('Không tìm thấy đơn hàng nào.')
       } else {
-        message.success(`Tìm thấy ${responseOrder.data?.length || 0} đơn hàng.`)
+        message.success(`Tìm thấy ${response.orders.data?.length || 0} đơn hàng.`)
       }
 
-      if (responseRequest.data?.length === 0) {
+      if (response.requests.data?.length === 0) {
         message.info('Không tìm thấy yêu cầu nào.')
       } else {
-        message.success(`Tìm thấy ${responseRequest.data?.length || 0} đơn hàng.`)
+        message.success(`Tìm thấy ${response.requests.data?.length || 0} đơn hàng.`)
       }
     } catch (error: any) {
       console.error('Error verifying OTP:', error)
@@ -223,7 +217,7 @@ export default function CustomerHistoryPage() {
     {
       title: '',
       key: 'action',
-      render: (_: any, record: OrderHistoryItem) => (
+      render: (_: any, record: OrderSummary) => (
         <Button
           type="link"
           icon={<EyeOutlined />}
@@ -238,11 +232,16 @@ export default function CustomerHistoryPage() {
   const columnsRequest = [
     {
       title: 'Mã Yêu Cầu',
-      dataIndex: 'code',
-      key: 'code',
+      dataIndex: 'request_id',
+      key: 'request_id',
       render: (text: string) => (
         <span className="font-mono font-medium text-blue-600">{text}</span>
       ),
+    },
+    {
+      title: 'Sản phẩm',
+      dataIndex: 'product_name',
+      key: 'product_name',
     },
     {
       title: 'Ngày Đặt',
@@ -263,19 +262,13 @@ export default function CustomerHistoryPage() {
       render: (val: string) => renderStatus(val),
     },
     {
-      title: 'Thanh Toán',
-      dataIndex: 'payment_status',
-      key: 'payment_status',
-      render: (val: string) => renderPaymentStatus(val),
-    },
-    {
       title: '',
       key: 'action',
-      render: (_: any, record: any) => (
+      render: (_: any, record: RequestSummary) => (
         <Button
           type="link"
           icon={<EyeOutlined />}
-          onClick={() => router.push(`/request-detail/${record.order_request_id ?? record.requset_id ?? record.order_id}`)}
+          onClick={() => router.push(`/request-detail/${record.request_id}`)}
         >
           Chi tiết
         </Button>
