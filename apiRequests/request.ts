@@ -1,5 +1,6 @@
 import http from "@/lib/httpAxios";
-import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, RejectDealRequest, UpdateRequestBody } from "../schemaValidations/common.schema";
+import { VerifiedRequestReponse } from "@/lib/request.types";
+import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, RejectDealRequest, RequestDetailResponse, UpdateRequestBody } from "../schemaValidations/common.schema";
 
 interface CancelRequestBody {
   id: number;
@@ -15,7 +16,7 @@ export const requestOrderApi = {
   createRequestOrderByCustomer: (body: CreateRequestBody) =>
     http.post<CommonResType>("/api/requests", body),
 
-  getDetail: (id: string) => http.get<CommonResType>(`/api/requests/${id}`),
+  getDetail: (id: string) => http.get<RequestDetailResponse>(`/api/requests/${id}`),
 
   updateRequest: (id: string, body: Partial<UpdateRequestBody>) =>
     http.put<CommonResType>(`/api/requests/${id}`, body),
@@ -34,6 +35,8 @@ export const requestOrderApi = {
     http.post<CommonResType>(
       '/api/Requests/reject', body
     ),
+
+  getRequestDetailbyConsultant: (request_id: string) => http.get<VerifiedRequestReponse>(`/api/Requests/full-data-by-request_id/${request_id}`),
 
   createRequestOrderByConsultant: (body: CreateRequestBodyForConsultant) =>
     http.post<CommonResType>("/api/Requests/create-request-by-consultant", body),

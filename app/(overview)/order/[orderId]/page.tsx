@@ -60,7 +60,7 @@ export default function OrderDetailPage() {
     const verifiedPhone = sessionStorage.getItem('verified_phone')
     if (!verifiedPhone) {
       // Chưa xác thực → redirect về trang tra cứu
-      router.push('/history')
+      router.push('/look-up')
       return
     }
 

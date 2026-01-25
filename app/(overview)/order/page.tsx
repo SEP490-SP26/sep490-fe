@@ -253,7 +253,7 @@ export default function GuestOrderPage() {
       };
 
       await requestOrderApi.createRequestOrderByCustomer(requestBody);
-      message.success("Đặt hàng thành công!");
+      message.success("Gửi yêu cầu thành công!");
       setIsSuccess(true);
     } catch (error: any) {
       console.error("Create order error:", error);
@@ -267,11 +267,16 @@ export default function GuestOrderPage() {
 
   if (isSuccess) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
+      <div className="flex justify-center bg-primary-dark items-center min-h-screen bg-gray-50 p-4">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -left-20 w-72 h-72 bg-gray-200 rounded-full opacity-30 animate-pulse" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-slate-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-1/2 left-10 w-40 h-40 bg-zinc-200 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
         <Card className="w-full max-w-2xl shadow-md">
           <Result
             status="success"
-            title="Đặt Hàng Thành Công!"
+            title="Gửi yêu cầu thành công!"
             subTitle="Nhân viên tư vấn sẽ liên hệ lại với bạn sớm."
             extra={[
               <Button
@@ -290,7 +295,7 @@ export default function GuestOrderPage() {
               >
                 Đặt đơn khác
               </Button>,
-              <Link href="/history" key="history">
+              <Link href="/look-up" key="lock-up">
                 <Button size="large">Tra cứu đơn hàng</Button>
               </Link>,
             ]}
@@ -377,10 +382,11 @@ export default function GuestOrderPage() {
 
                     {/* Email + OTP verification */}
                     <div className="mb-3">
+                      {/* Email row */}
                       <div className={`${labelStyle} mb-1`}>
                         Email <span className="text-red-500">*</span>
                       </div>
-                      <div className="flex gap-2 items-start">
+                      <div className="flex gap-2 items-start mb-3">
                         <Form.Item
                           name="email"
                           className="flex-1 mb-0"
@@ -394,55 +400,74 @@ export default function GuestOrderPage() {
                             disabled={isOtpSent || isVerified}
                             suffix={
                               isVerified ? (
-                                <CheckCircleOutlined className="text-green-500" />
+                                <span className="text-green-600 text-sm flex items-center">
+                                  <CheckCircleOutlined className="mr-1" /> Đã xác minh
+                                </span>
                               ) : null
                             }
                           />
                         </Form.Item>
 
-                        {/* OTP Button/Input */}
-                        {!isVerified && (
-                          <>
-                            {!isOtpSent ? (
-                              <Button
-                                type="primary"
-                                onClick={onSendOtp}
-                                loading={loadingOtp}
-                              >
-                                Gửi OTP
-                              </Button>
-                            ) : (
-                              <div className="flex gap-1 items-center">
-                                <Input.OTP length={6} value={otp} onChange={setOtp} />
-                                <Button
-                                  type="primary"
-                                  size="small"
-                                  onClick={onVerifyOtp}
-                                  loading={loadingOtp}
-                                >
-                                  Xác nhận
-                                </Button>
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  danger
-                                  onClick={() => {
-                                    setIsOtpSent(false);
-                                    setOtp("");
-                                  }}
-                                >
-                                  Gửi lại
-                                </Button>
-                              </div>
-                            )}
-                          </>
-                        )}
-                        {isVerified && (
-                          <span className="text-green-600 text-sm flex items-center pt-1.5">
-                            <CheckCircleOutlined className="mr-1" /> Đã xác minh
-                          </span>
+                        {!isVerified && !isOtpSent && (
+                          <Button
+                            type="primary"
+                            onClick={onSendOtp}
+                            loading={loadingOtp}
+                          >
+                            Gửi OTP
+                          </Button>
                         )}
                       </div>
+
+                      {/* OTP row - chỉ hiển thị khi đã gửi OTP */}
+                      {!isVerified && isOtpSent && (
+                        <div className="mt-3">
+                          <div className="mb-1 text-sm text-gray-600">
+                            Mã xác minh (OTP) đã được gửi đến email
+                          </div>
+                          <div className="flex gap-2 items-start">
+                            <div className="flex-1">
+                              <Input.OTP
+                                length={6}
+                                value={otp}
+                                onChange={setOtp}
+                                style={{ width: '100%' }}
+                                className="justify-start"
+                              />
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                type="primary"
+                                size="small"
+                                onClick={onVerifyOtp}
+                                loading={loadingOtp}
+                              >
+                                Xác nhận
+                              </Button>
+                              <Button
+                                type="link"
+                                size="small"
+                                danger
+                                onClick={() => {
+                                  setIsOtpSent(false);
+                                  setOtp("");
+                                }}
+                              >
+                                Gửi lại
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Verification status */}
+                      {/* {isVerified && (
+                        <div className="mt-2">
+                          <span className="text-green-600 text-sm flex items-center">
+                            <CheckCircleOutlined className="mr-1" /> Đã xác minh
+                          </span>
+                        </div>
+                      )} */}
                     </div>
 
                     {/* Shipping Address - Map Picker */}
@@ -540,31 +565,26 @@ export default function GuestOrderPage() {
                           <FloatingInputAntd
                             className="w-full text-right"
                             valueType="number"
-                            style={{ width: 100 }}
+                            style={{ width: 100, textAlign: "right" }}
                             min={100} // Đặt min là 100 để tránh nhập số quá nhỏ
-                            formatter={(value: any) => formatVietnameseNumber(value)}
-                            parser={(value: any) => {
-                              if (!value) return 0;
-                              return Number(value.toString().replace(/,/g, ''));
-                            }}
                             placeholder="VD: 1,000"
-                            onBlur={(e: any) => {
-                              const value = e.target.value;
-                              if (value) {
-                                const numValue = Number(value.toString().replace(/,/g, ''));
+                          // onBlur={(e: any) => {
+                          //   const value = e.target.value;
+                          //   if (value) {
+                          //     const numValue = Number(value.toString().replace(/,/g, ''));
 
-                                // Chỉ làm tròn nếu số không chia hết cho 100
-                                if (numValue % 100 !== 0) {
-                                  const roundedValue = Math.round(numValue / 100) * 100;
+                          //     // Chỉ làm tròn nếu số không chia hết cho 100
+                          //     if (numValue % 100 !== 0) {
+                          //       const roundedValue = Math.round(numValue / 100) * 100;
 
-                                  // Update giá trị trong form
-                                  form.setFieldsValue({ quantity: roundedValue });
+                          //       // Update giá trị trong form
+                          //       form.setFieldsValue({ quantity: roundedValue });
 
-                                  // Hiển thị thông báo
-                                  message.info(`Số lượng đã được làm tròn thành ${formatVietnameseNumber(roundedValue)}`);
-                                }
-                              }
-                            }}
+                          //       // Hiển thị thông báo
+                          //       message.info(`Số lượng đã được làm tròn thành ${formatVietnameseNumber(roundedValue)}`);
+                          //     }
+                          //   }
+                          // }}
                           />
                         </Form.Item>
 

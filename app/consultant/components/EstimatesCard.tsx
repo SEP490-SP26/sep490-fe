@@ -246,21 +246,21 @@ export default function EstimatesCard({
                   <Form.Item
                     name="final_price"
                     className="flex justify-end"
-                    rules={[
-                      {
-                        validator: (_, value) => {
-                          const baseCost = costEstimate?.cost?.base_cost || 0;
-                          if (value !== undefined && value < baseCost) {
-                            return Promise.reject(
-                              new Error(
-                                `Không thể thấp hơn giá cơ bản (${Math.round(baseCost).toLocaleString("vi-VN")}đ)`
-                              )
-                            );
-                          }
-                          return Promise.resolve();
-                        },
-                      },
-                    ]}
+                  // rules={[
+                  //   {
+                  //     validator: (_, value) => {
+                  //       const baseCost = costEstimate?.cost?.base_cost || 0;
+                  //       if (value !== undefined && value < baseCost) {
+                  //         return Promise.reject(
+                  //           new Error(
+                  //             `Không thể thấp hơn giá cơ bản (${Math.round(baseCost).toLocaleString("vi-VN")}đ)`
+                  //           )
+                  //         );
+                  //       }
+                  //       return Promise.resolve();
+                  //     },
+                  //   },
+                  // ]}
                   >
                     <FloatingInputAntd
                       type="number"

@@ -3,13 +3,13 @@
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { BsSearch } from "react-icons/bs";
 
-export default function HeaderSearch({ placeholder }: { placeholder: string }) {
+export default function HeaderSearch({ placeholder, className }: { placeholder: string, className?: string }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
 
   return (
-    <form className="basis-full sm:basis-1/3 h-auto mt-2 sm:mt-0">
+    <form className={`h-auto mt-2 sm:mt-0 ${className || 'basis-full sm:basis-1/3'}`}>
       <div className="relative">
         <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
           <BsSearch className="fill-green-700" />

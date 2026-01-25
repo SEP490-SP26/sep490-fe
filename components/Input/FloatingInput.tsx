@@ -1,5 +1,5 @@
-import { Input, Form } from "antd";
-import { useState, useEffect } from "react";
+import { Input } from "antd";
+import { useState, useEffect, forwardRef } from "react";
 
 // Hàm format số Việt Nam
 export const formatVietnameseNumber = (value: number | string) => {
@@ -10,13 +10,17 @@ export const formatVietnameseNumber = (value: number | string) => {
   return numberValue.toLocaleString('vi-VN');
 };
 
-export const FloatingInputAntd = ({
+export const FloatingInputAntd = forwardRef(({
   label,
   valueType = "string", // "string" | "number" | "integer" | "float"
   formatter,  // Hàm format hiển thị
   parser,     // Hàm parse giá trị nhập
+  onFocus,
+  onBlur,
+  onChange,
+  className,
   ...props
-}: any) => {
+}: any, ref: any) => {
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
   const [displayValue, setDisplayValue] = useState<string>("");
@@ -26,6 +30,11 @@ export const FloatingInputAntd = ({
   useEffect(() => {
     if (props.value !== undefined && props.value !== rawValue) {
       setRawValue(props.value);
+      updateDisplayValue(props.value);
+      setHasValue(!!props.value || props.value === 0);
+    } else if (props.value !== undefined) {
+      // Ensure hasValue is correct on mount/update even if rawValue matches
+      setHasValue(!!props.value || props.value === 0);
       updateDisplayValue(props.value);
     }
   }, [props.value]);
@@ -129,7 +138,7 @@ export const FloatingInputAntd = ({
       }
     };
 
-    props.onChange?.(convertedEvent);
+    onChange?.(convertedEvent);
   };
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -141,7 +150,7 @@ export const FloatingInputAntd = ({
       setDisplayValue(stringValue);
     }
 
-    props.onFocus?.(e);
+    onFocus?.(e);
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -152,14 +161,16 @@ export const FloatingInputAntd = ({
       updateDisplayValue(rawValue);
     }
 
-    props.onBlur?.(e);
+    onBlur?.(e);
   };
 
   return (
     <div className="relative">
       <Input
         {...props}
-        type={valueType === "string" ? "text" : "number"}
+        ref={ref}
+        type="text"
+        inputMode={valueType !== "string" ? "decimal" : "text"}
         value={displayValue}
         className={`
           block px-2.5 pb-2.5 pt-4 w-full text-sm 
@@ -167,7 +178,7 @@ export const FloatingInputAntd = ({
           appearance-none focus:outline-none focus:ring-0 focus:border-brand 
           peer
           ${valueType !== "string" ? "text-end" : ""}
-          ${props.className || ""}
+          ${className || ""}
         `}
         placeholder=" "
         onFocus={handleFocus}
@@ -190,7 +201,7 @@ export const FloatingInputAntd = ({
           select-none
           bg-gray-50
           pointer-events-none
-          ${hasValue || isFocused ? "top-1 scale-75 -translate-y-1" : ""}
+          ${(hasValue || isFocused || displayValue) ? "top-1 scale-75 -translate-y-1" : ""}
           ${props.disabled ? "cursor-not-allowed bg-gray-50 rounded-t-sm" : ""}
         `}
       >
@@ -199,4 +210,6 @@ export const FloatingInputAntd = ({
       </label>
     </div>
   );
-};
+});
+
+FloatingInputAntd.displayName = "FloatingInputAntd";

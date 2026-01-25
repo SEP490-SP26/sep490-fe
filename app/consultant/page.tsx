@@ -755,7 +755,7 @@ function ConsultantForm() {
         // ... logic cho create mode
       }
 
-      router.push("/consultant/orders");
+      router.push("/consultant/requests");
     } catch (error: any) {
       console.error("Error processing order:", error);
       message.error(error?.response?.data?.detail || error.message || "Có lỗi xảy ra");

@@ -26,7 +26,7 @@ function Masonry({ data }: MasonryProps) {
   useEffect(() => {
     const updateColumns = () => {
       if (window.matchMedia("(min-width: 1500px)").matches) {
-        setColumns(5);
+        setColumns(3);
       } else if (window.matchMedia("(min-width: 1000px)").matches) {
         setColumns(2);
       } else if (window.matchMedia("(min-width: 600px)").matches) {
@@ -57,7 +57,7 @@ function Masonry({ data }: MasonryProps) {
   }, []);
 
   const fixedHeight =
-    typeof window !== "undefined" && window.innerWidth < 600 ? 100 : 150;
+    typeof window !== "undefined" && window.innerWidth < 600 ? 100 : 200;
   const [heights, gridItems] = useMemo<[number[], GridItem[]]>(() => {
     const heights = new Array(columns).fill(0);
     const gridItems = data.map((child) => {

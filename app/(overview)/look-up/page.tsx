@@ -1,6 +1,6 @@
 'use client'
 
-import { publicOrdersApi } from '@/apiRequests/publicorders'
+import { lookupsApi } from '@/apiRequests/lookups'
 import { OrderHistoryItem } from '@/schemaValidations/common.schema'
 import {
   CheckCircleOutlined,
@@ -43,7 +43,9 @@ export default function CustomerHistoryPage() {
 
   // State cho kết quả
   const [myOrders, setMyOrders] = useState<OrderHistoryItem[]>([])
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 15, hasNext: false })
+  const [myRequests, setMyRequests] = useState([])
+  const [paginationOrder, setPaginationOrder] = useState({ page: 1, pageSize: 15, hasNext: false })
+  const [paginationRequest, setPaginationRequest] = useState({ page: 1, pageSize: 15, hasNext: false })
 
   // Router để navigate
   const router = useRouter()
@@ -57,7 +59,7 @@ export default function CustomerHistoryPage() {
 
     setSendingOtp(true)
     try {
-      const response = await publicOrdersApi.sendOtp(phoneNumber)
+      const response = await lookupsApi.sendOtp(phoneNumber)
 
       if (response.message.includes('OTP đã được gửi')) {
         message.success('Mã OTP đã được gửi đến email của bạn!')
@@ -76,7 +78,7 @@ export default function CustomerHistoryPage() {
     }
   }
 
-  // --- BƯỚC 2: XÁC THỰC OTP VÀ LẤY LỊCH SỬ ---
+  // --- BƯỚC 2: XÁC THỰC OTP VÀ LẤY LỊCH SỬ order và request ---
   const handleVerifyOtp = async (page: number = 1) => {
     if (!otpCode) {
       message.warning('Vui lòng nhập mã OTP!')
@@ -85,13 +87,21 @@ export default function CustomerHistoryPage() {
 
     setLoading(true)
     try {
-      const response = await publicOrdersApi.getHistory(phoneNumber, otpCode, page, 15)
+      console.log('phone', phoneNumber, 'otp', otpCode, 'page', page)
+      const responseOrder = await lookupsApi.getOrderHistory(phoneNumber, otpCode, page, 15)
+      const responseRequest = await lookupsApi.getRequestHistory(phoneNumber, otpCode, page, 15)
 
-      setMyOrders(response.data || [])
-      setPagination({
-        page: response.page,
-        pageSize: response.pageSize,
-        hasNext: response.hasNext,
+      setMyRequests(responseRequest.data || [])
+      setMyOrders(responseOrder.data || [])
+      setPaginationOrder({
+        page: responseOrder.page,
+        pageSize: responseOrder.pageSize,
+        hasNext: responseOrder.hasNext,
+      })
+      setPaginationRequest({
+        page: responseRequest.page,
+        pageSize: responseRequest.pageSize,
+        hasNext: responseRequest.hasNext,
       })
 
       // Lưu phone đã xác thực vào sessionStorage để bảo vệ trang chi tiết
@@ -99,10 +109,16 @@ export default function CustomerHistoryPage() {
 
       setStep('result')
 
-      if (response.data?.length === 0) {
+      if (responseOrder.data?.length === 0) {
         message.info('Không tìm thấy đơn hàng nào.')
       } else {
-        message.success(`Tìm thấy ${response.data?.length || 0} đơn hàng.`)
+        message.success(`Tìm thấy ${responseOrder.data?.length || 0} đơn hàng.`)
+      }
+
+      if (responseRequest.data?.length === 0) {
+        message.info('Không tìm thấy yêu cầu nào.')
+      } else {
+        message.success(`Tìm thấy ${responseRequest.data?.length || 0} đơn hàng.`)
       }
     } catch (error: any) {
       console.error('Error verifying OTP:', error)
@@ -117,7 +133,7 @@ export default function CustomerHistoryPage() {
   const handleResendOtp = async () => {
     setSendingOtp(true)
     try {
-      const response = await publicOrdersApi.sendOtp(phoneNumber)
+      const response = await lookupsApi.sendOtp(phoneNumber)
       if (response.message.includes('OTP đã được gửi')) {
         message.success('Đã gửi lại mã OTP!')
       }
@@ -212,6 +228,54 @@ export default function CustomerHistoryPage() {
           type="link"
           icon={<EyeOutlined />}
           onClick={() => router.push(`/order/${record.order_id}`)}
+        >
+          Chi tiết
+        </Button>
+      ),
+    },
+  ]
+
+  const columnsRequest = [
+    {
+      title: 'Mã Yêu Cầu',
+      dataIndex: 'code',
+      key: 'code',
+      render: (text: string) => (
+        <span className="font-mono font-medium text-blue-600">{text}</span>
+      ),
+    },
+    {
+      title: 'Ngày Đặt',
+      dataIndex: 'request_date',
+      key: 'request_date',
+      render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+    },
+    {
+      title: 'Ngày Giao',
+      dataIndex: 'delivery_date',
+      key: 'delivery_date',
+      render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+    },
+    {
+      title: 'Trạng Thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (val: string) => renderStatus(val),
+    },
+    {
+      title: 'Thanh Toán',
+      dataIndex: 'payment_status',
+      key: 'payment_status',
+      render: (val: string) => renderPaymentStatus(val),
+    },
+    {
+      title: '',
+      key: 'action',
+      render: (_: any, record: any) => (
+        <Button
+          type="link"
+          icon={<EyeOutlined />}
+          onClick={() => router.push(`/request-detail/${record.order_request_id ?? record.requset_id ?? record.order_id}`)}
         >
           Chi tiết
         </Button>
@@ -349,19 +413,42 @@ export default function CustomerHistoryPage() {
               dataSource={myOrders}
               rowKey="order_id"
               pagination={{
-                current: pagination.page,
-                pageSize: pagination.pageSize,
+                current: paginationOrder.page,
+                pageSize: paginationOrder.pageSize,
                 onChange: (page) => handleVerifyOtp(page),
               }}
               locale={{
                 emptyText: <Empty description="Chưa có đơn hàng nào" />,
               }}
               loading={loading}
+              onRow={(record) => ({
+                onClick: () => router.push(`/order-detail/${record.order_id}`),
+                className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+              })}
+            />
+
+            <Table
+              columns={columnsRequest}
+              dataSource={myRequests}
+              rowKey="order_request_id"
+              pagination={{
+                current: paginationRequest.page,
+                pageSize: paginationRequest.pageSize,
+                onChange: (page) => handleVerifyOtp(page),
+              }}
+              locale={{
+                emptyText: <Empty description="Chưa có yêu cầu nào" />,
+              }}
+              loading={loading}
+              onRow={(record: any) => ({
+                onClick: () => router.push(`/request-detail/${record.order_request_id ?? record.requset_id ?? record.order_id}`),
+                className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+              })}
             />
 
             <div className="text-center mt-4">
-              <Link href="/order">
-                <Button type="dashed">Đặt đơn hàng mới</Button>
+              <Link href="/request">
+                <Button type="dashed">Đặt yêu cầu mới</Button>
               </Link>
             </div>
           </Card>

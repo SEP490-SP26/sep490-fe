@@ -377,11 +377,22 @@ export interface OrderHistoryItem {
   quote_id: number;
 }
 
+export interface RequestHistoryItem {
+  
+}
+
 export interface OrderHistoryResponse {
   page: number;
   pageSize: number;
   hasNext: boolean;
   data: OrderHistoryItem[];
+}
+
+export interface RequestHistoryResponse {
+  page: number;
+  pageSize: number;
+otp: string;
+phone:string;
 }
 
 // Order Detail Response for GET /api/Orders/{id}
@@ -405,6 +416,59 @@ export interface OrderDetailResponse {
   rush_amount: number;
   file_url: string;
 }
+
+export interface OrderPayment {
+  payment_id: number;
+  amount: number;
+  status: string;
+  payment_method: string;
+  created_at: string;
+}
+
+export interface RequestDetailResponse {
+  // Định danh đơn hàng & Báo giá
+  order_id: number;
+  order_request_id: number;
+  quote_id: number;
+  process_status: 'Accepted' | 'Pending' | 'InProduction' | string;
+
+  // Thông tin khách hàng
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+
+  // Chi tiết sản phẩm & Kỹ thuật
+  product_name: string;
+  product_type: 'HOP_MAU' | 'GACH' | string;
+  quantity: number;
+  description: string;
+
+  // Thông số vật tư
+  paper_code: string;
+  paper_name: string;
+  coating_type: 'KEO_NUOC' | 'KEO_DAU' | 'UV' | string;
+  wave_type: string; // VD: SÓNG B NÂU 900G/M2
+  number_of_plates: number; // Số bản kẽm
+
+  // Kích thước (mm)
+  product_length_mm: number;
+  product_width_mm: number;
+  product_height_mm: number;
+
+  // Quy trình sản xuất & Thiết kế
+  production_processes: string; // VD: "RALO,PHU,BOI,BE,DAN,CAN_MANG"
+  design_file_path: string;
+  is_send_design: boolean;
+
+  // Giao hàng & Địa chỉ
+  delivery_date: string; // ISO Date
+  detail_address: string;
+
+  // Thông tin thanh toán
+  payments: OrderPayment[];
+}
+
+
 
 export interface CreateQRBody {
   task_id: number;
