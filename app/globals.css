@@ -3,14 +3,14 @@
 
 :root {
   /* Cyan - Primary */
-  --color-primary: #06b6d4;      /* Cyan 500 */
-  --color-primary-light: #67e8f9; /* Cyan 300 */
-  --color-primary-dark: #0891b2;  /* Cyan 600 */
+  --color-primary: #0C3C8B; 
+  --color-primary-light: #608BC1; 
+  --color-primary-dark: #082F6B;  
   /* Key/Black - Secondary */
   --color-secondary: #334155;    /* Slate 700 - Balanced secondary */
   
    /* Yellow - Accent */
-  --color-accent: #f59e0b;       /* Amber 500 - Close to Yellow */
+  --color-accent: #EEBC21;       /* Amber 500 - Close to Yellow */
   --color-accent-light: #FFBF00; /* Amber 600 - Close to Yellow */
   --color-accent-dark: #FB923C; /* Amber 600 - Close to Yellow */
   /* --color-accent: #ec4899;      */

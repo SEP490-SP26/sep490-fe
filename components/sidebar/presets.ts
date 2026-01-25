@@ -22,8 +22,8 @@ export const consultantNavItems: NavItem[] = [
     basePath: "/consultant",
   },
   {
-    path: "/orders",
-    label: "Danh sách đơn hàng",
+    path: "/requests",
+    label: "Danh sách yêu cầu",
     icon: FiList,
     basePath: "/consultant",
   },
@@ -132,7 +132,7 @@ export const customerNavItems: NavItem[] = [
     basePath: "/customer",
   },
   {
-    path: "/history",
+    path: "/look-up",
     label: "Lịch sử giao dịch",
     icon: FiList,
     basePath: "/customer",
