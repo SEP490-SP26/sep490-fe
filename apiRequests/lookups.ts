@@ -9,7 +9,7 @@ export const lookupsApi = {
 
     // POST /api/Lookups/order-history - Lấy lịch sử đơn hàng sau khi xác thực OTP
     getHistory: (phone: string, otp: string, page: number = 1, pageSize: number = 15) =>
-        http.post<HistoryDataResponse>('/api/Lookups/order-history', {
+        http.post<HistoryDataResponse>('/api/Lookups/history', {
             phone,
             otp,
             page,
