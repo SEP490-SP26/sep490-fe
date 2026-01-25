@@ -33,6 +33,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const { Title } = Typography;
@@ -52,6 +53,7 @@ export default function ConsultantOrdersPage() {
   const [activeTab, setActiveTab] = useState("pending");
   const [allOrders, setAllOrders] = useState<OrderRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Sorting state - mặc định theo Ngày Giao gần nhất
   const [sortField, setSortField] = useState<SortField>("order_request_id");
@@ -278,8 +280,6 @@ export default function ConsultantOrdersPage() {
     [allOrders, sortOrders, filterBySearch]
   );
 
-
-
   // Get action button based on status
   const getActionButton = (record: OrderRequest) => {
     const statusLower = record.process_status?.toLowerCase();
@@ -327,29 +327,33 @@ export default function ConsultantOrdersPage() {
             >
 
             </Button>
+            <Link
+              href={`/consultant/request-detail/${record.order_request_id}`}
+            >
+              <Button size="small" icon={<EyeOutlined />}>
+                Xem chi tiết
+              </Button>
+            </Link>
           </Space>
         );
       case "pending_order_creation":
       case "accepted":
         return (
-          <Link
-            href={`/consultant?orderId=${record.order_request_id}&mode=create`}
-          >
-            <Button
-              type="primary"
-              size="small"
-              icon={<FileTextOutlined />}
-              className="bg-purple-600 hover:bg-purple-700"
+          <Space size="small">
+            <Link
+              href={`/consultant/request-detail/${record.order_request_id}`}
             >
-              Tạo đơn hàng
-            </Button>
-          </Link>
+              <Button size="small" icon={<EyeOutlined />}>
+                Xem chi tiết
+              </Button>
+            </Link>
+          </Space>
         );
       default:
         return (
-          <Link href={`/consultant?orderId=${record.order_request_id}`}>
+          <Link href={`/consultant/request-detail/${record.order_request_id}`}>
             <Button size="small" icon={<EyeOutlined />}>
-              Xem
+              Xem chi tiết
             </Button>
           </Link>
         );
@@ -487,6 +491,10 @@ export default function ConsultantOrdersPage() {
           locale={{
             emptyText: <Empty description="Không có đơn chờ xác nhận" />,
           }}
+          onRow={(record) => ({
+            onClick: () => router.push(`/consultant/request-detail/${record.order_request_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
           bordered
           size="middle"
         />
@@ -506,7 +514,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "action")}
+          columns={columns}
           dataSource={acceptedOrders}
           rowKey="order_request_id"
           pagination={{
@@ -533,7 +541,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "action")}
+          columns={columns}
           dataSource={rejectedOrders}
           rowKey="order_request_id"
           pagination={{
@@ -553,10 +561,10 @@ export default function ConsultantOrdersPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <Title level={2} style={{ margin: 0 }}>
-            Quản Lý Đơn Hàng
+            Quản Lý yêu cầu
           </Title>
           <p className="text-gray-500">
-            Xử lý đơn hàng từ khách hàng - Báo giá & Tạo đơn
+            Xử lý yêu cầu từ khách hàng - Báo giá & Tạo đơn
           </p>
         </div>
         <div className="w-1/3">
