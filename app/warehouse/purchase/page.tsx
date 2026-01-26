@@ -3,6 +3,7 @@ import { materialsApi } from "@/apiRequests/materials";
 import { purchasesApi } from "@/apiRequests/purchase";
 import { supplierApi } from "@/apiRequests/supplier";
 import SupplierQuoteCard from "@/components/Card/SupplierQuoteCard ";
+import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { useProduction } from "@/context/ProductionContext";
 import {
   showErrorToast,
@@ -28,6 +29,10 @@ export default function PurchaseManagement() {
   const [activeTab, setActiveTab] = useState<
     "pending" | "ordered" | "received"
   >("pending");
+  const [directMaterialId, setDirectMaterialId] = useState<string | null>(null);
+  const [directQuantity, setDirectQuantity] = useState<number | null>(null);
+  const [directSupplierId, setDirectSupplierId] = useState<number | null>(null);
+  //=====
   const [showDirectPO, setShowDirectPO] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { materials } = useProduction();
@@ -575,29 +580,7 @@ export default function PurchaseManagement() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-medium text-gray-900 text-end">
-                              <input
-                                type="number"
-                                value={currentQuantity || 0}
-                                onBlur={(e) => {
-                                  const newValue =
-                                    parseFloat(e.target.value) || 0;
-                                  handleQuantityBlur(pr.ui_id, newValue);
-                                }}
-                                onChange={(e) => {
-                                  const newValue = e.target.value;
-                                  // Temporary update for input responsiveness
-                                  setDisplayMaterials((prev: any[]) =>
-                                    prev.map((item) =>
-                                      item.ui_id === pr.ui_id
-                                        ? { ...item, quantity: newValue }
-                                        : item
-                                    )
-                                  );
-                                }}
-                                min="0"
-                                step="1"
-                                className="text-end w-30"
-                              />
+                              {currentQuantity}
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -1204,77 +1187,122 @@ export default function PurchaseManagement() {
       </div>
 
       {/* Direct Purchase Order Modal */}
-      {showDirectPO && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Đặt hàng trực tiếp</h2>
-                <button
-                  onClick={() => setShowDirectPO(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <BsX className="w-6 h-6" />
-                </button>
-              </div>
+      {/* Direct Purchase Order Modal */}
+{showDirectPO && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Đặt hàng trực tiếp</h2>
+          <button
+            onClick={() => setShowDirectPO(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <BsX className="w-6 h-6" />
+          </button>
+        </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Vật tư cần mua
-                  </label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="">Chọn vật tư</option>
-                    {materials.map((material) => (
-                      <option key={material.id} value={material.id}>
-                        {material.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-gray-700 mb-2">
+              Vật tư cần mua
+            </label>
+            <select
+              value={directMaterialId ?? ""}
+              onChange={(e) => setDirectMaterialId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Chọn vật tư</option>
+              {materials.map((material) => (
+                <option key={material.id} value={material.id}>
+                  {material.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-700 mb-2">Số lượng</label>
-                    <input
-                      type="number"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Nhập số lượng"
-                      min="1"
-                    />
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <FloatingInputAntd
+                className="h-[40px]"
+                label="Số lượng"
+                value={directQuantity}
+                valueType="integer"
+                required
+                min={1}
+                onChange={(e: any) => setDirectQuantity(e.target.value)}
+              />
+            </div>
+            {/*
+            <div>
+              <label className="block text-gray-700 mb-2">
+                Nhà cung cấp
+              </label>
+              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">Chọn nhà cung cấp</option>
+                {suppliersData.map((supplier: any) => (
+                  <option key={supplier.supplierId} value={supplier}>
+                    {supplier}
+                  </option>
+                ))}
+              </select>
+            </div>
+            */}
 
-                  {/* <div>
-                    <label className="block text-gray-700 mb-2">
-                      Nhà cung cấp
-                    </label>
-                    <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                      <option value="">Chọn nhà cung cấp</option>
-                      {suppliersData.map((supplier: any) => (
-                        <option key={supplier.supplierId} value={supplier}>
-                          {supplier}
-                        </option>
-                      ))}
-                    </select>
-                  </div> */}
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                    Tạo đơn đặt hàng
-                  </button>
-                  <button
-                    onClick={() => setShowDirectPO(false)}
-                    className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    Hủy
-                  </button>
-                </div>
-              </div>
+            {/* Nhà cung cấp (phiên bản đang dùng) */}
+            <div>
+              <select
+                value={directSupplierId ?? ""}
+                onChange={(e) =>
+                  setDirectSupplierId(Number(e.target.value))
+                }
+                className="w-full h-[40px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Chọn nhà cung cấp</option>
+                {suppliersData.map((s: any) => (
+                  <option key={s.supplierId} value={s.supplierId}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={() => {
+                if (!directMaterialId || !directQuantity || !directSupplierId) {
+                  showWarningToast("Vui lòng nhập đầy đủ thông tin");
+                  return;
+                }
+
+                console.log("Direct PO:", {
+                  material_id: directMaterialId,
+                  quantity: directQuantity,
+                  supplier_id: directSupplierId,
+                });
+
+                // TODO: call API create direct PO
+                showSuccessToast("Tạo đơn đặt hàng trực tiếp thành công");
+                setShowDirectPO(false);
+              }}
+              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Tạo đơn đặt hàng
+            </button>
+
+            <button
+              onClick={() => setShowDirectPO(false)}
+              className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Hủy
+            </button>
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

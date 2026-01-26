@@ -2,7 +2,7 @@
 import Link from "next/link";
 import React from "react";
 import { FaWarehouse } from "react-icons/fa";
-import { FiLogOut, FiShoppingCart } from "react-icons/fi";
+import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
 
 export default function layoutManager({
   children,
@@ -11,15 +11,16 @@ export default function layoutManager({
 }) {
   const navItems = [
     {
-      path: "/",
-      label: "Lịch Sản Xuất",
-      icon: FiShoppingCart,
-    },
-    {
       path: "/inventory",
       label: "Tồn Kho",
       icon: FaWarehouse,
     },
+    {
+    path: "/purchase",
+    label: "Đặt nguyên vật liệu",
+    icon: FiList,
+    basePath: "/warehouse",
+  },
     { path: "/", label: "Đăng xuất", icon: FiLogOut },
   ];
   return (

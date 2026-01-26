@@ -104,12 +104,6 @@ export const managerNavItems: NavItem[] = [
     basePath: "/manager",
   },
   {
-    path: "/purchase",
-    label: "Đặt nguyên vật liệu",
-    icon: FiList,
-    basePath: "/manager",
-  },
-  {
     path: "/",
     label: "Đăng xuất",
     icon: FiLogOut,
