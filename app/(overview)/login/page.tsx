@@ -141,6 +141,7 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error("Login error:", err);
+      setIsLoading(false);
 
       let errorMessage = "Đăng nhập thất bại";
 
@@ -168,8 +169,6 @@ export default function LoginPage() {
       }
 
       setError(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -190,6 +189,7 @@ export default function LoginPage() {
 
   const handleCredentialResponse = async (response: any) => {
     try {
+      setIsLoading(true);
       const res = await authApiRequest.loginWithGoogle(
         response.credential
       );
@@ -239,6 +239,7 @@ export default function LoginPage() {
     } catch (err) {
       console.error("Google login error:", err);
       setError("Đăng nhập Google thất bại");
+      setIsLoading(false);
     }
   };
 
@@ -458,7 +459,8 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={handleGoogleLogin}
-                        className="mt-6 w-full flex items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        disabled={isLoading}
+                        className="mt-6 w-full flex items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Image
                           src="https://www.svgrepo.com/show/475656/google-color.svg"
