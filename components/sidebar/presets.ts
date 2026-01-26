@@ -27,12 +27,12 @@ export const consultantNavItems: NavItem[] = [
     icon: FiList,
     basePath: "/consultant",
   },
-  {
-    path: "/history",
-    label: "Quản Lý Đơn Hàng",
-    icon: FiPackage,
-    basePath: "/consultant",
-  },
+  // {
+  //   path: "/history",
+  //   label: "Quản Lý Đơn Hàng",
+  //   icon: FiPackage,
+  //   basePath: "/consultant",
+  // },
   {
     path: "/",
     label: "Đăng xuất",

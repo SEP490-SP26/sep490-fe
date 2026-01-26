@@ -319,6 +319,18 @@ export default function EstimatesCard({
                         </span>
                       </div>
 
+                      {costEstimate.cost.design_cost > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Phí thiết kế:</span>
+                          <span className="font-medium">
+                            {Math.round(costEstimate.cost.design_cost).toLocaleString(
+                              "vi-VN"
+                            )}{" "}
+                            ₫
+                          </span>
+                        </div>
+                      )}
+
                       {/* Chi phí gia công từ process_cost.details */}
                       {costEstimate.process_cost?.details
                         ?.filter((detail) => detail.total_cost > 0)

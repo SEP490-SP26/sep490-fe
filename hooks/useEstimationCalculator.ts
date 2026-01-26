@@ -183,7 +183,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
 
     // 10. Tính chi phí thiết kế
     const defaultDesignCost = designConfig?.default_design_cost || 200000;
-    const designCost = (!is_send_design || !has_design_file)
+    const designCost = (!is_send_design && !has_design_file)
       ? defaultDesignCost
       : 0;
 
