@@ -2,12 +2,14 @@ import { Col, Form, Row, DatePicker, Button, message } from "antd";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
+import { FloatingDatePicker } from "@/components/Input/FloatingDatePicker";
 
 interface CustomerInfoSectionProps {
   orderId: string | null;
   form: any;
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
-  onConfirmCreate?: (values: any) => void; // Add this prop
+  onConfirmCreate?: (values: any) => void;
+  loading?: boolean;
 }
 
 const disabledDate: RangePickerProps["disabledDate"] = (current) => {
@@ -19,6 +21,7 @@ export default function CustomerInfoSection({
   form,
   handleFormValuesChange,
   onConfirmCreate,
+  loading,
 }: CustomerInfoSectionProps) {
 
 
@@ -92,6 +95,7 @@ export default function CustomerInfoSection({
                     // validation failed
                   }
                 }}
+                loading={loading}
               >
                 Xác nhận
               </Button>
@@ -102,7 +106,8 @@ export default function CustomerInfoSection({
               rules={[{ required: true }]}
               className="mb-2"
             >
-              <DatePicker
+              <FloatingDatePicker
+                label="Ngày giao hàng"
                 className="w-full"
                 format="DD-MM-YYYY"
                 placeholder="Ngày giao hàng mong muốn"

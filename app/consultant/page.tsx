@@ -897,6 +897,7 @@ function ConsultantForm() {
                   form={form}
                   handleFormValuesChange={handleFormValuesChange}
                   onConfirmCreate={handleCreateCustomerInfo}
+                  loading={loading}
                 />
 
                 <Divider titlePlacement="left" className="!my-3">

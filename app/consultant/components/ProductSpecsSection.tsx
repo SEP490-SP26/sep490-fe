@@ -261,7 +261,41 @@ export default function ProductSpecsSection({
             </div>
           </Form.Item>
         </Col>
+        <Col span={8}>
+          {/* Wave Type Select */}
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues.production_processes !==
+              currentValues.production_processes
+            }
+          >
+            {({ getFieldValue }) => {
+              const processingValues =
+                getFieldValue("production_processes") || [];
+              const hasBOI = processingValues.includes("BOI");
 
+              return hasBOI ? (
+                <Form.Item
+                  name="wave_type"
+                  // label="Loại Sóng (Bồi)"
+                  rules={[{ required: true, message: "Chọn loại sóng!" }]}
+                  className="mb-1"
+                >
+                  <FloatingSelect
+                    label="Loại Sóng (Bồi)"
+                    placeholder="Chọn loại sóng..."
+                    options={songTypes.map((st) => ({
+                      value: st.code,
+                      label: `${st.name}`,
+                    }))}
+                    allowClear
+                  />
+                </Form.Item>
+              ) : null;
+            }}
+          </Form.Item>
+        </Col>
 
       </Row>
 
@@ -308,41 +342,7 @@ export default function ProductSpecsSection({
             </Checkbox.Group>
           </Form.Item>
         </Col>
-        <Col span={6}>
-          {/* Wave Type Select */}
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.production_processes !==
-              currentValues.production_processes
-            }
-          >
-            {({ getFieldValue }) => {
-              const processingValues =
-                getFieldValue("production_processes") || [];
-              const hasBOI = processingValues.includes("BOI");
 
-              return hasBOI ? (
-                <Form.Item
-                  name="wave_type"
-                  label="Loại Sóng (Bồi)"
-                  rules={[{ required: true, message: "Chọn loại sóng!" }]}
-                  className="mb-1"
-                >
-                  <Select
-                    placeholder="Chọn loại sóng..."
-                    size="small"
-                    options={songTypes.map((st) => ({
-                      value: st.code,
-                      label: `${st.name}`,
-                    }))}
-                    allowClear
-                  />
-                </Form.Item>
-              ) : null;
-            }}
-          </Form.Item>
-        </Col>
       </Row>
     </>
   );
