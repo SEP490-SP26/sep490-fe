@@ -27,7 +27,7 @@ import {
 import dayjs from 'dayjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const { Title, Text } = Typography
 
@@ -79,16 +79,19 @@ export default function CustomerHistoryPage() {
   }
 
   // --- BƯỚC 2: XÁC THỰC OTP VÀ LẤY LỊCH SỬ order và request ---
-  const handleVerifyOtp = async (page: number = 1) => {
-    if (!otpCode) {
+  const handleVerifyOtp = async (page: number = 1, phoneArg?: string, otpArg?: string) => {
+    const phone = phoneArg || phoneNumber
+    const otp = otpArg || otpCode
+
+    if (!otp) {
       message.warning('Vui lòng nhập mã OTP!')
       return
     }
 
     setLoading(true)
     try {
-      console.log('phone', phoneNumber, 'otp', otpCode, 'page', page)
-      const response = await lookupsApi.getHistory(phoneNumber, otpCode, page, 15)
+      console.log('phone', phone, 'otp', otp, 'page', page)
+      const response = await lookupsApi.getHistory(phone, otp, page, 15)
 
       setMyRequests(response.requests.data || [])
       setMyOrders(response.orders.data || [])
@@ -98,21 +101,22 @@ export default function CustomerHistoryPage() {
         hasNext: response.orders.hasNext,
       })
 
-      // Lưu phone đã xác thực vào sessionStorage để bảo vệ trang chi tiết
-      sessionStorage.setItem('verified_phone', phoneNumber)
+      // Lưu phone và otp đã xác thực vào sessionStorage
+      sessionStorage.setItem('verified_phone', phone)
+      sessionStorage.setItem('verified_otp', otp)
 
       setStep('result')
 
       if (response.orders.data?.length === 0) {
-        message.info('Không tìm thấy đơn hàng nào.')
+        // message.info('Không tìm thấy đơn hàng nào.')
       } else {
-        message.success(`Tìm thấy ${response.orders.data?.length || 0} đơn hàng.`)
+        // message.success(`Tìm thấy ${response.orders.data?.length || 0} đơn hàng.`)
       }
 
       if (response.requests.data?.length === 0) {
-        message.info('Không tìm thấy yêu cầu nào.')
+        // message.info('Không tìm thấy yêu cầu nào.')
       } else {
-        message.success(`Tìm thấy ${response.requests.data?.length || 0} đơn hàng.`)
+        // message.success(`Tìm thấy ${response.requests.data?.length || 0} đơn hàng.`)
       }
     } catch (error: any) {
       console.error('Error verifying OTP:', error)
@@ -122,6 +126,19 @@ export default function CustomerHistoryPage() {
       setLoading(false)
     }
   }
+
+  // Effect: Kiểm tra session storage khi mount
+  useEffect(() => {
+    const savedPhone = sessionStorage.getItem('verified_phone')
+    const savedOtp = sessionStorage.getItem('verified_otp')
+
+    if (savedPhone && savedOtp) {
+      setPhoneNumber(savedPhone)
+      setOtpCode(savedOtp)
+      // Tự động verify nếu có data
+      handleVerifyOtp(1, savedPhone, savedOtp)
+    }
+  }, [])
 
   // --- GỬI LẠI OTP ---
   const handleResendOtp = async () => {
@@ -144,6 +161,8 @@ export default function CustomerHistoryPage() {
     setOtpCode('')
     setMyOrders([])
     setStep('phone')
+    sessionStorage.removeItem('verified_phone')
+    sessionStorage.removeItem('verified_otp')
   }
 
   // --- HIỂN THỊ TRẠNG THÁI ---
@@ -214,19 +233,7 @@ export default function CustomerHistoryPage() {
       key: 'payment_status',
       render: (val: string) => renderPaymentStatus(val),
     },
-    {
-      title: '',
-      key: 'action',
-      render: (_: any, record: OrderSummary) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => router.push(`/order/${record.order_id}`)}
-        >
-          Chi tiết
-        </Button>
-      ),
-    },
+
   ]
 
   const columnsRequest = [
@@ -261,24 +268,13 @@ export default function CustomerHistoryPage() {
       key: 'status',
       render: (val: string) => renderStatus(val),
     },
-    {
-      title: '',
-      key: 'action',
-      render: (_: any, record: RequestSummary) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => router.push(`/request-detail/${record.request_id}`)}
-        >
-          Chi tiết
-        </Button>
-      ),
-    },
+
   ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className={`mx-auto transition-all duration-300 ${step === 'result' ? 'max-w-[95%] xl:max-w-7xl' : 'max-w-4xl'}`}>
+
         {/* Header */}
         <div className="text-center mb-8">
           <Title level={2} style={{ color: '#1677ff', textTransform: 'uppercase' }}>
@@ -288,6 +284,7 @@ export default function CustomerHistoryPage() {
             Nhập số điện thoại và xác thực OTP để xem lịch sử đơn hàng của bạn
           </Text>
         </div>
+
 
         {/* Steps indicator */}
         <div className="max-w-md mx-auto mb-8">
@@ -309,7 +306,7 @@ export default function CustomerHistoryPage() {
                 <MobileOutlined className="text-4xl text-blue-500 mb-2" />
                 <Title level={4}>Nhập số điện thoại</Title>
                 <Text type="secondary">
-                  Chúng tôi sẽ gửi mã OTP đến email gắn với số điện thoại này
+                  Chúng tôi sẽ gửi mã OTP đến số điện thoại này
                 </Text>
               </div>
 
@@ -390,61 +387,89 @@ export default function CustomerHistoryPage() {
 
         {/* STEP 3: Kết quả tra cứu */}
         {step === 'result' && (
-          <Card className="shadow-lg rounded-xl border-t-4 border-blue-500">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <Title level={4} className="!mb-0">Lịch sử đơn hàng</Title>
-                <Text type="secondary">Số điện thoại: {phoneNumber}</Text>
+          <div className="animate-fade-in">
+            <Card className="shadow-lg rounded-xl border-t-4 border-blue-500">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <Title level={4} className="!mb-0">Kết quả tra cứu</Title>
+                  <Text type="secondary">Số điện thoại: {phoneNumber}</Text>
+                </div>
+                <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                  Tra cứu số khác
+                </Button>
               </div>
-              <Button icon={<ReloadOutlined />} onClick={handleReset}>
-                Tra cứu số khác
-              </Button>
-            </div>
 
-            <Table
-              columns={columns}
-              dataSource={myOrders}
-              rowKey="order_id"
-              pagination={{
-                current: paginationOrder.page,
-                pageSize: paginationOrder.pageSize,
-                onChange: (page) => handleVerifyOtp(page),
-              }}
-              locale={{
-                emptyText: <Empty description="Chưa có đơn hàng nào" />,
-              }}
-              loading={loading}
-              onRow={(record) => ({
-                onClick: () => router.push(`/order-detail/${record.order_id}`),
-                className: 'cursor-pointer hover:bg-slate-50 transition-colors',
-              })}
-            />
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                {/* Bảng Đơn Hàng */}
+                <div className="flex flex-col">
+                  <div className="mb-3 flex items-center justify-between">
+                    <Title level={5} className="!mb-0 text-blue-600">
+                      📦 Đơn hàng ({myOrders.length})
+                    </Title>
+                  </div>
+                  <Table
+                    columns={columns}
+                    dataSource={myOrders}
+                    rowKey="order_id"
+                    pagination={{
+                      current: paginationOrder.page,
+                      pageSize: paginationOrder.pageSize,
+                      onChange: (page) => handleVerifyOtp(page),
+                      size: 'small'
+                    }}
+                    locale={{
+                      emptyText: <Empty description="Chưa có đơn hàng nào" />,
+                    }}
+                    loading={loading}
+                    onRow={(record) => ({
+                      onClick: () => router.push(`/order-detail/${record.order_id}`),
+                      className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+                    })}
+                    scroll={{ x: 'max-content' }}
+                    className="border rounded-lg overflow-hidden shadow-sm"
+                  />
+                </div>
 
-            <Table
-              columns={columnsRequest}
-              dataSource={myRequests}
-              rowKey="order_request_id"
-              pagination={{
-                current: paginationRequest.page,
-                pageSize: paginationRequest.pageSize,
-                onChange: (page) => handleVerifyOtp(page),
-              }}
-              locale={{
-                emptyText: <Empty description="Chưa có yêu cầu nào" />,
-              }}
-              loading={loading}
-              onRow={(record: any) => ({
-                onClick: () => router.push(`/request-detail/${record.order_request_id ?? record.requset_id ?? record.order_id}`),
-                className: 'cursor-pointer hover:bg-slate-50 transition-colors',
-              })}
-            />
+                {/* Bảng Yêu Cầu */}
+                <div className="flex flex-col">
+                  <div className="mb-3 flex items-center justify-between">
+                    <Title level={5} className="!mb-0 text-indigo-600">
+                      📄 Yêu cầu ({myRequests.length})
+                    </Title>
+                  </div>
+                  <Table
+                    columns={columnsRequest}
+                    dataSource={myRequests}
+                    rowKey="order_request_id"
+                    pagination={{
+                      current: paginationRequest.page,
+                      pageSize: paginationRequest.pageSize,
+                      onChange: (page) => handleVerifyOtp(page),
+                      size: 'small'
+                    }}
+                    locale={{
+                      emptyText: <Empty description="Chưa có yêu cầu nào" />,
+                    }}
+                    loading={loading}
+                    onRow={(record: any) => ({
+                      onClick: () => router.push(`/request-detail/${record.order_request_id ?? record.requset_id ?? record.order_id}`),
+                      className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+                    })}
+                    scroll={{ x: 'max-content' }}
+                    className="border rounded-lg overflow-hidden shadow-sm"
+                  />
+                </div>
+              </div>
 
-            <div className="text-center mt-4">
-              <Link href="/request">
-                <Button type="dashed">Đặt yêu cầu mới</Button>
-              </Link>
-            </div>
-          </Card>
+              <div className="text-center mt-8 pt-4 border-t">
+                <Link href="/request">
+                  <Button type="primary" size="large" icon={<FileTextOutlined />}>
+                    Đặt yêu cầu mới
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </div>
         )}
 
       </div>

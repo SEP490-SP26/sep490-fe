@@ -25,6 +25,7 @@ import {
   InputNumber,
   message,
   Modal,
+  Popconfirm,
   Result,
   Row,
   Space,
@@ -61,40 +62,6 @@ const PRODUCT_SUGGESTIONS = [
 // Khởi tạo Vietnamese Holidays
 const hd = new Holidays("VN");
 
-// Lấy danh sách ngày nghỉ lễ cho năm hiện tại và năm sau
-const getVietnameseHolidays = () => {
-  const currentYear = dayjs().year();
-  const holidays: { date: string; name: string }[] = [];
-
-  // Lấy holidays cho năm hiện tại và năm sau
-  [currentYear, currentYear + 1].forEach((year) => {
-    const yearHolidays = hd.getHolidays(year);
-    yearHolidays.forEach((h: any) => {
-      holidays.push({
-        date: dayjs(h.date).format("YYYY-MM-DD"),
-        name: h.name,
-      });
-    });
-  });
-
-  return holidays;
-};
-
-const vietnameseHolidays = getVietnameseHolidays();
-
-const range = (start: number, end: number) => {
-  const result: number[] = [];
-  for (let i = start; i < end; i++) {
-    result.push(i);
-  }
-  return result;
-};
-
-// Kiểm tra ngày có phải ngày nghỉ lễ không
-const isHoliday = (date: dayjs.Dayjs) => {
-  const dateStr = date.format("YYYY-MM-DD");
-  return vietnameseHolidays.find((h) => h.date === dateStr);
-};
 
 // const disabledDate: RangePickerProps["disabledDate"] = (current) => {
 //   // Không thể chọn ngày trong quá khứ
@@ -142,6 +109,32 @@ export default function GuestOrderPage() {
   const handleDateChange = (date: dayjs.Dayjs | null) => {
     setSelectedDate(date);
   };
+
+  // Quantity Validation State
+  const [openQuantityConfirm, setOpenQuantityConfirm] = useState(false);
+  const [suggestedQuantity, setSuggestedQuantity] = useState(0);
+
+  const handleQuantityBlur = () => {
+    const currentQty = form.getFieldValue("quantity");
+    console.log("handleQuantityBlur triggered. Current Qty:", currentQty);
+    if (currentQty && currentQty > 0 && currentQty % 100 !== 0) {
+      const rounded = Math.ceil(currentQty / 100) * 100;
+      console.log("Rounding to:", rounded);
+      setSuggestedQuantity(rounded);
+      setOpenQuantityConfirm(true);
+    }
+  };
+
+  const confirmQuantity = () => {
+    form.setFieldValue("quantity", suggestedQuantity);
+    setOpenQuantityConfirm(false);
+  };
+
+  const cancelQuantity = () => {
+    form.setFieldValue("quantity", 0);
+    setOpenQuantityConfirm(false);
+  };
+
   useEffect(() => {
     const nameValid = customerName && customerName.trim().length >= 2;
     const phoneValid = phone && /^0\d{9}$/.test(phone);
@@ -217,7 +210,7 @@ export default function GuestOrderPage() {
 
   const onFinish = async (values: any) => {
     setIsSubmitting(true);
-
+    //fix upload file
     try {
       // Upload design file if exists
       let designFilePath = "";
@@ -554,39 +547,37 @@ export default function GuestOrderPage() {
                           />
                         </Form.Item>
 
-                        <Form.Item
-                          name="quantity"
-                          label={<span className={labelStyle}>Số lượng</span>}
-                          rules={[{
-                            required: true,
-                            message: "Nhập số lượng"
-                          }]}
+                        <Popconfirm
+                          title="Xác nhận số lượng"
+                          description={`Số lượng phải là bội số của 100. Bạn có muốn làm tròn lên ${formatVietnameseNumber(suggestedQuantity)}?`}
+                          open={openQuantityConfirm}
+                          onConfirm={confirmQuantity}
+                          onCancel={cancelQuantity}
+                          okText="Đồng ý"
+                          cancelText="Hủy"
                         >
-                          <FloatingInputAntd
-                            className="w-full text-right"
-                            valueType="number"
-                            style={{ width: 100, textAlign: "right" }}
-                            min={100} // Đặt min là 100 để tránh nhập số quá nhỏ
-                            placeholder="VD: 1,000"
-                          // onBlur={(e: any) => {
-                          //   const value = e.target.value;
-                          //   if (value) {
-                          //     const numValue = Number(value.toString().replace(/,/g, ''));
-
-                          //     // Chỉ làm tròn nếu số không chia hết cho 100
-                          //     if (numValue % 100 !== 0) {
-                          //       const roundedValue = Math.round(numValue / 100) * 100;
-
-                          //       // Update giá trị trong form
-                          //       form.setFieldsValue({ quantity: roundedValue });
-
-                          //       // Hiển thị thông báo
-                          //       message.info(`Số lượng đã được làm tròn thành ${formatVietnameseNumber(roundedValue)}`);
-                          //     }
-                          //   }
-                          // }}
-                          />
-                        </Form.Item>
+                          <div onBlur={handleQuantityBlur}>
+                            <Form.Item
+                              name="quantity"
+                              label={<span className={labelStyle}>Số lượng</span>}
+                              rules={[{
+                                required: true,
+                                message: "Nhập số lượng"
+                              }]}
+                              className="mb-0" // Reset margin to avoid layout issues inside div
+                            >
+                              <FloatingInputAntd
+                                className="w-full text-right"
+                                valueType="number"
+                                style={{ width: 100, textAlign: "right" }}
+                                min={100} // Đặt min là 100 để tránh nhập số quá nhỏ
+                                placeholder="VD: 1,000"
+                              // onBlur handled by div wrapper for consistent behavior? 
+                              // OR keep it on Input but wrap the whole thing for Popconfirm
+                              />
+                            </Form.Item>
+                          </div>
+                        </Popconfirm>
 
                         <Form.Item
                           name="desiredDate"

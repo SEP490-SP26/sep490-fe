@@ -131,54 +131,57 @@ const data = [
 export default function HomePage() {
   const router = useRouter();
   return (
-    <div className="bg-gray-100 ">
-      <section className="relative  min-h-[600px] md:min-h-auto bg-linear-to-b from-gray-900 to-gray-100 py-20 text-center">
+    <div className="relative min-h-screen font-sans">
+      {/* Background */}
+      <div className="absolute inset-0 -z-10 h-full w-full bg-white [background:radial-gradient(125%_125%_at_50%_10%,#fff_50%,#eef2ff_100%)]"></div>
+
+      <section className="relative min-h-[600px] md:min-h-auto py-20 text-center">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-primary-light mb-4 uppercase">
-            Công Ty TNHH Thương Mại Và Dịch Vụ In & Bao Bì Đại Phúc Hải
-          </h2>
-          <p className="text-lg text-gray-200 max-w-5xl mx-auto">
-            Chúng tôi chuyên cung cấp giải pháp bao bì giấy trọn gói từ thiết kế, in ấn đến hoàn thiện sản phẩm theo tiêu chuẩn ISO và quốc tế. Với hơn 14 năm kinh nghiệm, nhà máy 3.000m² được trang bị dây chuyền hiện đại từ Đức, Nhật Bản, Đài Loan, Trung Quốc, HAFAS tự hào mang đến những bao bì sáng tạo, chất lượng cao, thân thiện với môi trường, giúp doanh nghiệp khẳng định thương hiệu và chinh phục thị trường trong nước lẫn quốc tế
-          </p>
-          <div>
-            <button
-              className="mt-2 bg-primary-light px-4 py-2 rounded-md text-secondary uppercase hover:bg-primary hover:text-accent border border-gray-200 transition-all"
-              onClick={() => router.push("/order")}
-            >
-              Đặt In Nhanh{" "}
-            </button>
+          <div className="flex flex-col items-center">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-primary mb-6 uppercase tracking-tight">
+              Công Ty TNHH Thương Mại Và Dịch Vụ In & Bao Bì Đại Phúc Hải
+            </h1>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+              Chúng tôi chuyên cung cấp giải pháp bao bì giấy trọn gói từ thiết kế, in ấn đến hoàn thiện sản phẩm theo tiêu chuẩn ISO và quốc tế. Với hơn 14 năm kinh nghiệm, nhà máy 3.000m² được trang bị dây chuyền hiện đại từ Đức, Nhật Bản, Đài Loan, Trung Quốc, HAFAS tự hào mang đến những bao bì sáng tạo, chất lượng cao, thân thiện với môi trường, giúp doanh nghiệp khẳng định thương hiệu và chinh phục thị trường trong nước lẫn quốc tế.
+            </p>
+            <div>
+              <button
+                className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-primary px-8 py-3 font-medium text-white shadow-md transition duration-300 ease-out hover:bg-primary-dark hover:shadow-xl hover:-translate-y-1"
+                onClick={() => router.push("/order")}
+              >
+                <span className="absolute inset-0 h-full w-full bg-gradient-to-br from-blue-600 via-primary to-blue-400 opacity-0 transition duration-300 ease-out group-hover:opacity-100"></span>
+                <span className="relative flex items-center gap-2">
+                  Đặt In Nhanh
+                  <svg
+                    className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* divider */}
-          <div className="w-full h-[1px] bg-gray-200 my-8"></div>
+          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-300 to-transparent my-12"></div>
 
           {/*   Sản phẩm của chúng tôi */}
           <div className="">
-            <h2 className="text-2xl font-bold text-primary-light mb-4 uppercase">
+            <h2 className="text-2xl font-bold text-primary mb-8 uppercase tracking-wide">
               Sản phẩm của chúng tôi
             </h2>
             <Masonry data={data} />
           </div>
-
-
         </div>
-        <div
-          className="
-      pointer-events-none
-      absolute inset-0
-      bg-[radial-gradient(#0000001a_1px,transparent_1px)]
-      bg-size-[16px_16px]
-      mask-[radial-gradient(circle_80%_at_50%_50%,#000_70%,transparent_110%)]
-      z-0
-    "
-        />
       </section>
-      <main className="">
-        {/* <Banner /> */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 max-w-7xl 2xl:max-w-screen-2xl">
-          <div className="py-8"> </div>
-        </div>
-      </main>
       <ZaloChat />
     </div>
   );

@@ -3,50 +3,44 @@
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import {
+  AppstoreOutlined,
   ArrowLeftOutlined,
+  ArrowsAltOutlined,
+  BlockOutlined,
   CalendarOutlined,
   CheckCircleFilled,
   ClockCircleFilled,
+  CloseCircleFilled,
   CloudUploadOutlined,
+  CreditCardOutlined,
+  DeleteOutlined,
+  DeploymentUnitOutlined,
+  DownloadOutlined,
   EnvironmentOutlined,
   FileImageOutlined,
+  FileTextOutlined,
+  FormatPainterOutlined,
   HomeOutlined,
   InfoCircleOutlined,
-  MailOutlined,
-  PhoneOutlined,
+  SettingOutlined,
   ShoppingOutlined,
   SyncOutlined,
-  UserOutlined,
-  CloseCircleFilled,
-  DownloadOutlined,
-  DeleteOutlined,
-  ExperimentOutlined,
-  BuildOutlined,
-  FormatPainterOutlined,
-  BlockOutlined,
-  CreditCardOutlined,
   TagOutlined,
-  AppstoreOutlined,
-  DeploymentUnitOutlined,
-  FileTextOutlined,
-  SettingOutlined,
-  ArrowsAltOutlined,
+  UserOutlined
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
 import {
   Image as AntImage,
+  Breadcrumb,
   Button,
   Card,
-  Descriptions,
-  Divider,
   Empty,
   message,
   Skeleton,
   Tag,
-  Typography,
-  Upload,
-  Breadcrumb,
   Tooltip,
+  Typography,
+  Upload
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
@@ -188,6 +182,19 @@ export default function RequestDetailPage() {
     setDesignFiles((prev) => prev.filter((f) => f.uid !== file.uid));
   };
 
+  const getCoatingType = (coatingType: string) => {
+    switch (coatingType) {
+      case "KEO_NUOC":
+        return "Keo Nước";
+      case "KEO_DAI":
+        return "Keo Dài";
+      case "KEO_DAU":
+        return "Keo Dầu";
+      default:
+        return "Không xác định";
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const styles: { [key: string]: string } = {
       PENDING: "bg-amber-50 text-amber-700 border-amber-200 ring-amber-100",
@@ -316,7 +323,7 @@ export default function RequestDetailPage() {
                   <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Email</Text>
                   <Paragraph className="text-base mt-1">
                     <a href={`mailto:${orderDetail.customer_email}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                       {orderDetail.customer_email}
+                      {orderDetail.customer_email}
                     </a>
                   </Paragraph>
                 </div>
