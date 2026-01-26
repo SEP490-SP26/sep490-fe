@@ -7,7 +7,6 @@ import { FaTasks, FaUserCircle } from "react-icons/fa";
 import {
   FiCalendar,
   FiLogOut,
-  FiClipboard,
 } from "react-icons/fi";
 
 export default function StaffLayout({
@@ -22,6 +21,11 @@ export default function StaffLayout({
       path: "/",
       label: "Lịch Sản Xuất",
       icon: FiCalendar,
+    },
+    {
+      path: "/finish-production",
+      label: "Đã Sản Xuất",
+      icon: FaTasks,
     },
     {
       path: "/logout",
