@@ -52,7 +52,7 @@ import {
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { paymentApi } from "@/apiRequests/payment";
+import { paymentApi, PaymentResponse } from "@/apiRequests/payment";
 import { QRCodeCanvas } from "qrcode.react";
 
 const { Title, Text, Paragraph } = Typography;
@@ -96,8 +96,7 @@ export default function RequestDetailPage() {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [designFiles, setDesignFiles] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState<string>("");
-  const [expiredTime, setExpiredTime] = useState<Date>(new Date());
+  const [paymentInfo, setPaymentInfo] = useState<PaymentResponse | null>(null);
 
   // Fetch order detail từ API
   useEffect(() => {
@@ -157,10 +156,9 @@ export default function RequestDetailPage() {
       try {
         const res = await paymentApi.getPaymentQR(requestId);
         const data = (res as any).data || res;
-        if (data?.checkout_url) {
-          setCheckoutUrl(data.checkout_url);
+        if (data) {
+          setPaymentInfo(data);
         }
-        setExpiredTime(new Date(data?.expired_at));
       } catch (error) {
         console.error("Error fetching payment QR:", error);
       }
@@ -566,7 +564,7 @@ export default function RequestDetailPage() {
 
           {/* Sidebar - Design Files + QR Payment */}
           <div className="lg:col-span-4 space-y-8">
-            {checkoutUrl && (
+            {paymentInfo && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -576,21 +574,59 @@ export default function RequestDetailPage() {
                 </div>
 
                 <div className="flex flex-col items-center gap-4">
-                  <div className="p-4 bg-white border-2 border-slate-100 rounded-xl">
+                  <div className="p-4 bg-white border-2 border-slate-100 rounded-xl relative group">
                     <QRCodeCanvas
-                      value={checkoutUrl}
+                      value={paymentInfo.qr_code}
                       size={200}
                       level={"H"}
                       includeMargin={true}
                     />
+                    {/* Overlay instructional text on hover or always visible below */}
                   </div>
-                  <p className="text-sm text-slate-500 text-center font-medium">
-                    Quét mã QR bằng ứng dụng ngân hàng<br />để thanh toán nhanh
+
+                  <div className="w-full space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                      <span className="text-slate-500">Ngân hàng</span>
+                      <span className="font-semibold text-slate-700">{paymentInfo.bin}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                      <span className="text-slate-500">Số tài khoản</span>
+                      <span className="font-semibold text-slate-700 tracking-wide">{paymentInfo.account_number}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                      <span className="text-slate-500">Chủ tài khoản</span>
+                      <span className="font-semibold text-slate-700 uppercase">{paymentInfo.account_name}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                      <span className="text-slate-500">Số tiền</span>
+                      <span className="font-bold text-lg text-emerald-600">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(paymentInfo.amount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500">Nội dung CK</span>
+                      <span className="font-mono font-semibold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200">{paymentInfo.order_code}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-400 text-center">
+                    Quét mã QR hoặc chuyển khoản với nội dung chính xác như trên
                   </p>
+
+                  <Button
+                    type="primary"
+                    href={paymentInfo.checkout_url}
+                    target="_blank"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-2 h-10 rounded-xl"
+                  >
+                    <CreditCardOutlined /> Link thanh toán PayOS
+                  </Button>
                 </div>
-                <p className="text-sm text-slate-500 text-center font-medium">
-                  Hết hạn thanh toán: {expiredTime.toLocaleString('vi-VN')}
-                </p>
+                {paymentInfo.expired_at && (
+                  <p className="text-sm text-red-500 text-center font-medium mt-4 bg-red-50 py-2 rounded-lg border border-red-100">
+                    Hết hạn: {dayjs(paymentInfo.expired_at).format('HH:mm DD/MM/YYYY')}
+                  </p>
+                )}
               </div>
             )}
           </div>

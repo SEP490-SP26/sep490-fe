@@ -1,9 +1,15 @@
 import http from "@/lib/httpAxios";
 
-interface PaymentResponse {
-    order_code: string;
-    checkout_url: string;
-    expired_at: string;
+export interface PaymentResponse {
+    order_code: number;
+    checkout_url: string; //dùng để chuyển sang trang thanh toán nếu qr gặp vấn đề
+    expired_at: string; //thời gian hết hạn thanh toán
+    status: string;
+    qr_code: string; //mã thanh toán
+    account_name: string;
+    account_number: string;
+    amount: number;
+    bin: string; //tên ngân hàng
 }
 
 export const paymentApi = {
