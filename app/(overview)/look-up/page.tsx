@@ -62,10 +62,10 @@ export default function CustomerHistoryPage() {
       const response = await lookupsApi.sendOtp(phoneNumber)
 
       if (response.message.includes('OTP đã được gửi')) {
-        message.success('Mã OTP đã được gửi đến email của bạn!')
+        message.success('Mã OTP đã được gửi đến Số điện thoại của bạn!')
         setStep('otp')
       } else if (response.message.includes('Không tìm thấy')) {
-        message.error('Không tìm thấy email nào gắn với số điện thoại này.')
+        message.error('Không tìm thấy Số điện thoại nào gắn với số điện thoại này.')
       } else {
         message.info(response.message)
       }
@@ -341,7 +341,7 @@ export default function CustomerHistoryPage() {
                 <MailOutlined className="text-4xl text-green-500 mb-2" />
                 <Title level={4}>Xác thực OTP</Title>
                 <Text type="secondary">
-                  Nhập mã OTP đã được gửi đến email của bạn
+                  Nhập mã OTP đã được gửi đến Số điện thoại của bạn
                 </Text>
                 <div className="mt-2">
                   <Tag color="blue">{phoneNumber}</Tag>

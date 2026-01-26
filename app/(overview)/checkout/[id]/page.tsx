@@ -615,7 +615,7 @@ export default function RequestDetailPage() {
 
                   <Button
                     type="primary"
-                    href={paymentInfo.checkout_url}
+                    href={paymentInfo.check_out_url}
                     target="_blank"
                     className="w-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-2 h-10 rounded-xl"
                   >

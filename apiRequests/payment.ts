@@ -2,7 +2,7 @@ import http from "@/lib/httpAxios";
 
 export interface PaymentResponse {
     order_code: number;
-    checkout_url: string; //dùng để chuyển sang trang thanh toán nếu qr gặp vấn đề
+    check_out_url: string; //dùng để chuyển sang trang thanh toán nếu qr gặp vấn đề
     expired_at: string; //thời gian hết hạn thanh toán
     status: string;
     qr_code: string; //mã thanh toán
