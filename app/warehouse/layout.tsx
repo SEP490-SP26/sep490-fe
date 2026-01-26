@@ -11,11 +11,6 @@ export default function layoutManager({
 }) {
   const navItems = [
     {
-      path: "/",
-      label: "Lịch Sản Xuất",
-      icon: FiShoppingCart,
-    },
-    {
       path: "/inventory",
       label: "Tồn Kho",
       icon: FaWarehouse,

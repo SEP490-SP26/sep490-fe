@@ -4,6 +4,7 @@ import { useProduction } from "@/context/ProductionContext";
 import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toastService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { useState } from "react";
 import { BiPackage } from "react-icons/bi";
 import {
@@ -19,6 +20,7 @@ import {
 import { FiZap } from "react-icons/fi";
 
 export default function ProductionScheduling() {
+  redirect("/warehouse/inventory");
   const queryClient = useQueryClient();
 
   const {
