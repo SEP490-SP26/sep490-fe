@@ -13,8 +13,8 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const navItems = [
-    { label: "Về chúng tôi", href: "/about" },
-    { label: "Sản phẩm", href: "/products" },
+    // { label: "Về chúng tôi", href: "/about" },
+    // { label: "Sản phẩm", href: "/products" },
     { label: "Tra cứu đơn", href: "/look-up" },
   ];
 

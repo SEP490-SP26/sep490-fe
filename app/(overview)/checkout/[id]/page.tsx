@@ -1,59 +1,48 @@
 "use client";
 
+import { paymentApi, PaymentResponse } from "@/apiRequests/payment";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import {
+  AppstoreOutlined,
   ArrowLeftOutlined,
+  ArrowsAltOutlined,
+  BlockOutlined,
   CalendarOutlined,
   CheckCircleFilled,
   ClockCircleFilled,
-  CloudUploadOutlined,
+  CloseCircleFilled,
+  CreditCardOutlined,
+  DeploymentUnitOutlined,
   EnvironmentOutlined,
-  FileImageOutlined,
+  FileTextOutlined,
+  FormatPainterOutlined,
   HomeOutlined,
   InfoCircleOutlined,
   MailOutlined,
   PhoneOutlined,
+  QrcodeOutlined,
+  SettingOutlined,
   ShoppingOutlined,
   SyncOutlined,
-  UserOutlined,
-  CloseCircleFilled,
-  DownloadOutlined,
-  DeleteOutlined,
-  ExperimentOutlined,
-  BuildOutlined,
-  FormatPainterOutlined,
-  BlockOutlined,
-  CreditCardOutlined,
   TagOutlined,
-  AppstoreOutlined,
-  DeploymentUnitOutlined,
-  FileTextOutlined,
-  SettingOutlined,
-  ArrowsAltOutlined,
-  QrcodeOutlined,
+  UserOutlined
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
 import {
-  Image as AntImage,
+  Breadcrumb,
   Button,
   Card,
-  Descriptions,
-  Divider,
   Empty,
   message,
   Skeleton,
   Tag,
-  Typography,
-  Upload,
-  Breadcrumb,
-  Tooltip,
+  Typography
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { paymentApi, PaymentResponse } from "@/apiRequests/payment";
 import { QRCodeCanvas } from "qrcode.react";
+import { useEffect, useState } from "react";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -166,6 +155,29 @@ export default function RequestDetailPage() {
 
     fetchPaymentQR();
   }, [requestId]);
+
+  // Polling check payment status
+  useEffect(() => {
+    if (!requestId) return;
+
+    const checkPaymentStatus = async () => {
+      try {
+        const response = await paymentApi.getStatusPayment(requestId);
+        const data = (response as any).data || response;
+
+        if (data && data.status === 'PAID') {
+          message.success('Thanh toán thành công!');
+          router.push(`/order-detail/${requestId}`);
+        }
+      } catch (error) {
+        console.error("Error checking payment status:", error);
+      }
+    };
+
+    const intervalId = setInterval(checkPaymentStatus, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [requestId, router]);
 
 
 
@@ -620,6 +632,15 @@ export default function RequestDetailPage() {
                     className="w-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-2 h-10 rounded-xl"
                   >
                     <CreditCardOutlined /> Link thanh toán PayOS
+                  </Button>
+
+                  {/* từ chối yêu cầu */}
+                  <Button
+                    type="primary"
+                    onClick={() => router.push(`/reject-deal`)}
+                    className="w-full bg-red-600 hover:bg-red-500 flex items-center justify-center gap-2 h-10 rounded-xl"
+                  >
+                    Từ chối yêu cầu
                   </Button>
                 </div>
                 {paymentInfo.expired_at && (

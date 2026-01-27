@@ -12,6 +12,15 @@ export interface PaymentResponse {
     bin: string; //tên ngân hàng
 }
 
-export const paymentApi = {
-    getPaymentQR: (request_id: string) => http.get<PaymentResponse>(`/api/Requests/payos-deposit/${request_id}`)
+export interface PaymentStatusResponse {
+    paid: boolean,
+    status: string,
+    order_request_id: number
 }
+
+export const paymentApi = {
+    getPaymentQR: (request_id: string) => http.get<PaymentResponse>(`/api/Requests/payos-deposit/${request_id}`),
+
+    getStatusPayment: (order_request_id: string) => http.get<PaymentResponse>(`/api/Requests/payos/status-by-request-id?order_request_id=${order_request_id}`)
+}
+
