@@ -1,13 +1,13 @@
-import { Alert, Progress, Steps, Card, InputNumber, Button, Badge, Form, Row, Col } from "antd";
-import { WarningOutlined, CalculatorOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
-import { useEffect } from "react";
+import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import {
   EstimateCostResponse,
   EstimatePaperResponse,
 } from "@/schemaValidations/common.schema";
-import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { formatVietnameseNumber } from "@/utils/format";
+import { CalculatorOutlined, WarningOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Col, Form, Row } from "antd";
+import dayjs from "dayjs";
+import { useEffect } from "react";
 
 interface EstimatesCardProps {
   estimate: {
@@ -38,6 +38,7 @@ interface EstimatesCardProps {
   isCreateMode: boolean;
   handleAdjustPrice: () => void;
   orderId: string | null;
+  isSavingCost?: boolean;
 }
 
 export default function EstimatesCard({
@@ -58,6 +59,7 @@ export default function EstimatesCard({
   isCreateMode,
   handleAdjustPrice,
   orderId,
+  isSavingCost = false,
 }: EstimatesCardProps) {
   const daysUntilFree = workshopFreeInfo.days;
 
@@ -280,6 +282,7 @@ export default function EstimatesCard({
                     type="primary"
                     className="w-full "
                     onClick={handleAdjustPrice}
+                    loading={isSavingCost}
                   // disabled={!orderId}
                   >
                     Xác nhận giá chốt
@@ -394,18 +397,10 @@ export default function EstimatesCard({
                             ₫
                           </span>
                         </div>
-                        <div className="flex justify-between text-gray-700">
-                          <span>Chi phí quản lý (10%):</span>
-                          <span>
-                            {(
-                              Math.round(costEstimate.cost.overhead_cost / 10) * 10
-                            ).toLocaleString("vi-VN")}{" "}
-                            ₫
-                          </span>
-                        </div>
+
                       </div>
 
-                      <div className="flex justify-between font-medium">
+                      {/* <div className="flex justify-between font-medium">
                         <span>Giá cơ bản:</span>
                         <span className="text-blue-700">
                           {(
@@ -413,7 +408,7 @@ export default function EstimatesCard({
                           ).toLocaleString("vi-VN")}{" "}
                           ₫
                         </span>
-                      </div>
+                      </div> */}
 
                       {costEstimate.cost.is_rush && (
                         <div className="bg-orange-100 p-2 rounded border border-orange-200">
@@ -434,13 +429,13 @@ export default function EstimatesCard({
                       )}
 
                       <div className="border-t-2 border-blue-300 pt-3 mt-3">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-blue-900">
-                            Tổng giá:
+                        <div className="flex justify-between items-center text-gray-700">
+                          <span className="font-medium">
+                            Tổng tiền hàng:
                           </span>
-                          <span className="font-bold text-lg text-blue-700">
+                          <span className="font-bold text-lg">
                             {(
-                              Math.round(costEstimate.cost.final_total_cost / 10) *
+                              Math.round((costEstimate.cost.subtotal || costEstimate.cost.base_cost) / 10) *
                               10
                             ).toLocaleString("vi-VN")}{" "}
                             ₫
@@ -462,37 +457,57 @@ export default function EstimatesCard({
                               onChange={(e: any) => setDiscountPercent(Number(e.target.value) || 0)}
                               size="small"
                             />
-                            {/* <span className="text-green-800 font-medium">%</span> */}
                           </div>
                           {discountPercent > 0 && (
                             <>
-                              <div className="flex justify-between text-green-700 text-sm">
+                              <div className="flex justify-between text-green-700 text-sm mt-2">
                                 <span>Số tiền giảm:</span>
                                 <span className="font-medium">
                                   -
                                   {Math.round(
-                                    (costEstimate.cost.final_total_cost *
-                                      discountPercent) /
-                                    100
+                                    costEstimate.cost.discount_amount
                                   ).toLocaleString("vi-VN")}{" "}
                                   ₫
                                 </span>
                               </div>
                               <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
                                 <span className="font-bold text-green-900">
-                                  Giá sau giảm:
+                                  Sau chiết khấu:
                                 </span>
                                 <span className="font-bold text-xl text-green-700">
                                   {Math.round(
-                                    (costEstimate.cost.final_total_cost *
-                                      (100 - discountPercent)) /
-                                    100
+                                    (costEstimate.cost.subtotal || 0) - (costEstimate.cost.discount_amount || 0)
                                   ).toLocaleString("vi-VN")}{" "}
                                   ₫
                                 </span>
                               </div>
                             </>
                           )}
+                        </div>
+
+                        {/* VAT (New Location) */}
+                        <div className="flex justify-between items-center mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                          <span className="text-gray-700 font-medium">VAT (10%):</span>
+                          <span className="font-bold text-gray-800">
+                            {(
+                              Math.round(costEstimate.cost.overhead_cost / 10) * 10
+                            ).toLocaleString("vi-VN")}{" "}
+                            ₫
+                          </span>
+                        </div>
+
+                        {/* Final Total */}
+                        <div className="flex justify-between items-center mt-3 p-3 bg-blue-100 rounded border border-blue-200">
+                          <span className="font-medium text-blue-900 ">
+                            Tổng thanh toán:
+                          </span>
+                          <span className="font-bold  text-lg text-blue-700">
+                            {(
+                              Math.round(costEstimate.cost.final_total_cost / 10) *
+                              10
+                            ).toLocaleString("vi-VN")}{" "}
+                            ₫
+                          </span>
                         </div>
 
                         {/* Tiền đặt cọc (30%) */}
@@ -503,12 +518,8 @@ export default function EstimatesCard({
                             </span>
                             <span className="font-bold text-lg text-purple-700">
                               {(() => {
-                                const priceAfterDiscount = discountPercent > 0
-                                  ? (costEstimate.cost.final_total_cost * (100 - discountPercent)) / 100
-                                  : costEstimate.cost.final_total_cost;
-
-                                const deposit = Math.round((priceAfterDiscount * 0.3) / 1000) * 1000;
-
+                                const finalPrice = costEstimate.cost.final_total_cost;
+                                const deposit = Math.round((finalPrice * 0.3) / 1000) * 1000;
                                 return deposit.toLocaleString("vi-VN");
                               })()}{" "}
                               ₫

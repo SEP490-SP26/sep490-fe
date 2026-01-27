@@ -168,7 +168,9 @@ export const mapToOrderEstimationResult = (
   costEstimate: EstimateCostResponse,
   paperEstimate: EstimatePaperResponse,
   orderId: string | number,
-  deliveryDate: any // dayjs or Date
+  deliveryDate: any, // dayjs or Date
+  discountPercent?: number,
+  discountAmount?: number
 ): OrderEstimationResult => {
   const currentOrderId = typeof orderId === 'string' ? parseInt(orderId) : orderId;
 
@@ -229,8 +231,8 @@ export const mapToOrderEstimationResult = (
 
     // Final
     subtotal: costEstimate.cost.subtotal,
-    discount_percent: costEstimate.cost.discount_percent,
-    discount_amount: costEstimate.cost.discount_amount,
+    discount_percent: discountPercent !== undefined ? discountPercent : costEstimate.cost.discount_percent,
+    discount_amount: discountAmount !== undefined ? discountAmount : costEstimate.cost.discount_amount,
     final_total_cost: costEstimate.cost.final_total_cost,
 
     // Time

@@ -98,7 +98,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
 
     const wasteResult = calculateTotalWaste(wasteParams, wasteRules);
 
-    // 7. Tính chi phí
+    // 7. Tính chi phí vật liệu
     const printArea = calculatePrintArea(printSize.print_width_mm, printSize.print_height_mm);
     const totalPrintArea = calculateTotalPrintArea(printArea, quantity);
 
@@ -127,28 +127,10 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
     );
 
     const materialCost = paperCost + inkCost + coatingGlueCost + mountingGlueCost + laminationCost;
-    const overheadCost = calculateOverheadCost(materialCost, config?.systemParameters?.overhead_percent);
-    const baseCost = materialCost + overheadCost;
 
-    // 8. Tính thời gian sản xuất và phí gấp
-    const productionDays = calculateProductionDays(
-      wasteResult.sheetsWithWaste,
-      quantity,
-      processes,
-      machines
-    );
-
-    const rushResult = calculateRushFee(
-      productionDays,
-      desired_delivery_date,
-      baseCost,
-      config
-    );
-
-    // 9. Tính chi phí công đoạn
+    // 8. Tính chi phí công đoạn (Moved up)
     let totalProcessCost = 0;
-    const processDetails: any[] = []; // Use any or ProcessCostDetail[] if imported
-
+    const processDetails: any[] = [];
 
     if (processCosts && processes.length > 0) {
       processes.forEach(processCode => {
@@ -181,18 +163,48 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       });
     }
 
-    // 10. Tính chi phí thiết kế
+    // 9. Tính chi phí thiết kế (Moved up)
     const defaultDesignCost = designConfig?.default_design_cost || 200000;
     const designCost = (!is_send_design && !has_design_file)
       ? defaultDesignCost
       : 0;
 
+    // 10. Tính thời gian sản xuất và phí gấp
+    const productionDays = calculateProductionDays(
+      wasteResult.sheetsWithWaste,
+      quantity,
+      processes,
+      machines
+    );
+
+    // Rush fee based on material cost (or base production cost)
+    // Previously it was based on (Material + old Overhead). 
+    // We will use materialCost to keep it simple and relatively consistent, 
+    // or we could use (materialCost + totalProcessCost).
+    // Let's use Material Cost as the driver for complexity for now.
+    const rushResult = calculateRushFee(
+      productionDays,
+      desired_delivery_date,
+      materialCost,
+      config
+    );
+
     // 11. Tính tổng chi phí
+    // Base Cost = Material + Process + Design
+    const baseCost = materialCost + totalProcessCost + designCost;
+
     const subtotal = baseCost + rushResult.rushAmount;
+
     const validatedDiscount = Math.min(Math.max(discount_percent, 0), 100);
     const discountAmount = subtotal * validatedDiscount / 100;
-    const finalTotalBase = subtotal - discountAmount;
-    const finalTotalCost = roundToThousands(finalTotalBase + totalProcessCost + designCost);
+
+    const priceAfterDiscount = subtotal - discountAmount;
+
+    // Overhead (VAT) calculated on the discounted price
+    const overheadCost = calculateOverheadCost(priceAfterDiscount, config?.systemParameters?.overhead_percent);
+
+    const finalTotalCost = roundToThousands(priceAfterDiscount + overheadCost);
+    const finalTotalBase = priceAfterDiscount; // For compatibility if needed, though finalTotalBase usually implied before process/design in old logic. Here it's effectively PriceAfterDiscount.
 
     return {
       // Thông tin cơ bản
