@@ -635,13 +635,14 @@ export default function RequestDetailPage() {
                   </Button>
 
                   {/* từ chối yêu cầu */}
-                  <Button
+                  {/* <Button
                     type="primary"
-                    onClick={() => router.push(`/reject-deal`)}
+                    danger
+                    onClick={() => router.push(`/reject-deal/${requestId}`)}
                     className="w-full bg-red-600 hover:bg-red-500 flex items-center justify-center gap-2 h-10 rounded-xl"
                   >
                     Từ chối yêu cầu
-                  </Button>
+                  </Button> */}
                 </div>
                 {paymentInfo.expired_at && (
                   <p className="text-sm text-red-500 text-center font-medium mt-4 bg-red-50 py-2 rounded-lg border border-red-100">
