@@ -1,15 +1,23 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { Card, Table, Tag, DatePicker, Input, Space } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { Card, Table, Tag, DatePicker, Input, Space, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
+import { productionsApi } from "@/apiRequests/productions";
+import { useRouter } from "next/navigation";
+
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 /* =======================
    Types
 ======================= */
 
-type ProductionStatus = "Finish" | "InProgress" | "Schedule";
+type ProductionStatus = "Finished" | "InProcessing" | "Scheduled";
 
 interface ProductionOrder {
   order_id: number;
@@ -18,9 +26,8 @@ interface ProductionOrder {
   product_name: string;
   quantity: number;
   delivery_date: string;
-  progress_percent: number;
-  current_stage: string;
-  status: ProductionStatus;
+  current_stage: string | null;
+  production_status: ProductionStatus;
 }
 
 interface ProductionResponse {
@@ -31,51 +38,6 @@ interface ProductionResponse {
 }
 
 /* =======================
-   Fake data (UI demo)
-======================= */
-
-const response: ProductionResponse = {
-  page: 1,
-  pageSize: 10,
-  hasNext: false,
-  data: [
-    {
-      order_id: 41,
-      code: "ORD-00041",
-      customer_name: "TRAN VAN MINH",
-      product_name: "Catalogue sản phẩm",
-      quantity: 500,
-      delivery_date: "2026-01-15T08:30:00.000Z",
-      progress_percent: 100,
-      current_stage: "Hoàn thành",
-      status: "Finish",
-    },
-    {
-      order_id: 42,
-      code: "ORD-00042",
-      customer_name: "LE HOANG NAM",
-      product_name: "Hộp giấy cao cấp",
-      quantity: 1200,
-      delivery_date: "2026-01-18T14:00:00.000Z",
-      progress_percent: 100,
-      current_stage: "Hoàn thành",
-      status: "Finish",
-    },
-    {
-      order_id: 43,
-      code: "ORD-00043",
-      customer_name: "VO PHUC TIEN",
-      product_name: "Thiệp cưới",
-      quantity: 1000,
-      delivery_date: "2026-01-25T10:00:00.000Z",
-      progress_percent: 40,
-      current_stage: "Ralo",
-      status: "InProgress",
-    },
-  ],
-};
-
-/* =======================
    Status config
 ======================= */
 
@@ -83,9 +45,9 @@ const statusConfig: Record<
   ProductionStatus,
   { label: string; color: string }
 > = {
-  Finish: { label: "Hoàn thành", color: "green" },
-  InProgress: { label: "Đang sản xuất", color: "blue" },
-  Schedule: { label: "Đã lên lịch", color: "orange" },
+  Finished: { label: "Hoàn thành", color: "green" },
+  InProcessing: { label: "Đang sản xuất", color: "blue" },
+  Scheduled: { label: "Đã lên lịch", color: "orange" },
 };
 
 /* =======================
@@ -93,17 +55,43 @@ const statusConfig: Record<
 ======================= */
 
 const FinishProduction: React.FC = () => {
+  const router = useRouter();
+
+  const [data, setData] = useState<ProductionOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const [customerKeyword, setCustomerKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] =
     useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   /* =======================
-     Filter only FINISH
+     Fetch API
+  ======================= */
+
+  useEffect(() => {
+    const fetchProductions = async () => {
+      try {
+        setLoading(true);
+        const res: ProductionResponse =
+          await productionsApi.getAllProduction();
+        setData(res.data || []);
+      } catch (err) {
+        console.error("Fetch production error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductions();
+  }, []);
+
+  /* =======================
+     Filter FINISHED only
   ======================= */
 
   const filteredData = useMemo(() => {
-    return response.data
-      .filter((o) => o.status === "Finish")
+    return data
+      .filter((o) => o.production_status === "Finished")
       .filter((o) =>
         customerKeyword
           ? o.customer_name
@@ -112,17 +100,17 @@ const FinishProduction: React.FC = () => {
           : true
       )
       .filter((o) => {
-        if (!deliveryRange || !deliveryRange[0] || !deliveryRange[1]) return true;
+        if (!deliveryRange?.[0] || !deliveryRange?.[1]) return true;
         const d = dayjs(o.delivery_date);
         return (
-          d.isAfter(deliveryRange[0], "day") &&
-          d.isBefore(deliveryRange[1], "day")
+          d.isSameOrAfter(deliveryRange[0], "day") &&
+          d.isSameOrBefore(deliveryRange[1], "day")
         );
       });
-  }, [customerKeyword, deliveryRange]);
+  }, [data, customerKeyword, deliveryRange]);
 
   /* =======================
-     Columns
+     Columns (NO progress)
   ======================= */
 
   const columns: ColumnsType<ProductionOrder> = [
@@ -145,18 +133,13 @@ const FinishProduction: React.FC = () => {
       align: "right",
     },
     {
-      title: "Ngày giao",
+      title: "Ngày hoàn thành",
       dataIndex: "delivery_date",
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
     {
-      title: "Tiến độ",
-      dataIndex: "progress_percent",
-      render: (v: number) => <Tag color="green">{v}%</Tag>,
-    },
-    {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "production_status",
       render: (status: ProductionStatus) => (
         <Tag color={statusConfig[status].color}>
           {statusConfig[status].label}
@@ -164,6 +147,10 @@ const FinishProduction: React.FC = () => {
       ),
     },
   ];
+
+  /* =======================
+     Render
+  ======================= */
 
   return (
     <Card title="Đơn sản xuất hoàn thành">
@@ -178,17 +165,26 @@ const FinishProduction: React.FC = () => {
 
         <DatePicker.RangePicker
           format="DD/MM/YYYY"
+          placeholder={["Từ ngày", "Đến ngày"]}
           onChange={(v) => setDeliveryRange(v)}
         />
       </Space>
 
       {/* Table */}
-      <Table
-        rowKey="order_id"
-        columns={columns}
-        dataSource={filteredData}
-        pagination={{ pageSize: 5 }}
-      />
+      <Spin spinning={loading}>
+        <Table
+          rowKey="order_id"
+          columns={columns}
+          dataSource={filteredData}
+          pagination={{ pageSize: 5 }}
+          onRow={(record) => ({
+            onClick: () => {
+              router.push(`/staff/production/${record.order_id}`);
+            },
+            style: { cursor: "pointer" },
+          })}
+        />
+      </Spin>
     </Card>
   );
 };

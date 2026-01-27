@@ -12,7 +12,7 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import { LuLayoutDashboard } from "react-icons/lu";
-import { FaWarehouse } from "react-icons/fa";
+import { FaSuitcase, FaWarehouse } from "react-icons/fa";
 import { NavItem } from "./Sidebar";
 
 // Preset cho Consultant
@@ -75,6 +75,12 @@ export const staffNavItems: NavItem[] = [
     path: "/",
     label: "Lịch Sản Xuất",
     icon: FiCalendar,
+    basePath: "/staff",
+  },
+  {
+    path: "/finish-production",
+    label: "Đã hoàn thành sản xuất",
+    icon: FaSuitcase,
     basePath: "/staff",
   },
   {
