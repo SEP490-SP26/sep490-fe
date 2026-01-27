@@ -1,15 +1,17 @@
 "use client";
 import { managerNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { BiCalendarCheck, BiLogOut, BiPackage } from "react-icons/bi";
 import { LuLayoutDashboard } from "react-icons/lu";
 
-export default function layoutManager({
+export default function LayoutManager({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const navItems = [
     {
       path: "/manager",
@@ -72,8 +74,10 @@ export default function layoutManager({
         }}
         navItems={[...managerNavItems]}
         onLogout={() => {
-          
-          console.log("Logout clicked");
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+          router.push("/login");
         }}
         onItemClick={(item) => {
           // Xử lý khi click vào item
