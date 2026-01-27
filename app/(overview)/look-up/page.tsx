@@ -22,6 +22,7 @@ import {
   Table,
   Tag,
   Typography,
+  Tabs,
   message
 } from 'antd'
 import dayjs from 'dayjs'
@@ -62,10 +63,10 @@ export default function CustomerHistoryPage() {
       const response = await lookupsApi.sendOtp(phoneNumber)
 
       if (response.message.includes('OTP đã được gửi')) {
-        message.success('Mã OTP đã được gửi đến email của bạn!')
+        message.success('Mã OTP đã được gửi đến Số điện thoại của bạn!')
         setStep('otp')
       } else if (response.message.includes('Không tìm thấy')) {
-        message.error('Không tìm thấy email nào gắn với số điện thoại này.')
+        message.error('Không tìm thấy Số điện thoại nào gắn với số điện thoại này.')
       } else {
         message.info(response.message)
       }
@@ -79,7 +80,7 @@ export default function CustomerHistoryPage() {
   }
 
   // --- BƯỚC 2: XÁC THỰC OTP VÀ LẤY LỊCH SỬ order và request ---
-  const handleVerifyOtp = async (page: number = 1, phoneArg?: string, otpArg?: string) => {
+  const handleVerifyOtp = async (page: number = 1, type: 'orders' | 'requests' | 'all' = 'all', phoneArg?: string, otpArg?: string) => {
     const phone = phoneArg || phoneNumber
     const otp = otpArg || otpCode
 
@@ -90,34 +91,43 @@ export default function CustomerHistoryPage() {
 
     setLoading(true)
     try {
-      console.log('phone', phone, 'otp', otp, 'page', page)
+      console.log('phone', phone, 'otp', otp, 'page', page, 'type', type)
       const response = await lookupsApi.getHistory(phone, otp, page, 15)
 
-      setMyRequests(response.requests.data || [])
-      setMyOrders(response.orders.data || [])
-      setPaginationOrder({
-        page: response.orders.page,
-        pageSize: response.orders.pageSize,
-        hasNext: response.orders.hasNext,
-      })
-
       // Lưu phone và otp đã xác thực vào sessionStorage
-      sessionStorage.setItem('verified_phone', phone)
-      sessionStorage.setItem('verified_otp', otp)
-
-      setStep('result')
-
-      if (response.orders.data?.length === 0) {
-        // message.info('Không tìm thấy đơn hàng nào.')
-      } else {
-        // message.success(`Tìm thấy ${response.orders.data?.length || 0} đơn hàng.`)
+      if (type === 'all') {
+        sessionStorage.setItem('verified_phone', phone)
+        sessionStorage.setItem('verified_otp', otp)
+        setStep('result')
       }
 
-      if (response.requests.data?.length === 0) {
-        // message.info('Không tìm thấy yêu cầu nào.')
-      } else {
-        // message.success(`Tìm thấy ${response.requests.data?.length || 0} đơn hàng.`)
+      if (type === 'all' || type === 'requests') {
+        setMyRequests(response.requests.data || [])
+        setPaginationRequest({
+          page: response.requests.page,
+          pageSize: response.requests.pageSize,
+          hasNext: response.requests.hasNext,
+        })
       }
+
+      if (type === 'all' || type === 'orders') {
+        setMyOrders(response.orders.data || [])
+        setPaginationOrder({
+          page: response.orders.page,
+          pageSize: response.orders.pageSize,
+          hasNext: response.orders.hasNext,
+        })
+      }
+
+      if (type === 'all') {
+        if (response.orders.data?.length === 0) {
+          // message.info('Không tìm thấy đơn hàng nào.')
+        }
+        if (response.requests.data?.length === 0) {
+          // message.info('Không tìm thấy yêu cầu nào.')
+        }
+      }
+
     } catch (error: any) {
       console.error('Error verifying OTP:', error)
       const errorMsg = error?.response?.data?.message || 'OTP không hợp lệ hoặc đã hết hạn.'
@@ -136,7 +146,7 @@ export default function CustomerHistoryPage() {
       setPhoneNumber(savedPhone)
       setOtpCode(savedOtp)
       // Tự động verify nếu có data
-      handleVerifyOtp(1, savedPhone, savedOtp)
+      handleVerifyOtp(1, 'all', savedPhone, savedOtp)
     }
   }, [])
 
@@ -271,6 +281,73 @@ export default function CustomerHistoryPage() {
 
   ]
 
+  const tabItems = [
+    {
+      key: 'orders',
+      label: (
+        <span>
+          Đơn hàng {myOrders.length > 0 && <Tag color="blue" className="ml-1">{myOrders.length}</Tag>}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columns}
+          dataSource={myOrders}
+          rowKey="order_id"
+          pagination={{
+            current: paginationOrder.page,
+            pageSize: paginationOrder.pageSize,
+            onChange: (page) => handleVerifyOtp(page, 'orders'),
+            size: 'small',
+            showSizeChanger: false
+          }}
+          locale={{
+            emptyText: <Empty description="Chưa có đơn hàng nào" />,
+          }}
+          loading={loading}
+          onRow={(record) => ({
+            onClick: () => router.push(`/order-detail/${record.order_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
+          scroll={{ x: 'max-content' }}
+          className="border rounded-lg overflow-hidden shadow-sm"
+        />
+      ),
+    },
+    {
+      key: 'requests',
+      label: (
+        <span>
+          Yêu cầu {myRequests.length > 0 && <Tag color="indigo" className="ml-1">{myRequests.length}</Tag>}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columnsRequest}
+          dataSource={myRequests}
+          rowKey="order_request_id"
+          pagination={{
+            current: paginationRequest.page,
+            pageSize: paginationRequest.pageSize,
+            onChange: (page) => handleVerifyOtp(page, 'requests'),
+            size: 'small',
+            showSizeChanger: false
+          }}
+          locale={{
+            emptyText: <Empty description="Chưa có yêu cầu nào" />,
+          }}
+          loading={loading}
+          onRow={(record: any) => ({
+            onClick: () => router.push(`/request-detail/${record.request_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
+          scroll={{ x: 'max-content' }}
+          className="border rounded-lg overflow-hidden shadow-sm"
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">
       <div className={`mx-auto transition-all duration-300 ${step === 'result' ? 'max-w-[95%] xl:max-w-7xl' : 'max-w-4xl'}`}>
@@ -341,7 +418,7 @@ export default function CustomerHistoryPage() {
                 <MailOutlined className="text-4xl text-green-500 mb-2" />
                 <Title level={4}>Xác thực OTP</Title>
                 <Text type="secondary">
-                  Nhập mã OTP đã được gửi đến email của bạn
+                  Nhập mã OTP đã được gửi đến Số điện thoại của bạn
                 </Text>
                 <div className="mt-2">
                   <Tag color="blue">{phoneNumber}</Tag>
@@ -399,67 +476,11 @@ export default function CustomerHistoryPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {/* Bảng Đơn Hàng */}
-                <div className="flex flex-col">
-                  <div className="mb-3 flex items-center justify-between">
-                    <Title level={5} className="!mb-0 text-blue-600">
-                      📦 Đơn hàng ({myOrders.length})
-                    </Title>
-                  </div>
-                  <Table
-                    columns={columns}
-                    dataSource={myOrders}
-                    rowKey="order_id"
-                    pagination={{
-                      current: paginationOrder.page,
-                      pageSize: paginationOrder.pageSize,
-                      onChange: (page) => handleVerifyOtp(page),
-                      size: 'small'
-                    }}
-                    locale={{
-                      emptyText: <Empty description="Chưa có đơn hàng nào" />,
-                    }}
-                    loading={loading}
-                    onRow={(record) => ({
-                      onClick: () => router.push(`/order-detail/${record.order_id}`),
-                      className: 'cursor-pointer hover:bg-slate-50 transition-colors',
-                    })}
-                    scroll={{ x: 'max-content' }}
-                    className="border rounded-lg overflow-hidden shadow-sm"
-                  />
-                </div>
-
-                {/* Bảng Yêu Cầu */}
-                <div className="flex flex-col">
-                  <div className="mb-3 flex items-center justify-between">
-                    <Title level={5} className="!mb-0 text-indigo-600">
-                      📄 Yêu cầu ({myRequests.length})
-                    </Title>
-                  </div>
-                  <Table
-                    columns={columnsRequest}
-                    dataSource={myRequests}
-                    rowKey="order_request_id"
-                    pagination={{
-                      current: paginationRequest.page,
-                      pageSize: paginationRequest.pageSize,
-                      onChange: (page) => handleVerifyOtp(page),
-                      size: 'small'
-                    }}
-                    locale={{
-                      emptyText: <Empty description="Chưa có yêu cầu nào" />,
-                    }}
-                    loading={loading}
-                    onRow={(record: any) => ({
-                      onClick: () => router.push(`/request-detail/${record.order_request_id ?? record.requset_id ?? record.order_id}`),
-                      className: 'cursor-pointer hover:bg-slate-50 transition-colors',
-                    })}
-                    scroll={{ x: 'max-content' }}
-                    className="border rounded-lg overflow-hidden shadow-sm"
-                  />
-                </div>
-              </div>
+              <Tabs
+                defaultActiveKey="orders"
+                items={tabItems}
+                size="large"
+              />
 
               <div className="text-center mt-8 pt-4 border-t">
                 <Link href="/request">

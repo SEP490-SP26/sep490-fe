@@ -1,60 +1,37 @@
-'use client";'
-import Link from "next/link";
-import React from "react";
-import { FaWarehouse } from "react-icons/fa";
-import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
+"use client";
 
-export default function layoutManager({
+import { warehouseNavItems } from "@/components/sidebar/presets";
+import Sidebar from "@/components/sidebar/Sidebar";
+import { useRouter } from "next/navigation";
+import React from "react";
+
+export default function LayoutWarehouse({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const navItems = [
-    {
-      path: "/inventory",
-      label: "Tồn Kho",
-      icon: FaWarehouse,
-    },
-    {
-    path: "/purchase",
-    label: "Đặt nguyên vật liệu",
-    icon: FiList,
-    basePath: "/warehouse",
-  },
-    { path: "/", label: "Đăng xuất", icon: FiLogOut },
-  ];
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    router.push("/login");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
-        <div className="p-6">
-          <h1 className="text-blue-600 text-xl font-semibold">Quản Lý In Ấn</h1>
-        </div>
-
-        <nav className="px-4">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = false;
-
-            return (
-              <Link
-                href={"/warehouse" + item.path}
-                key={item.path}
-                className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-700 hover:bg-gray-100"
-                  }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+      <Sidebar
+        userInfo={{
+          name: "Warehouse",
+          role: "Thủ kho",
+        }}
+        navItems={warehouseNavItems}
+        onLogout={handleLogout}
+      />
 
       {/* Main content */}
-      <main className="ml-64 p-8">{children}</main>
+      <main className="ml-72 p-8">{children}</main>
     </div>
   );
 }

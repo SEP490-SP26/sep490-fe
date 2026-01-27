@@ -23,8 +23,10 @@ export default function LayoutManager({
         navItems={[...consultantNavItems]}
         onLogout={() => {
           // Xử lý logout
-          router.push("/");
-          console.log("Logout clicked");
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+          router.push("/login");
         }}
         onItemClick={(item) => {
           // Xử lý khi click vào item

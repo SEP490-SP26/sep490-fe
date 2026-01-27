@@ -9,8 +9,10 @@ import {
   FiHome,
   FiDollarSign,
   FiUser,
+  FiCalendar,
 } from "react-icons/fi";
 import { LuLayoutDashboard } from "react-icons/lu";
+import { FaWarehouse } from "react-icons/fa";
 import { NavItem } from "./Sidebar";
 
 // Preset cho Consultant
@@ -27,12 +29,12 @@ export const consultantNavItems: NavItem[] = [
     icon: FiList,
     basePath: "/consultant",
   },
-  {
-    path: "/history",
-    label: "Quản Lý Đơn Hàng",
-    icon: FiPackage,
-    basePath: "/consultant",
-  },
+  // {
+  //   path: "/history",
+  //   label: "Quản Lý Đơn Hàng",
+  //   icon: FiPackage,
+  //   basePath: "/consultant",
+  // },
   {
     path: "/",
     label: "Đăng xuất",
@@ -44,41 +46,58 @@ export const consultantNavItems: NavItem[] = [
 // Preset cho Admin
 export const adminNavItems: NavItem[] = [
   {
-    path: "/dashboard",
+    path: "/",
     label: "Dashboard",
-    icon: FiHome,
+    icon: LuLayoutDashboard,
     basePath: "/admin",
-    exact: true,
+    // exact: true,
+  },
+  { path: "/orders", label: "Đơn hàng", icon: FiShoppingCart, basePath: "/admin" },
+  { path: "/purchase", label: "Mua hàng", icon: FiPackage, basePath: "/admin" },
+  {
+    path: "/production",
+    label: "Sản xuất",
+    icon: FiCalendar,
+    basePath: "/admin"
+  },
+  { path: "/inventory", label: "Kho", icon: FaWarehouse, basePath: "/admin" },
+  {
+    path: "/",
+    label: "Đăng xuất",
+    icon: FiLogOut,
+    isLogout: true,
+  },
+];
+
+// Preset cho Staff
+export const staffNavItems: NavItem[] = [
+  {
+    path: "/",
+    label: "Lịch Sản Xuất",
+    icon: FiCalendar,
+    basePath: "/staff",
   },
   {
-    path: "/users",
-    label: "Quản lý người dùng",
-    icon: FiUsers,
-    basePath: "/admin",
+    path: "/",
+    label: "Đăng xuất",
+    icon: FiLogOut,
+    isLogout: true,
+  },
+];
+
+// Preset cho Warehouse
+export const warehouseNavItems: NavItem[] = [
+  {
+    path: "/inventory",
+    label: "Tồn Kho",
+    icon: FaWarehouse,
+    basePath: "/warehouse",
   },
   {
-    path: "/orders",
-    label: "Tất cả đơn hàng",
+    path: "/purchase",
+    label: "Đặt nguyên vật liệu",
     icon: FiList,
-    basePath: "/admin",
-  },
-  {
-    path: "/reports",
-    label: "Báo cáo",
-    icon: FiBarChart2,
-    basePath: "/admin",
-  },
-  {
-    path: "/finance",
-    label: "Tài chính",
-    icon: FiDollarSign,
-    basePath: "/admin",
-  },
-  {
-    path: "/settings",
-    label: "Cài đặt",
-    icon: FiSettings,
-    basePath: "/admin",
+    basePath: "/warehouse",
   },
   {
     path: "/",

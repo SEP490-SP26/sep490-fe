@@ -1,77 +1,37 @@
 "use client";
 
-import Link from "next/link";
+import { staffNavItems } from "@/components/sidebar/presets";
+import Sidebar from "@/components/sidebar/Sidebar";
+import { useRouter } from "next/navigation";
 import React from "react";
-import { usePathname } from "next/navigation";
-import { FaTasks, FaUserCircle } from "react-icons/fa";
-import {
-  FiCalendar,
-  FiLogOut,
-} from "react-icons/fi";
 
 export default function StaffLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const router = useRouter();
 
-  const navItems = [
-    {
-      path: "/",
-      label: "Lịch Sản Xuất",
-      icon: FiCalendar,
-    },
-    {
-      path: "/finish-production",
-      label: "Đã Sản Xuất",
-      icon: FaTasks,
-    },
-    {
-      path: "/logout",
-      label: "Đăng xuất",
-      icon: FiLogOut,
-    },
-  ];
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    router.push("/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
-        <div className="p-6">
-          <h1 className="text-blue-600 text-xl font-semibold">
-            Staff Panel
-          </h1>
-        </div>
-
-        <nav className="px-4">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const fullPath = "/staff" + item.path;
-            const isActive =
-              pathname === fullPath ||
-              (item.path === "" && pathname === "/staff");
-
-            return (
-              <Link
-                key={item.label}
-                href={fullPath}
-                className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+      <Sidebar
+        userInfo={{
+          name: "Staff",
+          role: "Nhân viên sản xuất",
+        }}
+        navItems={staffNavItems}
+        onLogout={handleLogout}
+      />
 
       {/* Main content */}
-      <main className="ml-64 p-8">{children}</main>
+      <main className="ml-72 p-8">{children}</main>
     </div>
   );
 }

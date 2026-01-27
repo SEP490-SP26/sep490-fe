@@ -133,8 +133,11 @@ export default function LoginPage() {
         case 3:
           router.replace("/manager");
           break;
-        case 5:
+        case 4:
           router.replace("/warehouse");
+          break;
+        case 5:
+          router.replace("/staff");
           break;
         default:
           router.replace("/home");
