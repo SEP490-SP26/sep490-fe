@@ -338,7 +338,7 @@ export default function CustomerHistoryPage() {
           }}
           loading={loading}
           onRow={(record: any) => ({
-            onClick: () => router.push(`/request-detail/${record.order_request_id ?? record.requset_id ?? record.order_id}`),
+            onClick: () => router.push(`/request-detail/${record.requset_id}`),
             className: 'cursor-pointer hover:bg-slate-50 transition-colors',
           })}
           scroll={{ x: 'max-content' }}
