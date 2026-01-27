@@ -489,7 +489,7 @@ export default function RequestDetailPage() {
                     </div>
 
                     {/* Quy trình sản xuất - Chiếm cả 2 cột */}
-                    <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    {/* <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                           <SettingOutlined className="text-blue-600" />
@@ -509,7 +509,7 @@ export default function RequestDetailPage() {
                           <span className="text-slate-400 italic">Chưa có quy trình</span>
                         )}
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>

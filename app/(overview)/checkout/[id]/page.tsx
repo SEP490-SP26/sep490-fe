@@ -343,7 +343,7 @@ export default function RequestDetailPage() {
                   <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Số điện thoại</Text>
                   <Paragraph className="text-base mt-1">
                     <a href={`tel:${orderDetail.customer_phone}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                      <PhoneOutlined /> {orderDetail.customer_phone}
+                      {orderDetail.customer_phone}
                     </a>
                   </Paragraph>
                 </div>
@@ -351,14 +351,13 @@ export default function RequestDetailPage() {
                   <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Email</Text>
                   <Paragraph className="text-base mt-1">
                     <a href={`mailto:${orderDetail.customer_email}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                      <MailOutlined /> {orderDetail.customer_email}
+                      {orderDetail.customer_email}
                     </a>
                   </Paragraph>
                 </div>
                 <div className="md:col-span-4">
                   <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Địa chỉ giao hàng</Text>
                   <Paragraph className="text-slate-700 text-base mt-1 flex items-start gap-2">
-                    <EnvironmentOutlined className="mt-1 text-slate-400" />
                     {orderDetail.detail_address || <span className="text-slate-400 italic">Chưa cập nhật địa chỉ</span>}
                   </Paragraph>
                 </div>
@@ -517,7 +516,7 @@ export default function RequestDetailPage() {
                     </div>
 
                     {/* Quy trình sản xuất - Chiếm cả 2 cột */}
-                    <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    {/* <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                           <SettingOutlined className="text-blue-600" />
@@ -537,7 +536,7 @@ export default function RequestDetailPage() {
                           <span className="text-slate-400 italic">Chưa có quy trình</span>
                         )}
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>

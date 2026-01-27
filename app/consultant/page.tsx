@@ -53,6 +53,7 @@ import {
   getEstimatedFreeDate,
   mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
+import { isVietnamHoliday } from "@/utils/vietnamHolidays";
 
 const PRODUCT_SUGGESTIONS = [
   "Hộp bánh trung thu cao cấp",
@@ -87,6 +88,8 @@ function ConsultantForm() {
   const orderId = searchParams.get("orderId");
   const modeParam = searchParams.get("mode");
   const [loading, setLoading] = useState(false);
+
+  const [isSavingCost, setIsSavingCost] = useState(false);
 
   const existingOrder = orderId
     ? orders.find((o) => o.order_id === orderId)
@@ -578,7 +581,7 @@ function ConsultantForm() {
     if (form.getFieldValue("paper_code") && form.getFieldValue("quantity")) {
       calculateEstimates();
     }
-  }, [isSendDesign, configLoading]); // Added configLoading dependency
+  }, [isSendDesign, configLoading, discountPercent]); // Added configLoading and discountPercent dependency
 
 
   const onFinish = async (values: any) => {
@@ -774,15 +777,22 @@ function ConsultantForm() {
       message.error("Không tìm thấy mã đơn hàng!");
       return;
     }
+
+    setIsSavingCost(true);
     try {
 
       if (costEstimate && paperEstimate) {
         try {
+          const originalPrice = costEstimate.cost.final_total_cost;
+          const discountAmount = Math.round((originalPrice * discountPercent) / 100);
+
           const estimationResult = mapToOrderEstimationResult(
             costEstimate,
             paperEstimate,
             orderId,
-            form.getFieldValue("delivery_date")
+            form.getFieldValue("delivery_date"),
+            discountPercent,
+            discountAmount
           );
           await estimatesApi.costSave(estimationResult);
         } catch (costError) {
@@ -795,6 +805,8 @@ function ConsultantForm() {
     } catch (error) {
       console.error("Error adjusting cost:", error);
       message.error("Có lỗi khi cập nhật giá. Vui lòng thử lại.");
+    } finally {
+      setIsSavingCost(false);
     }
   }
 
@@ -1019,6 +1031,7 @@ function ConsultantForm() {
                 isCreateMode={isCreateMode}
                 handleAdjustPrice={handleAdjustPrice}
                 orderId={orderId}
+                isSavingCost={isSavingCost}
               />
             </Col>
           </Row>

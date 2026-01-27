@@ -3,6 +3,7 @@ import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { RangePickerProps } from "antd/es/date-picker";
 import dayjs from "dayjs";
 import { FloatingDatePicker } from "@/components/Input/FloatingDatePicker";
+import { isVietnamHoliday } from "@/utils/vietnamHolidays";
 
 interface CustomerInfoSectionProps {
   orderId: string | null;
@@ -13,7 +14,7 @@ interface CustomerInfoSectionProps {
 }
 
 const disabledDate: RangePickerProps["disabledDate"] = (current) => {
-  return current && current < dayjs().endOf("day");
+  return (current && current < dayjs().endOf("day")) || isVietnamHoliday(current);
 };
 
 export default function CustomerInfoSection({
