@@ -482,21 +482,17 @@ export default function PurchaseManagement() {
                         <input
                           type="checkbox"
                           checked={
-                            selectedMaterials.length ===
-                            missing_materials.length &&
-                            missing_materials.length > 0
+                            displayMaterials.length > 0 &&
+                            selectedMaterials.length === displayMaterials.length
                           }
                           onChange={(e) => {
                             if (e.target.checked) {
-                              // Select all với quantity hiện tại hoặc default
-                              const allMaterials = missing_materials.map(
-                                (pr: any) => ({
-                                  material_id: pr.material_id,
-                                  quantity:
-                                    materialQuantities[pr.material_id] ||
-                                    pr.needed,
-                                })
-                              );
+                              const allMaterials = displayMaterials.map((pr: any) => ({
+                                material_id: pr.material_id,
+                                ui_id: pr.ui_id,          // 🔥 BẮT BUỘC
+                                quantity: Math.round(pr.quantity),
+                                price: 0,
+                              }));
                               setSelectedMaterials(allMaterials);
                             } else {
                               setSelectedMaterials([]);
@@ -542,13 +538,11 @@ export default function PurchaseManagement() {
                           <td className="px-4 py-3">
                             <input
                               type="checkbox"
-                              checked={selectedMaterials.some(
-                                (m) => m.ui_id === pr.ui_id
-                              )}
+                              checked={selectedMaterials.some(m => m.ui_id === pr.ui_id)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setSelectedMaterials([
-                                    ...selectedMaterials,
+                                  setSelectedMaterials(prev => [
+                                    ...prev,
                                     {
                                       material_id: pr.material_id,
                                       ui_id: pr.ui_id,
@@ -557,11 +551,8 @@ export default function PurchaseManagement() {
                                     },
                                   ]);
                                 } else {
-                                  setSelectedMaterials(
-                                    selectedMaterials.filter(
-                                      (item) =>
-                                        item.ui_id !== pr.ui_id
-                                    )
+                                  setSelectedMaterials(prev =>
+                                    prev.filter(item => item.ui_id !== pr.ui_id)
                                   );
                                 }
                               }}
@@ -1270,27 +1261,58 @@ export default function PurchaseManagement() {
 
           <div className="flex gap-3 pt-4">
             <button
-              onClick={() => {
-                if (!directMaterialId || !directQuantity || !directSupplierId) {
-                  showWarningToast("Vui lòng nhập đầy đủ thông tin");
-                  return;
-                }
+              onClick={async () => {
+                  if (!directMaterialId || !directQuantity || !directSupplierId) {
+                    showWarningToast("Vui lòng nhập đầy đủ thông tin");
+                    return;
+                  }
 
-                console.log("Direct PO:", {
-                  material_id: directMaterialId,
-                  quantity: directQuantity,
-                  supplier_id: directSupplierId,
-                });
+                  const quantity = Number(directQuantity);
+                  if (quantity <= 0) {
+                    showWarningToast("Số lượng phải lớn hơn 0");
+                    return;
+                  }
 
-                // TODO: call API create direct PO
-                showSuccessToast("Tạo đơn đặt hàng trực tiếp thành công");
-                setShowDirectPO(false);
-              }}
+                  // 🔥 MAP CODE -> ID
+                  const material = materials.find(
+                    (m) => m.id === directMaterialId
+                  );
+                  
+                  if (!material) {
+                    showWarningToast("Không tìm thấy vật tư hợp lệ");
+                    return;
+                  }
+                  const materialIdNum = Number(material.id.replace("m", ""));
+                  try {
+                    const payload = {
+                      supplier_id: Number(directSupplierId),
+                      items: [
+                        {
+                          material_id: materialIdNum, // ✅ ID số
+                          quantity,
+                          price: 0,
+                        },
+                      ],
+                    };
+
+                    console.log(
+                      "Create PO (Direct) payload:",
+                      JSON.stringify(payload, null, 2)
+                    );
+
+                    await purchasesApi.createPO(payload);
+
+                    showSuccessToast("Tạo đơn đặt hàng trực tiếp thành công");
+                    setShowDirectPO(false);
+                  } catch (error: any) {
+                    console.error("Create PO error:", error);
+                    showErrorToast("Tạo đơn đặt hàng thất bại");
+                  }
+                }}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Tạo đơn đặt hàng
             </button>
-
             <button
               onClick={() => setShowDirectPO(false)}
               className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
