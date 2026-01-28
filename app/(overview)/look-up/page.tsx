@@ -177,18 +177,18 @@ export default function CustomerHistoryPage() {
 
   // --- HIỂN THỊ TRẠNG THÁI ---
   const renderStatus = (status: string) => {
-    const statusLower = status?.toLowerCase()
+    const statusLower = status?.toUpperCase()
     switch (statusLower) {
-      case 'pending':
+      case 'PENDING':
         return <Tag icon={<ClockCircleOutlined />} color="blue">Chờ Xử Lý</Tag>
-      case 'processing':
+      case 'WAITING':
         return <Tag icon={<SyncOutlined spin />} color="orange">Đang Xử Lý</Tag>
-      case 'in_production':
+      case 'IN_PRODUCTION':
         return <Tag icon={<SyncOutlined spin />} color="purple">Đang Sản Xuất</Tag>
-      case 'completed':
+      case 'COMPLETED':
         return <Tag icon={<CheckCircleOutlined />} color="green">Hoàn Thành</Tag>
-      case 'cancelled':
-      case 'rejected':
+      case 'CANCELLED':
+      case 'REJECTED':
         return <Tag icon={<CloseCircleOutlined />} color="red">Đã Hủy</Tag>
       case 'not enough':
         return <Tag color="orange">Chưa đủ điều kiện</Tag>
@@ -347,6 +347,19 @@ export default function CustomerHistoryPage() {
       ),
     },
   ];
+
+  // const getStatusLabel = (status: string) => {
+  //   const labels: Record<string, string> = {
+  //     consultant_verified: "Chờ Duyệt",
+  //     manager_approved: "Đang Sản Xuất",
+  //     rejected: "Từ Chối",
+  //     pending: "Chờ xử lý",
+  //     scheduled: "Đã lên lịch",
+  //     in_production: "Đang sản xuất",
+  //     completed: "Hoàn thành",
+  //   };
+  //   return labels[status] || status;
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">

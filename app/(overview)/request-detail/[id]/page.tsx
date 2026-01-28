@@ -229,7 +229,7 @@ export default function RequestDetailPage() {
         <span>{textMap[status] || status}</span>
       </div>
     );
-  };
+  }; 
 
   if (loading) {
     return (
@@ -610,7 +610,7 @@ export default function RequestDetailPage() {
               )}
 
               {/* Upload Area */}
-              <div className="mt-2">
+              {/* <div className="mt-2">
                 {!orderDetail.design_file_path ? (
                   <Upload
                     customRequest={handleUpload}
@@ -640,11 +640,11 @@ export default function RequestDetailPage() {
                   </Upload>
                 ) : (
                   <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 text-amber-700 text-sm">
-                    {/* <InfoCircleOutlined className="mt-1 flex-shrink-0" />
-                <span>Đã có file thiết kế. Nếu cần thay đổi, vui lòng liên hệ quản trị viên.</span> */}
+                    <InfoCircleOutlined className="mt-1 flex-shrink-0" />
+                <span>Đã có file thiết kế. Nếu cần thay đổi, vui lòng liên hệ quản trị viên.</span>
                   </div>
                 )}
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

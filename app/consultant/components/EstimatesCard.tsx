@@ -4,7 +4,7 @@ import {
   EstimatePaperResponse,
 } from "@/schemaValidations/common.schema";
 import { formatVietnameseNumber } from "@/utils/format";
-import { CalculatorOutlined, WarningOutlined } from "@ant-design/icons";
+import { CalculatorOutlined, LoadingOutlined, WarningOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Col, Form, Row } from "antd";
 import dayjs from "dayjs";
 import { useEffect } from "react";
@@ -66,12 +66,8 @@ export default function EstimatesCard({
   // Auto-update final_price when discount changes
   useEffect(() => {
     if (costEstimate?.cost?.final_total_cost) {
-      const originalPrice = costEstimate.cost.final_total_cost;
-      const discountedPrice = discountPercent > 0
-        ? (originalPrice * (100 - discountPercent)) / 100
-        : originalPrice;
-
-      const roundedPrice = Math.round(discountedPrice / 1000) * 1000;
+      const price = costEstimate.cost.final_total_cost;
+      const roundedPrice = Math.round(price / 1000) * 1000;
 
       form.setFieldValue("final_price", roundedPrice);
     }
@@ -248,21 +244,6 @@ export default function EstimatesCard({
                   <Form.Item
                     name="final_price"
                     className="flex justify-end"
-                  // rules={[
-                  //   {
-                  //     validator: (_, value) => {
-                  //       const baseCost = costEstimate?.cost?.base_cost || 0;
-                  //       if (value !== undefined && value < baseCost) {
-                  //         return Promise.reject(
-                  //           new Error(
-                  //             `Không thể thấp hơn giá cơ bản (${Math.round(baseCost).toLocaleString("vi-VN")}đ)`
-                  //           )
-                  //         );
-                  //       }
-                  //       return Promise.resolve();
-                  //     },
-                  //   },
-                  // ]}
                   >
                     <FloatingInputAntd
                       type="number"
@@ -298,7 +279,7 @@ export default function EstimatesCard({
                       CHI TIẾT CHI PHÍ:
                       {loadingCostEstimate && (
                         <span className="text-xs text-blue-500 animate-pulse">
-                          ⏳
+                          <LoadingOutlined />
                         </span>
                       )}
                     </div>
