@@ -212,19 +212,19 @@ export default function GuestOrderPage() {
     setIsSubmitting(true);
     //fix upload file
     try {
-      // Upload design file if exists
-      let designFilePath = "";
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        try {
-          const uploadResult = await uploadApi.uploadFile(
-            fileList.map((file) => file.originFileObj as File)
-          );
-          designFilePath = uploadResult[0].url;
-        } catch (uploadError) {
-          console.error("Upload error:", uploadError);
-          // Continue without file if upload fails
-        }
+      // Check if any file is still uploading
+      const isUploading = fileList.some((file) => file.status === "uploading");
+      if (isUploading) {
+        message.warning("Vui lòng đợi quá trình tải lên hoàn tất!");
+        setIsSubmitting(false);
+        return;
       }
+
+      // Get design file paths from uploaded files
+      const designFilePath = fileList
+        .map((file) => file.url)
+        .filter((url) => !!url) // Filter out undefined/null/empty
+        .join(",");
 
       // Build request body according to API schema
       const requestBody = {
@@ -622,12 +622,45 @@ export default function GuestOrderPage() {
                     >
                       <Upload.Dragger
                         name="files"
-                        action="https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188"
+                        customRequest={async (options) => {
+                          const { file, onSuccess, onError } = options;
+                          try {
+                            const response: any = await uploadApi.uploadFile([file as any]);
+                            console.log("Upload response:", response);
+
+                            let uploadedUrl = "";
+                            if (Array.isArray(response) && response[0]?.url) {
+                              uploadedUrl = response[0].url;
+                            } else if (response?.url) {
+                              uploadedUrl = response.url;
+                            }
+
+                            if (uploadedUrl) {
+                              onSuccess?.(uploadedUrl);
+                            } else {
+                              console.error("No URL found in response:", response);
+                              throw new Error("No URL returned");
+                            }
+                          } catch (err) {
+                            console.error("Upload error details:", err);
+                            onError?.(err as Error);
+                            message.error(`${(file as any).name} tải lên thất bại.`);
+                          }
+                        }}
                         listType="picture"
                         maxCount={5}
                         multiple
                         fileList={fileList}
-                        onChange={({ fileList }) => setFileList(fileList)}
+                        onChange={({ fileList: newFileList }) => {
+                          const updatedList = newFileList.map((file) => {
+                            if (file.status === 'done' && file.response) {
+                              // Update url from response if available
+                              return { ...file, url: file.response as string };
+                            }
+                            return file;
+                          });
+                          setFileList(updatedList);
+                        }}
                         onPreview={handlePreview}
                         className="bg-white design-upload-success"
                         showUploadList={{

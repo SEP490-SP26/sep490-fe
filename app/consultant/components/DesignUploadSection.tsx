@@ -65,46 +65,63 @@ export default function DesignUploadSection({
   return (
     <Row gutter={16}>
       <Col span={24}>
-        <Form.Item label="File Thiết Kế" className="mb-2">
-          <div className="flex flex-col gap-3">
-            <Checkbox
-              checked={!isSendDesign}
-              onChange={(e) => setIsSendDesign(!e.target.checked)}
-            >
-              Khách hàng dùng file thiết kế của công ty
-            </Checkbox>
+        {designFilePath ? (
+          <Form.Item label="File Thiết Kế" className="mb-2">
+            <div className="flex flex-col gap-3">
+              Khách hàng đã gửi file thiết kế
 
-            {!isSendDesign && (
-              <>
-                <Upload
-                  multiple
-                  listType="picture-card"
-                  fileList={fileList}
-                  beforeUpload={handleBeforeUpload}
-                  onRemove={handleRemove}
-                  onPreview={handlePreview}
-                  accept="image/*,.pdf,.zip,.rar"
-                >
-                  <button style={{ border: 0, background: 'none' }} type="button">
-                    <UploadOutlined />
-                    <div style={{ marginTop: 8 }}>Chọn file</div>
-                  </button>
-                </Upload>
-                <Modal open={previewOpen} title={previewTitle} footer={null} onCancel={handleCancel}>
-                  <img alt="example" style={{ width: '100%' }} src={previewImage} />
-                </Modal>
-              </>
-            )}
-
-            {/* Show previously uploaded files if any (from API, usually passed via designFilePath string) */}
-            {designFilePath && (
+              {/* Show previously uploaded files if any (from API, usually passed via designFilePath string) */}
+              {/* {designFilePath && (
               <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-500">
                 <div className="font-semibold">File đã có trên hệ thống:</div>
                 <div className="break-all">{designFilePath}</div>
               </div>
-            )}
-          </div>
-        </Form.Item>
+            )} */}
+            </div>
+          </Form.Item>
+        ) : (
+          <Form.Item label="File Thiết Kế" className="mb-2">
+            <div className="flex flex-col gap-3">
+              <Checkbox
+                checked={!isSendDesign}
+                onChange={(e) => setIsSendDesign(!e.target.checked)}
+              >
+                Khách hàng dùng file thiết kế của công ty
+              </Checkbox>
+
+              {!isSendDesign && (
+                <>
+                  <Upload
+                    multiple
+                    listType="picture-card"
+                    fileList={fileList}
+                    beforeUpload={handleBeforeUpload}
+                    onRemove={handleRemove}
+                    onPreview={handlePreview}
+                    accept="image/*,.pdf,.zip,.rar"
+                  >
+                    <button style={{ border: 0, background: 'none' }} type="button">
+                      <UploadOutlined />
+                      <div style={{ marginTop: 8 }}>Chọn file</div>
+                    </button>
+                  </Upload>
+                  <Modal open={previewOpen} title={previewTitle} footer={null} onCancel={handleCancel}>
+                    <img alt="example" style={{ width: '100%' }} src={previewImage} />
+                  </Modal>
+                </>
+              )}
+
+              {/* Show previously uploaded files if any (from API, usually passed via designFilePath string) */}
+              {/* {designFilePath && (
+              <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-500">
+                <div className="font-semibold">File đã có trên hệ thống:</div>
+                <div className="break-all">{designFilePath}</div>
+              </div>
+            )} */}
+            </div>
+          </Form.Item>
+        )}
+
       </Col>
     </Row>
   );
