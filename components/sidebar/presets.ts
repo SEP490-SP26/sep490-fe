@@ -12,7 +12,7 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import { LuLayoutDashboard } from "react-icons/lu";
-import { FaSuitcase, FaWarehouse } from "react-icons/fa";
+import { FaSuitcase, FaUserPlus, FaWarehouse } from "react-icons/fa";
 import { NavItem } from "./Sidebar";
 
 // Preset cho Consultant
@@ -47,20 +47,17 @@ export const consultantNavItems: NavItem[] = [
 export const adminNavItems: NavItem[] = [
   {
     path: "/",
-    label: "Dashboard",
+    label: "Quản lý user",
     icon: LuLayoutDashboard,
     basePath: "/admin",
     // exact: true,
   },
-  { path: "/orders", label: "Đơn hàng", icon: FiShoppingCart, basePath: "/admin" },
-  { path: "/purchase", label: "Mua hàng", icon: FiPackage, basePath: "/admin" },
   {
-    path: "/production",
-    label: "Sản xuất",
-    icon: FiCalendar,
-    basePath: "/admin"
+    path: "/admin-create-account",
+    label: "Tạo mới tài khoản",
+    icon: FaUserPlus,
+    basePath: "/admin",
   },
-  { path: "/inventory", label: "Kho", icon: FaWarehouse, basePath: "/admin" },
   {
     path: "/",
     label: "Đăng xuất",
