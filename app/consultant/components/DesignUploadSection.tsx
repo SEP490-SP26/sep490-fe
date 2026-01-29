@@ -1,5 +1,5 @@
 import { UploadOutlined, EyeOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Button, Checkbox, Col, Form, Modal, Row, Upload, UploadFile } from "antd";
+import { Button, Checkbox, Col, Form, Modal, Row, Upload, UploadFile, Image as AntImage } from "antd";
 import { RcFile } from "antd/es/upload";
 import { useState } from "react";
 
@@ -71,12 +71,41 @@ export default function DesignUploadSection({
               Khách hàng đã gửi file thiết kế
 
               {/* Show previously uploaded files if any (from API, usually passed via designFilePath string) */}
-              {/* {designFilePath && (
-              <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-500">
-                <div className="font-semibold">File đã có trên hệ thống:</div>
-                <div className="break-all">{designFilePath}</div>
-              </div>
-            )} */}
+              {designFilePath && (
+                <div className=" rounded text-sm text-gray-500">
+                  <div className="font-semibold mb-2">File đã có trên hệ thống:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {designFilePath.split(',').map((url, index) => {
+                      const trimmedUrl = url.trim();
+                      // Simple check for image extensions, can be improved
+                      const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(trimmedUrl);
+
+                      if (isImage) {
+                        return (
+                          <div key={index} className="border rounded overflow-hidden" style={{ width: 80, height: 80 }}>
+                            <AntImage
+                              src={trimmedUrl}
+                              alt={`Design file ${index + 1}`}
+                              width={80}
+                              height={80}
+                              style={{ objectFit: 'cover' }}
+                            />
+                          </div>
+                        );
+                      } else {
+                        // For non-image files, show a link or icon
+                        return (
+                          <div key={index} className="flex items-center justify-center border rounded bg-white p-2" style={{ width: 80, height: 80 }}>
+                            <a href={trimmedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all text-xs text-center">
+                              File {index + 1}
+                            </a>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </Form.Item>
         ) : (
