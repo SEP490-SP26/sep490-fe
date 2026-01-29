@@ -167,7 +167,7 @@ export default function RequestDetailPage() {
 
         if (data && data.status === 'PAID') {
           message.success('Thanh toán thành công!');
-          router.push(`/order-detail/${requestId}`);
+          router.push(`/request-detail/${requestId}`);
         }
       } catch (error) {
         console.error("Error checking payment status:", error);

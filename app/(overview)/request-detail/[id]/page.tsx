@@ -610,7 +610,7 @@ export default function RequestDetailPage() {
               )}
 
               {/* Upload Area */}
-              {/* <div className="mt-2">
+              <div className="mt-2">
                 {!orderDetail.design_file_path ? (
                   <Upload
                     customRequest={handleUpload}
@@ -644,7 +644,7 @@ export default function RequestDetailPage() {
                 <span>Đã có file thiết kế. Nếu cần thay đổi, vui lòng liên hệ quản trị viên.</span>
                   </div>
                 )}
-              </div> */}
+              </div>
             </div>
           </div>
         </div>

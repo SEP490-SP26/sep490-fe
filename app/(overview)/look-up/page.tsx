@@ -3,6 +3,7 @@
 import { lookupsApi } from '@/apiRequests/lookups'
 import { OrderSummary, RequestSummary } from '@/lib/request.types'
 import {
+  CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
@@ -10,7 +11,9 @@ import {
   FileTextOutlined,
   MailOutlined,
   MobileOutlined,
+  ProductOutlined,
   ReloadOutlined,
+  ScheduleOutlined,
   SyncOutlined
 } from '@ant-design/icons'
 import {
@@ -101,23 +104,38 @@ export default function CustomerHistoryPage() {
         setStep('result')
       }
 
-      if (type === 'all' || type === 'requests') {
-        setMyRequests(response.requests.data || [])
-        setPaginationRequest({
-          page: response.requests.page,
-          pageSize: response.requests.pageSize,
-          hasNext: response.requests.hasNext,
-        })
-      }
+      let newOrders = myOrders
+      let newRequests = myRequests
+      let newPaginationOrder = paginationOrder
+      let newPaginationRequest = paginationRequest
 
       if (type === 'all' || type === 'orders') {
-        setMyOrders(response.orders.data || [])
-        setPaginationOrder({
+        newOrders = response.orders.data || []
+        newPaginationOrder = {
           page: response.orders.page,
           pageSize: response.orders.pageSize,
           hasNext: response.orders.hasNext,
-        })
+        }
+        setMyOrders(newOrders)
+        setPaginationOrder(newPaginationOrder)
       }
+
+      if (type === 'all' || type === 'requests') {
+        newRequests = response.requests.data || []
+        newPaginationRequest = {
+          page: response.requests.page,
+          pageSize: response.requests.pageSize,
+          hasNext: response.requests.hasNext,
+        }
+        setMyRequests(newRequests)
+        setPaginationRequest(newPaginationRequest)
+      }
+
+      // Save state to sessionStorage
+      sessionStorage.setItem('lookup_orders', JSON.stringify(newOrders))
+      sessionStorage.setItem('lookup_requests', JSON.stringify(newRequests))
+      sessionStorage.setItem('lookup_pagination_order', JSON.stringify(newPaginationOrder))
+      sessionStorage.setItem('lookup_pagination_request', JSON.stringify(newPaginationRequest))
 
       if (type === 'all') {
         if (response.orders.data?.length === 0) {
@@ -141,11 +159,32 @@ export default function CustomerHistoryPage() {
   useEffect(() => {
     const savedPhone = sessionStorage.getItem('verified_phone')
     const savedOtp = sessionStorage.getItem('verified_otp')
+    const savedOrders = sessionStorage.getItem('lookup_orders')
+    const savedRequests = sessionStorage.getItem('lookup_requests')
+    const savedPaginationOrder = sessionStorage.getItem('lookup_pagination_order')
+    const savedPaginationRequest = sessionStorage.getItem('lookup_pagination_request')
 
-    if (savedPhone && savedOtp) {
+    if (savedPhone && savedOtp && savedOrders && savedRequests) {
       setPhoneNumber(savedPhone)
       setOtpCode(savedOtp)
-      // Tự động verify nếu có data
+      try {
+        setMyOrders(JSON.parse(savedOrders))
+        setMyRequests(JSON.parse(savedRequests))
+        if (savedPaginationOrder) setPaginationOrder(JSON.parse(savedPaginationOrder))
+        if (savedPaginationRequest) setPaginationRequest(JSON.parse(savedPaginationRequest))
+        setStep('result')
+
+        // Thử fetch lại dữ liệu mới nhất trong background (optional)
+        // handleVerifyOtp(1, 'all', savedPhone, savedOtp) 
+      } catch (e) {
+        console.error('Error parsing saved data', e)
+        // Nếu parse lỗi thì thử verify lại từ đầu
+        handleVerifyOtp(1, 'all', savedPhone, savedOtp)
+      }
+    } else if (savedPhone && savedOtp) {
+      setPhoneNumber(savedPhone)
+      setOtpCode(savedOtp)
+      // Tự động verify nếu có data phone/otp nhưng không có data orders/requests
       handleVerifyOtp(1, 'all', savedPhone, savedOtp)
     }
   }, [])
@@ -166,49 +205,59 @@ export default function CustomerHistoryPage() {
   }
 
   // --- RESET VỀ BƯỚC ĐẦU ---
+  // --- RESET VỀ BƯỚC ĐẦU ---
   const handleReset = () => {
     setPhoneNumber('')
     setOtpCode('')
     setMyOrders([])
+    setMyRequests([])
     setStep('phone')
     sessionStorage.removeItem('verified_phone')
     sessionStorage.removeItem('verified_otp')
+    sessionStorage.removeItem('lookup_orders')
+    sessionStorage.removeItem('lookup_requests')
+    sessionStorage.removeItem('lookup_pagination_order')
+    sessionStorage.removeItem('lookup_pagination_request')
   }
 
   // --- HIỂN THỊ TRẠNG THÁI ---
   const renderStatus = (status: string) => {
-    const statusLower = status?.toUpperCase()
-    switch (statusLower) {
+    const statusUpper = status?.toUpperCase()
+    switch (statusUpper) {
       case 'PENDING':
         return <Tag icon={<ClockCircleOutlined />} color="blue">Chờ Xử Lý</Tag>
       case 'WAITING':
         return <Tag icon={<SyncOutlined spin />} color="orange">Đang Xử Lý</Tag>
+      case 'INPROCESSING':
       case 'IN_PRODUCTION':
-        return <Tag icon={<SyncOutlined spin />} color="purple">Đang Sản Xuất</Tag>
+        return <Tag icon={<ProductOutlined />} color="purple">Đang Sản Xuất</Tag>
+      case 'SCHEDULED':
+        return <Tag icon={<ScheduleOutlined />} color="green">Đã Lên lịch</Tag>
+      case 'FINISHED':
       case 'COMPLETED':
         return <Tag icon={<CheckCircleOutlined />} color="green">Hoàn Thành</Tag>
       case 'CANCELLED':
       case 'REJECTED':
         return <Tag icon={<CloseCircleOutlined />} color="red">Đã Hủy</Tag>
-      case 'not enough':
+      case 'NOT ENOUGH':
         return <Tag color="orange">Chưa đủ điều kiện</Tag>
       default:
         return <Tag>{status}</Tag>
     }
   }
 
-  const renderPaymentStatus = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'paid':
-        return <Tag color="green">Đã thanh toán</Tag>
-      case 'unpaid':
-        return <Tag color="red">Chưa thanh toán</Tag>
-      case 'partial':
-        return <Tag color="orange">Thanh toán một phần</Tag>
-      default:
-        return <Tag>{status}</Tag>
-    }
-  }
+  // const renderPaymentStatus = (status: string) => {
+  //   switch (status?.toLowerCase()) {
+  //     case 'paid':
+  //       return <Tag color="green">Đã thanh toán</Tag>
+  //     case 'unpaid':
+  //       return <Tag color="red">Chưa thanh toán</Tag>
+  //     case 'partial':
+  //       return <Tag color="orange">Thanh toán một phần</Tag>
+  //     default:
+  //       return <Tag>{status}</Tag>
+  //   }
+  // }
 
   const columns = [
     {
@@ -237,12 +286,12 @@ export default function CustomerHistoryPage() {
       key: 'status',
       render: (val: string) => renderStatus(val),
     },
-    {
-      title: 'Thanh Toán',
-      dataIndex: 'payment_status',
-      key: 'payment_status',
-      render: (val: string) => renderPaymentStatus(val),
-    },
+    // {
+    //   title: 'Thanh Toán',
+    //   dataIndex: 'payment_status',
+    //   key: 'payment_status',
+    //   render: (val: string) => renderPaymentStatus(val),
+    // },
 
   ]
 
