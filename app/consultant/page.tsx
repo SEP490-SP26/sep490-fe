@@ -54,6 +54,7 @@ import {
   mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
 import { isVietnamHoliday } from "@/utils/vietnamHolidays";
+import { uploadApi } from "@/apiRequests/uploads";
 
 const PRODUCT_SUGGESTIONS = [
   "Hộp bánh trung thu cao cấp",
@@ -97,6 +98,7 @@ function ConsultantForm() {
   const isNegotiateMode =
     modeParam === "negotiate" ||
     existingOrder?.process_status === "pending_consultant" ||
+    existingOrder?.process_status === "waiting_customer_confirm" ||
     (!orderId && !modeParam);
   const isCreateMode =
     modeParam === "create" ||
@@ -120,6 +122,7 @@ function ConsultantForm() {
   const [songTypes, setSongTypes] = useState<Material[]>([]);
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
+  const [fileList, setFileList] = useState<any[]>([]);
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
 
   const [estimate, setEstimate] = useState<{
@@ -307,8 +310,6 @@ function ConsultantForm() {
     fetchOrderDetails();
   }, [orderId, form]);
 
-
-
   // --- CALCULATION LOGIC ---
   const handleCalculate = (changedValues: any, allValues: any) => {
     const { quantity, paper_code, delivery_date } = allValues;
@@ -393,8 +394,6 @@ function ConsultantForm() {
     if (!paper_code || !quantity || !length || !width || !height || !product_type || configLoading) {
       return;
     }
-
-
 
     // const paperCode = paper_code as string;
     const selectedProductType = productTypes.find(
@@ -545,9 +544,6 @@ function ConsultantForm() {
     }
   };
 
-  // Old functions removed via replacement
-
-
   // Debounce
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -581,16 +577,13 @@ function ConsultantForm() {
     if (form.getFieldValue("paper_code") && form.getFieldValue("quantity")) {
       calculateEstimates();
     }
-  }, [isSendDesign, configLoading, discountPercent]); // Added configLoading and discountPercent dependency
-
+  }, [isSendDesign, configLoading, discountPercent]);
 
   const onFinish = async (values: any) => {
     setLoading(true);
 
-    // CHỈ tạo đơn mới khi thực sự là đơn hoàn toàn mới (không có orderId)
     if (!orderId && !createdOrderId) {
       try {
-        // Tạo thông tin khách hàng trước
         const payload: CreateRequestBodyForConsultant = {
           customer_name: values.customer_name,
           customer_phone: values.customer_phone,
@@ -603,7 +596,6 @@ function ConsultantForm() {
 
         if (newId) {
           setCreatedOrderId(newId);
-          // Tiếp tục xử lý với orderId mới
           await processOrderSubmission(newId.toString(), values);
         } else {
           throw new Error("Không thể tạo ID đơn hàng mới");
@@ -615,7 +607,6 @@ function ConsultantForm() {
         return;
       }
     } else {
-      // Nếu đã có orderId (chỉnh sửa đơn cũ)
       await processOrderSubmission(orderId || createdOrderId?.toString() || "", values);
     }
   };
@@ -623,6 +614,39 @@ function ConsultantForm() {
   // Hàm xử lý submit riêng
   const processOrderSubmission = async (currentOrderId: string, values: any) => {
     try {
+      // 0. Upload các file mới (nếu có) trước khi gửi
+      let finalDesignPath = designFilePath || "";
+
+      const newFiles = fileList
+        .map((f) => f.originFileObj || f)
+        .filter((f) => f);
+
+      if (newFiles.length > 0) {
+        try {
+          message.loading({ content: "Đang tải file lên...", key: "uploading" });
+          const uploadRes: any = await uploadApi.uploadFile(newFiles);
+
+          let newUrls: string[] = [];
+          if (Array.isArray(uploadRes)) {
+            newUrls = uploadRes.map((r: any) => r.url).filter((u: any) => u);
+          } else if (uploadRes?.data && Array.isArray(uploadRes.data)) {
+            newUrls = uploadRes.data.map((r: any) => r.url).filter((u: any) => u);
+          } else if (uploadRes?.url) {
+            newUrls = [uploadRes.url];
+          }
+
+          if (newUrls.length > 0) {
+            const currentUrls = finalDesignPath ? finalDesignPath.split(",") : [];
+            finalDesignPath = [...currentUrls, ...newUrls].join(",");
+            message.success({ content: "Tải file thành công!", key: "uploading" });
+          }
+        } catch (uploadErr) {
+          console.error("Upload failed", uploadErr);
+          message.error({ content: "Lỗi tải file, đơn hàng sẽ được lưu không kèm file mới.", key: "uploading" });
+          // Optional: return if upload is critical, otherwise continue
+        }
+      }
+
       const finalPrice = form.getFieldValue("final_price");
       const finalNote = values.description || "";
 
@@ -636,7 +660,7 @@ function ConsultantForm() {
         customer_phone: values.customer_phone,
         final_price: finalPrice,
         rush_fee: estimate?.rushFee,
-        design_file_url: designFilePath || "",
+        design_file_url: finalDesignPath, // Updated here
         specs: {
           width: values.width,
           height: values.height,
@@ -657,7 +681,7 @@ function ConsultantForm() {
           return;
         }
 
-        // 1. Cập nhật thông tin request xuống BE (để đảm bảo quantity và các thông số mới nhất được lưu)
+        // 1. Cập nhật thông tin request xuống BE
         const selectedProductType = productTypes.find(
           (pt) => pt.product_type_id === values.product_type
         );
@@ -697,8 +721,9 @@ function ConsultantForm() {
             : values.production_processes,
 
           is_send_design: isSendDesign,
-          design_file_path: designFilePath || "",
+          design_file_path: finalDesignPath, // Updated here
         };
+
 
         try {
           await requestOrderApi.updateRequest(currentOrderId, updateBody);
@@ -936,14 +961,14 @@ function ConsultantForm() {
 
                 <DesignUploadSection
                   designFilePath={designFilePath}
-                  setDesignFilePath={setDesignFilePath}
-                  orderId={orderId}
+                  // setDesignFilePath={setDesignFilePath} // Removed
+                  // orderId={orderId}
                   isSendDesign={isSendDesign}
                   setIsSendDesign={(val) => {
                     setIsSendDesign(val);
-                    // Trigger recalculation if needed when this changes
-                    // calculatePaperEstimate(); // Or just update state and let useEffect/debounce handle it if we add it to diff deps
                   }}
+                  fileList={fileList}
+                  setFileList={setFileList}
                 />
 
                 <Row gutter={16}>
