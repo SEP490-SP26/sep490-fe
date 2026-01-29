@@ -200,12 +200,11 @@ export default function OrderListPage() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      pending: "Chờ xử lý",
       Scheduled: "Đã lên lịch",
-      in_production: "Đang sản xuất",
-      completed: "Hoàn thành",
-      cancelled: "Đã hủy",
-      delivered: "Đã giao",
+      InProcessing: "Đang sản xuất",
+      Finished: "Hoàn thành",
+      Cancelled: "Đã hủy",
+      Delivered: "Đã giao",
     };
     return labels[status] || status;
   };
@@ -323,11 +322,12 @@ export default function OrderListPage() {
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm"
                     >
                       <option value="all">Tất cả trạng thái</option>
-                      <option value="pending">Chờ xử lý</option>
-                      <option value="scheduled">Đã lên lịch</option>
-                      <option value="in_production">Đang sản xuất</option>
-                      <option value="completed">Hoàn thành</option>
-                      <option value="cancelled">Đã hủy</option>
+                      {/* <option value="Pending">Chờ xử lý</option> */}
+                      <option value="Scheduled">Đã lên lịch</option>
+                      <option value="InProcessing">Đang sản xuất</option>
+                      <option value="Finished">Hoàn thành</option>
+                      <option value="Delivered">Đã giao</option>
+                      {/* <option value="Cancelled">Đã hủy</option> */}
                     </select>
                     <BiChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                   </div>
@@ -393,75 +393,75 @@ export default function OrderListPage() {
                 productFilter !== "all" ||
                 dateFilter.from ||
                 dateFilter.to) && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center flex-wrap gap-2">
-                    <span className="text-sm text-gray-600">
-                      Đang lọc theo:
-                    </span>
-                    {statusFilter !== "all" && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                        Trạng thái: {getStatusLabel(statusFilter)}
-                        <button
-                          onClick={() => setStatusFilter("all")}
-                          className="hover:text-blue-900"
-                        >
-                          ✕
-                        </button>
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center flex-wrap gap-2">
+                      <span className="text-sm text-gray-600">
+                        Đang lọc theo:
                       </span>
-                    )}
-                    {customerFilter !== "all" && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-                        KH: {customerFilter}
-                        <button
-                          onClick={() => setCustomerFilter("all")}
-                          className="hover:text-green-900"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    )}
-                    {productFilter !== "all" && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
-                        SP:{" "}
-                        {products.find((p: any) => p.order_id === productFilter)
-                          ?.name || productFilter}
-                        <button
-                          onClick={() => setProductFilter("all")}
-                          className="hover:text-purple-900"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    )}
-                    {dateFilter.from && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
-                        Từ: {formatDate(dateFilter.from)}
-                        <button
-                          onClick={() =>
-                            setDateFilter({ ...dateFilter, from: "" })
-                          }
-                          className="hover:text-orange-900"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    )}
-                    {dateFilter.to && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
-                        Đến: {formatDate(dateFilter.to)}
-                        <button
-                          onClick={() =>
-                            setDateFilter({ ...dateFilter, to: "" })
-                          }
-                          className="hover:text-orange-900"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    )}
+                      {statusFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                          Trạng thái: {getStatusLabel(statusFilter)}
+                          <button
+                            onClick={() => setStatusFilter("all")}
+                            className="hover:text-blue-900"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                      {customerFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                          KH: {customerFilter}
+                          <button
+                            onClick={() => setCustomerFilter("all")}
+                            className="hover:text-green-900"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                      {productFilter !== "all" && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                          SP:{" "}
+                          {products.find((p: any) => p.order_id === productFilter)
+                            ?.name || productFilter}
+                          <button
+                            onClick={() => setProductFilter("all")}
+                            className="hover:text-purple-900"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                      {dateFilter.from && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
+                          Từ: {formatDate(dateFilter.from)}
+                          <button
+                            onClick={() =>
+                              setDateFilter({ ...dateFilter, from: "" })
+                            }
+                            className="hover:text-orange-900"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                      {dateFilter.to && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
+                          Đến: {formatDate(dateFilter.to)}
+                          <button
+                            onClick={() =>
+                              setDateFilter({ ...dateFilter, to: "" })
+                            }
+                            className="hover:text-orange-900"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         </div>
@@ -555,13 +555,12 @@ export default function OrderListPage() {
                       {/* Hàng chính */}
                       <tr
                         onClick={() => handleRowClick(order)}
-                        className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                          isMissingMaterials
-                            ? "bg-red-100 hover:bg-red-200"
-                            : canNavigate
+                        className={`hover:bg-gray-50 transition-colors cursor-pointer ${isMissingMaterials
+                          ? "bg-red-100 hover:bg-red-200"
+                          : canNavigate
                             ? "hover:bg-blue-50"
                             : ""
-                        }`}
+                          }`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(order.created_at)}
