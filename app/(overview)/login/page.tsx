@@ -125,7 +125,7 @@ export default function LoginPage() {
       // Redirect theo role
       switch (role_id) {
         case 1:
-          router.replace("/admin/dashboard");
+          router.replace("/admin");
           break;
         case 2:
           router.replace("/consultant");
@@ -216,7 +216,7 @@ export default function LoginPage() {
 
       // Lưu auth context
       login(token, {
-        user_id: 0, // BE Google chưa trả
+        user_id: role_id, // BE Google chưa trả
         role_id,
         full_name: decoded.name,
       });
@@ -225,7 +225,7 @@ export default function LoginPage() {
       //Redirect giống login thường
       switch (role_id) {
         case 1:
-          router.replace("/admin/dashboard");
+          router.replace("/admin");
           break;
         case 2:
           router.replace("/consultant");
@@ -233,8 +233,11 @@ export default function LoginPage() {
         case 3:
           router.replace("/manager");
           break;
-        case 5:
+        case 4:
           router.replace("/warehouse");
+          break;
+        case 5:
+          router.replace("/staff");
           break;
         default:
           router.replace("/");
