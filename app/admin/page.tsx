@@ -38,6 +38,8 @@ const ROLE_COLOR: Record<string, string> = {
   Staff: "bg-green-100 text-green-700",
 };
 
+const PAGE_SIZE = 7;
+
 /* =======================
    HELPERS
 ======================= */
@@ -61,6 +63,8 @@ export default function AdminUserPage() {
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
   const [role, setRole] = useState("ALL");
+
+  const [page, setPage] = useState(1);
 
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -144,6 +148,7 @@ export default function AdminUserPage() {
      FILTER USERS
   ======================= */
   const filteredUsers = useMemo(() => {
+    setPage(1);
     return users.filter((u) => {
       if (u.user_id === currentUserId) return false;
 
@@ -156,6 +161,16 @@ export default function AdminUserPage() {
       );
     });
   }, [users, keyword, role, currentUserId]);
+
+  /* =======================
+     PAGINATION
+  ======================= */
+  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+
+  const pagedUsers = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredUsers.slice(start, start + PAGE_SIZE);
+  }, [filteredUsers, page]);
 
   /* =======================
      RENDER
@@ -196,82 +211,125 @@ export default function AdminUserPage() {
               Đang tải dữ liệu...
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left">User</th>
-                  <th className="px-6 py-3 text-left">Email</th>
-                  <th className="px-6 py-3 text-left">Vai trò</th>
-                  <th className="px-6 py-3 text-left">Trạng thái</th>
-                  <th className="px-6 py-3 text-center">Hành động</th>
-                </tr>
-              </thead>
+            <>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left">User</th>
+                    <th className="px-6 py-3 text-left">Email</th>
+                    <th className="px-6 py-3 text-left">Vai trò</th>
+                    <th className="px-6 py-3 text-left">Trạng thái</th>
+                    <th className="px-6 py-3 text-center">Hành động</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {filteredUsers.map((u) => {
-                  const roleName = ROLE_MAP[u.role_id];
+                <tbody>
+                  {pagedUsers.map((u) => {
+                    const roleName = ROLE_MAP[u.role_id];
 
-                  return (
-                    <tr
-                      key={u.user_id}
-                      className="border-t cursor-pointer hover:bg-gray-50"
-                      onClick={() =>
-                        router.push(
-                          `/admin/admin-update-account/${u.user_id}`
-                        )
-                      }
+                    return (
+                      <tr
+                        key={u.user_id}
+                        className="border-t hover:bg-gray-50 cursor-pointer"
+                        onClick={() =>
+                          router.push(
+                            `/admin/admin-update-account/${u.user_id}`
+                          )
+                        }
+                      >
+                        <td className="px-6 py-3">
+                          <div className="font-medium">
+                            {u.full_name ?? "(Chưa có tên)"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {u.username}
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-3">{u.email ?? "—"}</td>
+
+                        <td className="px-6 py-3">
+                          <span
+                            className={`px-2 py-1 rounded text-xs ${ROLE_COLOR[roleName]}`}
+                          >
+                            {roleName}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-3">
+                          <span
+                            className={`px-2 py-1 rounded text-xs ${
+                              u.is_active
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {u.is_active ? "Hoạt động" : "Bị khóa"}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-3 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedUser(u);
+                            }}
+                            className={`p-2 rounded hover:bg-gray-100 ${
+                              u.is_active
+                                ? "text-red-500"
+                                : "text-green-600"
+                            }`}
+                          >
+                            {u.is_active ? <FiLock /> : <FiUnlock />}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-between items-center px-6 py-4 border-t">
+                  <span className="text-sm text-gray-500">
+                    Trang {page} / {totalPages}
+                  </span>
+
+                  <div className="flex gap-2">
+                    <button
+                      disabled={page === 1}
+                      onClick={() => setPage((p) => p - 1)}
+                      className="px-3 py-1 border rounded disabled:opacity-50"
                     >
-                      <td className="px-6 py-3">
-                        <div className="font-medium">
-                          {u.full_name ?? "(Chưa có tên)"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {u.username}
-                        </div>
-                      </td>
+                      Trước
+                    </button>
 
-                      <td className="px-6 py-3">{u.email ?? "—"}</td>
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPage(i + 1)}
+                        className={`px-3 py-1 rounded ${
+                          page === i + 1
+                            ? "bg-blue-600 text-white"
+                            : "border"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
 
-                      <td className="px-6 py-3">
-                        <span
-                          className={`px-2 py-1 rounded text-xs ${ROLE_COLOR[roleName]}`}
-                        >
-                          {roleName}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-3">
-                        <span
-                          className={`px-2 py-1 rounded text-xs ${
-                            u.is_active
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {u.is_active ? "Hoạt động" : "Bị khóa"}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-3 text-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedUser(u);
-                          }}
-                          className={`p-2 rounded hover:bg-gray-100 ${
-                            u.is_active
-                              ? "text-red-500"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {u.is_active ? <FiLock /> : <FiUnlock />}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    <button
+                      disabled={page === totalPages}
+                      onClick={() => setPage((p) => p + 1)}
+                      className="px-3 py-1 border rounded disabled:opacity-50"
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -281,7 +339,7 @@ export default function AdminUserPage() {
       ======================= */}
       {selectedUser && (
         <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center">
-          <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+          <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6 animate-scaleIn">
             <h2 className="text-lg font-semibold mb-3">
               {selectedUser.is_active
                 ? "Khóa tài khoản"
