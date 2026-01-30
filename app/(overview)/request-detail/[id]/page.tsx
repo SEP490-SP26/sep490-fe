@@ -350,9 +350,9 @@ export default function RequestDetailPage() {
                 {/* Thông tin cơ bản sản phẩm - TIÊU ĐỀ VÀ THÔNG TIN CÙNG DÒNG */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                    {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <ShoppingOutlined className="text-indigo-500 text-lg" />
-                    </div>
+                    </div> */}
                     <div>
                       <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Sản phẩm</Text>
                       <div className="text-lg font-bold text-slate-800">{orderDetail.product_name}</div>
@@ -360,9 +360,9 @@ export default function RequestDetailPage() {
                   </div>
 
                   <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                    {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <TagOutlined className="text-green-500 text-lg" />
-                    </div>
+                    </div> */}
                     <div>
                       <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text>
                       <div className="text-lg font-bold text-slate-800">{orderDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
@@ -370,9 +370,9 @@ export default function RequestDetailPage() {
                   </div>
 
                   <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                    {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <CalendarOutlined className="text-cyan-500 text-lg" />
-                    </div>
+                    </div> */}
                     <div>
                       <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng</Text>
                       <div className="text-lg font-bold text-slate-800">{dayjs(orderDetail.delivery_date).format("DD/MM/YYYY")}</div>
