@@ -48,8 +48,11 @@ export default function CustomerHistoryPage() {
   // State cho kết quả
   const [myOrders, setMyOrders] = useState<OrderSummary[]>([])
   const [myRequests, setMyRequests] = useState<RequestSummary[]>([])
-  const [paginationOrder, setPaginationOrder] = useState({ page: 1, pageSize: 15, hasNext: false })
-  const [paginationRequest, setPaginationRequest] = useState({ page: 1, pageSize: 15, hasNext: false })
+  const [paginationOrder, setPaginationOrder] = useState({ page: 1, pageSize: 5, hasNext: false })
+  const [paginationRequest, setPaginationRequest] = useState({ page: 1, pageSize: 5, hasNext: false })
+
+  // State cho filter/sort
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Router để navigate
   const router = useRouter()
@@ -212,6 +215,7 @@ export default function CustomerHistoryPage() {
     setMyOrders([])
     setMyRequests([])
     setStep('phone')
+    setSearchTerm('')
     sessionStorage.removeItem('verified_phone')
     sessionStorage.removeItem('verified_otp')
     sessionStorage.removeItem('lookup_orders')
@@ -246,20 +250,19 @@ export default function CustomerHistoryPage() {
     }
   }
 
-  // const renderPaymentStatus = (status: string) => {
-  //   switch (status?.toLowerCase()) {
-  //     case 'paid':
-  //       return <Tag color="green">Đã thanh toán</Tag>
-  //     case 'unpaid':
-  //       return <Tag color="red">Chưa thanh toán</Tag>
-  //     case 'partial':
-  //       return <Tag color="orange">Thanh toán một phần</Tag>
-  //     default:
-  //       return <Tag>{status}</Tag>
-  //   }
-  // }
+  // --- FILTER DATA ---
+  const filteredOrders = myOrders.filter(order =>
+    order.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.status?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-  const columns = [
+  const filteredRequests = myRequests.filter(req =>
+    req.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    req.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    req.request_id?.toString().includes(searchTerm)
+  )
+
+  const columns: any = [
     {
       title: 'Mã Đơn',
       dataIndex: 'code',
@@ -273,12 +276,15 @@ export default function CustomerHistoryPage() {
       dataIndex: 'order_date',
       key: 'order_date',
       render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+      sorter: (a: OrderSummary, b: OrderSummary) => dayjs(a.order_date).unix() - dayjs(b.order_date).unix(),
+      defaultSortOrder: 'descend',
     },
     {
       title: 'Ngày Giao',
       dataIndex: 'delivery_date',
       key: 'delivery_date',
       render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+      sorter: (a: OrderSummary, b: OrderSummary) => dayjs(a.delivery_date).unix() - dayjs(b.delivery_date).unix(),
     },
     {
       title: 'Trạng Thái',
@@ -286,16 +292,9 @@ export default function CustomerHistoryPage() {
       key: 'status',
       render: (val: string) => renderStatus(val),
     },
-    // {
-    //   title: 'Thanh Toán',
-    //   dataIndex: 'payment_status',
-    //   key: 'payment_status',
-    //   render: (val: string) => renderPaymentStatus(val),
-    // },
-
   ]
 
-  const columnsRequest = [
+  const columnsRequest: any = [
     {
       title: 'Mã Yêu Cầu',
       dataIndex: 'request_id',
@@ -314,12 +313,19 @@ export default function CustomerHistoryPage() {
       dataIndex: 'request_date',
       key: 'request_date',
       render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+      sorter: (a: RequestSummary, b: RequestSummary) => {
+        const dateA = a.request_date ? dayjs(a.request_date).unix() : 0
+        const dateB = b.request_date ? dayjs(b.request_date).unix() : 0
+        return dateA - dateB
+      },
+      defaultSortOrder: 'descend',
     },
     {
       title: 'Ngày Giao',
       dataIndex: 'delivery_date',
       key: 'delivery_date',
       render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+      sorter: (a: RequestSummary, b: RequestSummary) => dayjs(a.delivery_date).unix() - dayjs(b.delivery_date).unix(),
     },
     {
       title: 'Trạng Thái',
@@ -327,7 +333,6 @@ export default function CustomerHistoryPage() {
       key: 'status',
       render: (val: string) => renderStatus(val),
     },
-
   ]
 
   const tabItems = [
@@ -335,13 +340,13 @@ export default function CustomerHistoryPage() {
       key: 'orders',
       label: (
         <span>
-          Đơn hàng {myOrders.length > 0 && <Tag color="blue" className="ml-1">{myOrders.length}</Tag>}
+          Đơn hàng {filteredOrders.length > 0 && <Tag color="blue" className="ml-1">{filteredOrders.length}</Tag>}
         </span>
       ),
       children: (
         <Table
           columns={columns}
-          dataSource={myOrders}
+          dataSource={filteredOrders}
           rowKey="order_id"
           pagination={{
             current: paginationOrder.page,
@@ -351,7 +356,7 @@ export default function CustomerHistoryPage() {
             showSizeChanger: false
           }}
           locale={{
-            emptyText: <Empty description="Chưa có đơn hàng nào" />,
+            emptyText: <Empty description={searchTerm ? "Không tìm thấy kết quả phù hợp" : "Chưa có đơn hàng nào"} />,
           }}
           loading={loading}
           onRow={(record) => ({
@@ -367,13 +372,13 @@ export default function CustomerHistoryPage() {
       key: 'requests',
       label: (
         <span>
-          Yêu cầu {myRequests.length > 0 && <Tag color="indigo" className="ml-1">{myRequests.length}</Tag>}
+          Yêu cầu {filteredRequests.length > 0 && <Tag color="indigo" className="ml-1">{filteredRequests.length}</Tag>}
         </span>
       ),
       children: (
         <Table
           columns={columnsRequest}
-          dataSource={myRequests}
+          dataSource={filteredRequests}
           rowKey="order_request_id"
           pagination={{
             current: paginationRequest.page,
@@ -383,7 +388,7 @@ export default function CustomerHistoryPage() {
             showSizeChanger: false
           }}
           locale={{
-            emptyText: <Empty description="Chưa có yêu cầu nào" />,
+            emptyText: <Empty description={searchTerm ? "Không tìm thấy kết quả phù hợp" : "Chưa có yêu cầu nào"} />,
           }}
           loading={loading}
           onRow={(record: any) => ({
@@ -536,6 +541,17 @@ export default function CustomerHistoryPage() {
                 <Button icon={<ReloadOutlined />} onClick={handleReset}>
                   Tra cứu số khác
                 </Button>
+              </div>
+
+              <div className="mb-4">
+                <Input.Search
+                  placeholder="Tìm kiếm theo mã đơn, sản phẩm hoặc trạng thái..."
+                  allowClear
+                  enterButton
+                  size="large"
+                  onSearch={(value) => setSearchTerm(value)}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
 
               <Tabs

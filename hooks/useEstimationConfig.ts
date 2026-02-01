@@ -10,6 +10,7 @@ export const useEstimationConfig = (): UseEstimationConfig => {
     const [wasteRules, setWasteRules] = useState<WasteRules | null>(null);
     const [processCosts, setProcessCosts] = useState<ProcessCosts | null>(null);
     const [designConfig, setDesignConfig] = useState<DesignConfig | null>(null);
+    const [systemParameters, setSystemParameters] = useState<any | null>(null); // State for systemParameters
     const [materials, setMaterials] = useState<Material[]>([]);
     const [machines, setMachines] = useState<Machine[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -66,6 +67,11 @@ export const useEstimationConfig = (): UseEstimationConfig => {
 
                 // Nếu baseConfig có chứa processCosts, ưu tiên sử dụng nó, 
                 // nhưng logic cũ tách biệt nên ta xem xét processCostsRes
+
+                // Get system parameters
+                if (baseConfig.systemParameters) {
+                    setSystemParameters(baseConfig.systemParameters);
+                }
             }
 
             // Xử lý Process Costs
@@ -151,6 +157,7 @@ export const useEstimationConfig = (): UseEstimationConfig => {
                     '>=4': 40
                 }
             });
+            setSystemParameters(null);
             setMaterials([]);
             setMachines([]);
             setError(error.message || 'Failed to load configuration');
@@ -174,6 +181,7 @@ export const useEstimationConfig = (): UseEstimationConfig => {
         wasteRules,
         processCosts,
         designConfig,
+        systemParameters, // Return systemParameters
         materials,
         machines,
         loading,

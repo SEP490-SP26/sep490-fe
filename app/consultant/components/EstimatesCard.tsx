@@ -3,6 +3,7 @@ import {
   EstimateCostResponse,
   EstimatePaperResponse,
 } from "@/schemaValidations/common.schema";
+import { SystemParameters } from "@/lib/estimation.types";
 import { formatVietnameseNumber } from "@/utils/format";
 import { CalculatorOutlined, LoadingOutlined, WarningOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Col, Form, Row } from "antd";
@@ -39,6 +40,7 @@ interface EstimatesCardProps {
   handleAdjustPrice: () => void;
   orderId: string | null;
   isSavingCost?: boolean;
+  systemParameters: SystemParameters | null;
 }
 
 export default function EstimatesCard({
@@ -60,6 +62,7 @@ export default function EstimatesCard({
   handleAdjustPrice,
   orderId,
   isSavingCost = false,
+  systemParameters,
 }: EstimatesCardProps) {
   const daysUntilFree = workshopFreeInfo.days;
 
@@ -128,7 +131,7 @@ export default function EstimatesCard({
       return (
         <Alert
           message="GẤP & QUÁ TẢI"
-          description={`Khách cần sớm ${estimate.daysEarly} ngày. Xưởng đang bận. Đã tính phí gấp cao.`}
+          description={`Khách cần sớm ${estimate.daysEarly} ngày.Xưởng đang bận.Đã tính phí gấp cao.`}
           type="error"
           showIcon
           className="mb-4"
@@ -139,8 +142,7 @@ export default function EstimatesCard({
     if (estimate.caseType === 2) {
       return (
         <Alert
-          message="Đơn hàng ưu tiên (Gấp)"
-          description={`Khách cần sớm ${estimate.daysEarly} ngày. Đã tính phí ưu tiên.`}
+          title={`Đơn hàng ưu tiên (Gấp) - Khách cần sớm ${estimate.daysEarly} ngày.Đã tính phí ưu tiên.`}
           type="warning"
           showIcon
           className="mb-4"
@@ -266,7 +268,7 @@ export default function EstimatesCard({
                     loading={isSavingCost}
                   // disabled={!orderId}
                   >
-                    Xác nhận giá chốt
+                    Tạo báo giá
                   </Button>
                 </div>
 
@@ -425,15 +427,17 @@ export default function EstimatesCard({
 
                         {/* Phần giảm giá */}
                         <div className="bg-green-50 p-3 rounded-lg mt-3 border border-green-200">
-                          <div className="flex items-center justify-between gap-2 ">
-                            <span className="text-green-800 font-medium">
+                          <div className="flex items-center justify-between gap-1 ">
+                            <span className="text-green-800 font-medium w-100">
                               Chiết khấu (%):
                             </span>
                             <FloatingInputAntd
-                              className="w-full text-end"
+                              className=" text-end"
                               valueType="number"
                               min={0}
-                              max={50}
+                              max={100}
+                              // defaultValue={discountPercent}
+                              style={{ width: "100%" }}
                               value={discountPercent}
                               onChange={(e: any) => setDiscountPercent(Number(e.target.value) || 0)}
                               size="small"
@@ -468,7 +472,7 @@ export default function EstimatesCard({
 
                         {/* VAT (New Location) */}
                         <div className="flex justify-between items-center mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                          <span className="text-gray-700 font-medium">VAT (10%):</span>
+                          <span className="text-gray-700 font-medium">VAT ({systemParameters?.vat_percent || 0}%):</span>
                           <span className="font-bold text-gray-800">
                             {(
                               Math.round(costEstimate.cost.overhead_cost / 10) * 10
@@ -547,13 +551,15 @@ export default function EstimatesCard({
                   },
                   {
                     title: "Sản xuất",
-                    description: `Khoảng ${estimate.productionDays} ngày`,
+                    description: `Khoảng ${ estimate.productionDays } ngày`,
                   },
                   {
                     title: "Giao hàng",
-                    description: `Hẹn giao: ${dayjs(
-                      estimate.effectiveDate
-                    ).format("DD/MM/YYYY")}`,
+                    description: `Hẹn giao: ${
+  dayjs(
+    estimate.effectiveDate
+  ).format("DD/MM/YYYY")
+} `,
                   },
                 ]}
               />

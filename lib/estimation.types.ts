@@ -27,6 +27,7 @@ export interface SystemParameters {
   overhead_percent: number;
   default_production_days: number;
   rush_threshold_days: number;
+  vat_percent: number;
   rush_percent_by_days_early: Record<string, number>;
 }
 
@@ -380,6 +381,7 @@ export interface UseEstimationConfig {
   wasteRules: WasteRules | null;
   processCosts: ProcessCosts | null;
   designConfig: DesignConfig | null;
+  systemParameters: SystemParameters | null; // Added systemParameters
   materials: Material[];
   machines: Machine[];
   loading: boolean;
@@ -411,7 +413,7 @@ export interface ProcessCostDetail {
 
 export interface OrderEstimationResult {
   order_request_id: number;
-  
+
   // Chi phí Giấy
   paper_cost: number;
   paper_sheets_used: number; // Số tờ thực tế dùng cho sản xuất
@@ -473,7 +475,7 @@ export interface OrderEstimationResult {
 
   // Chi tiết các công đoạn sản xuất (Labor costs)
   process_costs: ProcessCostDetail[];
-  
+
   cost_note: string;
 }
 

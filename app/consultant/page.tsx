@@ -161,6 +161,7 @@ function ConsultantForm() {
     wasteRules,
     processCosts,
     designConfig,
+    systemParameters,
     materials,
     machines,
     loading: configLoading
@@ -439,10 +440,11 @@ function ConsultantForm() {
 
       const result = calculateAll(inputs, {
         systemParameters: {
-          overhead_percent: 10,
-          default_production_days: 5,
-          rush_threshold_days: 1,
-          rush_percent_by_days_early: {}
+          overhead_percent: systemParameters?.overhead_percent || 10,
+          default_production_days: systemParameters?.default_production_days || 5,
+          vat_percent: systemParameters?.vat_percent || 10,
+          rush_threshold_days: systemParameters?.rush_threshold_days || 1,
+          rush_percent_by_days_early: systemParameters?.rush_percent_by_days_early || {}
         }
       });
 
@@ -503,7 +505,7 @@ function ConsultantForm() {
 
           // Totals
           material_cost: result.costs.material.total,
-          overhead_percent: 10,
+          overhead_percent: systemParameters?.vat_percent || 10,
           overhead_cost: result.costs.overhead,
           base_cost: result.costs.base,
           final_total_cost: result.totals.finalTotalCost,
@@ -1057,6 +1059,7 @@ function ConsultantForm() {
                 handleAdjustPrice={handleAdjustPrice}
                 orderId={orderId}
                 isSavingCost={isSavingCost}
+                systemParameters={systemParameters}
               />
             </Col>
           </Row>

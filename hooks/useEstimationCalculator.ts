@@ -201,7 +201,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
     const priceAfterDiscount = subtotal - discountAmount;
 
     // Overhead (VAT) calculated on the discounted price
-    const overheadCost = calculateOverheadCost(priceAfterDiscount, config?.systemParameters?.overhead_percent);
+    const overheadCost = calculateOverheadCost(priceAfterDiscount, config?.systemParameters?.vat_percent);
 
     const finalTotalCost = roundToThousands(priceAfterDiscount + overheadCost);
     const finalTotalBase = priceAfterDiscount; // For compatibility if needed, though finalTotalBase usually implied before process/design in old logic. Here it's effectively PriceAfterDiscount.
