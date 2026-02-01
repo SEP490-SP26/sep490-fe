@@ -479,29 +479,29 @@ function ConsultantForm() {
           paper_unit_price: selectedMaterial.cost_price || 0,
 
           // Ink
-          ink_cost: result.costs.material.ink,
-          ink_weight_kg: 0,
-          ink_rate_per_m2: 0,
-          ink_unit_price: 0,
+          ink_cost: result.costs.material.ink.cost,
+          ink_weight_kg: result.costs.material.ink.weight,
+          ink_rate_per_m2: result.costs.material.ink.rate,
+          ink_unit_price: result.costs.material.ink.unitPrice,
 
           // Coating
-          coating_glue_cost: result.costs.material.coatingGlue,
-          coating_glue_weight_kg: 0,
-          coating_glue_rate_per_m2: 0,
-          coating_glue_unit_price: 0,
+          coating_glue_cost: result.costs.material.coatingGlue.cost,
+          coating_glue_weight_kg: result.costs.material.coatingGlue.weight,
+          coating_glue_rate_per_m2: result.costs.material.coatingGlue.rate,
+          coating_glue_unit_price: result.costs.material.coatingGlue.unitPrice,
           coating_type: inputs.coating_type || "KEO_NUOC",
 
           // Mounting
-          mounting_glue_cost: result.costs.material.mountingGlue,
-          mounting_glue_weight_kg: 0,
-          mounting_glue_rate_per_m2: 0,
-          mounting_glue_unit_price: 0,
+          mounting_glue_cost: result.costs.material.mountingGlue.cost,
+          mounting_glue_weight_kg: result.costs.material.mountingGlue.weight,
+          mounting_glue_rate_per_m2: result.costs.material.mountingGlue.rate,
+          mounting_glue_unit_price: result.costs.material.mountingGlue.unitPrice,
 
           // Lamination
-          lamination_cost: result.costs.material.lamination,
-          lamination_weight_kg: 0,
-          lamination_rate_per_m2: 0,
-          lamination_unit_price: 0,
+          lamination_cost: result.costs.material.lamination.cost,
+          lamination_weight_kg: result.costs.material.lamination.weight,
+          lamination_rate_per_m2: result.costs.material.lamination.rate,
+          lamination_unit_price: result.costs.material.lamination.unitPrice,
 
           // Totals
           material_cost: result.costs.material.total,

@@ -203,12 +203,19 @@ export interface PrintAreaResult {
   total: number;
 }
 
+export interface MaterialCostDetail {
+  cost: number;
+  weight: number;
+  rate: number;
+  unitPrice: number;
+}
+
 export interface MaterialCosts {
   paper: number;
-  ink: number;
-  coatingGlue: number;
-  mountingGlue: number;
-  lamination: number;
+  ink: MaterialCostDetail;
+  coatingGlue: MaterialCostDetail;
+  mountingGlue: MaterialCostDetail;
+  lamination: MaterialCostDetail;
   total: number;
 }
 

@@ -126,7 +126,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       config
     );
 
-    const materialCost = paperCost + inkCost + coatingGlueCost + mountingGlueCost + laminationCost;
+    const materialCost = paperCost + inkCost.cost + coatingGlueCost.cost + mountingGlueCost.cost + laminationCost.cost;
 
     // 8. Tính chi phí công đoạn (Moved up)
     let totalProcessCost = 0;
