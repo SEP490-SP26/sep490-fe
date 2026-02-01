@@ -1,24 +1,18 @@
-"use client";
-
 import React, { Suspense } from "react";
 import Loading from "./loading";
 import Footer from "@/components/Footer/Footer";
-import Header from "@/components/Header/Header";
-
+import OverviewSidebar from "@/components/OverviewSidebar/OverviewSidebar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-//   const [currentPage, setCurrentPage] = useState("");
-
   return (
-    <>
-      <Header />
-      <div className="bg-gray-50">
-        <main className="">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <OverviewSidebar />
+      <div className="flex-1 flex flex-col h-full overflow-y-auto relative w-full">
+        <main className="flex-1">
           <Suspense fallback={<Loading />}>{children}</Suspense>
         </main>
+        <Footer />
       </div>
-
-      <Footer />
-    </>
+    </div>
   );
 }
