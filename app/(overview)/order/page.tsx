@@ -9,7 +9,7 @@ import {
   CheckCircleOutlined,
   EnvironmentOutlined,
   EyeOutlined,
-  InboxOutlined,
+  UploadOutlined,
   MailOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
@@ -613,73 +613,67 @@ export default function GuestOrderPage() {
                     </Form.Item>
 
                     <Form.Item
-                      label={
-                        <span className={labelStyle}>File thiết kế mẫu</span>
-                      }
+                      // label={
+                      //   <span className={labelStyle}>File thiết kế mẫu</span>
+                      // }
                       name="designFile"
                       valuePropName="fileList"
                       getValueFromEvent={normFile}
                     >
-                      <Upload.Dragger
-                        name="files"
-                        customRequest={async (options) => {
-                          const { file, onSuccess, onError } = options;
-                          try {
-                            const response: any = await uploadApi.uploadFile([file as any]);
-                            console.log("Upload response:", response);
+                      <Space>
+                        <Typography.Text className={labelStyle}>File thiết kế mẫu (optional)</Typography.Text>
+                        <Upload
+                          name="files"
+                          customRequest={async (options) => {
+                            const { file, onSuccess, onError } = options;
+                            try {
+                              const response: any = await uploadApi.uploadFile([file as any]);
+                              console.log("Upload response:", response);
 
-                            let uploadedUrl = "";
-                            if (Array.isArray(response) && response[0]?.url) {
-                              uploadedUrl = response[0].url;
-                            } else if (response?.url) {
-                              uploadedUrl = response.url;
-                            }
+                              let uploadedUrl = "";
+                              if (Array.isArray(response) && response[0]?.url) {
+                                uploadedUrl = response[0].url;
+                              } else if (response?.url) {
+                                uploadedUrl = response.url;
+                              }
 
-                            if (uploadedUrl) {
-                              onSuccess?.(uploadedUrl);
-                            } else {
-                              console.error("No URL found in response:", response);
-                              throw new Error("No URL returned");
+                              if (uploadedUrl) {
+                                onSuccess?.(uploadedUrl);
+                              } else {
+                                console.error("No URL found in response:", response);
+                                throw new Error("No URL returned");
+                              }
+                            } catch (err) {
+                              console.error("Upload error details:", err);
+                              onError?.(err as Error);
+                              message.error(`${(file as any).name} tải lên thất bại.`);
                             }
-                          } catch (err) {
-                            console.error("Upload error details:", err);
-                            onError?.(err as Error);
-                            message.error(`${(file as any).name} tải lên thất bại.`);
-                          }
-                        }}
-                        listType="picture"
-                        maxCount={5}
-                        multiple
-                        fileList={fileList}
-                        onChange={({ fileList: newFileList }) => {
-                          const updatedList = newFileList.map((file) => {
-                            if (file.status === 'done' && file.response) {
-                              // Update url from response if available
-                              return { ...file, url: file.response as string };
-                            }
-                            return file;
-                          });
-                          setFileList(updatedList);
-                        }}
-                        onPreview={handlePreview}
-                        className="bg-white design-upload-success"
-                        showUploadList={{
-                          showPreviewIcon: true,
-                          previewIcon: <EyeOutlined className="text-blue-500" />,
-                        }}
-                      >
-                        <p className="ant-upload-drag-icon">
-                          <InboxOutlined
-                            style={{ color: "#1677ff", fontSize: "28px" }}
-                          />
-                        </p>
-                        <p className="ant-upload-text text-sm">
-                          Kéo thả hoặc click để tải lên
-                        </p>
-                        <p className="ant-upload-hint text-xs">
-                          PDF, AI, JPG, PNG (Max 10MB)
-                        </p>
-                      </Upload.Dragger>
+                          }}
+                          listType="picture"
+                          maxCount={5}
+                          multiple
+                          fileList={fileList}
+                          onChange={({ fileList: newFileList }) => {
+                            const updatedList = newFileList.map((file) => {
+                              if (file.status === 'done' && file.response) {
+                                // Update url from response if available
+                                return { ...file, url: file.response as string };
+                              }
+                              return file;
+                            });
+                            setFileList(updatedList);
+                          }}
+                          onPreview={handlePreview}
+                          className="bg-white design-upload-success"
+                          showUploadList={{
+                            showPreviewIcon: true,
+                            previewIcon: <EyeOutlined className="text-blue-500" />,
+                          }}
+                        >
+                          <Button icon={<UploadOutlined />}>Tải lên file</Button>
+                        </Upload>
+                      </Space>
+
                     </Form.Item>
                   </div>
                 </Col>
