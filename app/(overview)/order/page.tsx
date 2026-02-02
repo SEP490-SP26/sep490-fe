@@ -4,6 +4,7 @@
 import { otpsApi } from "@/apiRequests/otps";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
+import { productsApi } from "@/apiRequests/products";
 import AddressMapPicker, { AddressResult } from "@/components/AddressMapPicker";
 import {
   CheckCircleOutlined,
@@ -44,20 +45,10 @@ import { formatVietnameseNumber } from "@/utils/format";
 
 const { Title, Text } = Typography;
 
-const PRODUCT_SUGGESTIONS = [
-  "Bao lì xì",
-  "Thiệp cưới",
-  "Danh thiếp",
-  "Catalogue",
-  "Tờ rơi",
-  "Poster",
-  "Nhãn mác",
-  "Bao bì sản phẩm",
-  "Decal dán",
-  "Menu quán ăn",
-  "Sách báo",
-  "Lịch Tết",
-];
+
+
+
+
 
 // Khởi tạo Vietnamese Holidays
 const hd = new Holidays("VN");
@@ -140,6 +131,25 @@ export default function GuestOrderPage() {
     const phoneValid = phone && /^0\d{9}$/.test(phone);
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
+
+  // Fetch product suggestions
+  const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res: any = await productsApi.getAllProducts();
+        if (Array.isArray(res)) {
+          setProductSuggestions(res.map((p: any) => p.name));
+        } else if (res?.data && Array.isArray(res.data)) {
+          setProductSuggestions(res.data.map((p: any) => p.name));
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const onSendOtp = async () => {
     const email = form.getFieldValue("email");
@@ -527,13 +537,13 @@ export default function GuestOrderPage() {
                           ]}
                         >
                           <AutoComplete
-                            options={PRODUCT_SUGGESTIONS.map((name) => ({
+                            options={productSuggestions.map((name) => ({
                               label: name,
                               value: name,
                             }))}
                             placeholder="Chọn hoặc nhập tên sản phẩm"
                             filterOption={(inputValue, option) =>
-                              option?.value
+                              (option?.value as string)
                                 .toUpperCase()
                                 .indexOf(inputValue.toUpperCase()) !== -1
                             }
@@ -621,7 +631,7 @@ export default function GuestOrderPage() {
                       getValueFromEvent={normFile}
                     >
                       <Space>
-                        <Typography.Text className={labelStyle}>File thiết kế mẫu (optional)</Typography.Text>
+                        {/* <Typography.Text className={labelStyle}>File thiết kế mẫu (optional)</Typography.Text> */}
                         <Upload
                           name="files"
                           customRequest={async (options) => {
@@ -670,7 +680,7 @@ export default function GuestOrderPage() {
                             previewIcon: <EyeOutlined className="text-blue-500" />,
                           }}
                         >
-                          <Button icon={<UploadOutlined />}>Tải lên file</Button>
+                          <Button icon={<UploadOutlined />}>Tải lên file (không bắt buộc)</Button>
                         </Upload>
                       </Space>
 

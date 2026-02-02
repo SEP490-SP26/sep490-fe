@@ -4,9 +4,14 @@ import { estimatesApi } from "@/apiRequests/estimates";
 import { machineApi } from "@/apiRequests/machine";
 import { materialsApi } from "@/apiRequests/materials";
 import { productionsApi } from "@/apiRequests/productions";
+import { Product, productsApi } from "@/apiRequests/products";
 import { productTypesApi } from "@/apiRequests/producttypes";
 import { requestOrderApi } from "@/apiRequests/request";
+import { uploadApi } from "@/apiRequests/uploads";
 import { Order, ProductTemplate, useProduction } from "@/context/ProductionContext";
+import { useEstimationCalculator } from "@/hooks/useEstimationCalculator";
+import { useEstimationConfig } from "@/hooks/useEstimationConfig";
+import { EstimationInputs } from "@/lib/estimation.types";
 import {
   CreateRequestBody,
   CreateRequestBodyForConsultant,
@@ -18,9 +23,6 @@ import {
   ProductType,
   UpdateRequestBody,
 } from "@/schemaValidations/common.schema";
-import { useEstimationCalculator } from "@/hooks/useEstimationCalculator";
-import { useEstimationConfig } from "@/hooks/useEstimationConfig";
-import { EstimationInputs, OrderEstimationResult } from "@/lib/estimation.types";
 import {
   CodeSandboxOutlined,
   DashboardOutlined,
@@ -53,16 +55,8 @@ import {
   getEstimatedFreeDate,
   mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
-import { isVietnamHoliday } from "@/utils/vietnamHolidays";
-import { uploadApi } from "@/apiRequests/uploads";
 
-const PRODUCT_SUGGESTIONS = [
-  "Hộp bánh trung thu cao cấp",
-  "Hộp thuốc tây",
-  "Tờ rơi A4",
-  "Catalogue 32 trang",
-  "Hộp carton sóng E",
-];
+
 
 const PROCESS_TYPE_LABELS: Record<string, string> = {
   IN: "In",
@@ -106,6 +100,8 @@ function ConsultantForm() {
 
   // State
   const [designFilePath, setDesignFilePath] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]); // Store full product list
+  const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
   const [isSendDesign, setIsSendDesign] = useState<boolean>(true);
   const [paperTypes, setPaperTypes] = useState<
     { code: string; name: string; stock: number; value: string }[]
@@ -258,6 +254,20 @@ function ConsultantForm() {
       } catch (error) {
         console.error("Error fetching song types:", error);
       }
+
+      // Product Suggestions
+      try {
+        const res: any = await productsApi.getAllProducts();
+        if (Array.isArray(res)) {
+          setProducts(res);
+          setProductSuggestions(res.map((p: any) => p.name));
+        } else if (res?.data && Array.isArray(res.data)) {
+          setProducts(res.data);
+          setProductSuggestions(res.data.map((p: any) => p.name));
+        }
+      } catch (error) {
+        console.error("Error fetching product suggestions:", error);
+      }
     };
 
     fetchData();
@@ -373,6 +383,18 @@ function ConsultantForm() {
       // setTimeout(() => calculatePaperEstimate(), 100);
     }
   }, [productTempalte, form, selectedProductTypeCode]);
+
+  // Sync selectedProductTypeCode when productTypes are loaded (in case product was selected before types loaded)
+  useEffect(() => {
+    const currentProductTypeId = form.getFieldValue("product_type");
+    if (currentProductTypeId && productTypes.length > 0) {
+      const selected = productTypes.find(pt => pt.product_type_id === currentProductTypeId);
+      if (selected && selected.code !== selectedProductTypeCode) {
+        setSelectedProductTypeCode(selected.code);
+        setselectProductTypeId(selected.product_type_id);
+      }
+    }
+  }, [productTypes]);
 
   const calculateEstimates = () => {
     const values = form.getFieldsValue();
@@ -566,6 +588,18 @@ function ConsultantForm() {
       debounceTimerRef.current = setTimeout(() => {
         calculateEstimates();
       }, 800);
+    }
+
+    if (changedValues.product_name) {
+      const selectedProduct = products.find(p => p.name === changedValues.product_name);
+      if (selectedProduct && selectedProduct.product_type_id) {
+        form.setFieldValue("product_type", selectedProduct.product_type_id);
+
+        // Trigger logic for product_type change
+        const selectedType = productTypes.find(pt => pt.product_type_id === selectedProduct.product_type_id);
+        setSelectedProductTypeCode(selectedType?.code || "");
+        setselectProductTypeId(selectedType?.product_type_id);
+      }
     }
 
     if (changedValues.product_type) {
@@ -926,7 +960,7 @@ function ConsultantForm() {
 
                 <ProductSpecsSection
                   orderId={orderId}
-                  PRODUCT_SUGGESTIONS={PRODUCT_SUGGESTIONS}
+                  PRODUCT_SUGGESTIONS={productSuggestions}
                   productTypes={productTypes}
                   paperTypes={paperTypes}
                   formTypes={formTypes}

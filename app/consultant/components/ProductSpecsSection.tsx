@@ -96,7 +96,10 @@ export default function ProductSpecsSection({
               loading={loadingPaperTypes}
               optionFilterProp="label"
               options={paperTypes.map((paper) => ({
-                label: `${paper.name} (SL: ${paper.stock ?? 0})`,
+                label: <div className="flex justify-between gap-2">
+                  <span>{paper.name}</span>
+                  <span className="text-gray-500">(SL: {paper.stock ?? 0})</span>
+                </div>,
                 value: paper.code,
                 stockQty: paper.stock,
               }))}
