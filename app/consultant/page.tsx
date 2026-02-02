@@ -70,7 +70,7 @@ const PROCESS_TYPE_LABELS: Record<string, string> = {
   CAT: "Cắt",
   BOI: "Bồi",
   PHU: "Phủ",
-  CAN_MANG: "Cán màng",
+  CAN: "Cán màng",
   BE: "Bế/Dứt",
   DUT: "Dứt",
   DAN: "Dán",
@@ -1016,7 +1016,7 @@ function ConsultantForm() {
                           ? "GỬI BÁO GIÁ ƯU TIÊN"
                           : "GỬI BÁO GIÁ CHO KHÁCH HÀNG"}
                   </Button>
-                  <Button
+                  {/* <Button
                     type="primary"
                     htmlType="submit"
                     size="large"
@@ -1032,7 +1032,7 @@ function ConsultantForm() {
                       }`}
                   >
                     Hoàn tất báo giá
-                  </Button>
+                  </Button> */}
                 </Form.Item>
               </Card>
             </Col>
