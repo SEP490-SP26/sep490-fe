@@ -129,8 +129,7 @@ export default function StaffProductionScheduling() {
                   <div className="flex-1 min-w-0 pr-3">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="font-medium text-gray-900 text-sm truncate">
-                        {order.customer_name?.substring(0, 20) || "Khách lẻ"}
-                        {order.customer_name?.length > 30 && "..."}
+                        Mã đơn sản xuất: {order.order_id}
                       </div>
                       <div className="text-xs font-semibold text-blue-700">
                         SL: {order.quantity}
@@ -198,7 +197,7 @@ export default function StaffProductionScheduling() {
                 >
                   <div className="flex justify-between mb-2">
                     <div className="font-medium">
-                      {order.customer_name || "Khách lẻ"}
+                      Mã đơn: {order.order_id}
                     </div>
                     <div className="text-sm text-gray-500">
                       SL: {order.quantity}
