@@ -2,31 +2,26 @@
 
 import { requestOrderApi } from "@/apiRequests/request";
 import { VerifiedRequestReponse } from "@/lib/request.types";
-import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
-    ArrowLeftOutlined,
     CalendarOutlined,
-    EnvironmentOutlined,
-    HomeOutlined,
+    CompassOutlined,
+    DollarOutlined,
+    FileImageOutlined,
     MailOutlined,
     PhoneOutlined,
     ShoppingOutlined,
-    ExperimentOutlined,
-    BuildOutlined,
-    ToolOutlined,
-    DollarOutlined,
+    UserOutlined
 } from "@ant-design/icons";
 import {
     Button,
     Card,
-    Typography,
-    Breadcrumb,
-    Skeleton,
-    Empty,
-    message,
-    Tag,
     Descriptions,
-    Divider
+    Empty,
+    Image,
+    message,
+    Skeleton,
+    Tag,
+    Typography
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
@@ -120,9 +115,9 @@ export default function ConsultantRequestDetailPage() {
 
     return (
         <div className="min-h-screen pb-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative animate-fade-in-up">
+            <div className="max-w px-4 sm:px-4 lg:px-8 pt-2 relative animate-fade-in-up">
                 {/* Navigation & Header */}
-                <div className="mb-4">
+                <div className="">
                     {/* <Breadcrumb
                         items={[
                             { href: '/consultant', title: <HomeOutlined /> },
@@ -155,51 +150,41 @@ export default function ConsultantRequestDetailPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Main Info Column */}
-                    <div className="lg:col-span-8 space-y-8">
+                    <div className="lg:col-span-8 space-y-6">
                         {/* Customer & Address Card */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-                            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                            <div className="flex items-center gap-3 border-b border-slate-100 pb-2 mb-2">
                                 <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600">
                                     <ShoppingOutlined className="text-xl" />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin khách hàng</h3>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8">
-                                <div>
-                                    <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Họ và tên</Text>
-                                    <Paragraph className="text-slate-700 font-medium text-base mt-1">{orderDetail.customer_name}</Paragraph>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-2 ">
+                                <div className="flex items-center gap-2">
+                                    {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Họ và tên</Text> */}
+                                    <span>Khách hàng:</span><h2 className="text-primary lg:text-md md:text-sm uppercase font-medium tracking-wider">{orderDetail.customer_name}</h2>
+
                                 </div>
-                                <div>
-                                    <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Số điện thoại</Text>
-                                    <Paragraph className="text-base mt-1">
-                                        <a href={`tel:${orderDetail.customer_phone}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                                            {orderDetail.customer_phone}
-                                        </a>
-                                    </Paragraph>
+                                <div className="flex items-center gap-2">
+                                    <span>Sđt:</span><h2 className="text-primary lg:text-md md:text-sm uppercase font-medium tracking-wider">{orderDetail.customer_phone}</h2>
+
                                 </div>
-                                <div>
-                                    <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Email</Text>
-                                    <Paragraph className="text-base mt-1">
-                                        <a href={`mailto:${orderDetail.email}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                                            {orderDetail.email}
-                                        </a>
-                                    </Paragraph>
+                                <div className="flex items-center gap-2">
+                                    <span>Email:</span><h2 className="text-primary lg:text-md md:text-sm uppercase font-medium tracking-wider">{orderDetail.email}</h2>
+
                                 </div>
-                                <div className="md:col-span-4">
-                                    <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Địa chỉ giao hàng</Text>
-                                    <Paragraph className="text-slate-700 text-base mt-1 flex items-start gap-2">
-                                        {orderDetail.detail_address || <span className="text-slate-400 italic">Chưa cập nhật địa chỉ</span>}
-                                    </Paragraph>
+                                <div className="md:col-span-4 flex items-center gap-2">
+                                    <CompassOutlined /> <h2 className="text-primary lg:text-md md:text-sm uppercase font-medium tracking-wider">{orderDetail.detail_address || <span className="text-slate-400 italic">Chưa cập nhật địa chỉ</span>}</h2>
                                 </div>
                             </div>
                         </div>
 
                         {/* Cost Estimates Card */}
                         {orderDetail.cost_estimate && orderDetail.cost_estimate.length > 0 && (
-                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-                                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                                    <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                                <div className="flex items-center gap-3 mb-2 border-b border-slate-100 pb-2">
+                                    <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
                                         <DollarOutlined className="text-xl" />
                                     </div>
                                     <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin báo giá</h3>
@@ -207,31 +192,32 @@ export default function ConsultantRequestDetailPage() {
 
                                 <div className="space-y-6">
                                     {orderDetail.cost_estimate.map((estimate, index) => (
-                                        <div key={estimate.estimate_id} className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                                        <div key={estimate.estimate_id}>
+                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                                 <Tag color="blue" className="px-3 py-1 font-medium bg-blue-50 text-blue-700 border-blue-200">
                                                     Báo giá #{index + 1}
                                                 </Tag>
-                                                <div className="flex gap-6">
-                                                    <div className="text-right">
-                                                        <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Đặt cọc</Text>
-                                                        <Text strong className="text-orange-500 text-lg">{formatCurrency(estimate.deposit_amount)}</Text>
+                                                <div className="flex gap-8">
+                                                    <div className="flex items-center gap-2">
+                                                        <Text className="text-slate-500 text-sm uppercase font-bold tracking-wider block ">Đặt cọc</Text>
+                                                        <span className="text-accent text-xl font-extrabold bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{formatCurrency(estimate.deposit_amount)}</span>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Tổng chi phí</Text>
-                                                        <Text strong className="text-emerald-600 text-xl">{formatCurrency(estimate.final_total_cost)}</Text>
+                                                    <div className="flex items-center gap-2">
+                                                        <Text className="text-slate-500 text-sm uppercase font-bold tracking-wider block ">Tổng chi phí</Text>
+                                                        <span className="text-primary text-xl font-extrabold bg-primary/5 px-2 py-0.5 rounded border border-primary/10 shadow-sm">{formatCurrency(estimate.final_total_cost)}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <Divider dashed className="my-3 border-slate-200" />
+                                            {/* <Divider dashed className="my-1 border-slate-200" /> */}
+                                            <div className="h-[8px] "></div>
 
-                                            <Text className="text-slate-500 font-bold block mb-3 text-sm uppercase tracking-wide">Chi tiết chi phí sản xuất</Text>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {/* <Text className="text-slate-500 font-bold block mb-3 text-sm uppercase tracking-wide">Chi tiết chi phí sản xuất</Text> */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                                 {estimate.process_cost.map((proc) => (
-                                                    <div key={proc.process_cost_id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 hover:border-slate-300 transition-colors">
-                                                        <Tag className="mr-0" bordered={false}>{proc.process_code}</Tag>
-                                                        <Text strong className="text-slate-700">{formatCurrency(proc.cost)}</Text>
+                                                    <div key={proc.process_cost_id} className="flex justify-between items-center bg-white p-1 rounded-lg border border-slate-100 hover:border-slate-300 transition-colors">
+                                                        <Tag color="blue" className="mr-0" bordered={false}>{proc.process_code}</Tag>
+                                                        <h1 className="text-slate-700 sm:text-md">{formatCurrency(proc.cost)}</h1>
                                                     </div>
                                                 ))}
                                             </div>
@@ -240,32 +226,82 @@ export default function ConsultantRequestDetailPage() {
                                 </div>
                             </div>
                         )}
-
-                        {/* Product Details Card */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                        {/* Design File */}
+                        {/* <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.request_id} /> */}
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 sticky top-6">
                             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
+                                    <FileImageOutlined className="text-xl" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-800 m-0">File thiết kế</h3>
+                            </div>
+                            {/* Show previously uploaded files if any (from API, usually passed via designFilePath string) */}
+                            {orderDetail.design_file_path && (
+                                <div className=" rounded text-sm text-gray-500">
+
+                                    <div className="flex flex-wrap gap-2">
+                                        {orderDetail.design_file_path.split(',').map((url, index) => {
+                                            const trimmedUrl = url.trim();
+                                            // Simple check for image extensions, can be improved
+                                            const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(trimmedUrl);
+
+                                            if (isImage) {
+                                                return (
+                                                    <div key={index} className="border rounded overflow-hidden" style={{ width: 80, height: 80 }}>
+                                                        <Image
+                                                            src={trimmedUrl}
+                                                            alt={`Design file ${index + 1}`}
+                                                            width={80}
+                                                            height={80}
+                                                            style={{ objectFit: 'cover' }}
+                                                        />
+                                                    </div>
+                                                );
+                                            } else {
+                                                // For non-image files, show a link or icon
+                                                return (
+                                                    <div key={index} className="flex items-center justify-center border rounded bg-white p-2" style={{ width: 80, height: 80 }}>
+                                                        <a href={trimmedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all text-xs text-center">
+                                                            File {index + 1}
+                                                        </a>
+                                                    </div>
+                                                );
+                                            }
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="lg:col-span-4">
+                        {/* Product Details Card */}
+                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                            <div className="flex items-center gap-3 mb-2 border-b border-slate-100 pb-2">
+                                <div className=" rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
                                     <ShoppingOutlined className="text-xl" />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-800 m-0">Chi tiết sản phẩm</h3>
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                    <div>
-                                        <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Sản phẩm</Text>
-                                        <div className="text-xl font-bold text-slate-800 mt-1">{orderDetail.product_name}</div>
-                                        <Tag className="mt-1">{orderDetail.product_type}</Tag>
+                            <div className="space-y-2">
+                                <div className="flex flex-col :items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <div className=" text-xl font-bold ">Sản phẩm: </div>
+                                        <div className="text-xl font-bold text-primary">{orderDetail.product_name}</div>
+                                        {/* <Tag className="mt-1">{orderDetail.product_type}</Tag> */}
                                     </div>
                                     <div className="flex items-center gap-8">
-                                        <div>
-                                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text>
+                                        <div className="flex items-center gap-2">
+                                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block ">SL</Text>
                                             <Tag bordered={false} className="bg-white text-slate-700 font-bold text-lg px-4 py-1 rounded-lg border border-slate-200">
                                                 {orderDetail.quantity.toLocaleString("vi-VN")}
                                             </Tag>
                                         </div>
-                                        <div>
-                                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng dự kiến</Text>
+                                        <div className="flex items-center gap-2">
+                                            {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block">Giao hàng dự kiến</Text> */}
                                             <Tag icon={<CalendarOutlined />} bordered={false} color="cyan" className="text-base px-3 py-1 m-0">
                                                 {dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}
                                             </Tag>
@@ -273,13 +309,13 @@ export default function ConsultantRequestDetailPage() {
                                     </div>
                                 </div>
 
-                                <Divider dashed />
+
 
                                 {/* Technical Specs */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1  gap-6">
                                     <div>
                                         <div className="flex items-center gap-2 mb-3">
-                                            <ExperimentOutlined className="text-indigo-500" />
+                                            {/* <ExperimentOutlined className="text-indigo-500" /> */}
                                             <Text strong className="text-slate-700">Thông số kỹ thuật</Text>
                                         </div>
                                         <Descriptions column={1} size="small" bordered className="bg-slate-50">
@@ -287,9 +323,11 @@ export default function ConsultantRequestDetailPage() {
                                             <Descriptions.Item label="Kiểu sóng">{orderDetail.wave_type}</Descriptions.Item>
                                             <Descriptions.Item label="Loại phủ">{orderDetail.coating_type}</Descriptions.Item>
                                             <Descriptions.Item label="Số bản kẽm">{orderDetail.number_of_plates}</Descriptions.Item>
+                                            <Descriptions.Item label="Kích thước">{orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm}</Descriptions.Item>
                                         </Descriptions>
                                     </div>
-                                    <div>
+
+                                    {/* <div>
                                         <div className="flex items-center gap-2 mb-3">
                                             <BuildOutlined className="text-indigo-500" />
                                             <Text strong className="text-slate-700">Kích thước (mm)</Text>
@@ -310,23 +348,9 @@ export default function ConsultantRequestDetailPage() {
                                                 <div className="text-2xl font-bold text-indigo-700">{orderDetail.product_height_mm}</div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </div>
 
-                                <Divider dashed />
-
-                                {/* Production Layout */}
-                                <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <ToolOutlined className="text-indigo-500" />
-                                        <Text strong className="text-slate-700">Quy trình sản xuất</Text>
-                                    </div>
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                        {renderProductionProcesses(orderDetail.production_processes)}
-                                    </div>
-                                </div>
-
-                                <Divider dashed />
 
                                 <div>
                                     <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Mô tả yêu cầu</Text>
@@ -336,13 +360,6 @@ export default function ConsultantRequestDetailPage() {
                                 </div>
                             </div>
                         </div>
-
-
-                    </div>
-
-                    {/* Sidebar - Design Files */}
-                    <div className="lg:col-span-4">
-                        <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.request_id} />
                     </div>
                 </div>
 
