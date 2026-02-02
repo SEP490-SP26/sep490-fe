@@ -338,7 +338,7 @@ export default function EstimatesCard({
                                         ? "Ra lô"
                                         : detail.process === "PHU"
                                           ? "Công phủ"
-                                          : detail.process === "CAN_MANG"
+                                          : detail.process === "CAN"
                                             ? "Cán màng"
                                             : detail.process === "DUT"
                                               ? "Đục"

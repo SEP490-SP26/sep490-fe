@@ -756,30 +756,11 @@ function ConsultantForm() {
         // 2. Gửi email báo giá
         const response = await requestOrderApi.sendDeal(parseInt(currentOrderId));
 
-        // if (response.message === "Sent deal email") {
-        //   // 3. Cập nhật trạng thái trong context/local
-        //   if (existingOrder) {
-        //     updateOrder(currentOrderId, {
-        //       ...orderData,
-        //       process_status: "waiting_customer_confirm",
-        //       order_id: currentOrderId,
-        //       code: `ORD-${currentOrderId}`,
-        //     });
-        //   } else {
-        //     // Nếu không có trong context, thêm mới
-        //     addOrder({
-        //       ...orderData,
-        //       order_id: currentOrderId,
-        //       code: `ORD-${currentOrderId}`,
-        //       process_status: "waiting_customer_confirm",
-        //       can_fulfill: estimate?.isStockEnough || false,
-        //     });
-        //   }
-
-        //   message.success("Đã gửi báo giá cho khách hàng!");
-        // } else {
-        //   throw new Error(response.detail || "Lỗi gửi email");
-        // }
+        if (response.message === "Sent deal email") {
+          message.success("Đã gửi báo giá cho khách hàng!");
+        } else {
+          throw new Error(response.detail || "Lỗi gửi email");
+        }
       } else {
         // Chế độ create: Tạo đơn mới
         // ... logic cho create mode
@@ -1034,6 +1015,23 @@ function ConsultantForm() {
                         : estimate?.caseType === 2
                           ? "GỬI BÁO GIÁ ƯU TIÊN"
                           : "GỬI BÁO GIÁ CHO KHÁCH HÀNG"}
+                  </Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    loading={loading}
+                    block
+                    className={`h-12 font-bold ${isCreateMode
+                      ? "bg-green-600 hover:bg-green-700"
+                      : estimate?.caseType === 3
+                        ? "bg-red-600 hover:bg-red-700"
+                        : estimate?.caseType === 2
+                          ? "bg-orange-500 hover:bg-orange-600"
+                          : "bg-blue-600"
+                      }`}
+                  >
+                    Hoàn tất báo giá
                   </Button>
                 </Form.Item>
               </Card>

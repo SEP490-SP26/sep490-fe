@@ -20,7 +20,7 @@ interface DesignFileDisplayProps {
 
 export default function DesignFileDisplay({ designFilePath, requestId }: DesignFileDisplayProps) {
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 sticky top-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 ">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                 <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
                     <FileImageOutlined className="text-xl" />

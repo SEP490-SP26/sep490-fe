@@ -121,7 +121,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       config
     );
     const laminationCost = calculateLaminationCost(
-      processes.includes('CAN_MANG'),
+      processes.includes('CAN'),
       totalPrintArea,
       config
     );
@@ -138,7 +138,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
         if (processConfig) {
           let qtyForProcess = 0;
 
-          if (['IN', 'PHU', 'CAN_MANG'].includes(processCode)) {
+          if (['IN', 'PHU', 'CAN'].includes(processCode)) {
             qtyForProcess = totalPrintArea;
           } else if (['BE', 'BOI', 'RALO'].includes(processCode)) {
             qtyForProcess = wasteResult.sheetsWithWaste;

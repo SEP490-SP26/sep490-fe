@@ -345,7 +345,7 @@ const getProcessMatch = (processCode: string, machineName: string): boolean => {
         'BE': machineNameUpper.includes('BẾ') || machineNameUpper.includes('BE'),
         'BOI': machineNameUpper.includes('BỒI') || machineNameUpper.includes('BOI'),
         'PHU': machineNameUpper.includes('PHỦ') || machineNameUpper.includes('PHU'),
-        'CAN_MANG': machineNameUpper.includes('CÁN') || machineNameUpper.includes('CAN'),
+        'CAN': machineNameUpper.includes('CÁN') || machineNameUpper.includes('CAN'),
         'DAN': machineNameUpper.includes('DÁN') || machineNameUpper.includes('DAN'),
         'DUT': machineNameUpper.includes('DỨT') || machineNameUpper.includes('DUT'),
         'RALO': machineNameUpper.includes('RALO'),
@@ -384,7 +384,7 @@ export const calculateProductionDays = (
 
         // Xác định số lượng cần xử lý
         let requiredQty: number;
-        if (['IN', 'PHU', 'CAN_MANG', 'BOI', 'BE', 'RALO', 'CAT'].includes(normalizedCode)) {
+        if (['IN', 'PHU', 'CAN', 'BOI', 'BE', 'RALO', 'CAT'].includes(normalizedCode)) {
             requiredQty = sheetsWithWaste;
         } else if (['DUT', 'DAN', 'DOT'].includes(normalizedCode)) {
             requiredQty = quantity;

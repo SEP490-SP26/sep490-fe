@@ -633,7 +633,7 @@ export default function RequestDetailPage() {
                     target="_blank"
                     className="w-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-2 h-10 rounded-xl"
                   >
-                    <CreditCardOutlined /> Link thanh toán PayOS
+                    <CreditCardOutlined /> Xác nhận thanh toán
                   </Button>
 
                   {/* từ chối yêu cầu */}
