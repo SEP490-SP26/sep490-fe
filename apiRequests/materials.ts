@@ -1,6 +1,12 @@
 import { Material } from "@/lib/estimation.types";
 import http from "@/lib/httpAxios";
 
+interface PaperType {
+    stockQty: number;
+    name: string;
+    code: string;
+}
+
 export const materialsApi = {
     getAll: () =>
         http.get<Material[]>("/api/Materials/get-all-materials"),
@@ -9,7 +15,7 @@ export const materialsApi = {
         http.get<Material>(`/api/Materials/get-material-by-${id}`),
 
     getAllPaperTypes: () =>
-        http.get<string[]>("/api/Materials/get-all-paper-type"),
+        http.get<PaperType[]>("/api/Materials/get-all-paper-type"),
 
     getAllFormTypes: () =>
         http.get<string[]>("/api/Materials/get-all-form-type"),

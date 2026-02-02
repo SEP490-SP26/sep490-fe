@@ -3,6 +3,7 @@
 import { paymentApi, PaymentResponse } from "@/apiRequests/payment";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
+import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
   AppstoreOutlined,
   ArrowLeftOutlined,
@@ -575,6 +576,8 @@ export default function RequestDetailPage() {
 
           {/* Sidebar - Design Files + QR Payment */}
           <div className="lg:col-span-4 space-y-8">
+            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+
             {paymentInfo && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
@@ -630,7 +633,7 @@ export default function RequestDetailPage() {
                     target="_blank"
                     className="w-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-2 h-10 rounded-xl"
                   >
-                    <CreditCardOutlined /> Link thanh toán PayOS
+                    <CreditCardOutlined /> Xác nhận thanh toán
                   </Button>
 
                   {/* từ chối yêu cầu */}

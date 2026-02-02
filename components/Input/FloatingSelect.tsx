@@ -1,13 +1,14 @@
 import { Select } from 'antd';
 import { useState } from 'react';
 
-export const FloatingSelect = ({ label, ...props }: any) => {
+export const FloatingSelect = ({ label, suffix, value, ...props }: any) => {
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
 
   return (
     <div className="relative">
       <Select
+        value={value}
         {...props}
         className={`
           block w-full text-sm 
@@ -52,8 +53,8 @@ export const FloatingSelect = ({ label, ...props }: any) => {
           absolute text-sm text-gray-500 duration-300 transform -translate-y-4 scale-75 top-1 z-10 
           origin-left bg-white px-2 
           peer-focus-within:px-2 peer-focus-within:text-blue-600
-          ${hasValue || isFocused 
-            ? 'top-0 scale-75 -translate-y-4 text-blue-600' 
+          ${hasValue || isFocused
+            ? 'top-0 scale-75 -translate-y-4 text-blue-600'
             : 'peer-[&_.ant-select-selection-placeholder]:opacity-100:scale-100 peer-[&_.ant-select-selection-placeholder]:opacity-100:-translate-y-1/2 peer-[&_.ant-select-selection-placeholder]:opacity-100:top-1/2'
           }
           left-1
@@ -64,8 +65,16 @@ export const FloatingSelect = ({ label, ...props }: any) => {
       >
         {label}
         {props.required && <span className="text-red-500 ml-1">*</span>}
+
       </label>
-    </div>
+      {
+        suffix && (
+          <span className="absolute right-8 top-1/2 mt-1 -translate-y-1/2 text-gray-500 text-sm pointer-events-none z-10">
+            {typeof suffix === 'function' ? suffix({ value }) : suffix}
+          </span>
+        )
+      }
+    </div >
   );
 };
 

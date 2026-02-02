@@ -161,6 +161,7 @@ function ConsultantForm() {
     wasteRules,
     processCosts,
     designConfig,
+    systemParameters,
     materials,
     machines,
     loading: configLoading
@@ -439,10 +440,11 @@ function ConsultantForm() {
 
       const result = calculateAll(inputs, {
         systemParameters: {
-          overhead_percent: 10,
-          default_production_days: 5,
-          rush_threshold_days: 1,
-          rush_percent_by_days_early: {}
+          overhead_percent: systemParameters?.overhead_percent || 10,
+          default_production_days: systemParameters?.default_production_days || 5,
+          vat_percent: systemParameters?.vat_percent || 10,
+          rush_threshold_days: systemParameters?.rush_threshold_days || 1,
+          rush_percent_by_days_early: systemParameters?.rush_percent_by_days_early || {}
         }
       });
 
@@ -477,33 +479,33 @@ function ConsultantForm() {
           paper_unit_price: selectedMaterial.cost_price || 0,
 
           // Ink
-          ink_cost: result.costs.material.ink,
-          ink_weight_kg: 0,
-          ink_rate_per_m2: 0,
-          ink_unit_price: 0,
+          ink_cost: result.costs.material.ink.cost,
+          ink_weight_kg: result.costs.material.ink.weight,
+          ink_rate_per_m2: result.costs.material.ink.rate,
+          ink_unit_price: result.costs.material.ink.unitPrice,
 
           // Coating
-          coating_glue_cost: result.costs.material.coatingGlue,
-          coating_glue_weight_kg: 0,
-          coating_glue_rate_per_m2: 0,
-          coating_glue_unit_price: 0,
+          coating_glue_cost: result.costs.material.coatingGlue.cost,
+          coating_glue_weight_kg: result.costs.material.coatingGlue.weight,
+          coating_glue_rate_per_m2: result.costs.material.coatingGlue.rate,
+          coating_glue_unit_price: result.costs.material.coatingGlue.unitPrice,
           coating_type: inputs.coating_type || "KEO_NUOC",
 
           // Mounting
-          mounting_glue_cost: result.costs.material.mountingGlue,
-          mounting_glue_weight_kg: 0,
-          mounting_glue_rate_per_m2: 0,
-          mounting_glue_unit_price: 0,
+          mounting_glue_cost: result.costs.material.mountingGlue.cost,
+          mounting_glue_weight_kg: result.costs.material.mountingGlue.weight,
+          mounting_glue_rate_per_m2: result.costs.material.mountingGlue.rate,
+          mounting_glue_unit_price: result.costs.material.mountingGlue.unitPrice,
 
           // Lamination
-          lamination_cost: result.costs.material.lamination,
-          lamination_weight_kg: 0,
-          lamination_rate_per_m2: 0,
-          lamination_unit_price: 0,
+          lamination_cost: result.costs.material.lamination.cost,
+          lamination_weight_kg: result.costs.material.lamination.weight,
+          lamination_rate_per_m2: result.costs.material.lamination.rate,
+          lamination_unit_price: result.costs.material.lamination.unitPrice,
 
           // Totals
           material_cost: result.costs.material.total,
-          overhead_percent: 10,
+          overhead_percent: systemParameters?.vat_percent || 10,
           overhead_cost: result.costs.overhead,
           base_cost: result.costs.base,
           final_total_cost: result.totals.finalTotalCost,
@@ -754,30 +756,11 @@ function ConsultantForm() {
         // 2. Gửi email báo giá
         const response = await requestOrderApi.sendDeal(parseInt(currentOrderId));
 
-        // if (response.message === "Sent deal email") {
-        //   // 3. Cập nhật trạng thái trong context/local
-        //   if (existingOrder) {
-        //     updateOrder(currentOrderId, {
-        //       ...orderData,
-        //       process_status: "waiting_customer_confirm",
-        //       order_id: currentOrderId,
-        //       code: `ORD-${currentOrderId}`,
-        //     });
-        //   } else {
-        //     // Nếu không có trong context, thêm mới
-        //     addOrder({
-        //       ...orderData,
-        //       order_id: currentOrderId,
-        //       code: `ORD-${currentOrderId}`,
-        //       process_status: "waiting_customer_confirm",
-        //       can_fulfill: estimate?.isStockEnough || false,
-        //     });
-        //   }
-
-        //   message.success("Đã gửi báo giá cho khách hàng!");
-        // } else {
-        //   throw new Error(response.detail || "Lỗi gửi email");
-        // }
+        if (response.message === "Sent deal email") {
+          message.success("Đã gửi báo giá cho khách hàng!");
+        } else {
+          throw new Error(response.detail || "Lỗi gửi email");
+        }
       } else {
         // Chế độ create: Tạo đơn mới
         // ... logic cho create mode
@@ -1033,6 +1016,23 @@ function ConsultantForm() {
                           ? "GỬI BÁO GIÁ ƯU TIÊN"
                           : "GỬI BÁO GIÁ CHO KHÁCH HÀNG"}
                   </Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    loading={loading}
+                    block
+                    className={`h-12 font-bold ${isCreateMode
+                      ? "bg-green-600 hover:bg-green-700"
+                      : estimate?.caseType === 3
+                        ? "bg-red-600 hover:bg-red-700"
+                        : estimate?.caseType === 2
+                          ? "bg-orange-500 hover:bg-orange-600"
+                          : "bg-blue-600"
+                      }`}
+                  >
+                    Hoàn tất báo giá
+                  </Button>
                 </Form.Item>
               </Card>
             </Col>
@@ -1057,6 +1057,7 @@ function ConsultantForm() {
                 handleAdjustPrice={handleAdjustPrice}
                 orderId={orderId}
                 isSavingCost={isSavingCost}
+                systemParameters={systemParameters}
               />
             </Col>
           </Row>

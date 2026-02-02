@@ -121,12 +121,12 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       config
     );
     const laminationCost = calculateLaminationCost(
-      processes.includes('CAN_MANG'),
+      processes.includes('CAN'),
       totalPrintArea,
       config
     );
 
-    const materialCost = paperCost + inkCost + coatingGlueCost + mountingGlueCost + laminationCost;
+    const materialCost = paperCost + inkCost.cost + coatingGlueCost.cost + mountingGlueCost.cost + laminationCost.cost;
 
     // 8. Tính chi phí công đoạn (Moved up)
     let totalProcessCost = 0;
@@ -138,7 +138,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
         if (processConfig) {
           let qtyForProcess = 0;
 
-          if (['IN', 'PHU', 'CAN_MANG'].includes(processCode)) {
+          if (['IN', 'PHU', 'CAN'].includes(processCode)) {
             qtyForProcess = totalPrintArea;
           } else if (['BE', 'BOI', 'RALO'].includes(processCode)) {
             qtyForProcess = wasteResult.sheetsWithWaste;
@@ -201,7 +201,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
     const priceAfterDiscount = subtotal - discountAmount;
 
     // Overhead (VAT) calculated on the discounted price
-    const overheadCost = calculateOverheadCost(priceAfterDiscount, config?.systemParameters?.overhead_percent);
+    const overheadCost = calculateOverheadCost(priceAfterDiscount, config?.systemParameters?.vat_percent);
 
     const finalTotalCost = roundToThousands(priceAfterDiscount + overheadCost);
     const finalTotalBase = priceAfterDiscount; // For compatibility if needed, though finalTotalBase usually implied before process/design in old logic. Here it's effectively PriceAfterDiscount.

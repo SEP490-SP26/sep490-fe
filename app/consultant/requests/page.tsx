@@ -322,7 +322,10 @@ export default function ConsultantOrdersPage() {
                 backgroundColor: "transparent",
               }}
               icon={<DeleteOutlined />}
-              onClick={() => openCancelModal(record.order_request_id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                openCancelModal(record.order_request_id);
+              }}
               disabled={cancelMutation.isPending && cancelModal.orderId === record.order_request_id}
             >
 

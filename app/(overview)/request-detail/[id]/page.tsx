@@ -2,6 +2,7 @@
 
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
+import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
   AppstoreOutlined,
   ArrowLeftOutlined,
@@ -15,17 +16,13 @@ import {
   CreditCardOutlined,
   DeleteOutlined,
   DeploymentUnitOutlined,
-  DownloadOutlined,
   EnvironmentOutlined,
-  FileImageOutlined,
   FileTextOutlined,
   FormatPainterOutlined,
   HomeOutlined,
   InfoCircleOutlined,
-  SettingOutlined,
   ShoppingOutlined,
   SyncOutlined,
-  TagOutlined,
   UserOutlined
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
@@ -38,7 +35,6 @@ import {
   message,
   Skeleton,
   Tag,
-  Tooltip,
   Typography,
   Upload
 } from "antd";
@@ -229,7 +225,7 @@ export default function RequestDetailPage() {
         <span>{textMap[status] || status}</span>
       </div>
     );
-  }; 
+  };
 
   if (loading) {
     return (
@@ -547,45 +543,15 @@ export default function RequestDetailPage() {
           </div>
 
           {/* Sidebar - Design Files */}
-          <div className="lg:col-span-4">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 sticky top-6">
+          <div className="lg:col-span-4 space-y-8">
+            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
-                  <FileImageOutlined className="text-xl" />
+                <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600">
+                  <CloudUploadOutlined className="text-xl" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 m-0">File thiết kế</h3>
-              </div>
-
-              {/* Current Design File Display */}
-              <div className="mb-6">
-                {orderDetail.design_file_path ? (
-                  <div className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50 transition-all hover:border-cyan-300">
-
-                    <div className="flex items-center justify-center">
-                      <AntImage
-                        src={orderDetail.design_file_path}
-                        alt="Design file"
-                        className="w-full object-contain bg-slate-100"
-                        style={{ height: 300, width: '100%' }}
-                        fallback="https://placehold.co/600x400?text=No+Preview"
-                      />
-                    </div>
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Tooltip title="Tải xuống">
-                        <Button shape="circle" icon={<DownloadOutlined />} href={orderDetail.design_file_path} target="_blank" />
-                      </Tooltip>
-                    </div>
-                    <div className="p-3 bg-white border-t border-slate-100">
-                      <Text ellipsis className="text-slate-500 text-xs block">File hiện tại</Text>
-                      <Text strong className="text-gray-700 text-sm">Design_{orderDetail.order_request_id}.png</Text>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-40 rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 mb-4">
-                    <FileImageOutlined className="text-3xl mb-2 opacity-50" />
-                    <span className="text-sm">Chưa có file thiết kế</span>
-                  </div>
-                )}
+                <h3 className="text-lg font-bold text-slate-800 m-0">Tải lên file thiết kế</h3>
               </div>
 
               {/* New Uploads List */}
@@ -641,7 +607,7 @@ export default function RequestDetailPage() {
                 ) : (
                   <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 text-amber-700 text-sm">
                     <InfoCircleOutlined className="mt-1 flex-shrink-0" />
-                <span>Đã có file thiết kế. Nếu cần thay đổi, vui lòng liên hệ quản trị viên.</span>
+                    <span>Đã có file thiết kế. Nếu cần thay đổi, vui lòng liên hệ quản trị viên.</span>
                   </div>
                 )}
               </div>

@@ -96,9 +96,11 @@ export default function ProductSpecsSection({
               loading={loadingPaperTypes}
               optionFilterProp="label"
               options={paperTypes.map((paper) => ({
-                label: paper.name,
+                label: `${paper.name} (SL: ${paper.stock ?? 0})`,
                 value: paper.code,
+                stockQty: paper.stock,
               }))}
+
             />
           </Form.Item>
         </Col>

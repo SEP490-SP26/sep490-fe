@@ -1,5 +1,5 @@
 
-import { EstimationConfig, Machine, RushFeeResult, WasteRules, WasteResult, PrintSize } from '@/lib/estimation.types';
+import { EstimationConfig, Machine, RushFeeResult, WasteRules, WasteResult, PrintSize, MaterialCostDetail } from '@/lib/estimation.types';
 
 // ==========================================
 // 1. PRODUCT STANDARDIZATION
@@ -229,7 +229,7 @@ export const calculateInkCost = (
     productTypeCode: string,
     totalPrintArea: number,
     config?: Partial<EstimationConfig>
-): number => {
+): MaterialCostDetail => {
     const inkRates = config?.materialRates || {
         ink_rate_gach_noi_dia: 0.02,
         ink_rate_gach_xk_don_gian: 0.015,
@@ -253,7 +253,12 @@ export const calculateInkCost = (
     }
 
     const inkWeight = totalPrintArea * inkRate;
-    return inkWeight * inkPrice;
+    return {
+        cost: inkWeight * inkPrice,
+        weight: inkWeight,
+        rate: inkRate,
+        unitPrice: inkPrice
+    };
 };
 
 export const calculateCoatingGlueCost = (
@@ -261,8 +266,8 @@ export const calculateCoatingGlueCost = (
     coatingType: 'KEO_NUOC' | 'KEO_DAU',
     totalPrintArea: number,
     config?: Partial<EstimationConfig>
-): number => {
-    if (!hasPhu) return 0;
+): MaterialCostDetail => {
+    if (!hasPhu) return { cost: 0, weight: 0, rate: 0, unitPrice: 0 };
 
     const rates = config?.materialRates || {
         coating_glue_rate_keo_nuoc: 0.008,
@@ -278,35 +283,50 @@ export const calculateCoatingGlueCost = (
     const price = coatingType === 'KEO_NUOC' ? prices.coating_glue_keo_nuoc_per_kg : prices.coating_glue_keo_dau_per_kg;
 
     const weight = totalPrintArea * rate;
-    return weight * price;
+    return {
+        cost: weight * price,
+        weight,
+        rate,
+        unitPrice: price
+    };
 };
 
 export const calculateMountingGlueCost = (
     hasBoi: boolean,
     totalPrintArea: number,
     config?: Partial<EstimationConfig>
-): number => {
-    if (!hasBoi) return 0;
+): MaterialCostDetail => {
+    if (!hasBoi) return { cost: 0, weight: 0, rate: 0, unitPrice: 0 };
 
     const rate = config?.materialRates?.mounting_glue_rate || 0.01;
     const price = config?.materialPrices?.mounting_glue_per_kg || 90000;
 
     const weight = totalPrintArea * rate;
-    return weight * price;
+    return {
+        cost: weight * price,
+        weight,
+        rate,
+        unitPrice: price
+    };
 };
 
 export const calculateLaminationCost = (
     hasCanMang: boolean,
     totalPrintArea: number,
     config?: Partial<EstimationConfig>
-): number => {
-    if (!hasCanMang) return 0;
+): MaterialCostDetail => {
+    if (!hasCanMang) return { cost: 0, weight: 0, rate: 0, unitPrice: 0 };
 
     const rate = config?.materialRates?.lamination_rate_12mic || 0.015;
     const price = config?.materialPrices?.lamination_per_kg || 150000;
 
     const weight = totalPrintArea * rate;
-    return weight * price;
+    return {
+        cost: weight * price,
+        weight,
+        rate,
+        unitPrice: price
+    };
 };
 
 export const calculateOverheadCost = (materialCost: number, overheadPercent: number = 5): number => {
@@ -325,7 +345,7 @@ const getProcessMatch = (processCode: string, machineName: string): boolean => {
         'BE': machineNameUpper.includes('BẾ') || machineNameUpper.includes('BE'),
         'BOI': machineNameUpper.includes('BỒI') || machineNameUpper.includes('BOI'),
         'PHU': machineNameUpper.includes('PHỦ') || machineNameUpper.includes('PHU'),
-        'CAN_MANG': machineNameUpper.includes('CÁN') || machineNameUpper.includes('CAN'),
+        'CAN': machineNameUpper.includes('CÁN') || machineNameUpper.includes('CAN'),
         'DAN': machineNameUpper.includes('DÁN') || machineNameUpper.includes('DAN'),
         'DUT': machineNameUpper.includes('DỨT') || machineNameUpper.includes('DUT'),
         'RALO': machineNameUpper.includes('RALO'),
@@ -364,7 +384,7 @@ export const calculateProductionDays = (
 
         // Xác định số lượng cần xử lý
         let requiredQty: number;
-        if (['IN', 'PHU', 'CAN_MANG', 'BOI', 'BE', 'RALO', 'CAT'].includes(normalizedCode)) {
+        if (['IN', 'PHU', 'CAN', 'BOI', 'BE', 'RALO', 'CAT'].includes(normalizedCode)) {
             requiredQty = sheetsWithWaste;
         } else if (['DUT', 'DAN', 'DOT'].includes(normalizedCode)) {
             requiredQty = quantity;
