@@ -576,7 +576,7 @@ export default function RequestDetailPage() {
 
           {/* Sidebar - Design Files + QR Payment */}
           <div className="lg:col-span-4 space-y-8">
-            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+
 
             {paymentInfo && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
@@ -637,14 +637,14 @@ export default function RequestDetailPage() {
                   </Button>
 
                   {/* từ chối yêu cầu */}
-                  {/* <Button
+                  <Button
                     type="primary"
                     danger
                     onClick={() => router.push(`/reject-deal/${requestId}`)}
                     className="w-full bg-red-600 hover:bg-red-500 flex items-center justify-center gap-2 h-10 rounded-xl"
                   >
                     Từ chối yêu cầu
-                  </Button> */}
+                  </Button>
                 </div>
                 {paymentInfo.expired_at && (
                   <p className="text-sm text-red-500 text-center font-medium mt-4 bg-red-50 py-2 rounded-lg border border-red-100">
@@ -655,14 +655,16 @@ export default function RequestDetailPage() {
             )}
           </div>
 
+          <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+
         </div>
 
         {/* Back Actions */}
-        <div className="mt-6 flex justify-center pb-8">
+        {/* <div className="mt-6 flex justify-center pb-8">
           <Button size="large" onClick={() => router.back()} icon={<ArrowLeftOutlined />} className="h-12 px-8 rounded-xl font-medium border-slate-300 text-slate-600 hover:border-cyan-500 hover:text-cyan-600">
             Quay lại danh sách
           </Button>
-        </div>
+        </div> */}
 
         {/* Animation Styles Injection */}
         <style jsx global>{`
