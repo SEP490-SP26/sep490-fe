@@ -1,11 +1,11 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 
 const API_BASE = "https://amms-juaa.onrender.com";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const params = useSearchParams();
   const router = useRouter();
 
@@ -124,9 +124,8 @@ export default function ResetPasswordPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-[360px] rounded-xl shadow-xl overflow-hidden animate-scaleIn">
             <div
-              className={`px-4 py-3 text-white font-semibold ${
-                popup.type === "success" ? "bg-green-500" : "bg-red-500"
-              }`}
+              className={`px-4 py-3 text-white font-semibold ${popup.type === "success" ? "bg-green-500" : "bg-red-500"
+                }`}
             >
               {popup.title}
             </div>
@@ -194,5 +193,13 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Đang tải...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
