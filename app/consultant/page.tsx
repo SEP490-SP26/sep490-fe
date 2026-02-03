@@ -273,6 +273,35 @@ function ConsultantForm() {
     fetchData();
   }, []);
 
+  // --- SYNC PRODUCT TYPE ---
+  const syncProductTypeFromName = () => {
+    const productName = form.getFieldValue("product_name");
+    if (!productName || products.length === 0 || productTypes.length === 0) return;
+
+    const currentTypeId = form.getFieldValue("product_type");
+    // Find product by name
+    const product = products.find((p) => p.name === productName);
+
+    if (product && product.product_type_id) {
+      // Only update if not already set or different (prioritize name match in negotiate/load)
+      if (currentTypeId !== product.product_type_id) {
+        form.setFieldValue("product_type", product.product_type_id);
+
+        // Sync local state for type
+        const selectedType = productTypes.find(pt => pt.product_type_id === product.product_type_id);
+        if (selectedType) {
+          setSelectedProductTypeCode(selectedType.code);
+          setselectProductTypeId(selectedType.product_type_id);
+        }
+      }
+    }
+  };
+
+  // Trigger sync when dependencies change (data loaded)
+  useEffect(() => {
+    syncProductTypeFromName();
+  }, [products, productTypes]);
+
   // --- AUTO FILL DATA ---
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -308,18 +337,21 @@ function ConsultantForm() {
             setIsSendDesign(orderData.is_send_design);
           }
 
-          if (orderData.quantity) {
-            const values = form.getFieldsValue();
-            handleCalculate(values, values);
-          }
+          const values = form.getFieldsValue();
+          handleCalculate(values, values);
         }
+
+        // Trigger sync after setting form values
+        syncProductTypeFromName();
       } catch (error) {
         console.error("Error fetching order details:", error);
       }
     };
 
     fetchOrderDetails();
-  }, [orderId, form]);
+  }, [orderId, form, products, productTypes]);
+
+
 
   // --- CALCULATION LOGIC ---
   const handleCalculate = (changedValues: any, allValues: any) => {

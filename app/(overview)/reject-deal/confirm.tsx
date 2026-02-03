@@ -59,11 +59,11 @@ export default function RejectDealSuccess() {
         </div>
 
         {/* Text content */}
-        <Title level={1} className="!text-gray-700 !mb-2 !text-4xl md:!text-5xl font-bold">
+        <Title level={1} className="!text-gray-700 !mb-2 !text-4xl md:!text-5xl font-bold" style={{ color: '#EEBC21' }}>
           Bạn đã từ chối báo giá
         </Title>
 
-        <Text className="text-lg text-gray-500 block mb-2">
+        <Text className="text-lg text-gray-500 block mb-2" style={{ color: '#fff' }}>
           Cảm ơn bạn đã quan tâm đến dịch vụ của chúng tôi
         </Text>
 
@@ -106,8 +106,8 @@ export default function RejectDealSuccess() {
         </div>
 
         {/* Footer note */}
-        <Text className="text-gray-400 text-sm mt-10 block">
-          Hotline hỗ trợ: <span className="text-blue-500 font-medium">1900.xxxx</span> | Email: <span className="text-blue-500 font-medium">support@company.com</span>
+        <Text className="text-white text-sm mt-10 block ">
+          Hotline hỗ trợ: <span className="text-accent font-medium">1900.xxxx</span> | Email: <span className="text-accent font-medium">support@company.com</span>
         </Text>
       </div>
 

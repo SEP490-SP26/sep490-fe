@@ -10,12 +10,12 @@ export default function Footer() {
               <div className="col-span-2">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                   Công Ty In Ấn 
+                    Đại Phúc Hải 
                   </h2>
 
                   <p className="mt-4 text-gray-500">
-                    Liên hệ với chúng tôi qua email hoặc số điện thoại dưới đây,
-                    nếu bạn muốn tổ chức giải đấu hoặc sự kiện tại chúng tôi.
+                    Liên hệ với chúng tôi qua email hoặc số điện thoại dưới đây.
+
                   </p>
                 </div>
               </div>

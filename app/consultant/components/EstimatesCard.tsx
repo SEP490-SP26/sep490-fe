@@ -484,7 +484,7 @@ export default function EstimatesCard({
                         {/* Final Total */}
                         <div className="flex justify-between items-center mt-3 p-3 bg-blue-100 rounded border border-blue-200">
                           <span className="font-medium text-blue-900 ">
-                            Tổng thanh toán:
+                            Thanh toán:
                           </span>
                           <span className="font-bold  text-lg text-blue-700">
                             {(
@@ -499,7 +499,7 @@ export default function EstimatesCard({
                         <div className="bg-purple-50 p-3 rounded-lg mt-3 border border-purple-200">
                           <div className="flex justify-between items-center">
                             <span className="text-purple-800 font-medium">
-                              Tiền đặt cọc (30%):
+                              Tiền cọc (30%):
                             </span>
                             <span className="font-bold text-lg text-purple-700">
                               {(() => {
@@ -514,7 +514,7 @@ export default function EstimatesCard({
 
                         <div className="flex justify-between mt-3 text-sm">
                           <span className="text-gray-600">
-                            Ngày hoàn thành dự kiến:
+                            Hoàn thành dự kiến:
                           </span>
                           <span className="font-medium text-green-700">
                             {dayjs(costEstimate.cost.estimated_finish_date).format(

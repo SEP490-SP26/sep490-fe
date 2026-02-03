@@ -15,7 +15,7 @@ import {
   Space,
   Typography
 } from 'antd'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 import RejectDealSuccess from '../confirm'
 
@@ -24,9 +24,11 @@ const { TextArea } = Input
 
 function RejectDealContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderRequestId');
-  const token = searchParams.get('token');
+  const params = useParams();
+  const orderId = params.id as string;
+  // const searchParams = useSearchParams();
+  // const orderId = searchParams.get('id');
+  // const token = searchParams.get('token');
 
   const [reason, setReason] = useState("");
   const [phone, setPhone] = useState("");
@@ -73,7 +75,7 @@ function RejectDealContent() {
       setLoading(true);
       const bodyResquest = {
         order_request_id: Number(orderId),
-        token: token || "",
+        // token: token || "",
         reason,
         phone,
         otp
@@ -126,7 +128,7 @@ function RejectDealContent() {
           <Title level={2} style={{ color: '#cf1322', textTransform: 'uppercase' }}>
             Xác Nhận Từ Chối
           </Title>
-          <Text type="secondary">
+          <Text type="secondary" style={{ color: 'white' }}>
             Vui lòng xác thực và cung cấp lý do để từ chối đơn hàng
           </Text>
         </div>

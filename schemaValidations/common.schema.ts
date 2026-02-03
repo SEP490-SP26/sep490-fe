@@ -66,7 +66,7 @@ export interface CreateRequestBody {
 
 export interface RejectDealRequest {
   order_request_id: number;
-  token: string;
+  // token: string;
   reason: string;
   phone: string;
   otp: string;

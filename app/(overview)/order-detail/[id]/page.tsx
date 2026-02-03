@@ -99,7 +99,7 @@ export default function OrderDetailPage() {
         icon: <CalendarOutlined />,
         text: "Đã lên lịch"
       },
-      Completed: {
+      Finished: {
         color: "text-emerald-600",
         bg: "bg-emerald-50",
         border: "border-emerald-200",
@@ -224,41 +224,73 @@ export default function OrderDetailPage() {
     <div className="min-h-screen bg-gray-50 pb-12 animate-fade-in-up">
       {/* Header Background */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Breadcrumb
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-6">
+          {/* <Breadcrumb
             items={[
               { href: '/', title: <HomeOutlined /> },
               { title: 'Quản lý đơn hàng', href: '/orders' },
               { title: `Đơn hàng ${order.code}` },
             ]}
             className="mb-4"
-          />
+          /> */}
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3">
                 <Title level={2} className="!mb-0 !text-slate-800">
                   {order.code}
                 </Title>
                 {getStatusBadge(order.status)}
               </div>
+
+            </div>
+            <div className="flex gap-3">
+              {/* <Button icon={<PrinterOutlined />}>In đơn hàng</Button> */}
+              {/* Add more actions here if needed */}
               <Text type="secondary" className="flex items-center gap-2">
                 <CalendarOutlined /> Ngày tạo: {dayjs(order.order_date).format("DD/MM/YYYY HH:mm")}
               </Text>
-            </div>
-            <div className="flex gap-3">
-              <Button icon={<PrinterOutlined />}>In đơn hàng</Button>
-              {/* Add more actions here if needed */}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4">
         <Row gutter={[24, 24]}>
           {/* Left Column - Main Info */}
           <Col xs={24} lg={16}>
             <div className="space-y-6">
+
+              {/* Customer Info */}
+              <Card
+                title={<span className="text-base font-semibold">Thông tin khách hàng</span>}
+                className="rounded-2xl shadow-sm border-gray-100"
+                bordered={false}
+                extra={<UserOutlined className="text-gray-400" />}
+              >
+                <div className="space-y-2">
+                  <div>
+                    {/* <Text type="secondary" className="text-xs uppercase font-bold">Liên hệ</Text> */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2  border-b border-gray-200 pb-2">
+                      <div className="font-medium text-slate-800">Khách hàng: {order.customer_name}</div>
+                      <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
+                        Sđt: {order.customer_phone}
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
+                        Email: {order.customer_email}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    {/* <Text type="secondary" className="text-xs uppercase font-bold">Địa chỉ giao hàng</Text> */}
+                    <div className="flex items-start gap-2 mt-1 text-slate-700">
+                      <EnvironmentOutlined className="mt-1 text-slate-400" />
+                      <span>{order.detail_address}</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+              <div className="pt-0.5" />
 
               {/* Product Information */}
               <Card
@@ -290,9 +322,9 @@ export default function OrderDetailPage() {
                 </Descriptions>
               </Card>
 
-              <div className="pt-1" />
+
               {/* Production Info */}
-              <Card
+              {/* <Card
                 title={<span className="text-lg font-semibold flex items-center gap-2"><SafetyCertificateOutlined className="text-cyan-600" /> Thông tin sản xuất</span>}
                 className="rounded-2xl shadow-sm border-gray-100 "
                 bordered={false}
@@ -326,18 +358,19 @@ export default function OrderDetailPage() {
                     </Descriptions>
                   </div>
                 </div>
-              </Card>
+              </Card> */}
 
-              <div className="pt-1" />
+              <div className="pt-0.5" />
+
               {/* Financial Information */}
               <Card
-                title={<span className="text-lg font-semibold flex items-center gap-2"><DollarOutlined className="text-cyan-600" /> Tài chính & Thanh toán</span>}
+                title={<span className="text-lg font-semibold flex items-center gap-2"><DollarOutlined className="text-cyan-600" />Thanh toán</span>}
                 className="rounded-2xl shadow-sm border-gray-100"
                 bordered={false}
               >
-                <div className="flex flex-wrap gap-4 mb-6">
+                {/* <div className="flex flex-wrap gap-4 mb-6">
                   {getPaymentStatusBadge(order.payment_status)}
-                </div>
+                </div> */}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <Statistic
@@ -353,7 +386,7 @@ export default function OrderDetailPage() {
                     valueStyle={{ color: '#d97706', fontWeight: 500 }}
                   />
                   <Statistic
-                    title="Phụ phí gấp (Rush)"
+                    title="Phụ phí gấp"
                     value={order.rush_amount}
                     formatter={(val) => formatCurrency(Number(val))}
                     valueStyle={{ color: '#be123c', fontWeight: 500 }}
@@ -366,38 +399,6 @@ export default function OrderDetailPage() {
           {/* Right Column - Side Info */}
           <Col xs={24} lg={8}>
             <div className="space-y-6">
-              {/* Customer Info */}
-              <Card
-                title={<span className="text-base font-semibold">Thông tin khách hàng</span>}
-                className="rounded-2xl shadow-sm border-gray-100"
-                bordered={false}
-                extra={<UserOutlined className="text-gray-400" />}
-              >
-                <div className="space-y-4">
-                  <div>
-                    <Text type="secondary" className="text-xs uppercase font-bold">Họ và tên</Text>
-                    <div className="font-medium text-slate-800">{order.customer_name}</div>
-                  </div>
-                  <div>
-                    <Text type="secondary" className="text-xs uppercase font-bold">Liên hệ</Text>
-                    <div className="flex flex-col gap-1 mt-1">
-                      <a href={`tel:${order.customer_phone}`} className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                        <PhoneOutlined /> {order.customer_phone}
-                      </a>
-                      <a href={`mailto:${order.customer_email}`} className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                        <MailOutlined /> {order.customer_email}
-                      </a>
-                    </div>
-                  </div>
-                  <div>
-                    <Text type="secondary" className="text-xs uppercase font-bold">Địa chỉ giao hàng</Text>
-                    <div className="flex items-start gap-2 mt-1 text-slate-700">
-                      <EnvironmentOutlined className="mt-1 text-slate-400" />
-                      <span>{order.detail_address}</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
 
               <div className="pt-1" />
 
@@ -419,7 +420,7 @@ export default function OrderDetailPage() {
                           className="object-cover w-full h-40"
                           fallback="https://placehold.co/400x300?text=No+Preview"
                         />
-                      
+
 
                         <div className="absolute top-2 right-2">
                           <Tooltip title="Tải xuống">

@@ -98,7 +98,7 @@ export default function CustomerHistoryPage() {
     setLoading(true)
     try {
       console.log('phone', phone, 'otp', otp, 'page', page, 'type', type)
-      const response = await lookupsApi.getHistory(phone, otp, page, 15)
+      const response = await lookupsApi.getHistory(phone, otp, page, 5)
 
       // Lưu phone và otp đã xác thực vào sessionStorage
       if (type === 'all') {
@@ -416,22 +416,25 @@ export default function CustomerHistoryPage() {
   // }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">
+    <div className="min-h-screen bg-primary py-10 px-4">
       <div className={`mx-auto transition-all duration-300 ${step === 'result' ? 'max-w-[95%] xl:max-w-7xl' : 'max-w-4xl'}`}>
 
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -left-20 w-72 h-72 bg-gray-200 rounded-full opacity-30 animate-pulse" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-slate-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-1/2 left-10 w-40 h-40 bg-zinc-200 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+
         {/* Header */}
-        <div className="text-center mb-8">
-          <Title level={2} style={{ color: '#1677ff', textTransform: 'uppercase' }}>
+        <div className="text-center mb-4">
+          <Title level={2} style={{ color: '#EEBC21', textTransform: 'uppercase' }}>
             Tra Cứu Đơn Hàng
           </Title>
-          <Text type="secondary">
-            Nhập số điện thoại và xác thực OTP để xem lịch sử đơn hàng của bạn
-          </Text>
         </div>
 
 
         {/* Steps indicator */}
-        <div className="max-w-md mx-auto mb-8">
+        {/* <div className="max-w-md mx-auto mb-8">
           <Steps
             current={step === 'phone' ? 0 : step === 'otp' ? 1 : 2}
             items={[
@@ -440,7 +443,7 @@ export default function CustomerHistoryPage() {
               { title: 'Kết quả', icon: <FileTextOutlined /> },
             ]}
           />
-        </div>
+        </div> */}
 
         {/* STEP 1: Nhập số điện thoại */}
         {step === 'phone' && (
@@ -534,7 +537,7 @@ export default function CustomerHistoryPage() {
           <div className="animate-fade-in">
             <Card className="shadow-lg rounded-xl border-t-4 border-blue-500">
               <div className="flex justify-between items-center mb-6">
-                <div>
+                <div className="flex items-center gap-2">
                   <Title level={4} className="!mb-0">Kết quả tra cứu</Title>
                   <Text type="secondary">Số điện thoại: {phoneNumber}</Text>
                 </div>
@@ -543,7 +546,7 @@ export default function CustomerHistoryPage() {
                 </Button>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-2">
                 <Input.Search
                   placeholder="Tìm kiếm theo mã đơn, sản phẩm hoặc trạng thái..."
                   allowClear
@@ -560,13 +563,13 @@ export default function CustomerHistoryPage() {
                 size="large"
               />
 
-              <div className="text-center mt-8 pt-4 border-t">
+              {/* <div className="text-center mt-8 pt-4 border-t">
                 <Link href="/request">
                   <Button type="primary" size="large" icon={<FileTextOutlined />}>
                     Đặt yêu cầu mới
                   </Button>
                 </Link>
-              </div>
+              </div> */}
             </Card>
           </div>
         )}
