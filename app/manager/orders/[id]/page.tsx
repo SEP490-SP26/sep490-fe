@@ -20,7 +20,7 @@ export default function ProductionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  const [activeTab, setActiveTab] = useState<"info" | "scheduled">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "scheduled" | "material">("info");
 
   // const { orders, products, productionSchedules, getProductionStages } =
   //   useProduction();
@@ -56,6 +56,15 @@ export default function ProductionDetailPage() {
       );
       return response;
     },
+  });
+
+  const { data: productionInfo } = useQuery({
+    queryKey: ["productionInfo", id],
+    queryFn: async () => {
+      if (!id) return null;
+      return productionsApi.getProductionInformation(id.toString());
+    },
+    enabled: !!id,
   });
 
   console.log("production", productionSchedules);
@@ -106,8 +115,6 @@ export default function ProductionDetailPage() {
       </div>
     );
   }
-
-
 
   const productionStages = [
     {
@@ -344,6 +351,16 @@ export default function ProductionDetailPage() {
         >
           <BsPrinter className="w-4 h-4" />
           Lịch sản xuất
+        </button>
+        <button
+          onClick={() => setActiveTab("material")}
+          className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${activeTab === "material"
+            ? "border-blue-600 text-blue-600"
+            : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+        >
+          <BiPackage className="w-4 h-4" />
+          Nguyên vật liệu
         </button>
       </div>
 
@@ -713,6 +730,76 @@ export default function ProductionDetailPage() {
           </div> */}
         </div>
       )}
+
+      {/* Tab Content Material */}
+      {activeTab === "material" && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-4">
+          <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+            <BiPackage className="w-5 h-5 text-blue-500" />
+            DANH SÁCH NGUYÊN VẬT LIỆU
+          </h2>
+
+          {productionInfo?.items ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nhóm vật tư
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Mã vật tư
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tên vật tư
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Số lượng
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ĐVT
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {productionInfo.items.map((item: any, index: number) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        {item.material_group}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.material_code}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.material_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                        {item.quantity?.toLocaleString("vi-VN")}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        {item.unit}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {productionInfo.items.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Chưa có dữ liệu nguyên vật liệu
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Đang tải hoặc chưa có dữ liệu nguyên vật liệu...
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tiến trình sản xuất chi tiết */}
       {activeTab === "scheduled" && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -1084,6 +1171,8 @@ export default function ProductionDetailPage() {
         //   </div>
         // </div>
       )}
+
+
     </div>
   );
 }

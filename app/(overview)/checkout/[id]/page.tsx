@@ -653,9 +653,10 @@ export default function RequestDetailPage() {
                 )}
               </div>
             )}
+            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
           </div>
 
-          <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+
 
         </div>
 
