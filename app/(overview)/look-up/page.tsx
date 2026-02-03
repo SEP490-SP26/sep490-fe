@@ -416,22 +416,25 @@ export default function CustomerHistoryPage() {
   // }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">
+    <div className="min-h-screen bg-primary py-10 px-4">
       <div className={`mx-auto transition-all duration-300 ${step === 'result' ? 'max-w-[95%] xl:max-w-7xl' : 'max-w-4xl'}`}>
+
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -left-20 w-72 h-72 bg-gray-200 rounded-full opacity-30 animate-pulse" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-slate-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-1/2 left-10 w-40 h-40 bg-zinc-200 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
 
         {/* Header */}
         <div className="text-center mb-8">
-          <Title level={2} style={{ color: '#1677ff', textTransform: 'uppercase' }}>
+          <Title level={2} style={{ color: '#EEBC21', textTransform: 'uppercase' }}>
             Tra Cứu Đơn Hàng
           </Title>
-          <Text type="secondary">
-            Nhập số điện thoại và xác thực OTP để xem lịch sử đơn hàng của bạn
-          </Text>
         </div>
 
 
         {/* Steps indicator */}
-        <div className="max-w-md mx-auto mb-8">
+        {/* <div className="max-w-md mx-auto mb-8">
           <Steps
             current={step === 'phone' ? 0 : step === 'otp' ? 1 : 2}
             items={[
@@ -440,7 +443,7 @@ export default function CustomerHistoryPage() {
               { title: 'Kết quả', icon: <FileTextOutlined /> },
             ]}
           />
-        </div>
+        </div> */}
 
         {/* STEP 1: Nhập số điện thoại */}
         {step === 'phone' && (

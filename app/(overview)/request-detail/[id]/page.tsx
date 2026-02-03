@@ -31,6 +31,7 @@ import {
   Breadcrumb,
   Button,
   Card,
+  Collapse,
   Empty,
   message,
   Skeleton,
@@ -80,9 +81,11 @@ export default function RequestDetailPage() {
   const requestId = params.id as string;
 
   const [loading, setLoading] = useState(true);
-  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
+  const [requestDetail, setRequestDetail] = useState<OrderDetail | null>(null);
   const [designFiles, setDesignFiles] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  const { Panel } = Collapse;
 
   // Fetch order detail từ API
   useEffect(() => {
@@ -95,7 +98,7 @@ export default function RequestDetailPage() {
         const orderData = response?.data || response;
 
         if (orderData) {
-          setOrderDetail({
+          setRequestDetail({
             order_request_id: orderData.order_request_id,
             customer_name: orderData.customer_name,
             customer_phone: orderData.customer_phone,
@@ -158,7 +161,7 @@ export default function RequestDetailPage() {
         setDesignFiles((prev) => [...prev, newFile]);
 
         // Cập nhật design_file_path trong orderDetail
-        setOrderDetail((prev) =>
+        setRequestDetail((prev) =>
           prev ? { ...prev, design_file_path: response.url } : prev
         );
 
@@ -245,7 +248,7 @@ export default function RequestDetailPage() {
     );
   }
 
-  if (!orderDetail) {
+  if (!requestDetail) {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
         <Card className="shadow-lg rounded-2xl max-w-md w-full text-center py-12">
@@ -268,24 +271,24 @@ export default function RequestDetailPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative animate-fade-in-up">
         {/* Navigation & Header */}
         <div className="mb-4">
-          <Breadcrumb
+          {/* <Breadcrumb
             items={[
               { href: '/', title: <HomeOutlined /> },
               { title: 'Chi tiết đơn hàng' },
             ]}
             className="mb-4 text-slate-500"
-          />
+          /> */}
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 ">
                 <Title level={2} className="!mb-0 !text-slate-800 tracking-tight">
-                  Yêu cầu #{orderDetail.order_request_id}
+                  Yêu cầu #{requestDetail.order_request_id}
                 </Title>
               </div>
-              <div className="flex items-center gap-4 text-slate-500">
-                <span className="flex items-center gap-1.5"><CalendarOutlined /> {dayjs(orderDetail.order_request_date).format("DD/MM/YYYY HH:mm")}</span>
-              </div>
+              {/* <div className="flex items-center gap-4 text-slate-500">
+                <span className="flex items-center gap-1.5"><CalendarOutlined /> {dayjs(requestDetail.order_request_date).format("DD/MM/YYYY HH:mm")}</span>
+              </div> */}
             </div>
           </div>
         </div>
@@ -293,226 +296,135 @@ export default function RequestDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Info Column */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Customer & Address Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600">
-                  <UserOutlined className="text-xl" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin khách hàng</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8">
+            {/* Customer Info */}
+            <Card
+              title={<span className="text-base font-semibold">Thông tin khách hàng</span>}
+              className="rounded-2xl shadow-sm border-gray-100"
+              bordered={false}
+              extra={<UserOutlined className="text-gray-400" />}
+            >
+              <div className="space-y-2">
                 <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Khách hàng</Text>
-                  <Paragraph className="text-slate-700 font-medium text-base mt-1">{orderDetail.customer_name}</Paragraph>
-                </div>
-                <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Số điện thoại</Text>
-                  <Paragraph className="text-base mt-1">
-                    <a href={`tel:${orderDetail.customer_phone}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                      {orderDetail.customer_phone}
-                    </a>
-                  </Paragraph>
+                  {/* <Text type="secondary" className="text-xs uppercase font-bold">Liên hệ</Text> */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2  border-b border-gray-200 pb-2">
+                    <div className="font-medium text-slate-800">Khách hàng: {requestDetail.customer_name}</div>
+                    <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
+                      Sđt: {requestDetail.customer_phone}
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
+                      Email: {requestDetail.customer_email}
+                    </div>
+                  </div>
                 </div>
                 <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Email</Text>
-                  <Paragraph className="text-base mt-1">
-                    <a href={`mailto:${orderDetail.customer_email}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                      {orderDetail.customer_email}
-                    </a>
-                  </Paragraph>
-                </div>
-                <div className="md:col-span-4">
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Địa chỉ giao hàng</Text>
-                  <Paragraph className="text-slate-700 text-base mt-1 flex items-start gap-2">
+                  {/* <Text type="secondary" className="text-xs uppercase font-bold">Địa chỉ giao hàng</Text> */}
+                  <div className="flex items-start gap-2 mt-1 text-slate-700">
                     <EnvironmentOutlined className="mt-1 text-slate-400" />
-                    {orderDetail.detail_address || <span className="text-slate-400 italic">Chưa cập nhật địa chỉ</span>}
-                  </Paragraph>
+                    <span>{requestDetail.detail_address}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* GỘP Product Details Card và Technical Specifications Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                  <ShoppingOutlined className="text-xl" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 m-0">Chi tiết sản phẩm & Thông số kỹ thuật</h3>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 mt-4">
+              <div className="flex items-center gap-3 mb-2 border-b border-slate-100 pb-2">
+                <h3 className="text-base font-semibold text-slate-800 m-0">Chi tiết sản phẩm & Thông số kỹ thuật</h3>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Thông tin cơ bản sản phẩm - TIÊU ĐỀ VÀ THÔNG TIN CÙNG DÒNG */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                  {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100"> */}
+                  {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <ShoppingOutlined className="text-indigo-500 text-lg" />
                     </div> */}
-                    <div>
-                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Sản phẩm</Text>
-                      <div className="text-lg font-bold text-slate-800">{orderDetail.product_name}</div>
-                    </div>
+                  <div>
+                    {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Sản phẩm</Text> */}
+                    <div className="text-lg font-bold text-slate-800">Sản Phẩm: {requestDetail.product_name}</div>
                   </div>
+                  {/* </div> */}
 
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                  {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100"> */}
+                  {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <TagOutlined className="text-green-500 text-lg" />
                     </div> */}
-                    <div>
-                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text>
-                      <div className="text-lg font-bold text-slate-800">{orderDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
-                    </div>
+                  <div>
+                    {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text> */}
+                    <div className="text-lg font-bold text-slate-800">Số lượng: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
                   </div>
+                  {/* </div> */}
 
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
                     {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <CalendarOutlined className="text-cyan-500 text-lg" />
                     </div> */}
-                    <div>
-                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng</Text>
-                      <div className="text-lg font-bold text-slate-800">{dayjs(orderDetail.delivery_date).format("DD/MM/YYYY")}</div>
-                    </div>
+                  <div>
+                    {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng</Text> */}
+                    <div className="text-lg font-bold text-slate-800">Giao hàng: {dayjs(requestDetail.delivery_date).format("DD/MM/YYYY")}</div>
                   </div>
+                  {/* </div> */}
                 </div>
 
                 {/* Mô tả yêu cầu */}
                 <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text>
+                  {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text> */}
                   <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[100px]">
-                    {orderDetail.description || <span className="text-slate-400 italic">Không có mô tả chi tiết</span>}
+                    {requestDetail.description || <span className="text-slate-400 italic">MÔ tả yêu cầu: Không có mô tả chi tiết</span>}
                   </div>
                 </div>
-
-                {/* Thông số kỹ thuật - TIÊU ĐỀ VÀ THÔNG TIN CÙNG DÒNG */}
-                <div className="border-t border-slate-100 pt-6">
-                  <h4 className="text-lg font-bold text-slate-800 mb-6">Thông số kỹ thuật</h4>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Kích thước - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <ArrowsAltOutlined className="text-blue-500" />
+                {/* Thông số kỹ thuật - collapse*/}
+                <div className="bg-white rounded-lg border border-slate-100 ">
+                  <Collapse
+                    ghost
+                    expandIconPosition="end"
+                    size="small"
+                  >
+                    <Panel
+                      header={<Text className="text-slate-700 font-bold">Thông số kỹ thuật</Text>}
+                      key="1"
+                    >
+                      <div className="space-y-2 pt-2">
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
                           </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Kích thước</Text>
-                            <div className="font-bold text-slate-700 text-lg">
-                              {orderDetail.product_length_mm || 0} × {orderDetail.product_width_mm || 0} × {orderDetail.product_height_mm || 0} mm
-                            </div>
+                          <Text className="text-slate-800 font-bold text-base">
+                            {requestDetail.product_length_mm} x {requestDetail.product_width_mm} x {requestDetail.product_height_mm}
+                          </Text>
+                        </div>
+
+
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                            <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
+                            <Text className="text-slate-800 font-bold text-base">{requestDetail.paper_name}</Text>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                            <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
+                            <Text className="text-slate-800 font-bold text-sm">{requestDetail.wave_type}</Text>
+                          </div>
+
+                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                            <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
+                            <Text className="text-slate-800 font-bold text-sm">{requestDetail.coating_type}</Text>
+                          </div>
+
+                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                            <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
+                            <Text className="text-slate-800 font-bold text-sm">{requestDetail.number_of_plates}</Text>
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Loại sản phẩm - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <AppstoreOutlined className="text-geekblue-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Loại sản phẩm</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.product_type || "N/A"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Chất liệu giấy - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <BlockOutlined className="text-orange-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Chất liệu giấy</Text>
-                            <div className="font-bold text-slate-700 text-lg">
-                              {orderDetail.paper_name || "Chưa xác định"}
-                              {orderDetail.paper_code && <span className="text-slate-400 text-sm ml-2">({orderDetail.paper_code})</span>}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Phủ bề mặt - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <FormatPainterOutlined className="text-purple-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Phủ bề mặt</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.coating_type || "Không"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Loại sóng - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <DeploymentUnitOutlined className="text-yellow-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Loại sóng</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.wave_type || "Không"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Số bản kẽm - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <FileTextOutlined className="text-red-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Số bản kẽm</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.number_of_plates || 0}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quy trình sản xuất - Chiếm cả 2 cột */}
-                    {/* <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                          <SettingOutlined className="text-blue-600" />
-                        </div>
-                        <div>
-                          <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Quy trình sản xuất</Text>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {orderDetail.production_processes ? (
-                          orderDetail.production_processes.split(',').map((proc, index) => (
-                            <Tag key={index} color="blue" className="px-3 py-1.5 text-sm rounded-lg font-medium">
-                              {proc.trim()}
-                            </Tag>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 italic">Chưa có quy trình</span>
-                        )}
-                      </div>
-                    </div> */}
-                  </div>
+                    </Panel>
+                  </Collapse>
                 </div>
               </div>
             </div>
 
             {/* Payment Information Card (if exists) */}
-            {orderDetail.payments && orderDetail.payments.length > 0 && (
+            {requestDetail.payments && requestDetail.payments.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -522,7 +434,7 @@ export default function RequestDetailPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {orderDetail.payments.map((payment, idx) => (
+                  {requestDetail.payments.map((payment, idx) => (
                     <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
                       <div>
                         <div className="font-bold text-slate-700 text-lg">
@@ -544,7 +456,7 @@ export default function RequestDetailPage() {
 
           {/* Sidebar - Design Files */}
           <div className="lg:col-span-4 space-y-8">
-            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+            <DesignFileDisplay designFilePath={requestDetail.design_file_path} requestId={requestDetail.order_request_id} />
 
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
@@ -577,7 +489,7 @@ export default function RequestDetailPage() {
 
               {/* Upload Area */}
               <div className="mt-2">
-                {!orderDetail.design_file_path ? (
+                {!requestDetail.design_file_path ? (
                   <Upload
                     customRequest={handleUpload}
                     showUploadList={false}
@@ -613,13 +525,6 @@ export default function RequestDetailPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Back Actions */}
-        <div className="mt-6 flex justify-center pb-8">
-          <Button size="large" onClick={() => router.back()} icon={<ArrowLeftOutlined />} className="h-12 px-8 rounded-xl font-medium border-slate-300 text-slate-600 hover:border-cyan-500 hover:text-cyan-600">
-            Quay lại danh sách
-          </Button>
         </div>
 
         {/* Animation Styles Injection */}
