@@ -98,7 +98,7 @@ export default function CustomerHistoryPage() {
     setLoading(true)
     try {
       console.log('phone', phone, 'otp', otp, 'page', page, 'type', type)
-      const response = await lookupsApi.getHistory(phone, otp, page, 15)
+      const response = await lookupsApi.getHistory(phone, otp, page, 5)
 
       // Lưu phone và otp đã xác thực vào sessionStorage
       if (type === 'all') {
@@ -426,7 +426,7 @@ export default function CustomerHistoryPage() {
         </div>
 
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <Title level={2} style={{ color: '#EEBC21', textTransform: 'uppercase' }}>
             Tra Cứu Đơn Hàng
           </Title>
@@ -537,7 +537,7 @@ export default function CustomerHistoryPage() {
           <div className="animate-fade-in">
             <Card className="shadow-lg rounded-xl border-t-4 border-blue-500">
               <div className="flex justify-between items-center mb-6">
-                <div>
+                <div className="flex items-center gap-2">
                   <Title level={4} className="!mb-0">Kết quả tra cứu</Title>
                   <Text type="secondary">Số điện thoại: {phoneNumber}</Text>
                 </div>
@@ -546,7 +546,7 @@ export default function CustomerHistoryPage() {
                 </Button>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-2">
                 <Input.Search
                   placeholder="Tìm kiếm theo mã đơn, sản phẩm hoặc trạng thái..."
                   allowClear
@@ -563,13 +563,13 @@ export default function CustomerHistoryPage() {
                 size="large"
               />
 
-              <div className="text-center mt-8 pt-4 border-t">
+              {/* <div className="text-center mt-8 pt-4 border-t">
                 <Link href="/request">
                   <Button type="primary" size="large" icon={<FileTextOutlined />}>
                     Đặt yêu cầu mới
                   </Button>
                 </Link>
-              </div>
+              </div> */}
             </Card>
           </div>
         )}
