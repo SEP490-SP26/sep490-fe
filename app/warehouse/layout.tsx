@@ -1,5 +1,6 @@
 "use client";
 
+import Footer from "@/components/Footer/Footer";
 import { warehouseNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ export default function LayoutWarehouse({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
       <Sidebar
         userInfo={{
           name: "Warehouse",
@@ -30,8 +32,16 @@ export default function LayoutWarehouse({
         onLogout={handleLogout}
       />
 
-      {/* Main content */}
-      <main className="ml-72 p-8">{children}</main>
+      {/* Content area (né sidebar) */}
+      <div className="ml-72 flex min-h-screen flex-col">
+        {/* Main */}
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+
+        {/* Footer */}
+        <Footer />
+      </div>
     </div>
   );
 }
