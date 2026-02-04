@@ -111,149 +111,175 @@ export default function StaffProductionScheduling() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* ================= ĐÃ LÊN LỊCH ================= */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="mb-4 flex items-center gap-2">
-            <BsCalendar className="w-5 h-5 text-blue-500" />
-            Đã lên lịch
-          </h2>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        {/* Header */}
+        <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-800">
+          <BsCalendar className="w-5 h-5 text-blue-600" />
+          Đã lên lịch
+        </h2>
 
-          <div className="space-y-1.5 max-h-150 overflow-y-auto">
-            {scheduledOrder
-              .filter((o: any) => o.production_status === "Scheduled")
-              .map((order: any) => (
-                <div
-                  key={order.order_id}
-                  className="flex items-center justify-between p-3 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  {/* LEFT */}
-                  <div className="flex-1 min-w-0 pr-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="font-medium text-gray-900 text-sm truncate">
-                        Mã đơn sản xuất: {order.order_id}
-                      </div>
-                      <div className="text-xs font-semibold text-blue-700">
-                        SL: {order.quantity}
-                      </div>
-                    </div>
+        {/* List */}
+        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+          {scheduledOrder
+            .filter((o: any) => o.production_status === "Scheduled")
+            .map((order: any) => (
+              <div
+                key={order.order_id}
+                className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition"
+              >
+                {/* LEFT */}
+                <div className="flex-1 min-w-0">
+                  {/* Title + SL */}
+                  <div className="flex items-center gap-3 mb-1">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      Mã đơn sản xuất:{" "}
+                      <span className="text-blue-700">{order.code}</span>
+                    </p>
 
-                    <div className="text-xs text-gray-600">
-                      Ngày giao:{" "}
-                      {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {order.stages.map((stage: string, index: number) => (
-                        <div
-                          key={index}
-                          className="px-2 py-1 rounded border text-xs bg-gray-100 text-gray-500"
-                        >
-                          {stage}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* RIGHT */}
-                  <button
-                    onClick={() => handleStart(order.order_id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 ${startMutation.isPending &&
-                        startMutation.variables === order.order_id
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-yellow-600 hover:bg-yellow-700 text-white"
-                      }`}
-                  >
-                    {startMutation.isPending &&
-                      startMutation.variables === order.order_id ? (
-                      <>
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-                        Đang xử lý
-                      </>
-                    ) : (
-                      <>
-                        <BsPlay className="w-3 h-3" />
-                        Bắt đầu
-                      </>
-                    )}
-                  </button>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* ================= ĐANG SẢN XUẤT ================= */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="mb-4 flex items-center gap-2">
-            <BsPlay className="w-5 h-5 text-yellow-500" />
-            Đang sản xuất
-          </h2>
-
-          <div className="space-y-3 max-h-150 overflow-y-auto">
-            {scheduledOrder
-              .filter((o: any) => o.production_status === "InProcessing")
-              .map((order: any, index: number) => (
-                <div
-                  key={`${order.order_id}-${index}`}
-                  className="border border-yellow-200 bg-yellow-50 rounded-lg p-4"
-                >
-                  <div className="flex justify-between mb-2">
-                    <div className="font-medium">
-                      Mã đơn: {order.order_id}
-                    </div>
-                    <div className="text-sm text-gray-500">
+                    <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
                       SL: {order.quantity}
-                    </div>
+                    </span>
                   </div>
 
-                  {/* Progress */}
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs mb-1 text-gray-500">
-                      <span>Tiến độ</span>
-                      <span>{Math.round(order.progress_percent)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 h-2 rounded-full">
-                      <div
-                        className="bg-green-600 h-2 rounded-full transition-all"
-                        style={{ width: `${order.progress_percent}%` }}
-                      />
-                    </div>
-                  </div>
+                  {/* Delivery date */}
+                  <p className="text-xs text-gray-500 mb-3">
+                    Ngày giao:{" "}
+                    {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                  </p>
 
                   {/* Stages */}
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {order.stages.map((stage: string, index: number) => {
-                      const currentIndex =
-                        order.stages.indexOf(order.current_stage);
-                      const isCompleted =
-                        currentIndex !== -1 && index < currentIndex;
-                      const isCurrent = stage === order.current_stage;
-
-                      return (
-                        <div
-                          key={index}
-                          className={`px-2 py-1 rounded text-xs ${isCurrent
-                              ? "bg-blue-100 text-blue-700 border border-blue-300"
-                              : isCompleted
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-500"
-                            }`}
-                        >
-                          {stage}
-                        </div>
-                      );
-                    })}
+                  <div className="flex flex-wrap gap-1.5">
+                    {order.stages.map((stage: string, index: number) => (
+                      <span
+                        key={index}
+                        className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
+                      >
+                        {stage}
+                      </span>
+                    ))}
                   </div>
-
-                  <Link
-                    href={`/staff/production/${order.order_id}`}
-                    className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex items-center justify-center gap-2"
-                  >
-                    <BsEye className="w-4 h-4" />
-                    Xem chi tiết
-                  </Link>
                 </div>
-              ))}
-          </div>
+
+                {/* RIGHT */}
+                <button
+                  onClick={() => handleStart(order.order_id)}
+                  disabled={
+                    startMutation.isPending &&
+                    startMutation.variables === order.order_id
+                  }
+                  className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
+                    ${
+                      startMutation.isPending &&
+                      startMutation.variables === order.order_id
+                        ? "cursor-not-allowed bg-gray-300 text-gray-600"
+                        : "bg-yellow-500 text-white hover:bg-yellow-600"
+                    }`}
+                >
+                  {startMutation.isPending &&
+                  startMutation.variables === order.order_id ? (
+                    <>
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Đang xử lý
+                    </>
+                  ) : (
+                    <>
+                      <BsPlay className="h-3.5 w-3.5" />
+                      Bắt đầu
+                    </>
+                  )}
+                </button>
+              </div>
+            ))}
         </div>
+      </div>
+
+
+        {/* ================= ĐANG SẢN XUẤT ================= */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+  {/* Header */}
+  <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-800">
+    <BsPlay className="w-5 h-5 text-yellow-500" />
+    Đang sản xuất
+  </h2>
+
+  {/* List */}
+  <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+    {scheduledOrder
+      .filter((o: any) => o.production_status === "InProcessing")
+      .map((order: any, index: number) => (
+        <div
+          key={`${order.order_id}-${index}`}
+          className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm hover:bg-blue-100 hover:shadow-md transition"
+        >
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              Mã đơn:{" "}
+              <span className="text-yellow-600">{order.code}</span>
+            </p>
+
+            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+              SL: {order.quantity}
+            </span>
+          </div>
+
+          {/* Progress */}
+          <div className="mb-4">
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Tiến độ</span>
+              <span className="font-medium text-gray-700">
+                {Math.round(order.progress_percent)}%
+              </span>
+            </div>
+
+            <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-full transition-all duration-300"
+                style={{ width: `${order.progress_percent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Stages */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {order.stages.map((stage: string, index: number) => {
+              const currentIndex =
+                order.stages.indexOf(order.current_stage);
+              const isCompleted =
+                currentIndex !== -1 && index < currentIndex;
+              const isCurrent = stage === order.current_stage;
+
+              return (
+                <span
+                  key={index}
+                  className={`rounded-md px-2 py-0.5 text-xs border
+                    ${
+                      isCurrent
+                        ? "bg-blue-100 text-blue-700 border-blue-300"
+                        : isCompleted
+                        ? "bg-green-100 text-green-700 border-green-300"
+                        : "bg-gray-100 text-gray-500 border-gray-300"
+                    }`}
+                >
+                  {stage}
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Action */}
+          <Link
+            href={`/staff/production/${order.order_id}`}
+            className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+          >
+            <BsEye className="w-4 h-4" />
+            Xem chi tiết
+          </Link>
+        </div>
+      ))}
+  </div>
+</div>
+
       </div>
     </div>
   );

@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Card, Table, Tag, DatePicker, Input, Space, Spin } from "antd";
+import {
+  Card,
+  Table,
+  Tag,
+  DatePicker,
+  Input,
+  Space,
+  Spin,
+  Typography,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
 import { productionsApi } from "@/apiRequests/productions";
@@ -12,6 +21,8 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
+
+const { Title } = Typography;
 
 /* =======================
    Types
@@ -110,7 +121,7 @@ const FinishProduction: React.FC = () => {
   }, [data, customerKeyword, deliveryRange]);
 
   /* =======================
-     Columns (NO progress)
+     Columns
   ======================= */
 
   const columns: ColumnsType<ProductionOrder> = [
@@ -118,6 +129,7 @@ const FinishProduction: React.FC = () => {
       title: "Mã đơn",
       dataIndex: "code",
       width: 120,
+      render: (v) => <strong>{v}</strong>,
     },
     {
       title: "Khách hàng",
@@ -153,20 +165,44 @@ const FinishProduction: React.FC = () => {
   ======================= */
 
   return (
-    <Card title="Đơn sản xuất hoàn thành">
+    <Card
+      style={{
+        borderRadius: 12,
+        border: "1px solid #d6e4ff",
+        background: "#f5f9ff",
+      }}
+      styles={{
+        body: {
+          padding: 20,
+        },
+      }}
+    >
+      {/* Header */}
+      <Title level={4} style={{ marginBottom: 20 }}>
+        📦 Đơn sản xuất hoàn thành
+      </Title>
+
       {/* Filters */}
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space
+        style={{
+          marginBottom: 20,
+          padding: 16,
+          background: "#e6ebff",
+          borderRadius: 8,
+          width: "100%",
+        }}
+        wrap
+      >
         <Input
-          placeholder="Tìm theo khách hàng"
+          placeholder="🔍 Tìm theo khách hàng"
           allowClear
-          style={{ width: 220 }}
+          style={{ width: 240 }}
           onChange={(e) => setCustomerKeyword(e.target.value)}
         />
 
         <DatePicker.RangePicker
           format="DD/MM/YYYY"
           placeholder={["Từ ngày", "Đến ngày"]}
-          onChange={(v) => setDeliveryRange(v)}
         />
       </Space>
 
@@ -177,11 +213,14 @@ const FinishProduction: React.FC = () => {
           columns={columns}
           dataSource={filteredData}
           pagination={{ pageSize: 5 }}
+          bordered
           onRow={(record) => ({
             onClick: () => {
               router.push(`/staff/production/${record.order_id}`);
             },
-            style: { cursor: "pointer" },
+            style: {
+              cursor: "pointer",
+            },
           })}
         />
       </Spin>

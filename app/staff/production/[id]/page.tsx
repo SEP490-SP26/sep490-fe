@@ -2,13 +2,11 @@
 
 import { productionsApi } from "@/apiRequests/productions";
 import Loading from "@/app/manager/loading";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { BiPackage } from "react-icons/bi";
-import { useQueryClient } from "@tanstack/react-query";
-
 import {
   BsArrowLeft,
   BsClock,
@@ -72,7 +70,7 @@ const STATUS_MAP: Record<
 };
 
 /* =======================
-   QR MODAL
+   QR MODAL (UI chỉnh)
 ======================= */
 function QrModal({
   token,
@@ -93,7 +91,6 @@ function QrModal({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (hasScannedRef.current) return;
-
     if (e.key === "Enter") {
       hasScannedRef.current = true;
       inputRef.current?.blur();
@@ -103,21 +100,24 @@ function QrModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-[320px] text-center">
-        <h3 className="font-semibold mb-4">
+      <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] text-center shadow-lg">
+        <h3 className="font-semibold text-blue-700 mb-4">
           Quét QR để hoàn thành công đoạn
         </h3>
-        <div className="flex justify-center">
+
+        <div className="flex justify-center mb-4">
           <QRCodeCanvas value={token} size={220} includeMargin />
         </div>
+
         <input
           ref={inputRef}
           onKeyDown={handleKeyDown}
           className="absolute opacity-0"
         />
+
         <button
           onClick={onClose}
-          className="mt-4 w-full bg-gray-200 rounded py-2"
+          className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg py-2 transition"
         >
           Đóng
         </button>
@@ -126,27 +126,20 @@ function QrModal({
   );
 }
 
-
-
-
-
 /* =======================
    TIMELINE
 ======================= */
 function ProductionTimeline({ stages }: { stages: ProductionStage[] }) {
-  const sortedStages = [...stages].sort(
-    (a, b) => a.seq_num - b.seq_num
-  );
-
+  const sortedStages = [...stages].sort((a, b) => a.seq_num - b.seq_num);
   const currentIndex = sortedStages.findIndex(
     (s) => s.status === "InProcessing"
   );
 
   return (
     <div className="relative mb-8">
-      <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200" />
+      <div className="absolute top-5 left-0 right-0 h-1 bg-blue-100" />
       <div
-        className="absolute top-5 left-0 h-1 bg-blue-600 transition-all duration-500"
+        className="absolute top-5 left-0 h-1 bg-blue-600 transition-all"
         style={{
           width:
             currentIndex <= 0
@@ -209,20 +202,16 @@ export default function ProductionDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+
   const [collapsedStages, setCollapsedStages] =
     useState<Record<number, boolean>>({});
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
-
   const [popup, setPopup] = useState<{
-  open: boolean;
-  type: "success" | "error";
-  message: string;
-}>({
-  open: false,
-  type: "success",
-  message: "",
-});
+    open: boolean;
+    type: "success" | "error";
+    message: string;
+  }>({ open: false, type: "success", message: "" });
 
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
@@ -246,10 +235,10 @@ export default function ProductionDetailPage() {
       .sort((a, b) => a.seq_num - b.seq_num);
   }, [production]);
 
+  /* ===== QR LOGIC (GIỮ NGUYÊN) ===== */
   const handleCreateQr = async (stage: ProductionStage) => {
     try {
       setQrLoading(true);
-
       const totalQty = stage.input_materials.reduce(
         (sum: number, m: any) => sum + Number(m.quantity || 0),
         0
@@ -275,60 +264,49 @@ export default function ProductionDetailPage() {
     }
   };
 
-  // XỬ LÝ SAU KHI QUÉT QR
- const handleQrScanned = async (scannedToken: string) => {
-  try {
-    setQrLoading(true);
+  const handleQrScanned = async (scannedToken: string) => {
+    try {
+      setQrLoading(true);
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/finish`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: scannedToken }),
-      }
-    );
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/finish`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: scannedToken }),
+        }
+      );
 
-    if (!res.ok) {
-      const msg = await res.text();
-      throw new Error(msg || "Finish task failed");
+      if (!res.ok) throw new Error(await res.text());
+
+      setQrToken(null);
+      setPopup({
+        open: true,
+        type: "success",
+        message: "Hoàn thành công đoạn thành công 🎉",
+      });
+
+      setTimeout(async () => {
+        setPopup((p) => ({ ...p, open: false }));
+        await queryClient.invalidateQueries({
+          queryKey: ["production-detail", id],
+        });
+      }, 900);
+    } catch (err: any) {
+      setPopup({
+        open: true,
+        type: "error",
+        message: err.message || "Lỗi khi hoàn thành công đoạn",
+      });
+    } finally {
+      setQrLoading(false);
     }
-
-    // ✅ 1. ĐÓNG MODAL TRƯỚC
-    setQrToken(null);
-    // ✅ 2. HIỆN POPUP SAU KHI SCAN
-     setPopup({
-      open: true,
-      type: "success",
-      message: "Hoàn thành công đoạn thành công 🎉",
-    });
-
-    // ✅ 3. REFRESH SAU KHI MODAL ĐÓNG
-    setTimeout(async () => {
-      setPopup((prev) => ({ ...prev, open: false }));
-      await queryClient.invalidateQueries({
-    queryKey: ["production-detail", id],
-  });
-    }, 999);
-
-   
-  } catch (err: any) {
-    setPopup({
-      open: true,
-      type: "error",
-      message: err.message || "Lỗi khi hoàn thành công đoạn",
-    });
-  } finally {
-    setQrLoading(false);
-  }
-};
-
-
+  };
 
   if (isLoading) return <Loading text="Đang tải dữ liệu..." />;
-  
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-blue-50 p-4">
       <button
         onClick={() => router.back()}
         className="flex items-center gap-2 text-blue-600 mb-4"
@@ -336,8 +314,9 @@ export default function ProductionDetailPage() {
         <BsArrowLeft /> Quay lại
       </button>
 
-      <div className="bg-white rounded-lg border p-6 mb-6">
-        <h1 className="text-xl font-bold mb-1">
+      {/* HEADER */}
+      <div className="bg-white rounded-xl border border-blue-200 p-6 mb-6">
+        <h1 className="text-xl font-bold text-blue-800 mb-1">
           Lệnh sản xuất {production?.order_code}
         </h1>
         <p className="text-gray-600 text-sm">
@@ -346,17 +325,19 @@ export default function ProductionDetailPage() {
         </p>
       </div>
 
+      {/* TIMELINE */}
       {sortedStages && (
-        <div className="bg-white rounded-lg border p-6 mb-6">
-          <h2 className="font-semibold mb-6 flex items-center gap-2">
+        <div className="bg-white rounded-xl border border-blue-200 p-6 mb-6">
+          <h2 className="font-semibold mb-6 flex items-center gap-2 text-blue-700">
             <BsClock /> Tiến độ công đoạn
           </h2>
           <ProductionTimeline stages={sortedStages} />
         </div>
       )}
 
-      <div className="bg-white rounded-lg border p-6">
-        <h2 className="font-semibold mb-6 flex items-center gap-2">
+      {/* STAGE DETAIL */}
+      <div className="bg-white rounded-xl border border-blue-200 p-6">
+        <h2 className="font-semibold mb-6 flex items-center gap-2 text-blue-700">
           <BsClock /> Chi tiết từng công đoạn
         </h2>
 
@@ -368,14 +349,14 @@ export default function ProductionDetailPage() {
             return (
               <div
                 key={stage.process_id}
-                className="border rounded-lg overflow-hidden"
+                className="rounded-xl border border-blue-200 overflow-hidden bg-blue-50"
               >
                 <div
-                  className="flex justify-between items-center px-4 py-3 bg-gray-50 cursor-pointer"
+                  className="flex justify-between items-center px-4 py-3 cursor-pointer"
                   onClick={() => toggleStage(stage.process_id)}
                 >
                   <div>
-                    <h3 className="font-bold">
+                    <h3 className="font-bold text-blue-800">
                       {stage.seq_num}. {stage.process_name}
                       <span className="text-gray-500 font-normal">
                         {" "}
@@ -392,8 +373,8 @@ export default function ProductionDetailPage() {
                 </div>
 
                 {!isCollapsed && (
-                  <div className="p-4 space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded">
+                  <div className="p-4 space-y-5 bg-white">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-blue-50 p-3 rounded">
                       <div>
                         <b>Bắt đầu:</b>{" "}
                         {stage.start_time
@@ -413,8 +394,8 @@ export default function ProductionDetailPage() {
                         <BiPackage /> Nguyên vật liệu đầu vào
                       </h4>
 
-                      <table className="w-full text-sm border rounded">
-                        <thead className="bg-gray-100">
+                      <table className="w-full text-sm border rounded bg-white">
+                        <thead className="bg-blue-100">
                           <tr>
                             <th className="px-3 py-2 text-left">Tên</th>
                             <th className="px-3 py-2 text-right">Số lượng</th>
@@ -463,7 +444,7 @@ export default function ProductionDetailPage() {
                       <button
                         onClick={() => handleCreateQr(stage)}
                         disabled={qrLoading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                       >
                         <BsPrinter /> Tạo QR
                       </button>
@@ -476,6 +457,7 @@ export default function ProductionDetailPage() {
         </div>
       </div>
 
+      {/* MODALS */}
       {qrToken && (
         <QrModal
           token={qrToken}
@@ -485,29 +467,29 @@ export default function ProductionDetailPage() {
       )}
 
       {popup.open && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg p-6 w-[320px] text-center">
-      <h3
-        className={`font-semibold mb-3 ${
-          popup.type === "success"
-            ? "text-green-600"
-            : "text-red-600"
-        }`}
-      >
-        {popup.type === "success" ? "Thành công" : "Lỗi"}
-      </h3>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl border border-blue-200 p-6 w-[320px] text-center shadow-lg">
+            <h3
+              className={`font-semibold mb-3 ${
+                popup.type === "success"
+                  ? "text-green-600"
+                  : "text-red-600"
+              }`}
+            >
+              {popup.type === "success" ? "Thành công" : "Lỗi"}
+            </h3>
 
-      <p className="text-sm mb-4">{popup.message}</p>
+            <p className="text-sm mb-4">{popup.message}</p>
 
-      <button
-        onClick={() => setPopup({ ...popup, open: false })}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded py-2"
-      >
-        OK
-      </button>
-    </div>
-  </div>
-)}
+            <button
+              onClick={() => setPopup({ ...popup, open: false })}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
