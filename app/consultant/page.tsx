@@ -40,6 +40,7 @@ import {
   message,
   Progress,
   Row,
+  Tabs,
   Upload,
 } from "antd";
 import dayjs from "dayjs";
@@ -143,6 +144,148 @@ function ConsultantForm() {
   const [depositAmount, setDepositAmount] = useState<number>(0);
   const [machineCapacity, setMachineCapacity] = useState<MachineCapacity | null>(null);
   const [freeMachines, setFreeMachines] = useState<FreeMachine[]>([]);
+
+  // --- MULTIPLE QUOTES TABS STATE ---
+  interface QuoteTab {
+    key: string;
+    label: string;
+    data: any;
+  }
+  const [quoteTabs, setQuoteTabs] = useState<QuoteTab[]>([
+    { key: "1", label: "Báo giá 1", data: {} },
+  ]);
+  const [activeTabKey, setActiveTabKey] = useState<string>("1");
+
+  // Fields that should be shared across all tabs (not reset/changed when switching)
+  const SHARED_FIELDS = [
+    "customer_name",
+    "customer_phone",
+    "customer_email",
+    "detail_address",
+    // "description", // Note might be specific? Let's keep it specific for now.
+    "contract_file", // File upload state might be tricky, but contract is usually 1 per order.
+  ];
+
+  const handleTabEdit = (
+    targetKey: React.MouseEvent | React.KeyboardEvent | string,
+    action: "add" | "remove"
+  ) => {
+    if (action === "add") {
+      addTab();
+    } else {
+      removeTab(targetKey as string);
+    }
+  };
+
+  const addTab = () => {
+    // Clone current form values for the new tab
+    const currentValues = form.getFieldsValue();
+
+    // Generate new key
+    const newKey = (Date.now()).toString();
+    const newLabel = `Báo giá ${quoteTabs.length + 1}`;
+
+    // Save current tab state first
+    setQuoteTabs((prev) =>
+      prev.map((tab) =>
+        tab.key === activeTabKey ? { ...tab, data: currentValues } : tab
+      )
+    );
+
+    const newTab: QuoteTab = {
+      key: newKey,
+      label: newLabel,
+      data: { ...currentValues }, // Start with cloned values
+    };
+
+    setQuoteTabs((prev) => [...prev, newTab]);
+    setActiveTabKey(newKey);
+    // Values are already in form, no need to set
+  };
+
+  const removeTab = (targetKey: string) => {
+    // Don't remove if it's the last one
+    if (quoteTabs.length === 1) {
+      message.warning("Phải giữ ít nhất một báo giá!");
+      return;
+    }
+
+    let newActiveKey = activeTabKey;
+    let lastIndex = -1;
+    quoteTabs.forEach((item, i) => {
+      if (item.key === targetKey) {
+        lastIndex = i - 1;
+      }
+    });
+
+    const newTabs = quoteTabs.filter((item) => item.key !== targetKey);
+
+    if (newTabs.length && newActiveKey === targetKey) {
+      if (lastIndex >= 0) {
+        newActiveKey = newTabs[lastIndex].key;
+      } else {
+        newActiveKey = newTabs[0].key;
+      }
+    }
+
+    setQuoteTabs(newTabs);
+
+    if (newActiveKey !== activeTabKey) {
+      handleTabChange(newActiveKey, newTabs);
+    }
+  };
+
+  const handleTabChange = (newKey: string, currentTabs = quoteTabs) => {
+    // 1. Save current form values to OLD active tab
+    const currentValues = form.getFieldsValue();
+
+    const updatedTabs = currentTabs.map((tab) => {
+      if (tab.key === activeTabKey) {
+        return { ...tab, data: currentValues };
+      }
+      return tab;
+    });
+
+    setQuoteTabs(updatedTabs);
+    setActiveTabKey(newKey);
+
+    // 2. Load new values
+    const targetTab = updatedTabs.find((t) => t.key === newKey);
+    if (targetTab) {
+      // Merge shared fields from CURRENT form state into target data
+      // This ensures if I edited customer name in Tab 1, it stays in Tab 2
+      const sharedValues = SHARED_FIELDS.reduce((acc, field) => {
+        acc[field] = currentValues[field];
+        return acc;
+      }, {} as any);
+
+      const nextValues = { ...targetTab.data, ...sharedValues };
+
+      form.setFieldsValue(nextValues);
+
+      // Trigger logic to update detailed states (like selectedProductTypeCode) based on new values
+      // We manually call handleFormValuesChange-like logic or just wait for effects?
+      // Effects like `syncProductTypeFromName` depend on form.getFieldValue or dependencies. 
+      // We should manually trigger critical updates.
+
+      // Update local states that control rendering (like isOneSideBox, glueTab visibilty etc)
+      // These are usually derived from form values in render, but some might be state.
+
+      // Force calculation
+      setTimeout(() => {
+        calculateEstimates();
+        // Also ensure product type code state is synced
+        const pType = nextValues.product_type;
+        if (pType) {
+          const selected = productTypes.find(pt => pt.product_type_id === pType);
+          if (selected) {
+            setSelectedProductTypeCode(selected.code);
+            setselectProductTypeId(selected.product_type_id);
+          }
+        }
+      }, 100);
+    }
+  };
 
   const totalMachines = machineCapacity?.totalMachines || 8;
   const runningMachines = machineCapacity?.runningMachines || 0;
@@ -990,22 +1133,36 @@ function ConsultantForm() {
                   Thông Số Kỹ Thuật
                 </Divider>
 
-                <ProductSpecsSection
-                  orderId={orderId}
-                  PRODUCT_SUGGESTIONS={productSuggestions}
-                  productTypes={productTypes}
-                  paperTypes={paperTypes}
-                  formTypes={formTypes}
-                  selectedProductTypeCode={selectedProductTypeCode}
-                  loadingProductTypes={loadingProductTypes}
-                  loadingPaperTypes={loadingPaperTypes}
-                  loadingFormTypes={loadingFormTypes}
-                  loadingProcessTypes={loadingProcessTypes}
-                  processTypes={processTypes}
-                  PROCESS_TYPE_LABELS={PROCESS_TYPE_LABELS}
-                  songTypes={songTypes}
-                  handleFormValuesChange={handleFormValuesChange}
-                  form={form}
+                <Tabs
+                  type="editable-card"
+                  onChange={(key) => handleTabChange(key)}
+                  activeKey={activeTabKey}
+                  onEdit={handleTabEdit}
+                  items={quoteTabs.map((tab) => ({
+                    label: tab.label,
+                    key: tab.key,
+                    children: (
+                      <div className="pt-2">
+                        <ProductSpecsSection
+                          orderId={orderId}
+                          PRODUCT_SUGGESTIONS={productSuggestions}
+                          productTypes={productTypes}
+                          paperTypes={paperTypes}
+                          formTypes={formTypes}
+                          selectedProductTypeCode={selectedProductTypeCode}
+                          loadingProductTypes={loadingProductTypes}
+                          loadingPaperTypes={loadingPaperTypes}
+                          loadingFormTypes={loadingFormTypes}
+                          loadingProcessTypes={loadingProcessTypes}
+                          processTypes={processTypes}
+                          PROCESS_TYPE_LABELS={PROCESS_TYPE_LABELS}
+                          songTypes={songTypes}
+                          handleFormValuesChange={handleFormValuesChange}
+                          form={form}
+                        />
+                      </div>
+                    ),
+                  }))}
                 />
 
                 <DesignUploadSection

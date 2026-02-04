@@ -5,6 +5,7 @@ import { otpsApi } from "@/apiRequests/otps";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import { productsApi } from "@/apiRequests/products";
+import { materialsApi } from "@/apiRequests/materials";
 import AddressMapPicker, { AddressResult } from "@/components/AddressMapPicker";
 import {
   CheckCircleOutlined,
@@ -32,6 +33,7 @@ import {
   Space,
   Typography,
   Upload,
+  Select,
 } from "antd";
 import Holidays from "date-holidays";
 import dayjs from "dayjs";
@@ -132,23 +134,35 @@ export default function GuestOrderPage() {
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
 
-  // Fetch product suggestions
+  // Fetch product suggestions and paper types
   const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
+  const [paperTypes, setPaperTypes] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchRefData = async () => {
       try {
-        const res: any = await productsApi.getAllProducts();
-        if (Array.isArray(res)) {
-          setProductSuggestions(res.map((p: any) => p.name));
-        } else if (res?.data && Array.isArray(res.data)) {
-          setProductSuggestions(res.data.map((p: any) => p.name));
+        const [productsRes, papersRes] = await Promise.all([
+          productsApi.getAllProducts(),
+          materialsApi.getAllPaperTypes()
+        ]);
+
+        if (Array.isArray(productsRes)) {
+          setProductSuggestions(productsRes.map((p: any) => p.name));
+        } else if ((productsRes as any)?.data && Array.isArray((productsRes as any).data)) {
+          setProductSuggestions((productsRes as any).data.map((p: any) => p.name));
         }
+
+        if (Array.isArray(papersRes)) {
+          setPaperTypes(papersRes);
+        } else if ((papersRes as any)?.data) {
+          setPaperTypes((papersRes as any).data);
+        }
+
       } catch (error) {
-        console.error("Failed to fetch products:", error);
+        console.error("Failed to fetch reference data:", error);
       }
     };
-    fetchProducts();
+    fetchRefData();
   }, []);
 
   const onSendOtp = async () => {
@@ -245,7 +259,12 @@ export default function GuestOrderPage() {
           values.desiredDate?.toISOString() || new Date().toISOString(),
         product_name: values.productName,
         quantity: values.quantity || 1,
-        description: values.note || "",
+        // Append dimensions and paper type to description
+        description: `
+Kích thước: ${values.length || '_'} x ${values.width || '_'} x ${values.height || '_'} (cm)
+Loại giấy: ${values.paperName || 'Chưa chọn'}
+Ghi chú: ${values.note || ''}
+        `.trim(),
         design_file_path: designFilePath,
         order_request_date: new Date().toISOString(),
         // Address from map picker
@@ -610,6 +629,49 @@ export default function GuestOrderPage() {
                           />
                         </Form.Item>
                       </Space>
+                    </Row>
+                    <Row gutter={16} className="mt-4">
+                      {/* Dimensions Group */}
+                      <Col xs={24} md={12}>
+                        <div className={`${labelStyle} mb-2`}>Kích thước (Dài x Rộng x Cao)</div>
+                        <Row gutter={8}>
+                          <Col span={8}>
+                            <Form.Item name="length" className="mb-0">
+                              <InputNumber placeholder="Dài" style={{ width: "100%" }} min={0} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item name="width" className="mb-0">
+                              <InputNumber placeholder="Rộng" style={{ width: "100%" }} min={0} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item name="height" className="mb-0">
+                              <InputNumber placeholder="Cao" style={{ width: "100%" }} min={0} />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </Col>
+
+                      {/* Paper Type */}
+                      <Col xs={24} md={12}>
+                        <div className={`${labelStyle} mb-2`}>Loại giấy (Không bắt buộc)</div>
+                        <Form.Item name="paperName" className="mb-0">
+                          <Select
+                            showSearch
+                            placeholder="Chọn loại giấy"
+                            optionFilterProp="children"
+                            filterOption={(input, option) =>
+                              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                            }
+                            options={paperTypes.map(p => ({
+                              value: p.name,
+                              label: p.name
+                            }))}
+                            allowClear
+                          />
+                        </Form.Item>
+                      </Col>
                     </Row>
 
                     <Form.Item
