@@ -10,6 +10,100 @@ import {
     ProcessCostBreakdownResponse
 } from "@/schemaValidations/common.schema";
 
+interface EstimationResponse {
+    estimate_id: number;
+}
+
+export interface RequestQuotationItem {
+  // --- Nhóm ID và Định danh ---
+  order_request_id: number;
+  quote_id: number;
+  estimate_id: number;
+  estimate_order_request_id: number;
+  order_id: number | null;
+  accepted_estimate_id: number | null;
+
+  // --- Thông tin Khách hàng ---
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  detail_address: string;
+
+  // --- Thông tin Sản phẩm & Trạng thái ---
+  product_name: string;
+  product_type: 'THE_MAU' | 'HOP_MAU' | 'VO_HOP_GACH' | string;
+  quantity: number;
+  process_status: 'Waiting' | 'Pending' | 'Accepted' | string;
+  order_request_date: string | null;
+  created_at: string;
+  description: string;
+  note: string | null;
+  reason: string | null;
+
+  // --- Thông số Kỹ thuật ---
+  number_of_plates: number;
+  production_processes: string; // VD: "RALO,CAT,IN,PHU,CAN_MANG"
+  coating_type: string;
+  paper_code: string;
+  paper_name: string;
+  wave_type: string | null;
+  product_length_mm: number;
+  product_width_mm: number;
+  product_height_mm: number;
+  glue_tab_mm: number | null;
+  bleed_mm: number | null;
+  n_up: number;
+  total_area_m2: number;
+  is_one_side_box: boolean | null;
+  is_send_design: boolean;
+  design_file_path: string;
+
+  // --- Chi tiết Chi phí Vật tư (Dự toán) ---
+  paper_cost: number;
+  paper_sheets_used: number;
+  paper_unit_price: number;
+  ink_cost: number;
+  ink_weight_kg: number;
+  ink_rate_per_m2: number;
+  coating_glue_cost: number;
+  coating_glue_weight_kg: number;
+  coating_glue_rate_per_m2: number;
+  estimate_coating_type: string;
+  mounting_glue_cost: number;
+  mounting_glue_weight_kg: number;
+  mounting_glue_rate_per_m2: number;
+  lamination_cost: number;
+  lamination_weight_kg: number;
+  lamination_rate_per_m2: number;
+  material_cost: number;
+  design_cost: number;
+  
+  // --- Chi phí Quản lý & Tổng cộng ---
+  overhead_percent: number;
+  overhead_cost: number;
+  base_cost: number;
+  subtotal: number;
+  final_total_cost: number;
+  deposit_amount: number;
+  
+  // --- Thông số Bù hao & Thời gian ---
+  sheets_required: number;
+  sheets_waste: number;
+  sheets_total: number;
+  is_rush: boolean;
+  rush_percent: number;
+  rush_amount: number;
+  days_early: number;
+  estimated_finish_date: string;
+  desired_delivery_date: string;
+  delivery_date: string;
+
+  cost_note: string;
+}
+
+/** Kiểu dữ liệu mảng các báo giá yêu cầu */
+export type RequestQuotationList = RequestQuotationItem[];
+
 export const estimatesApi = {
     // POST /api/Estimates/paper - Calculate paper parameters
     estimatePaper: (body: EstimatePaperRequest) =>
@@ -40,5 +134,7 @@ export const estimatesApi = {
 
     //POST /api/Estimates/cost-save 
     costSave: (body: OrderEstimationResult) =>
-        http.post<void>("/api/Estimates/cost-save", body),
+        http.post<EstimationResponse>("/api/Estimates/cost-save", body),
+
+    getAllDeal: (requestId: number) => http.get<RequestQuotationList>(`/api/Estimates/all-deal-by-${requestId}`),
 };
