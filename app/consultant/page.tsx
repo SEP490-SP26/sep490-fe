@@ -42,6 +42,7 @@ import {
   Row,
   Tabs,
   Upload,
+  Modal,
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -144,6 +145,10 @@ function ConsultantForm() {
   const [depositAmount, setDepositAmount] = useState<number>(0);
   const [machineCapacity, setMachineCapacity] = useState<MachineCapacity | null>(null);
   const [freeMachines, setFreeMachines] = useState<FreeMachine[]>([]);
+
+  // Review Modal State
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [submitValues, setSubmitValues] = useState<any>(null);
 
   // --- MULTIPLE QUOTES TABS STATE ---
   interface QuoteTab {
@@ -613,7 +618,7 @@ function ConsultantForm() {
         width_mm: width,
         height_mm: height,
         glue_tab_mm: glue_tab,
-        bleed_mm: 1,
+        bleed_mm: 5,
         product_type: productTypeCode,
         form_product: form_product || "",
         is_one_side_box,
@@ -791,6 +796,15 @@ function ConsultantForm() {
   }, [isSendDesign, configLoading, discountPercent]);
 
   const onFinish = async (values: any) => {
+    setSubmitValues(values);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleConfirmSend = async () => {
+    const values = submitValues;
+    if (!values) return;
+
+    setIsReviewModalOpen(false);
     setLoading(true);
 
     if (!orderId && !createdOrderId) {
@@ -946,33 +960,79 @@ function ConsultantForm() {
         // 2. Cập nhật giá
         // await estimatesApi.adjustCost(parseInt(currentOrderId), finalPrice);
 
-        // 2.1 Lưu bảng tính chi tiết (Cost Save)
-        // if (costEstimate && paperEstimate) {
-        //   try {
-        //     const estimationResult = mapToOrderEstimationResult(
-        //       costEstimate,
-        //       paperEstimate,
-        //       currentOrderId,
-        //       values.delivery_date
-        //     );
+        // 2.1 Lưu bảng tính chi tiết (Cost Save) -> Lấy estimate_id
+        let estimateId = 0;
+        if (costEstimate && paperEstimate) {
+          try {
+            const estimationResult = mapToOrderEstimationResult(
+              costEstimate,
+              paperEstimate,
+              currentOrderId,
+              values.delivery_date,
+              discountPercent,
+              costEstimate.cost.discount_amount
+            );
 
-        //     await estimatesApi.costSave(estimationResult);
-        //   } catch (costError) {
-        //     console.error("Error saving cost breakdown:", costError);
-        //   }
-        // }
+            // Important: Call costSave to get estimate_id
+            const saveRes = await estimatesApi.costSave(estimationResult); // This returns { estimate_id: number } or similar
+            if (saveRes && (saveRes as any).estimate_id) {
+              estimateId = (saveRes as any).estimate_id;
+            } else if (saveRes && (saveRes as any).data && (saveRes as any).data.estimate_id) {
+              estimateId = (saveRes as any).data.estimate_id;
+            }
 
-        // 2. Gửi email báo giá
-        const response = await requestOrderApi.sendDeal(parseInt(currentOrderId));
-
-        if (response.message === "Sent deal email") {
-          message.success("Đã gửi báo giá cho khách hàng!");
+          } catch (costError) {
+            console.error("Error saving cost breakdown:", costError);
+            message.error("Lỗi khi lưu bảng tính chi tiết. Không thể xử lý tiếp.");
+            setLoading(false);
+            return; // Exit if we can't save the estimate
+          }
         } else {
-          throw new Error(response.detail || "Lỗi gửi email");
+          message.error("Thiếu thông tin bảng tính. Vui lòng thử tính toán lại.");
+          setLoading(false);
+          return;
         }
+
+        if (!estimateId) {
+          message.error("Không lấy được ID bảng tính (estimate_id).");
+          setLoading(false);
+          return;
+        }
+
+
+        // CHECK STATUS TO DETERMINE ACTION
+        const isVerified = existingOrder?.process_status === "Verified" || existingOrder?.process_status === "verified";
+
+        if (isVerified) {
+          // 3. Gửi email báo giá kèm estimate_id (EXISTING LOGIC)
+          const response = await requestOrderApi.sendDeal({
+            request_id: parseInt(currentOrderId),
+            estimate_id: estimateId
+          });
+
+          if (response.message === "Sent deal email" || (response as any).data?.message === "Sent deal email") {
+            message.success("Đã gửi báo giá cho khách hàng!");
+          } else {
+            // Check for error details if available
+            throw new Error(response.detail || (response as any).data?.detail || "Lỗi gửi email");
+          }
+        } else {
+          // 3. Submit for Approval (NEW LOGIC)
+          await requestOrderApi.submitEstimateForApproval({
+            request_id: parseInt(currentOrderId)
+          });
+          message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
+        }
+
       } else {
         // Chế độ create: Tạo đơn mới
         // ... logic cho create mode
+        // Might need similar logic if Create mode also sends email immediately, but usually it just creates request.
+        // Assuming 'sendDeal' is mostly for 'Negotiate' stage or after creation.
+        // If Create mode creates request and then wants to send deal, it needs estimate_id too.
+        // But for now, user request focuses on "costSave" -> "sendDeal", which usually happens in Negotiate context or after Create converts to Pending Consultant.
+
+        message.success("Đã tạo yêu cầu mới thành công!");
       }
 
       router.push("/consultant/requests");
@@ -1011,7 +1071,8 @@ function ConsultantForm() {
             discountPercent,
             discountAmount
           );
-          await estimatesApi.costSave(estimationResult);
+          const res = await estimatesApi.costSave(estimationResult);
+          console.log(res);
         } catch (costError) {
           console.error("Error saving cost breakdown in adjust price:", costError);
         }
@@ -1230,31 +1291,33 @@ function ConsultantForm() {
                           ? "bg-orange-500 hover:bg-orange-600"
                           : "bg-blue-600"
                       }`}
+                    disabled={(existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing")}
                   >
                     {isCreateMode
-                      ? "XÁC NHẬN & GỬI MANAGER DUYỆT"
-                      : estimate?.caseType === 3
-                        ? "CHỐT GIÁ & GỬi KHÁCH HÀNG"
-                        : estimate?.caseType === 2
-                          ? "GỬI BÁO GIÁ ƯU TIÊN"
-                          : "GỬI BÁO GIÁ CHO KHÁCH HÀNG"}
+                      ? "GỬI MANAGER DUYỆT"
+                      : (existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified")
+                        ? "GỬI BÁO GIÁ CHO KHÁCH HÀNG"
+                        : (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing")
+                          ? "ĐANG CHỜ DUYỆT"
+                          : "GỬI MANAGER DUYỆT"}
                   </Button>
                   {/* <Button
                     type="primary"
                     htmlType="submit"
                     size="large"
                     loading={loading}
+                    disabled={(existingOrder?.process_status !== "verified" && existingOrder?.process_status !== "Verified" && !isCreateMode && existingOrder?.process_status !== "pending_consultant")}
                     block
                     className={`h-12 font-bold ${isCreateMode
                       ? "bg-green-600 hover:bg-green-700"
-                      : estimate?.caseType === 3
-                        ? "bg-red-600 hover:bg-red-700"
-                        : estimate?.caseType === 2
-                          ? "bg-orange-500 hover:bg-orange-600"
-                          : "bg-blue-600"
+                      : (existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified")
+                        ? "bg-blue-600"
+                        : "bg-orange-500 hover:bg-orange-600"
                       }`}
                   >
-                    Hoàn tất báo giá
+                     {(existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified")
+                      ? "HOÀN TẤT BÁO GIÁ (ĐÃ DUYỆT)"
+                      : "CHỜ DUYỆT / GỬI DUYỆT"}
                   </Button> */}
                 </Form.Item>
               </Card>
@@ -1291,6 +1354,88 @@ function ConsultantForm() {
           onClose={() => setIsFactoryModalOpen(false)}
           factoryOrders={factoryOrders}
         />
+
+        {/* REVIEW MODAL */}
+        <Modal
+          title={<div className="text-lg font-bold uppercase text-blue-800 border-b pb-2 mb-4">
+            {(existingOrder?.process_status === 'Verified' || existingOrder?.process_status === 'verified')
+              ? "Xác nhận gửi báo giá cho khách"
+              : "Xác nhận gửi duyệt giá cho Manager"
+            }
+          </div>}
+          open={isReviewModalOpen}
+          onCancel={() => setIsReviewModalOpen(false)}
+          footer={[
+            <Button key="back" onClick={() => setIsReviewModalOpen(false)}>
+              Hủy
+            </Button>,
+            <Button
+              key="submit"
+              type="primary"
+              loading={loading}
+              onClick={handleConfirmSend}
+              className="bg-blue-600 font-bold"
+            >
+              Xác Nhận & Gửi
+            </Button>,
+          ]}
+          width={600}
+        >
+          {submitValues && (
+            <div className="flex flex-col gap-3 text-base">
+              <div className="flex justify-between border-b border-dashed pb-2">
+                <span className="text-gray-500">Người nhận:</span>
+                <span className="font-medium">{submitValues.customer_name ? `${submitValues.customer_name} (${submitValues.customer_phone})` : "N/A"}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">Sản phẩm:</span>
+                <span className="font-bold">{submitValues.product_name} - SL: {Number(submitValues.quantity).toLocaleString()}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">Giấy - Kích thước:</span>
+                <span>
+                  {paperTypes.find(p => p.code === submitValues.paper_code)?.name || submitValues.paper_code}
+                  {" - "}
+                  {submitValues.length}x{submitValues.width}x{submitValues.height} mm
+                </span>
+              </div>
+
+              {/* <Divider className="my-2" /> */}
+              <div className="border-b border-dashed"></div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">Tổng tiền hàng:</span>
+                <span>{costEstimate?.cost?.subtotal?.toLocaleString()} đ</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">Chiết khấu ({discountPercent}%):</span>
+                <span className="text-red-500">-{costEstimate?.cost?.discount_amount?.toLocaleString()} đ</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">VAT/Overhead:</span>
+                <span>+{costEstimate?.cost?.overhead_cost?.toLocaleString()} đ</span>
+              </div>
+
+              <div className="flex justify-between text-lg font-bold text-blue-800 mt-2">
+                <span>Tổng thanh toán:</span>
+                <span>{costEstimate?.cost?.final_total_cost?.toLocaleString()} đ</span>
+              </div>
+
+              <div className="flex justify-between bg-yellow-50 p-2 rounded mt-2 border border-yellow-200">
+                <span className="text-yellow-700 font-semibold">Tiền cọc yêu cầu (30%):</span>
+                <span className="font-bold text-yellow-700">
+                  {costEstimate?.cost?.final_total_cost
+                    ? (Math.round((costEstimate.cost.final_total_cost * 0.3) / 1000) * 1000).toLocaleString()
+                    : 0} đ
+                </span>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </div>
   );

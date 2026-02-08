@@ -246,6 +246,26 @@ export default function ConsultantOrdersPage() {
     [allOrders, sortOrders, filterBySearch]
   );
 
+  const processingOrders = useMemo(
+    () =>
+      sortOrders(
+        filterBySearch(
+          allOrders.filter((o) => o.process_status?.toLowerCase() === "processing")
+        )
+      ),
+    [allOrders, sortOrders, filterBySearch]
+  );
+
+  const verifiedOrders = useMemo(
+    () =>
+      sortOrders(
+        filterBySearch(
+          allOrders.filter((o) => o.process_status?.toLowerCase() === "verified")
+        )
+      ),
+    [allOrders, sortOrders, filterBySearch]
+  );
+
   const waitingConfirmOrders = useMemo(
     () =>
       sortOrders(
@@ -310,6 +330,19 @@ export default function ConsultantOrdersPage() {
             </Button>
           </Space>
 
+        );
+      case "processing":
+      case "verified":
+        return (
+          <Space size="small">
+            <Link
+              href={`/consultant/request-detail/${record.order_request_id}`}
+            >
+              <Button size="small" icon={<EyeOutlined />}>
+                Xem chi tiết
+              </Button>
+            </Link>
+          </Space>
         );
       case "waiting":
         return (
@@ -467,6 +500,68 @@ export default function ConsultantOrdersPage() {
           locale={{ emptyText: <Empty description="Không có đơn hàng mới" /> }}
           bordered
           size="middle"
+        />
+      ),
+    },
+    {
+      key: "processing",
+      label: (
+        <span>
+          Đang xử lý
+          {processingOrders.length > 0 && (
+            <Tag color="cyan" className="ml-2">
+              {processingOrders.length}
+            </Tag>
+          )}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columns}
+          dataSource={processingOrders}
+          rowKey="order_request_id"
+          pagination={{
+            pageSize: 10,
+            showTotal: (total) => `Tổng ${total} đơn`,
+          }}
+          locale={{ emptyText: <Empty description="Không có đơn đang xử lý" /> }}
+          bordered
+          size="middle"
+          onRow={(record) => ({
+            onClick: () => router.push(`/consultant/request-detail/${record.order_request_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
+        />
+      ),
+    },
+    {
+      key: "verified",
+      label: (
+        <span>
+          Đã xác minh
+          {verifiedOrders.length > 0 && (
+            <Tag color="purple" className="ml-2">
+              {verifiedOrders.length}
+            </Tag>
+          )}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columns}
+          dataSource={verifiedOrders}
+          rowKey="order_request_id"
+          pagination={{
+            pageSize: 10,
+            showTotal: (total) => `Tổng ${total} đơn`,
+          }}
+          locale={{ emptyText: <Empty description="Không có đơn đã xác minh" /> }}
+          bordered
+          size="middle"
+          onRow={(record) => ({
+            onClick: () => router.push(`/consultant/request-detail/${record.order_request_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
         />
       ),
     },
