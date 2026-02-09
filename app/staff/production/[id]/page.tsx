@@ -15,6 +15,9 @@ import {
   BsPrinter,
 } from "react-icons/bs";
 
+import { getSignalRConnection } from "@/lib/signalr";
+
+
 /* =======================
    TYPES
 ======================= */
@@ -232,6 +235,33 @@ export default function ProductionDetailPage() {
       },
       enabled: !!id,
     });
+    /* =============================== SIGNALR ========================= */
+  useEffect(() => {
+  if (!production?.prod_id) return;
+
+  let conn: any;
+
+  getSignalRConnection().then((c) => {
+    conn = c;
+    conn.invoke("JoinProd", production.prod_id);
+
+    conn.on("ProdUpdated", () => {
+      queryClient.invalidateQueries({
+        queryKey: ["production-detail", id],
+      });
+    });
+  });
+
+  return () => {
+    if (conn) {
+      conn.off("ProdUpdated");
+      conn.invoke("LeaveProd", production.prod_id);
+    }
+  };
+}, [production?.prod_id]);
+
+/*=========================================================================== */
+
 
   const sortedStages = useMemo(() => {
     return production?.stages
@@ -297,9 +327,10 @@ export default function ProductionDetailPage() {
         type: "success",
         message: "Hoàn thành công đoạn thành công 🎉",
       });
-
+      //KHÁNH SỬA NẾU CẦN TỰ CMT
       setTimeout(async () => {
         setPopup((p) => ({ ...p, open: false }));
+        //
         await queryClient.invalidateQueries({
           queryKey: ["production-detail", id],
         });

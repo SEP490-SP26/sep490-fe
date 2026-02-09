@@ -25,6 +25,8 @@ import {
   BsScissors,
 } from "react-icons/bs";
 import { FiZap } from "react-icons/fi";
+import { useEffect } from "react";
+import { getSignalRConnection } from "@/lib/signalr";
 
 export default function StaffProductionScheduling() {
   const queryClient = useQueryClient();
@@ -75,6 +77,34 @@ export default function StaffProductionScheduling() {
       return res.data;
     },
   });
+  /*=========================== SIGNALR =================== */
+
+  useEffect(() => {
+  if (!scheduledOrder.length) return;
+
+  let conn: any;
+
+  getSignalRConnection().then((c) => {
+    conn = c;
+    scheduledOrder.forEach((o: any) => {
+      conn.invoke("JoinOrder", o.order_id);
+    });
+
+    conn.on("OrderUpdated", () => {
+      queryClient.invalidateQueries({
+        queryKey: ["scheduledOrders"],
+      });
+    });
+  });
+
+  return () => {
+    if (conn) {
+      conn.off("OrderUpdated");
+    }
+  };
+}, [scheduledOrder]);
+
+
 
   /* ================== HANDLERS ================== */
   const handleStart = (orderId: string) => {
