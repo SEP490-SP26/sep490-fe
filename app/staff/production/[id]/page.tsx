@@ -203,6 +203,10 @@ export default function ProductionDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+
+  const [qtyInputStage, setQtyInputStage] = useState<ProductionStage | null>(null);
+  const [qtyInputValue, setQtyInputValue] = useState<string>("");
+
   const [collapsedStages, setCollapsedStages] =
     useState<Record<number, boolean>>({});
   const [qrToken, setQrToken] = useState<string | null>(null);
@@ -236,33 +240,41 @@ export default function ProductionDetailPage() {
   }, [production]);
 
   /* ===== QR LOGIC (GIỮ NGUYÊN) ===== */
-  const handleCreateQr = async (stage: ProductionStage) => {
-    try {
-      setQrLoading(true);
-      const totalQty = stage.input_materials.reduce(
-        (sum: number, m: any) => sum + Number(m.quantity || 0),
-        0
-      );
+  const handleCreateQr = async (
+  stage: ProductionStage,
+  qtyOverride?: number
+) => {
+  try {
+    setQrLoading(true);
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/qr`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task_id: stage.task_id,
-            ttl_minutes: 30,
-            qty_good: totalQty,
-          }),
-        }
-      );
+    const defaultQty = stage.input_materials.reduce(
+      (sum: number, m: any) => sum + Number(m.quantity || 0),
+      0
+    );
 
-      const data = await res.json();
-      setQrToken(data.token);
-    } finally {
-      setQrLoading(false);
-    }
-  };
+    const finalQty =
+      qtyOverride && qtyOverride > 0 ? qtyOverride : defaultQty;
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/qr`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: stage.task_id,
+          ttl_minutes: 30,
+          qty_good: finalQty,
+        }),
+      }
+    );
+
+    const data = await res.json();
+    setQrToken(data.token);
+  } finally {
+    setQrLoading(false);
+  }
+};
+
 
   const handleQrScanned = async (scannedToken: string) => {
     try {
@@ -441,14 +453,16 @@ export default function ProductionDetailPage() {
                     </div>
 
                     {stage.status === "Ready" && (
-                      <button
-                        onClick={() => handleCreateQr(stage)}
-                        disabled={qrLoading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                      >
-                        <BsPrinter /> Tạo QR
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        setQtyInputStage(stage);
+                        setQtyInputValue("");
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                    >
+                      <BsPrinter /> Tạo QR
+                    </button>
+                  )}
                   </div>
                 )}
               </div>
@@ -456,8 +470,49 @@ export default function ProductionDetailPage() {
           })}
         </div>
       </div>
-
       {/* MODALS */}
+      {qtyInputStage && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl border border-blue-200 p-6 w-[320px] shadow-lg">
+      <h3 className="font-semibold text-blue-700 mb-4">
+        Nhập số lượng tạo QR
+      </h3>
+
+      <input
+        type="number"
+        min={1}
+        placeholder="Để trống = số lượng mặc định"
+        value={qtyInputValue}
+        onChange={(e) => setQtyInputValue(e.target.value)}
+        className="w-full border rounded-lg px-3 py-2 mb-4"
+        autoFocus
+      />
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => setQtyInputStage(null)}
+          className="flex-1 bg-gray-100 hover:bg-gray-200 rounded-lg py-2"
+        >
+          Hủy
+        </button>
+
+        <button
+          onClick={() => {
+            handleCreateQr(
+              qtyInputStage,
+              qtyInputValue ? Number(qtyInputValue) : undefined
+            );
+            setQtyInputStage(null);
+          }}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2"
+        >
+          Xác nhận
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       {qrToken && (
         <QrModal
           token={qrToken}
