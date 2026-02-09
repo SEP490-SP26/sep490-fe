@@ -484,6 +484,22 @@ export interface OrderEstimationResult {
   process_costs: ProcessCostDetail[];
 
   cost_note: string;
+
+  // Technical Specs for Saving
+  // product_length_mm?: number;
+  // product_width_mm?: number;
+  // product_height_mm?: number;
+  // paper_code?: string;
+  // paper_name?: string;
+  // product_type?: string;
+  // // coating_type is already defined above
+  // number_of_plates?: number;
+  // wave_type?: string;
+  // glue_tab_mm?: number;
+  // bleed_mm?: number;
+  // is_one_side_box?: boolean;
+  // production_processes?: string;
+  // note?: string;
 }
 
 // export type ProcessCostRulesList = ProcessCostRules[];

@@ -34,12 +34,16 @@ export interface Order {
   design_file_url?: string;
   status: "pending" | "scheduled" | "in_production" | "completed";
   process_status:
-    | "pending_consultant"
-    | "waiting_customer_confirm"
-    | "pending_order_creation"
-    | "consultant_verified"
-    | "manager_approved"
-    | "rejected";
+  | "pending_consultant"
+  | "waiting_customer_confirm"
+  | "pending_order_creation"
+  | "consultant_verified"
+  | "manager_approved"
+  | "rejected"
+  | "Verified"
+  | "verified"
+  | "Processing"
+  | "processing";
   specs?: {
     width: number;
     height: number;
@@ -93,14 +97,14 @@ export interface ProductTemplate {
   print_height_mm: number;
   number_of_plates: number; // Số bản kẽm
   is_one_side_box: boolean;
-  
+
   // Thông số bù hao kỹ thuật
   glue_tab_mm: number;      // Mép dán
   bleed_mm: number;         // Tràn lề
 
   // Quy trình sản xuất
   // Lưu ý: Dữ liệu trả về dạng "RALO,CAT,IN..."
-  production_processes: string; 
+  production_processes: string;
 }
 
 export interface Printer {
@@ -804,8 +808,8 @@ const getInitialProductionSchedules = (): ProductionSchedule[] => {
           stage.id === "ralo" || stage.id === "cut"
             ? "completed"
             : stage.id === "print"
-            ? "in_progress"
-            : "pending",
+              ? "in_progress"
+              : "pending",
         start_date:
           stage.id === "ralo"
             ? yesterday.toISOString().split("T")[0]
@@ -1317,15 +1321,15 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
       prev.map((s) =>
         s.id === scheduleId
           ? {
-              ...s,
+            ...s,
+            status: "completed" as const,
+            stages: s.stages?.map((stage) => ({
+              ...stage,
               status: "completed" as const,
-              stages: s.stages?.map((stage) => ({
-                ...stage,
-                status: "completed" as const,
-                end_date:
-                  stage.end_date || new Date().toISOString().split("T")[0],
-              })),
-            }
+              end_date:
+                stage.end_date || new Date().toISOString().split("T")[0],
+            })),
+          }
           : s
       )
     );
@@ -1338,10 +1342,10 @@ export function ProductionProvider({ children }: { children: ReactNode }) {
         prev.map((inv) =>
           inv.material_id === bomItem.material_id
             ? {
-                ...inv,
-                on_hand: inv.on_hand - needed,
-                reserved: inv.reserved - needed,
-              }
+              ...inv,
+              on_hand: inv.on_hand - needed,
+              reserved: inv.reserved - needed,
+            }
             : inv
         )
       );
