@@ -251,6 +251,7 @@ export default function GuestOrderPage() {
         .join(",");
 
       // Build request body according to API schema
+
       const requestBody = {
         customer_name: values.customerName,
         customer_phone: values.phone,
@@ -259,12 +260,11 @@ export default function GuestOrderPage() {
           values.desiredDate?.toISOString() || new Date().toISOString(),
         product_name: values.productName,
         quantity: values.quantity || 1,
-        // Append dimensions and paper type to description
-        description: `
-Kích thước: ${values.length || '_'} x ${values.width || '_'} x ${values.height || '_'} (cm)
-Loại giấy: ${values.paperName || 'Chưa chọn'}
-Ghi chú: ${values.note || ''}
-        `.trim(),
+        description: values.note || "",
+        product_length_mm: values.length ? values.length * 10 : 0,
+        product_width_mm: values.width ? values.width * 10 : 0,
+        product_height_mm: values.height ? values.height * 10 : 0,
+        paper_name: values.paperName || "",
         design_file_path: designFilePath,
         order_request_date: new Date().toISOString(),
         // Address from map picker
@@ -517,8 +517,16 @@ Ghi chú: ${values.note || ''}
                         showMap={false}
                         placeholder="Tìm kiếm địa chỉ tại Việt Nam..."
                       />
-                      <Form.Item name="shippingAddress" hidden>
-                        <Input />
+                      <Form.Item
+                        name="shippingAddress"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng chọn địa chỉ giao hàng!",
+                          },
+                        ]}
+                      >
+                        <Input style={{ display: "none" }} />
                       </Form.Item>
                     </div>
                   </div>
