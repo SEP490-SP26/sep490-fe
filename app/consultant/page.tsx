@@ -28,6 +28,7 @@ import {
   DashboardOutlined,
   FileTextOutlined,
   UploadOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -145,6 +146,7 @@ function ConsultantForm() {
   const [depositAmount, setDepositAmount] = useState<number>(0);
   const [machineCapacity, setMachineCapacity] = useState<MachineCapacity | null>(null);
   const [freeMachines, setFreeMachines] = useState<FreeMachine[]>([]);
+  const [savedEstimateId, setSavedEstimateId] = useState<number | null>(null);
 
   // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -155,9 +157,15 @@ function ConsultantForm() {
     key: string;
     label: string;
     data: any;
+    calculations?: {
+      estimate: any;
+      paperEstimate: any;
+      costEstimate: any;
+      discountPercent: number;
+    };
   }
   const [quoteTabs, setQuoteTabs] = useState<QuoteTab[]>([
-    { key: "1", label: "Báo giá 1", data: {} },
+    { key: "1", label: "Báo giá 1", data: {}, calculations: { estimate: null, paperEstimate: null, costEstimate: null, discountPercent: 0 } },
   ]);
   const [activeTabKey, setActiveTabKey] = useState<string>("1");
 
@@ -185,6 +193,12 @@ function ConsultantForm() {
   const addTab = () => {
     // Clone current form values for the new tab
     const currentValues = form.getFieldsValue();
+    const currentCalculations = {
+      estimate,
+      paperEstimate,
+      costEstimate,
+      discountPercent,
+    };
 
     // Generate new key
     const newKey = (Date.now()).toString();
@@ -193,7 +207,7 @@ function ConsultantForm() {
     // Save current tab state first
     setQuoteTabs((prev) =>
       prev.map((tab) =>
-        tab.key === activeTabKey ? { ...tab, data: currentValues } : tab
+        tab.key === activeTabKey ? { ...tab, data: currentValues, calculations: currentCalculations } : tab
       )
     );
 
@@ -201,6 +215,7 @@ function ConsultantForm() {
       key: newKey,
       label: newLabel,
       data: { ...currentValues }, // Start with cloned values
+      calculations: { ...currentCalculations }, // Start with cloned calculations
     };
 
     setQuoteTabs((prev) => [...prev, newTab]);
@@ -243,10 +258,16 @@ function ConsultantForm() {
   const handleTabChange = (newKey: string, currentTabs = quoteTabs) => {
     // 1. Save current form values to OLD active tab
     const currentValues = form.getFieldsValue();
+    const currentCalculations = {
+      estimate,
+      paperEstimate,
+      costEstimate,
+      discountPercent,
+    };
 
     const updatedTabs = currentTabs.map((tab) => {
       if (tab.key === activeTabKey) {
-        return { ...tab, data: currentValues };
+        return { ...tab, data: currentValues, calculations: currentCalculations };
       }
       return tab;
     });
@@ -268,6 +289,24 @@ function ConsultantForm() {
 
       form.setFieldsValue(nextValues);
 
+      // Restore calculations
+      if (targetTab.calculations) {
+        setEstimate(targetTab.calculations.estimate);
+        setPaperEstimate(targetTab.calculations.paperEstimate);
+        setCostEstimate(targetTab.calculations.costEstimate);
+        setDiscountPercent(targetTab.calculations.discountPercent);
+      } else {
+        setEstimate(null);
+        setPaperEstimate(null);
+        setCostEstimate(null);
+        setDiscountPercent(0);
+
+        // Force calculation if needed
+        setTimeout(() => {
+          calculateEstimates();
+        }, 100);
+      }
+
       // Trigger logic to update detailed states (like selectedProductTypeCode) based on new values
       // We manually call handleFormValuesChange-like logic or just wait for effects?
       // Effects like `syncProductTypeFromName` depend on form.getFieldValue or dependencies. 
@@ -278,7 +317,6 @@ function ConsultantForm() {
 
       // Force calculation
       setTimeout(() => {
-        calculateEstimates();
         // Also ensure product type code state is synced
         const pType = nextValues.product_type;
         if (pType) {
@@ -795,53 +833,92 @@ function ConsultantForm() {
     }
   }, [isSendDesign, configLoading, discountPercent]);
 
+  // Reset saved ID when estimate changes
+  useEffect(() => {
+    setSavedEstimateId(null);
+  }, [costEstimate, paperEstimate]);
+
   const onFinish = async (values: any) => {
-    setSubmitValues(values);
+    // 1. Update the CURRENT active tab with the latest values & calculations locally
+    // (We don't need to force setQuoteTabs state update if we just want to submit current data)
+    const currentCalculations = {
+      estimate,
+      paperEstimate,
+      costEstimate,
+      discountPercent,
+    };
+
+    // 2. Consolodate all data
+    const allQuotes = quoteTabs.map((tab) => {
+      if (tab.key === activeTabKey) {
+        return {
+          ...tab.data, // Form values (which is 'values' arg)
+          ...values, // Ensure we have latest form values
+          key: tab.key,
+          label: tab.label,
+          calculations: currentCalculations
+        };
+      }
+      return {
+        ...tab.data,
+        key: tab.key,
+        label: tab.label,
+        calculations: tab.calculations
+      };
+    });
+
+    setSubmitValues(allQuotes);
     setIsReviewModalOpen(true);
   };
 
   const handleConfirmSend = async () => {
-    const values = submitValues;
-    if (!values) return;
+    const quotes = submitValues;
+    if (!quotes || !Array.isArray(quotes) || quotes.length === 0) return;
 
     setIsReviewModalOpen(false);
     setLoading(true);
 
-    if (!orderId && !createdOrderId) {
-      try {
-        const payload: CreateRequestBodyForConsultant = {
-          customer_name: values.customer_name,
-          customer_phone: values.customer_phone,
-          customer_email: values.customer_email,
-          detail_address: values.detail_address,
-        };
+    // Pick the first quote as "Primary" for request-level info
+    const primaryQuote = quotes[0];
 
-        const res: any = await requestOrderApi.createRequestOrderByConsultant(payload);
-        const newId = res?.order_request_id || res?.data?.order_request_id;
+    try {
+      let currentOrderId = orderId || createdOrderId?.toString();
 
-        if (newId) {
-          setCreatedOrderId(newId);
-          await processOrderSubmission(newId.toString(), values);
-        } else {
-          throw new Error("Không thể tạo ID đơn hàng mới");
+      // 1. CREATE REQUEST if doesn't exist
+      if (!currentOrderId) {
+        try {
+          const payload: CreateRequestBodyForConsultant = {
+            customer_name: primaryQuote.customer_name,
+            customer_phone: primaryQuote.customer_phone,
+            customer_email: primaryQuote.customer_email,
+            detail_address: primaryQuote.detail_address,
+          };
+
+          const res: any = await requestOrderApi.createRequestOrderByConsultant(payload);
+          const newId = res?.order_request_id || res?.data?.order_request_id; // Check both structures
+
+          if (newId) {
+            setCreatedOrderId(newId);
+            currentOrderId = newId.toString();
+          } else {
+            throw new Error("Không thể tạo ID đơn hàng mới");
+          }
+        } catch (error) {
+          console.error("Error creating new order:", error);
+          message.error("Lỗi khi tạo đơn hàng mới");
+          setLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error("Error creating new order:", error);
-        message.error("Lỗi khi tạo đơn hàng mới");
+      }
+
+      // If we still don't have an ID, abort
+      if (!currentOrderId) {
         setLoading(false);
         return;
       }
-    } else {
-      await processOrderSubmission(orderId || createdOrderId?.toString() || "", values);
-    }
-  };
 
-  // Hàm xử lý submit riêng
-  const processOrderSubmission = async (currentOrderId: string, values: any) => {
-    try {
-      // 0. Upload các file mới (nếu có) trước khi gửi
+      // 2. UPLOAD FILES (Shared)
       let finalDesignPath = designFilePath || "";
-
       const newFiles = fileList
         .map((f) => f.originFileObj || f)
         .filter((f) => f);
@@ -850,8 +927,9 @@ function ConsultantForm() {
         try {
           message.loading({ content: "Đang tải file lên...", key: "uploading" });
           const uploadRes: any = await uploadApi.uploadFile(newFiles);
-
           let newUrls: string[] = [];
+
+          // Handle various response data structures
           if (Array.isArray(uploadRes)) {
             newUrls = uploadRes.map((r: any) => r.url).filter((u: any) => u);
           } else if (uploadRes?.data && Array.isArray(uploadRes.data)) {
@@ -868,176 +946,105 @@ function ConsultantForm() {
         } catch (uploadErr) {
           console.error("Upload failed", uploadErr);
           message.error({ content: "Lỗi tải file, đơn hàng sẽ được lưu không kèm file mới.", key: "uploading" });
-          // Optional: return if upload is critical, otherwise continue
         }
       }
 
-      const finalPrice = form.getFieldValue("final_price");
-      const finalNote = values.description || "";
-
-      const orderData = {
-        product_id: values.paper_code,
-        product_name: values.product_name,
-        quantity: values.quantity,
-        delivery_date: values.delivery_date.format("YYYY-MM-DD"),
-        system_delivery_date: estimate?.systemDate,
-        customer_name: values.customer_name,
-        customer_phone: values.customer_phone,
-        final_price: finalPrice,
-        rush_fee: estimate?.rushFee,
-        design_file_url: finalDesignPath, // Updated here
-        specs: {
-          width: values.width,
-          height: values.height,
-          length: values.length,
-          paper_id: values.paper_code,
-          colors: [],
-          processing: values.production_processes,
-        },
-        is_send_design: isSendDesign,
-        note: finalNote,
-      };
-
+      // 3. UPDATE REQUEST (Primary Info)
+      // We update the request with details from the Primary Quote to ensure basic fields are filled
       if (isNegotiateMode) {
-        // Chế độ negotiate: CẬP NHẬT đơn hiện tại
-        if (!finalPrice || finalPrice <= 0) {
-          message.warning("Vui lòng nhập giá chốt hợp lệ!");
-          setLoading(false);
-          return;
-        }
-
-        // 1. Cập nhật thông tin request xuống BE
-        const selectedProductType = productTypes.find(
-          (pt) => pt.product_type_id === values.product_type
-        );
-        const productTypeCode = selectedProductType?.code || "";
-        const paperName = paperTypes.find((p) => p.code === values.paper_code)?.name || "";
-
-        const updateBody: Partial<UpdateRequestBody> = {
-          customer_name: values.customer_name,
-          customer_phone: values.customer_phone,
-          customer_email: values.customer_email,
-          delivery_date: values.delivery_date ? values.delivery_date.toISOString() : new Date().toISOString(),
-          product_name: values.product_name,
-          quantity: values.quantity,
-          description: values.description || "",
-          detail_address: values.detail_address || "",
-
-          // Specs
-          paper_code: values.paper_code,
-          paper_name: paperName,
-          product_type: productTypeCode,
-          number_of_plates: values.number_of_plates,
-          coating_type: values.coating_type,
-          wave_type: values.wave_type,
-
-          product_length_mm: values.length,
-          product_width_mm: values.width,
-          product_height_mm: values.height,
-          glue_tab_mm: values.glue_tab,
-          bleed_mm: values.bleed,
-
-          is_one_side_box: values.is_one_side_box,
-          print_width_mm: values.print_width,
-          print_height_mm: values.print_height,
-
-          production_processes: Array.isArray(values.production_processes)
-            ? values.production_processes.join(",")
-            : values.production_processes,
-
-          is_send_design: isSendDesign,
-          design_file_path: finalDesignPath, // Updated here
-        };
-
-
         try {
+          const selectedProductType = productTypes.find((pt) => pt.product_type_id === primaryQuote.product_type);
+          const updateBody: Partial<UpdateRequestBody> = {
+            customer_name: primaryQuote.customer_name,
+            customer_phone: primaryQuote.customer_phone,
+            customer_email: primaryQuote.customer_email,
+            detail_address: primaryQuote.detail_address,
+            product_name: primaryQuote.product_name,
+            quantity: primaryQuote.quantity, // Primary Quantity
+            description: primaryQuote.description || "",
+            delivery_date: primaryQuote.delivery_date ? dayjs(primaryQuote.delivery_date).toISOString() : new Date().toISOString(),
+
+            product_type: selectedProductType?.code || "",
+            is_send_design: isSendDesign,
+            design_file_path: finalDesignPath,
+
+            // Specs
+            paper_code: primaryQuote.paper_code,
+            paper_name: paperTypes.find((p) => p.code === primaryQuote.paper_code)?.name || "",
+            coating_type: primaryQuote.coating_type,
+            wave_type: primaryQuote.wave_type,
+            number_of_plates: primaryQuote.number_of_plates,
+
+            product_length_mm: primaryQuote.length,
+            product_width_mm: primaryQuote.width,
+            product_height_mm: primaryQuote.height,
+            glue_tab_mm: primaryQuote.glue_tab,
+            bleed_mm: primaryQuote.bleed,
+
+            is_one_side_box: primaryQuote.is_one_side_box,
+            print_width_mm: primaryQuote.print_width,
+            print_height_mm: primaryQuote.print_height,
+
+            production_processes: Array.isArray(primaryQuote.production_processes)
+              ? primaryQuote.production_processes.join(",")
+              : primaryQuote.production_processes,
+          };
+
           await requestOrderApi.updateRequest(currentOrderId, updateBody);
         } catch (updateError) {
           console.error("Error updating request details:", updateError);
-          message.warning("Cập nhật thông tin chi tiết thất bại, nhưng sẽ tiếp tục cập nhật giá.");
         }
+      }
 
-        // 2. Cập nhật giá
-        // await estimatesApi.adjustCost(parseInt(currentOrderId), finalPrice);
-
-        // 2.1 Lưu bảng tính chi tiết (Cost Save) -> Lấy estimate_id
-        let estimateId = 0;
-        if (costEstimate && paperEstimate) {
+      // 4. SAVE ESTIMATES (Loop through ALL quotes)
+      for (const quote of quotes) {
+        const { calculations } = quote;
+        if (calculations && calculations.costEstimate && calculations.paperEstimate) {
           try {
+            const originalPrice = calculations.costEstimate.cost.final_total_cost;
+            const discountAmt = Math.round((originalPrice * calculations.discountPercent) / 100);
+
             const estimationResult = mapToOrderEstimationResult(
-              costEstimate,
-              paperEstimate,
+              calculations.costEstimate,
+              calculations.paperEstimate,
               currentOrderId,
-              values.delivery_date,
-              discountPercent,
-              costEstimate.cost.discount_amount
+              quote.delivery_date, // Use quote specific date if available
+              calculations.discountPercent,
+              discountAmt
             );
 
-            // Important: Call costSave to get estimate_id
-            const saveRes = await estimatesApi.costSave(estimationResult); // This returns { estimate_id: number } or similar
-            if (saveRes && (saveRes as any).estimate_id) {
-              estimateId = (saveRes as any).estimate_id;
-            } else if (saveRes && (saveRes as any).data && (saveRes as any).data.estimate_id) {
-              estimateId = (saveRes as any).data.estimate_id;
-            }
-
-          } catch (costError) {
-            console.error("Error saving cost breakdown:", costError);
-            message.error("Lỗi khi lưu bảng tính chi tiết. Không thể xử lý tiếp.");
-            setLoading(false);
-            return; // Exit if we can't save the estimate
+            // Only save if it has valid data
+            await estimatesApi.costSave(estimationResult);
+          } catch (err) {
+            console.error(`Error saving estimate for ${quote.label}:`, err);
+            // Continue to next quote?
           }
+        }
+      }
+
+      // 5. FINAL ACTION
+      const isVerified = existingOrder?.process_status === "Verified" || existingOrder?.process_status === "verified";
+      if (isVerified) {
+        const response = await requestOrderApi.sendDeal({
+          request_id: parseInt(currentOrderId),
+        });
+        if (response.message === "Sent deal email" || (response as any).data?.message === "Sent deal email") {
+          message.success("Đã gửi báo giá cho khách hàng!");
         } else {
-          message.error("Thiếu thông tin bảng tính. Vui lòng thử tính toán lại.");
-          setLoading(false);
-          return;
+          // Fallback, sometimes success is returned differently
+          message.success("Đã gửi báo giá (Kiểm tra lại nếu không thấy mail)");
         }
-
-        if (!estimateId) {
-          message.error("Không lấy được ID bảng tính (estimate_id).");
-          setLoading(false);
-          return;
-        }
-
-
-        // CHECK STATUS TO DETERMINE ACTION
-        const isVerified = existingOrder?.process_status === "Verified" || existingOrder?.process_status === "verified";
-
-        if (isVerified) {
-          // 3. Gửi email báo giá kèm estimate_id (EXISTING LOGIC)
-          const response = await requestOrderApi.sendDeal({
-            request_id: parseInt(currentOrderId),
-            estimate_id: estimateId
-          });
-
-          if (response.message === "Sent deal email" || (response as any).data?.message === "Sent deal email") {
-            message.success("Đã gửi báo giá cho khách hàng!");
-          } else {
-            // Check for error details if available
-            throw new Error(response.detail || (response as any).data?.detail || "Lỗi gửi email");
-          }
-        } else {
-          // 3. Submit for Approval (NEW LOGIC)
-          await requestOrderApi.submitEstimateForApproval({
-            request_id: parseInt(currentOrderId)
-          });
-          message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
-        }
-
       } else {
-        // Chế độ create: Tạo đơn mới
-        // ... logic cho create mode
-        // Might need similar logic if Create mode also sends email immediately, but usually it just creates request.
-        // Assuming 'sendDeal' is mostly for 'Negotiate' stage or after creation.
-        // If Create mode creates request and then wants to send deal, it needs estimate_id too.
-        // But for now, user request focuses on "costSave" -> "sendDeal", which usually happens in Negotiate context or after Create converts to Pending Consultant.
-
-        message.success("Đã tạo yêu cầu mới thành công!");
+        await requestOrderApi.submitEstimateForApproval({
+          request_id: parseInt(currentOrderId)
+        });
+        message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
       }
 
       router.push("/consultant/requests");
+
     } catch (error: any) {
-      console.error("Error processing order:", error);
+      console.error("Error processing order group:", error);
       message.error(error?.response?.data?.detail || error.message || "Có lỗi xảy ra");
     } finally {
       setLoading(false);
@@ -1072,6 +1079,13 @@ function ConsultantForm() {
             discountAmount
           );
           const res = await estimatesApi.costSave(estimationResult);
+
+          if (res && (res as any).estimate_id) {
+            setSavedEstimateId((res as any).estimate_id);
+          } else if (res && (res as any).data && (res as any).data.estimate_id) {
+            setSavedEstimateId((res as any).data.estimate_id);
+          }
+
           console.log(res);
         } catch (costError) {
           console.error("Error saving cost breakdown in adjust price:", costError);
@@ -1376,66 +1390,126 @@ function ConsultantForm() {
               onClick={handleConfirmSend}
               className="bg-blue-600 font-bold"
             >
-              Xác Nhận & Gửi
+              Xác Nhận & Gửi ({submitValues?.length || 0} báo giá)
             </Button>,
           ]}
-          width={600}
+          width={750}
         >
-          {submitValues && (
-            <div className="flex flex-col gap-3 text-base">
-              <div className="flex justify-between border-b border-dashed pb-2">
-                <span className="text-gray-500">Người nhận:</span>
-                <span className="font-medium">{submitValues.customer_name ? `${submitValues.customer_name} (${submitValues.customer_phone})` : "N/A"}</span>
+          {submitValues && Array.isArray(submitValues) && (
+            <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {/* Customer Info - Ultra Compact */}
+              <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-sm">
+                <div className="flex gap-2 items-center">
+                  <span className="text-blue-800 font-semibold"><UserOutlined /> {submitValues[0]?.customer_name || "Khách hàng"}</span>
+                  <span className="text-gray-400">|</span>
+                  <span className="text-gray-600">{submitValues[0]?.customer_phone || "SĐT"}</span>
+                </div>
+                <div className="text-xs text-gray-500 italic">
+                  {submitValues?.length} phương án
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <span className="text-gray-500">Sản phẩm:</span>
-                <span className="font-bold">{submitValues.product_name} - SL: {Number(submitValues.quantity).toLocaleString()}</span>
-              </div>
+              {submitValues.map((quote: any, index: number) => {
+                const calc = quote.calculations?.costEstimate?.cost;
+                const paperName = paperTypes.find(p => p.code === quote.paper_code)?.name || quote.paper_code;
 
-              <div className="flex justify-between">
-                <span className="text-gray-500">Giấy - Kích thước:</span>
-                <span>
-                  {paperTypes.find(p => p.code === submitValues.paper_code)?.name || submitValues.paper_code}
-                  {" - "}
-                  {submitValues.length}x{submitValues.width}x{submitValues.height} mm
-                </span>
-              </div>
+                // Derived Values
+                const subtotal = Math.round(calc?.subtotal || 0);
+                const discountAmt = Math.round((subtotal * discountPercent) / 100) || 0; // Discount applied to subtotal
 
-              {/* <Divider className="my-2" /> */}
-              <div className="border-b border-dashed"></div>
+                const vatAmt = Math.round(calc?.overhead_cost || 0); // VAT/Overhead
+                const finalTotal = Math.round(calc?.final_total_cost || 0); // This is the final price after all calculations including VAT
+                const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000; // 30% deposit, rounded to nearest 1000
 
-              <div className="flex justify-between">
-                <span className="text-gray-500">Tổng tiền hàng:</span>
-                <span>{costEstimate?.cost?.subtotal?.toLocaleString()} đ</span>
-              </div>
+                const negotiatedPrice = quote.final_price && quote.final_price !== finalTotal ? quote.final_price : null;
 
-              <div className="flex justify-between">
-                <span className="text-gray-500">Chiết khấu ({discountPercent}%):</span>
-                <span className="text-red-500">-{costEstimate?.cost?.discount_amount?.toLocaleString()} đ</span>
-              </div>
+                return (
+                  <div key={quote.key || index} className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
+                    {/* Header Line: Label + Product + Quantity */}
+                    <div className="bg-gray-50 px-4 py-2 flex justify-between items-center border-b border-gray-100">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                          {quote.label || `PA ${index + 1}`}
+                        </span>
+                        <span className="font-bold text-gray-800 text-sm truncate" title={quote.product_name}>
+                          {quote.product_name}
+                        </span>
+                      </div>
+                      <span className="text-gray-600 text-xs font-medium whitespace-nowrap bg-white border px-2 py-0.5 rounded">
+                        SL: {Number(quote.quantity)?.toLocaleString()}
+                      </span>
+                    </div>
 
-              <div className="flex justify-between">
-                <span className="text-gray-500">VAT/Overhead:</span>
-                <span>+{costEstimate?.cost?.overhead_cost?.toLocaleString()} đ</span>
-              </div>
+                    {/* Content Grid */}
+                    <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      {/* Left: Specs */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between border-b border-dashed border-gray-100 pb-1">
+                          <span className="text-gray-500">Kích thước:</span>
+                          <span className="font-medium text-gray-700">{quote.length} x {quote.width} x {quote.height} mm</span>
+                        </div>
+                        <div className="flex justify-between border-b border-dashed border-gray-100 pb-1">
+                          <span className="text-gray-500">Loại giấy:</span>
+                          <span className="font-medium text-gray-700 truncate max-w-[150px]" title={paperName}>{paperName}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-dashed border-gray-100 pb-1">
+                          <span className="text-gray-500">Số lượng:</span>
+                          <span className="font-medium text-gray-700">{Number(quote.quantity)?.toLocaleString()}</span>
+                        </div>
+                      </div>
 
-              <div className="flex justify-between text-lg font-bold text-blue-800 mt-2">
-                <span>Tổng thanh toán:</span>
-                <span>{costEstimate?.cost?.final_total_cost?.toLocaleString()} đ</span>
-              </div>
+                      {/* Right: Financials */}
+                      <div className="space-y-1 pl-2 border-l border-gray-100">
+                        {calc ? (
+                          <>
+                            <div className="flex justify-between text-gray-500">
+                              <span>Thành tiền (Trước chiết khấu):</span>
+                              <span>{subtotal.toLocaleString()} đ</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500">
+                              <span>Chiết khấu ({discountPercent}%):</span>
+                              <span className="text-red-500">-{discountAmt.toLocaleString()} đ</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500 border-t border-dashed border-gray-100 pt-1 mt-1">
+                              <span>Sau chiết khấu (Trước VAT):</span>
+                              <span className="font-medium">{(subtotal - discountAmt).toLocaleString()} đ</span>
+                            </div>
+                            {/* <div className="flex justify-between text-gray-500">
+                                                <span>VAT/Overhead:</span>
+                                                <span>+{vatAmt.toLocaleString()} đ</span>
+                                            </div> */}
 
-              <div className="flex justify-between bg-yellow-50 p-2 rounded mt-2 border border-yellow-200">
-                <span className="text-yellow-700 font-semibold">Tiền cọc yêu cầu (30%):</span>
-                <span className="font-bold text-yellow-700">
-                  {costEstimate?.cost?.final_total_cost
-                    ? (Math.round((costEstimate.cost.final_total_cost * 0.3) / 1000) * 1000).toLocaleString()
-                    : 0} đ
-                </span>
-              </div>
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                              <span className="font-bold text-gray-700">Tổng cộng (Sau VAT):</span>
+                              <span className={`font-bold text-base ${negotiatedPrice ? 'text-gray-400 line-through text-sm' : 'text-blue-600'}`}>
+                                {finalTotal.toLocaleString()} đ
+                              </span>
+                            </div>
+
+                            {negotiatedPrice && (
+                              <div className="flex justify-between items-center bg-yellow-50 px-2 py-1 rounded mt-1 border border-yellow-100">
+                                <span className="font-bold text-yellow-700">Giá chốt khách:</span>
+                                <span className="font-bold text-lg text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
+                              </div>
+                            )}
+
+                            <div className="flex justify-between items-center text-xs text-orange-600 mt-1">
+                              <span>Cọc (30%):</span>
+                              <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-red-400 italic text-center block py-2">Chưa có giá</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </Modal>
+
       </div>
     </div>
   );

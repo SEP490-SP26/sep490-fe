@@ -22,7 +22,7 @@ export const requestOrderApi = {
     http.put<CommonResType>(`/api/Requests/cancel-request`, body),
 
   // Gửi báo giá cho khách hàng
-  sendDeal: (body: { request_id: number, estimate_id: number }) =>
+  sendDeal: (body: { request_id: number }) =>
     http.post<{ message: string; detail?: string; orderRequestId: number }>(
       '/api/Requests/send-deal',
       body

@@ -339,7 +339,7 @@ export default function ConsultantOrdersPage() {
               href={`/consultant/request-detail/${record.order_request_id}`}
             >
               <Button size="small" icon={<EyeOutlined />}>
-                Xem chi tiết
+                Chi Tiết
               </Button>
             </Link>
           </Space>
@@ -367,7 +367,7 @@ export default function ConsultantOrdersPage() {
               href={`/consultant/request-detail/${record.order_request_id}`}
             >
               <Button size="small" icon={<EyeOutlined />}>
-                Xem chi tiết
+                Chi Tiết
               </Button>
             </Link>
           </Space>
@@ -380,7 +380,7 @@ export default function ConsultantOrdersPage() {
               href={`/consultant/request-detail/${record.order_request_id}`}
             >
               <Button size="small" icon={<EyeOutlined />}>
-                Xem chi tiết
+                Chi Tiết
               </Button>
             </Link>
           </Space>
@@ -389,7 +389,7 @@ export default function ConsultantOrdersPage() {
         return (
           <Link href={`/consultant/request-detail/${record.order_request_id}`}>
             <Button size="small" icon={<EyeOutlined />}>
-              Xem chi tiết
+              Chi Tiết
             </Button>
           </Link>
         );
@@ -538,7 +538,7 @@ export default function ConsultantOrdersPage() {
       key: "verified",
       label: (
         <span>
-          Đã xác minh
+          Đã được duyệt
           {verifiedOrders.length > 0 && (
             <Tag color="purple" className="ml-2">
               {verifiedOrders.length}
