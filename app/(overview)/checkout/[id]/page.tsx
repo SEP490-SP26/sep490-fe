@@ -5,49 +5,22 @@ import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
-  AppstoreOutlined,
-  ArrowLeftOutlined,
-  ArrowsAltOutlined,
-  BlockOutlined,
-  CalendarOutlined,
-  CheckCircleFilled,
-  ClockCircleFilled,
-  CloseCircleFilled,
   CreditCardOutlined,
-  DeploymentUnitOutlined,
-  EnvironmentOutlined,
-  FileTextOutlined,
-  FormatPainterOutlined,
-  HomeOutlined,
-  InfoCircleOutlined,
-  MailOutlined,
-  PhoneOutlined,
   QrcodeOutlined,
-  SettingOutlined,
-  ShoppingOutlined,
-  SyncOutlined,
-  TagOutlined,
-  UserOutlined
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
 import {
-  Breadcrumb,
   Button,
-  Card,
-  Empty,
   message,
   Skeleton,
-  Tag,
-  Typography
 } from "antd";
 import dayjs from "dayjs";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useState } from "react";
 
-const { Title, Text, Paragraph } = Typography;
-
 // Interface dựa trên response từ GET /api/Requests/{id}
+// Cập nhật thêm các trường chi phí để map với UI mới (nếu API có trả về hoặc để mặc định)
 interface OrderDetail {
   order_request_id: number;
   customer_name: string;
@@ -58,11 +31,11 @@ interface OrderDetail {
   quantity: number;
   description: string;
   design_file_path: string;
-  order_request_date?: string; // Optional as it might not be in RequestDetailResponse
+  order_request_date?: string;
   detail_address: string;
   process_status?: string;
 
-  // New fields
+  // New fields from previous implementation & template requirements
   product_type?: string;
   paper_code?: string;
   paper_name?: string;
@@ -74,17 +47,31 @@ interface OrderDetail {
   product_height_mm?: number;
   production_processes?: string;
   is_send_design?: boolean;
-  payments?: any[]; // Using any[] or OrderPayment[] if imported
+  payments?: any[];
+
+  // Cost fields for template (Optional as they might not be in initial GET detail)
+  material_cost?: number;
+  labor_cost?: number;
+  other_fees?: number;
+  rush_amount?: number;
+  subtotal?: number;
+  discount_percent?: number;
+  discount_amount?: number;
+  final_total_cost?: number;
+  deposit?: number;
 }
 
 export default function RequestDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const requestId = params.id as string;
+  const quoteId = Number(searchParams.get('quote_id'));
+  const estimateId = Number(searchParams.get('estimate_id'));
 
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
-  const [designFiles, setDesignFiles] = useState<UploadFile[]>([]);
+  const [designFiles, setDesignFiles] = useState<UploadFile[]>([]); // Keep state for upload logic logic
   const [uploading, setUploading] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState<PaymentResponse | null>(null);
 
@@ -96,10 +83,18 @@ export default function RequestDetailPage() {
       setLoading(true);
       try {
         const response = await requestOrderApi.getDetail(requestId);
-        const orderData = response?.data || response;
+
+        // Handle various response structures
+        let orderData: any = response;
+        if ((response as any).data) {
+          orderData = (response as any).data;
+        }
 
         if (orderData) {
-          setOrderDetail({
+          // Map response to OrderDetail
+          // Note: Since standard getDetail might not return costs, we map what we can.
+          // If the backend is updated to return map-able fields, they will appear.
+          const mappedData: OrderDetail = {
             order_request_id: orderData.order_request_id,
             customer_name: orderData.customer_name,
             customer_phone: orderData.customer_phone,
@@ -109,12 +104,10 @@ export default function RequestDetailPage() {
             quantity: orderData.quantity,
             description: orderData.description || "",
             design_file_path: orderData.design_file_path || "",
-            // order_request_date might be missing in API response types but present in data, handle gracefully
-            order_request_date: (orderData as any).order_request_date || new Date().toISOString(),
+            order_request_date: orderData.order_request_date || new Date().toISOString(),
             detail_address: orderData.detail_address || "",
             process_status: orderData.process_status,
 
-            // New fields mapping
             product_type: orderData.product_type,
             paper_code: orderData.paper_code,
             paper_name: orderData.paper_name,
@@ -127,7 +120,22 @@ export default function RequestDetailPage() {
             production_processes: orderData.production_processes,
             is_send_design: orderData.is_send_design,
             payments: orderData.payments || [],
-          });
+
+            // Attempt to map cost fields if they exist in the response properties (even if untyped)
+            material_cost: orderData.material_cost || 0,
+            labor_cost: orderData.labor_cost || 0,
+            other_fees: orderData.other_fees || orderData.overhead_cost || 0,
+            rush_amount: orderData.rush_amount || 0,
+            subtotal: orderData.subtotal || 0,
+            discount_percent: orderData.discount_percent || 0,
+            discount_amount: orderData.discount_amount || 0,
+            final_total_cost: orderData.final_total_cost || 0,
+            deposit: orderData.deposit_amount || 0,
+          };
+          setOrderDetail(mappedData);
+          if (mappedData.design_file_path) {
+            // Logic to populate designFiles state if needed, but primarily used for Display now
+          }
         }
       } catch (error) {
         console.error("Error fetching order detail:", error);
@@ -144,7 +152,7 @@ export default function RequestDetailPage() {
     const fetchPaymentQR = async () => {
       if (!requestId) return;
       try {
-        const res = await paymentApi.getPaymentQR(requestId);
+        const res = await paymentApi.getPaymentQR(requestId, quoteId, estimateId);
         const data = (res as any).data || res;
         if (data) {
           setPaymentInfo(data);
@@ -155,7 +163,7 @@ export default function RequestDetailPage() {
     };
 
     fetchPaymentQR();
-  }, [requestId]);
+  }, [requestId, quoteId, estimateId]);
 
   // Polling check payment status
   useEffect(() => {
@@ -171,7 +179,7 @@ export default function RequestDetailPage() {
           router.push(`/request-detail/${requestId}`);
         }
       } catch (error) {
-        console.error("Error checking payment status:", error);
+        // console.error("Error checking payment status:", error);
       }
     };
 
@@ -180,39 +188,21 @@ export default function RequestDetailPage() {
     return () => clearInterval(intervalId);
   }, [requestId, router]);
 
-
-
-  // Handle design file upload - Sử dụng API update-design-file
+  // Handle design file upload logic (reserved if needed, though template doesn't explicitly show upload button)
   const handleUpload: UploadProps["customRequest"] = async (options) => {
     const { file, onSuccess, onError } = options;
     setUploading(true);
-
     try {
-      // Gọi API upload design file cho order request
       const response = await uploadApi.updateDesignFile(
         parseInt(requestId),
         file as File
       );
-
       if (response?.url) {
-        const newFile: UploadFile = {
-          uid: Date.now().toString(),
-          name: (file as File).name,
-          status: "done",
-          url: response.url,
-        };
-        setDesignFiles((prev) => [...prev, newFile]);
-
-        // Cập nhật design_file_path trong orderDetail
-        setOrderDetail((prev) =>
-          prev ? { ...prev, design_file_path: response.url } : prev
-        );
-
+        setOrderDetail((prev) => prev ? { ...prev, design_file_path: response.url } : prev);
         message.success("Tải file thiết kế thành công!");
         onSuccess?.(response);
       }
     } catch (error) {
-      console.error("Upload error:", error);
       message.error("Tải file thiết kế thất bại!");
       onError?.(error as Error);
     } finally {
@@ -220,60 +210,27 @@ export default function RequestDetailPage() {
     }
   };
 
-  const handleRemoveFile = (file: UploadFile) => {
-    setDesignFiles((prev) => prev.filter((f) => f.uid !== file.uid));
+
+  // Helper function to format currency
+  const formatVND = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    }).format(amount).replace('₫', 'đ');
   };
 
-  const getStatusBadge = (status: string) => {
-    const styles: { [key: string]: string } = {
-      PENDING: "bg-amber-50 text-amber-700 border-amber-200 ring-amber-100",
-      PROCESSING: "bg-blue-50 text-blue-700 border-blue-200 ring-blue-100",
-      CONFIRMED: "bg-cyan-50 text-cyan-700 border-cyan-200 ring-cyan-100",
-      COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100",
-      CANCELLED: "bg-red-50 text-red-700 border-red-200 ring-red-100",
-    };
-    const icons: { [key: string]: any } = {
-      PENDING: <ClockCircleFilled />,
-      PROCESSING: <SyncOutlined spin />,
-      CONFIRMED: <CheckCircleFilled />,
-      COMPLETED: <CheckCircleFilled />,
-      CANCELLED: <CloseCircleFilled />,
-    };
-
-    const style = styles[status] || "bg-slate-50 text-slate-700 border-slate-200 ring-slate-100";
-    const icon = icons[status] || <InfoCircleOutlined />;
-
-    // Status text mapping needs to be handled cautiously if the status is not standard
-    const textMap: Record<string, string> = {
-      PENDING: "Chờ xử lý",
-      PROCESSING: "Đang xử lý",
-      CONFIRMED: "Đã xác nhận",
-      COMPLETED: "Hoàn thành",
-      CANCELLED: "Đã hủy"
-    };
-
-    return (
-      <div className={`px-4 py-2 rounded-full border ring-2 flex items-center gap-2 text-sm font-semibold shadow-sm transition-all duration-300 hover:scale-105 ${style}`}>
-        {icon}
-        <span>{textMap[status] || status}</span>
-      </div>
-    );
-  };
+  // Expiry note component
+  const ExpiryNote = () => (
+    <p className="mt-6 text-sm text-slate-500 italic leading-relaxed border-t border-slate-200 pt-4">
+      (*) Báo giá có hiệu lực đến <b>{paymentInfo?.expired_at ? dayjs(paymentInfo.expired_at).format("HH:mm DD/MM/YYYY") : "..."}</b>. Sau thời gian này, mọi thông tin về đơn giá và chi phí có thể thay đổi.
+      Mọi thao tác thanh toán sau thời gian này đều sẽ không được ghi nhận, mọi thắc mắc vui lòng liên hệ lại với chúng tôi để được hỗ trợ.
+    </p>
+  );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <Skeleton.Button active size="large" className="mb-8" />
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-8">
-              <Card className="shadow-sm rounded-2xl"><Skeleton active paragraph={{ rows: 8 }} /></Card>
-            </div>
-            <div className="lg:col-span-4">
-              <Card className="shadow-sm rounded-2xl"><Skeleton.Image active className="w-full h-48" /></Card>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-slate-50 p-6 flex justify-center items-center">
+        <Skeleton active paragraph={{ rows: 10 }} className="max-w-2xl w-full" />
       </div>
     );
   }
@@ -281,408 +238,260 @@ export default function RequestDetailPage() {
   if (!orderDetail) {
     return (
       <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
-        <Card className="shadow-lg rounded-2xl max-w-md w-full text-center py-12">
-          <Empty description={<span className="text-slate-500 font-medium">Không tìm thấy yêu cầu</span>}
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-          <Button type="primary" size="large" onClick={() => router.back()} className="mt-8 bg-cyan-600 hover:bg-cyan-500">
-            Quay lại danh sách
+        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+          <p className="text-slate-500 font-medium">Không tìm thấy yêu cầu</p>
+          <Button type="primary" onClick={() => router.back()} className="mt-4">
+            Quay lại
           </Button>
-        </Card>
+        </div>
       </div>
     );
   }
 
+  // Derived values for template
+  const requestDateText = dayjs(orderDetail.order_request_date).format("DD/MM/YYYY");
+  const deliveryText = dayjs(orderDetail.delivery_date).format("DD/MM/YYYY");
+  const designTypeText = orderDetail.is_send_design ? "Khách gửi file" : "Thuê thiết kế";
+  // Values for cost - prioritize paymentInfo amount for final total if orderDetail doesn't have it
+  const finalTotalValue = orderDetail.final_total_cost || paymentInfo?.amount || 0;
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-8">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-r from-cyan-600 to-blue-600 opacity-10 pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative animate-fade-in-up">
-        {/* Navigation & Header */}
-        <div className="mb-4">
-          <Breadcrumb
-            items={[
-              { href: '/', title: <HomeOutlined /> },
-              { title: 'Chi tiết đơn hàng' },
-            ]}
-            className="mb-4 text-slate-500"
-          />
-
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+    <div className="min-h-screen bg-slate-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-6">
+          <div className="flex justify-between items-center">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Title level={2} className="!mb-0 !text-slate-800 tracking-tight">
-                  Yêu cầu #{orderDetail.order_request_id}
-                </Title>
+              <div className="text-blue-200 text-xs font-bold tracking-widest uppercase">
+                MES SYSTEM
               </div>
-              <div className="flex items-center gap-4 text-slate-500">
-                <span className="flex items-center gap-1.5"><CalendarOutlined /> {dayjs(orderDetail.order_request_date).format("DD/MM/YYYY HH:mm")}</span>
+              <div className="text-white text-2xl font-extrabold mt-1">
+                BÁO GIÁ ĐƠN HÀNG
               </div>
+            </div>
+            <div className="bg-white/15 text-white px-3 py-1.5 rounded text-sm font-bold">
+              AM{orderDetail.order_request_id.toString().padStart(6, '0')}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Main Info Column */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* Customer & Address Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600">
-                  <UserOutlined className="text-xl" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin khách hàng</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8">
-                <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Họ và tên</Text>
-                  <Paragraph className="text-slate-700 font-medium text-base mt-1">{orderDetail.customer_name}</Paragraph>
-                </div>
-                <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Số điện thoại</Text>
-                  <Paragraph className="text-base mt-1">
-                    <a href={`tel:${orderDetail.customer_phone}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                      {orderDetail.customer_phone}
-                    </a>
-                  </Paragraph>
-                </div>
-                <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Email</Text>
-                  <Paragraph className="text-base mt-1">
-                    <a href={`mailto:${orderDetail.customer_email}`} className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-2">
-                      {orderDetail.customer_email}
-                    </a>
-                  </Paragraph>
-                </div>
-                <div className="md:col-span-4">
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Địa chỉ giao hàng</Text>
-                  <Paragraph className="text-slate-700 text-base mt-1 flex items-start gap-2">
-                    {orderDetail.detail_address || <span className="text-slate-400 italic">Chưa cập nhật địa chỉ</span>}
-                  </Paragraph>
-                </div>
-              </div>
-            </div>
-
-            {/* GỘP Product Details Card và Technical Specifications Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                  <ShoppingOutlined className="text-xl" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 m-0">Chi tiết sản phẩm & Thông số kỹ thuật</h3>
-              </div>
-
-              <div className="space-y-6">
-                {/* Thông tin cơ bản sản phẩm - TIÊU ĐỀ VÀ THÔNG TIN CÙNG DÒNG */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                      <ShoppingOutlined className="text-indigo-500 text-lg" />
-                    </div>
-                    <div>
-                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Sản phẩm</Text>
-                      <div className="text-lg font-bold text-slate-800">{orderDetail.product_name}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                      <TagOutlined className="text-green-500 text-lg" />
-                    </div>
-                    <div>
-                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text>
-                      <div className="text-lg font-bold text-slate-800">{orderDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                      <CalendarOutlined className="text-cyan-500 text-lg" />
-                    </div>
-                    <div>
-                      <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng</Text>
-                      <div className="text-lg font-bold text-slate-800">{dayjs(orderDetail.delivery_date).format("DD/MM/YYYY")}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mô tả yêu cầu */}
-                <div>
-                  <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text>
-                  <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[100px]">
-                    {orderDetail.description || <span className="text-slate-400 italic">Không có mô tả chi tiết</span>}
-                  </div>
-                </div>
-
-                {/* Thông số kỹ thuật - TIÊU ĐỀ VÀ THÔNG TIN CÙNG DÒNG */}
-                <div className="border-t border-slate-100 pt-6">
-                  <h4 className="text-lg font-bold text-slate-800 mb-6">Thông số kỹ thuật</h4>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Kích thước - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <ArrowsAltOutlined className="text-blue-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Kích thước</Text>
-                            <div className="font-bold text-slate-700 text-lg">
-                              {orderDetail.product_length_mm || 0} × {orderDetail.product_width_mm || 0} × {orderDetail.product_height_mm || 0} mm
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Loại sản phẩm - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <AppstoreOutlined className="text-geekblue-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Loại sản phẩm</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.product_type || "N/A"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Chất liệu giấy - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <BlockOutlined className="text-orange-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Chất liệu giấy</Text>
-                            <div className="font-bold text-slate-700 text-lg">
-                              {orderDetail.paper_name || "Chưa xác định"}
-                              {orderDetail.paper_code && <span className="text-slate-400 text-sm ml-2">({orderDetail.paper_code})</span>}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Phủ bề mặt - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <FormatPainterOutlined className="text-purple-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Phủ bề mặt</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.coating_type || "Không"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Loại sóng - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <DeploymentUnitOutlined className="text-yellow-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Loại sóng</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.wave_type || "Không"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Số bản kẽm - TIÊU ĐỀ VÀ GIÁ TRỊ CÙNG DÒNG */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                            <FileTextOutlined className="text-red-500" />
-                          </div>
-                          <div>
-                            <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Số bản kẽm</Text>
-                            <div className="font-bold text-slate-700 text-lg">{orderDetail.number_of_plates || 0}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quy trình sản xuất - Chiếm cả 2 cột */}
-                    {/* <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                          <SettingOutlined className="text-blue-600" />
-                        </div>
-                        <div>
-                          <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider">Quy trình sản xuất</Text>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {orderDetail.production_processes ? (
-                          orderDetail.production_processes.split(',').map((proc, index) => (
-                            <Tag key={index} color="blue" className="px-3 py-1.5 text-sm rounded-lg font-medium">
-                              {proc.trim()}
-                            </Tag>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 italic">Chưa có quy trình</span>
-                        )}
-                      </div>
-                    </div> */}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Information Card (if exists) */}
-            {orderDetail.payments && orderDetail.payments.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <CreditCardOutlined className="text-xl" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-800 m-0">Lịch sử thanh toán</h3>
-                </div>
-
-                <div className="space-y-4">
-                  {orderDetail.payments.map((payment, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                      <div>
-                        <div className="font-bold text-slate-700 text-lg">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(payment.amount)}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          {dayjs(payment.created_at).format('DD/MM/YYYY HH:mm')} - {payment.payment_method}
-                        </div>
-                      </div>
-                      <Tag color={payment.status === 'PAID' || payment.status === 'COMPLETED' ? 'success' : 'warning'} className="mt-2 sm:mt-0 font-semibold px-3 py-1">
-                        {payment.status}
-                      </Tag>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Content */}
+        <div className="p-8">
+          {/* Greeting */}
+          <div className="mb-8">
+            <p className="text-[15px] m-0">
+              Chào <b>{orderDetail.customer_name}</b>,
+            </p>
+            <p className="text-slate-500 text-sm mt-1 mb-0">
+              Dưới đây là chi tiết báo giá cho yêu cầu in ấn của bạn:
+            </p>
           </div>
 
-          {/* Sidebar - Design Files + QR Payment */}
-          <div className="lg:col-span-4 space-y-8">
-
-
-            {paymentInfo && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <QrcodeOutlined className="text-xl" />
+          {/* Main Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Left Column - Order Info */}
+            <div>
+              {/* Order Information */}
+              <div className="mb-6">
+                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
+                  Thông tin đơn hàng
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Ngày yêu cầu</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{requestDateText}</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800 m-0">Thanh toán</h3>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Người yêu cầu</span>
+                    <span className="text-slate-800 font-semibold text-[13px] uppercase">{orderDetail.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Số điện thoại</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{orderDetail.customer_phone}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Email</span>
+                    <span className="text-blue-600 font-semibold text-[13px] break-all">{orderDetail.customer_email}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Details */}
+              <div>
+                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
+                  Chi tiết sản phẩm
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Sản phẩm</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{orderDetail.product_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Số lượng</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{orderDetail.quantity.toLocaleString('vi-VN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Loại giấy</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{orderDetail.paper_name || orderDetail.paper_code || "---"}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span className="text-slate-500 text-[13px]">Thiết kế</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{designTypeText}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-500 text-[13px]">Giao dự kiến</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{deliveryText}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Cost Info */}
+            <div>
+              {/* Cost Breakdown */}
+              <div className="mb-6">
+                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-orange-500 text-orange-600 tracking-wide">
+                  Bảng kê chi phí
+                </h3>
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
+                      <span className="text-slate-800 font-bold text-[13px]">{formatVND(orderDetail.material_cost || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
+                      <span className="text-slate-800 font-bold text-[13px]">{formatVND(orderDetail.labor_cost || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-slate-600 text-[13px]">Chi phí khác</span>
+                      <span className="text-slate-800 font-bold text-[13px]">{formatVND(orderDetail.other_fees || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
+                      <span className="text-slate-800 font-bold text-[13px]">{formatVND(orderDetail.rush_amount || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Summary */}
+              <div>
+                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-green-500 text-green-600 tracking-wide">
+                  Tổng thanh toán
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-500 text-[13px]">Tạm tính</span>
+                    <span className="text-slate-800 font-semibold text-[13px]">{formatVND(orderDetail.subtotal || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-dashed border-slate-300">
+                    <span className="text-slate-500 text-[13px]">Giảm giá ({orderDetail.discount_percent || 0}%)</span>
+                    <span className="text-red-500 font-semibold text-[13px]">- {formatVND(orderDetail.discount_amount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3">
+                    <span className="text-slate-800 font-bold text-[15px]">THÀNH TIỀN</span>
+                    <span className="text-blue-700 font-extrabold text-lg">{formatVND(finalTotalValue)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-red-500 text-[11px]">(Đã bao gồm VAT)</span>
+                  </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-4">
-                  <div className="p-4 bg-white border-2 border-slate-100 rounded-xl relative group">
+                {/* Deposit Box */}
+                <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-800 font-bold text-[13px]">Cần đặt cọc/Thanh toán:</span>
+                    <span className="text-green-700 font-extrabold text-base">{paymentInfo ? formatVND(paymentInfo.amount) : formatVND(orderDetail.deposit || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Block - Payment QR */}
+          <div className="mt-8 border-t border-slate-200 pt-8">
+            {paymentInfo ? (
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-bold text-slate-800 m-0">QUÉT MÃ THANH TOÁN</h3>
+                  <p className="text-slate-500 text-sm mt-1">Vui lòng quét mã bên dưới để hoàn tất đặt cọc</p>
+                </div>
+
+                <div className="flex flex-col items-center gap-6">
+                  <div className="p-4 bg-white border-2 border-slate-200 rounded-xl">
                     <QRCodeCanvas
                       value={paymentInfo.qr_code}
                       size={200}
                       level={"H"}
                       includeMargin={true}
                     />
-                    {/* Overlay instructional text on hover or always visible below */}
                   </div>
 
-                  <div className="w-full space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                  <div className="w-full max-w-sm space-y-3 p-4 bg-white rounded-xl border border-slate-200 text-sm shadow-sm">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                       <span className="text-slate-500">Ngân hàng</span>
                       <span className="font-semibold text-slate-700">{paymentInfo.bin}</span>
                     </div>
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                       <span className="text-slate-500">Số tài khoản</span>
-                      <span className="font-semibold text-slate-700 tracking-wide">{paymentInfo.account_number}</span>
+                      <span className="font-semibold text-slate-700">{paymentInfo.account_number}</span>
                     </div>
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                       <span className="text-slate-500">Chủ tài khoản</span>
                       <span className="font-semibold text-slate-700 uppercase">{paymentInfo.account_name}</span>
                     </div>
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                       <span className="text-slate-500">Số tiền</span>
-                      <span className="font-bold text-lg text-emerald-600">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(paymentInfo.amount)}
-                      </span>
+                      <span className="font-bold text-emerald-600 text-base">{formatVND(paymentInfo.amount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-500">Nội dung CK</span>
-                      <span className="font-mono font-semibold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200">{paymentInfo.order_code}</span>
+                      <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded">{paymentInfo.order_code}</span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-400 text-center">
-                    Quét mã QR hoặc chuyển khoản với nội dung chính xác như trên
-                  </p>
-
-                  <Button
-                    type="primary"
-                    href={paymentInfo.check_out_url}
-                    target="_blank"
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-2 h-10 rounded-xl"
-                  >
-                    <CreditCardOutlined /> Xác nhận thanh toán
-                  </Button>
-
-                  {/* từ chối yêu cầu */}
-                  <Button
-                    type="primary"
-                    danger
-                    onClick={() => router.push(`/reject-deal/${requestId}`)}
-                    className="w-full bg-red-600 hover:bg-red-500 flex items-center justify-center gap-2 h-10 rounded-xl"
-                  >
-                    Từ chối yêu cầu
-                  </Button>
+                  <div className="w-full max-w-sm flex gap-3">
+                    <Button
+                      type="primary"
+                      href={paymentInfo.check_out_url}
+                      target="_blank"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-10 rounded-xl font-semibold shadow-emerald-200 shadow-lg"
+                      icon={<CreditCardOutlined />}
+                    >
+                      Thanh toán ngay
+                    </Button>
+                    <Button
+                      danger
+                      onClick={() => router.push(`/reject-deal/${requestId}`)}
+                      className="h-10 rounded-xl"
+                    >
+                      Từ chối
+                    </Button>
+                  </div>
                 </div>
-                {paymentInfo.expired_at && (
-                  <p className="text-sm text-red-500 text-center font-medium mt-4 bg-red-50 py-2 rounded-lg border border-red-100">
-                    Hết hạn: {dayjs(paymentInfo.expired_at).format('HH:mm DD/MM/YYYY')}
-                  </p>
-                )}
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-slate-500">Đang tải thông tin thanh toán...</p>
               </div>
             )}
-            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+
+            <ExpiryNote />
           </div>
 
 
+          {/* Footer */}
+          <div className="bg-slate-100 mt-8 px-4 py-3 text-center text-slate-500 text-xs rounded-lg">
+            Email này được gửi tự động từ hệ thống MES.
+          </div>
+
+          {/* Design File Display for Reference */}
+          <div className="mt-8 pt-8 border-t border-slate-200">
+            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+          </div>
 
         </div>
-
-        {/* Back Actions */}
-        {/* <div className="mt-6 flex justify-center pb-8">
-          <Button size="large" onClick={() => router.back()} icon={<ArrowLeftOutlined />} className="h-12 px-8 rounded-xl font-medium border-slate-300 text-slate-600 hover:border-cyan-500 hover:text-cyan-600">
-            Quay lại danh sách
-          </Button>
-        </div> */}
-
-        {/* Animation Styles Injection */}
-        <style jsx global>{`
-      @keyframes fadeInUp {
-        from {
-          opacity: 0;
-          transform: translate3d(0, 20px, 0);
-        }
-        to {
-          opacity: 1;
-          transform: translate3d(0, 0, 0);
-        }
-      }
-      .animate-fade-in-up {
-        animation: fadeInUp 0.6s ease-out forwards;
-      }
-    `}</style>
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import http from "@/lib/httpAxios";
 
 export interface PaymentResponse {
+    quote_id: number;
+    estimate_id: number;
     order_code: number;
     check_out_url: string; //dùng để chuyển sang trang thanh toán nếu qr gặp vấn đề
     expired_at: string; //thời gian hết hạn thanh toán
@@ -19,7 +21,7 @@ export interface PaymentStatusResponse {
 }
 
 export const paymentApi = {
-    getPaymentQR: (request_id: string) => http.get<PaymentResponse>(`/api/Requests/payos-deposit/${request_id}`),
+    getPaymentQR: (request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos-deposit/${request_id}?quote_id=${quote_id}&estimate_id=${estimate_id}`),
 
     getStatusPayment: (order_request_id: string) => http.get<PaymentResponse>(`/api/Requests/payos/status-by-request-id?order_request_id=${order_request_id}`)
 }

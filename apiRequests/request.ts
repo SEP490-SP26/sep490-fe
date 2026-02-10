@@ -8,27 +8,24 @@ interface CancelRequestBody {
 }
 export const requestOrderApi = {
   getList: (page: number = 1, pageSize: number = 5) =>
-    http.get<CommonResType>(`/api/requests/paged?page=${page}&pageSize=${pageSize}`),
-
-  getListByStatus: (page: number = 1, pageSize: number = 5, status: string) =>
-    http.get<CommonResType>(`/api/requests/paged?page=${page}&pageSize=${pageSize}&status=${status}`),
+    http.get<CommonResType>(`/api/Requests/paged?page=${page}&pageSize=${pageSize}`),
 
   createRequestOrderByCustomer: (body: CreateRequestBody) =>
-    http.post<CommonResType>("/api/requests", body),
+    http.post<CommonResType>("/api/Requests", body),
 
-  getDetail: (id: string) => http.get<RequestDetailResponse>(`/api/requests/${id}`),
+  getDetail: (id: string) => http.get<RequestDetailResponse>(`/api/Requests/${id}`),
 
   updateRequest: (id: string, body: Partial<UpdateRequestBody>) =>
-    http.put<CommonResType>(`/api/requests/${id}`, body),
+    http.put<CommonResType>(`/api/Requests/${id}`, body),
 
   cancelRequest: (body: CancelRequestBody) =>
     http.put<CommonResType>(`/api/Requests/cancel-request`, body),
 
   // Gửi báo giá cho khách hàng
-  sendDeal: (requestId: number) =>
+  sendDeal: (body: { request_id: number }) =>
     http.post<{ message: string; detail?: string; orderRequestId: number }>(
       '/api/Requests/send-deal',
-      { requestId }
+      body
     ),
 
   rejectDeal: (body: RejectDealRequest) =>
@@ -40,4 +37,10 @@ export const requestOrderApi = {
 
   createRequestOrderByConsultant: (body: CreateRequestBodyForConsultant) =>
     http.post<CommonResType>("/api/Requests/create-request-by-consultant", body),
+
+  submitEstimateForApproval: (body: { request_id: number }) =>
+    http.put<CommonResType>('/api/Requests/submit-estimate-for-approval', body),
+
+  approval: (body: { request_id: number, note: string, status: string }) =>
+    http.put<CommonResType>('/api/Requests/approval', body),
 };

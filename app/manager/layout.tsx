@@ -86,7 +86,7 @@ export default function LayoutManager({
       />
 
       {/* Main content */}
-      <main className="ml-72 p-8">{children}</main>
+      <main className="ml-72 p-4">{children}</main>
     </div>
   );
 }

@@ -170,7 +170,8 @@ export const mapToOrderEstimationResult = (
   orderId: string | number,
   deliveryDate: any, // dayjs or Date
   discountPercent?: number,
-  discountAmount?: number
+  discountAmount?: number,
+  additionalSpecs?: Partial<OrderEstimationResult>
 ): OrderEstimationResult => {
   const currentOrderId = typeof orderId === 'string' ? parseInt(orderId) : orderId;
 
@@ -248,6 +249,22 @@ export const mapToOrderEstimationResult = (
     total_area_m2: costEstimate.cost.total_area_m2,
 
     process_costs: mappedProcessCosts,
-    cost_note: ""
+    cost_note: "",
+
+    // Technical Specs
+    product_length_mm: additionalSpecs?.product_length_mm,
+    product_width_mm: additionalSpecs?.product_width_mm,
+    product_height_mm: additionalSpecs?.product_height_mm,
+    paper_code: additionalSpecs?.paper_code || costEstimate.cost.material_cost_details?.find(m => m.material_name.includes("Giấy"))?.note || paperEstimate.paper_code, // Fallback
+    paper_name: additionalSpecs?.paper_name,
+    product_type: additionalSpecs?.product_type,
+    // coating_type already mapped above
+    number_of_plates: additionalSpecs?.number_of_plates,
+    wave_type: additionalSpecs?.wave_type,
+    glue_tab_mm: additionalSpecs?.glue_tab_mm,
+    bleed_mm: additionalSpecs?.bleed_mm,
+    is_one_side_box: additionalSpecs?.is_one_side_box,
+    production_processes: additionalSpecs?.production_processes,
+    note: additionalSpecs?.note,
   };
 };
