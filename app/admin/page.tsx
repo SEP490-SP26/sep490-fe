@@ -31,7 +31,7 @@ const ROLE_MAP: Record<number, string> = {
 };
 
 const ROLE_COLOR: Record<string, string> = {
-  Admin: "bg-red-800 text-white",
+  Admin: "bg-red-100 text-red-700",
   Consultant: "bg-blue-100 text-blue-700",
   Manager: "bg-purple-100 text-purple-700",
   Warehouse: "bg-orange-100 text-orange-700",
@@ -63,7 +63,6 @@ export default function AdminUserPage() {
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
   const [role, setRole] = useState("ALL");
-
   const [page, setPage] = useState(1);
 
   const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
@@ -71,7 +70,7 @@ export default function AdminUserPage() {
 
   const currentUserId = useMemo(() => getCurrentUserId(), []);
 
-  /* ===== Popup state ===== */
+  /* ===== Popup ===== */
   const [popup, setPopup] = useState<{
     open: boolean;
     type: PopupType;
@@ -145,7 +144,7 @@ export default function AdminUserPage() {
   };
 
   /* =======================
-     FILTER USERS
+     FILTER
   ======================= */
   const filteredUsers = useMemo(() => {
     setPage(1);
@@ -178,24 +177,30 @@ export default function AdminUserPage() {
   return (
     <>
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold">Quản lý người dùng</h1>
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-semibold">Quản lý người dùng</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Quản lý tài khoản và phân quyền hệ thống
+          </p>
+        </div>
 
         {/* Filters */}
-        <div className="flex gap-4 bg-white p-4 rounded shadow">
+        <div className="bg-white rounded-lg border p-4 flex gap-4 items-center">
           <div className="relative w-72">
-            <FiSearch className="absolute left-3 top-3 text-gray-400" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="Tìm username, email, tên..."
-              className="w-full pl-10 pr-4 py-2 border rounded"
+              className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="border px-3 py-2 rounded"
+            className="border rounded-md px-3 py-2 text-sm"
           >
             <option value="ALL">Tất cả vai trò</option>
             {Object.values(ROLE_MAP).map((r) => (
@@ -205,7 +210,7 @@ export default function AdminUserPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded shadow overflow-hidden">
+        <div className="bg-white rounded-lg border overflow-hidden">
           {loading ? (
             <div className="p-6 text-center text-gray-500">
               Đang tải dữ liệu...
@@ -213,13 +218,15 @@ export default function AdminUserPage() {
           ) : (
             <>
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-6 py-3 text-left">User</th>
-                    <th className="px-6 py-3 text-left">Email</th>
-                    <th className="px-6 py-3 text-left">Vai trò</th>
-                    <th className="px-6 py-3 text-left">Trạng thái</th>
-                    <th className="px-6 py-3 text-center">Hành động</th>
+                    <th className="px-6 py-3 text-left font-medium">User</th>
+                    <th className="px-6 py-3 text-left font-medium">Email</th>
+                    <th className="px-6 py-3 text-left font-medium">Vai trò</th>
+                    <th className="px-6 py-3 text-left font-medium">Trạng thái</th>
+                    <th className="px-6 py-3 text-center font-medium">
+                      Hành động
+                    </th>
                   </tr>
                 </thead>
 
@@ -230,14 +237,14 @@ export default function AdminUserPage() {
                     return (
                       <tr
                         key={u.user_id}
-                        className="border-t hover:bg-gray-50 cursor-pointer"
+                        className="border-b hover:bg-gray-50 cursor-pointer"
                         onClick={() =>
                           router.push(
                             `/admin/admin-update-account/${u.user_id}`
                           )
                         }
                       >
-                        <td className="px-6 py-3">
+                        <td className="px-6 py-4">
                           <div className="font-medium">
                             {u.full_name ?? "(Chưa có tên)"}
                           </div>
@@ -246,19 +253,21 @@ export default function AdminUserPage() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-3">{u.email ?? "—"}</td>
+                        <td className="px-6 py-4">
+                          {u.email ?? <span className="text-gray-400">—</span>}
+                        </td>
 
-                        <td className="px-6 py-3">
+                        <td className="px-6 py-4">
                           <span
-                            className={`px-2 py-1 rounded text-xs ${ROLE_COLOR[roleName]}`}
+                            className={`px-2 py-1 rounded text-xs font-medium ${ROLE_COLOR[roleName]}`}
                           >
                             {roleName}
                           </span>
                         </td>
 
-                        <td className="px-6 py-3">
+                        <td className="px-6 py-4">
                           <span
-                            className={`px-2 py-1 rounded text-xs ${
+                            className={`px-2 py-1 rounded text-xs font-medium ${
                               u.is_active
                                 ? "bg-green-100 text-green-700"
                                 : "bg-red-100 text-red-700"
@@ -268,15 +277,15 @@ export default function AdminUserPage() {
                           </span>
                         </td>
 
-                        <td className="px-6 py-3 text-center">
+                        <td className="px-6 py-4 text-center">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedUser(u);
                             }}
-                            className={`p-2 rounded hover:bg-gray-100 ${
+                            className={`inline-flex items-center justify-center w-9 h-9 rounded border hover:bg-gray-100 ${
                               u.is_active
-                                ? "text-red-500"
+                                ? "text-red-600"
                                 : "text-green-600"
                             }`}
                           >
@@ -291,7 +300,7 @@ export default function AdminUserPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-between items-center px-6 py-4 border-t">
+                <div className="flex justify-between items-center px-6 py-4">
                   <span className="text-sm text-gray-500">
                     Trang {page} / {totalPages}
                   </span>
@@ -339,7 +348,7 @@ export default function AdminUserPage() {
       ======================= */}
       {selectedUser && (
         <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center">
-          <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6 animate-scaleIn">
+          <div className="bg-white w-full max-w-md rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-3">
               {selectedUser.is_active
                 ? "Khóa tài khoản"
@@ -382,7 +391,7 @@ export default function AdminUserPage() {
       ======================= */}
       {popup.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg w-[360px] p-6 text-center animate-scaleIn">
+          <div className="bg-white rounded-lg shadow w-[360px] p-6 text-center">
             <div className="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center bg-red-500 text-white">
               ✕
             </div>
@@ -398,22 +407,6 @@ export default function AdminUserPage() {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .animate-scaleIn {
-          animation: scaleIn 0.2s ease-out;
-        }
-        @keyframes scaleIn {
-          from {
-            transform: scale(0.9);
-            opacity: 0;
-          }
-          to {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-      `}</style>
     </>
   );
 }

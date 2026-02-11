@@ -135,114 +135,137 @@ export default function AdminUpdatePage() {
      RENDER
   ====================== */
   if (loading || !form) {
-    return <div className="p-6">Đang tải dữ liệu...</div>;
+    return (
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center text-gray-500">
+        Đang tải dữ liệu...
+      </div>
+    );
   }
 
   return (
     <>
-      <div className="max-w-2xl mx-auto bg-white p-6 rounded shadow space-y-4">
-        <h1 className="text-xl font-semibold">Thông tin người dùng</h1>
+      <div className="min-h-screen bg-blue-50 py-10 px-4">
+        <div className="max-w-2xl mx-auto bg-white rounded-xl border shadow-sm p-8 space-y-6">
+          {/* Header */}
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800">
+              Thông tin người dùng
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Cập nhật thông tin & phân quyền tài khoản
+            </p>
+          </div>
 
-        {/* Username */}
-        <div>
-          <label className="block text-sm">Username</label>
-          <input
-            value={form.user_name}
-            disabled
-            className="w-full border px-3 py-2 rounded bg-gray-100"
-          />
-        </div>
+          {/* Username */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Username
+            </label>
+            <input
+              value={form.user_name}
+              disabled
+              className="w-full border rounded-md px-3 py-2 bg-gray-100 text-sm"
+            />
+          </div>
 
-        {/* Email */}
-        <div>
-          <label className="block text-sm">Email</label>
-          <input
-            value={form.user_email}
-            onChange={(e) =>
-              setForm({ ...form, user_email: e.target.value })
-            }
-            className="w-full border px-3 py-2 rounded"
-          />
-        </div>
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Email
+            </label>
+            <input
+              value={form.user_email}
+              onChange={(e) =>
+                setForm({ ...form, user_email: e.target.value })
+              }
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
 
-        {/* Full name */}
-        <div>
-          <label className="block text-sm">Họ tên</label>
-          <input
-            value={form.full_name}
-            onChange={(e) =>
-              setForm({ ...form, full_name: e.target.value })
-            }
-            className="w-full border px-3 py-2 rounded"
-          />
-        </div>
+          {/* Full name */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Họ tên
+            </label>
+            <input
+              value={form.full_name}
+              onChange={(e) =>
+                setForm({ ...form, full_name: e.target.value })
+              }
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
 
-        {/* Role */}
-        <div>
-          <label className="block text-sm">Vai trò</label>
-          <select
-            value={form.role_id}
-            onChange={(e) =>
-              setForm({ ...form, role_id: Number(e.target.value) })
-            }
-            className="w-full border px-3 py-2 rounded"
-          >
-            <option value={1}>Admin</option>
-            <option value={2}>Consultant</option>
-            <option value={3}>Manager</option>
-            <option value={4}>Warehouse</option>
-            <option value={5}>User</option>
-            <option value={6}>Staff</option>
-          </select>
-        </div>
+          {/* Role */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Vai trò
+            </label>
+            <select
+              value={form.role_id}
+              onChange={(e) =>
+                setForm({ ...form, role_id: Number(e.target.value) })
+              }
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value={1}>Admin</option>
+              <option value={2}>Consultant</option>
+              <option value={3}>Manager</option>
+              <option value={4}>Warehouse</option>
+              <option value={5}>User</option>
+              <option value={6}>Staff</option>
+            </select>
+          </div>
 
-        {/* Reset password */}
-        <div>
-          <label className="block text-sm">
-            Mật khẩu mới{" "}
-            <span className="text-xs text-gray-500">
-              (để trống nếu không đổi)
-            </span>
-          </label>
-          <input
-            type="password"
-            value={form.new_password}
-            onChange={(e) =>
-              setForm({ ...form, new_password: e.target.value })
-            }
-            className="w-full border px-3 py-2 rounded"
-            placeholder="Nhập mật khẩu mới"
-          />
-        </div>
+          {/* Reset password */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Mật khẩu mới{" "}
+              <span className="text-xs text-gray-400">
+                (để trống nếu không đổi)
+              </span>
+            </label>
+            <input
+              type="password"
+              value={form.new_password}
+              onChange={(e) =>
+                setForm({ ...form, new_password: e.target.value })
+              }
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Nhập mật khẩu mới"
+            />
+          </div>
 
-        {/* Active */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={form.is_active}
-            onChange={(e) =>
-              setForm({ ...form, is_active: e.target.checked })
-            }
-          />
-          <span>Hoạt động</span>
-        </div>
+          {/* Active */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) =>
+                setForm({ ...form, is_active: e.target.checked })
+              }
+              className="w-4 h-4 accent-blue-600"
+            />
+            <span className="text-sm">Tài khoản đang hoạt động</span>
+          </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 border rounded"
-          >
-            Hủy
-          </button>
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 border rounded-md text-sm hover:bg-gray-50"
+            >
+              Hủy
+            </button>
 
-          <button
-            disabled={saving}
-            onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            {saving ? "Đang lưu..." : "Lưu thay đổi"}
-          </button>
+            <button
+              disabled={saving}
+              onClick={handleSubmit}
+              className="px-5 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-60"
+            >
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -251,15 +274,15 @@ export default function AdminUpdatePage() {
       ====================== */}
       {popup.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white w-[360px] rounded-lg shadow-lg p-6 text-center space-y-4">
+          <div className="bg-white w-[360px] rounded-xl shadow-lg p-6 text-center space-y-4">
             <div
-              className={`text-lg font-semibold ${
+              className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center text-white ${
                 popup.type === "success"
-                  ? "text-green-600"
-                  : "text-red-600"
+                  ? "bg-green-500"
+                  : "bg-red-500"
               }`}
             >
-              {popup.type === "success" ? "Thành công" : "Lỗi"}
+              {popup.type === "success" ? "✓" : "✕"}
             </div>
 
             <p className="text-sm text-gray-700">
@@ -268,10 +291,10 @@ export default function AdminUpdatePage() {
 
             <button
               onClick={closePopup}
-              className={`px-4 py-2 rounded text-white ${
+              className={`px-4 py-2 rounded-md text-white text-sm ${
                 popup.type === "success"
-                  ? "bg-green-600"
-                  : "bg-red-600"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
               }`}
             >
               Đóng

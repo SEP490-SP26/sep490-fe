@@ -1,11 +1,16 @@
 "use client";
 
+import Footer from "@/components/Footer/Footer";
 import { adminNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { useRouter } from "next/navigation";
 import React from "react";
 
-export default function LayoutAdmin({ children }: { children: React.ReactNode }) {
+export default function LayoutAdmin({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
 
   const handleLogout = () => {
@@ -17,6 +22,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
       <Sidebar
         userInfo={{
           name: "Admin",
@@ -26,8 +32,14 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
         onLogout={handleLogout}
       />
 
-      {/* Main content */}
-      <main className="ml-72 p-8">{children}</main>
+      {/* Content area (né sidebar) */}
+      <div className="ml-72 flex min-h-screen flex-col">
+        {/* Main */}
+        <main className="flex-1 p-8">{children}</main>
+
+        {/* Footer */}
+        <Footer />
+      </div>
     </div>
   );
 }
