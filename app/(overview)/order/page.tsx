@@ -2,6 +2,7 @@
 "use client";
 
 import { otpsApi } from "@/apiRequests/otps";
+import { useSearchParams } from "next/navigation";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import { productsApi } from "@/apiRequests/products";
@@ -72,6 +73,7 @@ export default function GuestOrderPage() {
   const [form] = Form.useForm();
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams();
 
   // OTP state
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -133,6 +135,18 @@ export default function GuestOrderPage() {
     const phoneValid = phone && /^0\d{9}$/.test(phone);
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
+
+  // Handle verified email from Home Page
+  useEffect(() => {
+    const emailParam = searchParams.get("email");
+    const verifiedParam = searchParams.get("verified");
+
+    if (emailParam && verifiedParam === "true") {
+      form.setFieldValue("email", emailParam);
+      setIsVerified(true);
+      setIsOtpSent(false); // No need to send OTP if already verified
+    }
+  }, [searchParams, form]);
 
   // Fetch product suggestions and paper types
   const [productSuggestions, setProductSuggestions] = useState<string[]>([]);

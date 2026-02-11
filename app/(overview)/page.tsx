@@ -2,6 +2,10 @@
 import Masonry from "@/components/Bits/Masonry";
 import ZaloChat from "@/components/ZaloChatProps/ZaloChatProps";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Modal, Input, Button, message, Form } from "antd";
+import { otpsApi } from "@/apiRequests/otps";
+import { MailOutlined } from "@ant-design/icons";
 
 const data = [
   {
@@ -130,6 +134,66 @@ const data = [
 
 export default function HomePage() {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [loadingOtp, setLoadingOtp] = useState(false);
+  const [form] = Form.useForm();
+
+  const showModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+    setIsOtpSent(false);
+    setOtp("");
+    setEmail("");
+  };
+
+  const onSendOtp = async () => {
+    try {
+      const values = await form.validateFields(["email"]);
+      const emailInput = values.email;
+
+      setLoadingOtp(true);
+      const response = await otpsApi.sendOtp({ email: emailInput });
+      if (response?.message === "OTP sent") {
+        setEmail(emailInput);
+        setIsOtpSent(true);
+        message.success("Mã OTP đã được gửi đến email của bạn!");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("Gửi OTP thất bại hoặc email không hợp lệ.");
+    } finally {
+      setLoadingOtp(false);
+    }
+  };
+
+  const onVerifyOtp = async () => {
+    if (otp.length !== 6) {
+      message.error("Vui lòng nhập đủ 6 số OTP!");
+      return;
+    }
+    setLoadingOtp(true);
+    try {
+      const response = await otpsApi.verifyOtp({ email, otp });
+      if (response?.message === "OTP verified") {
+        message.success("Xác thực email thành công!");
+        setIsModalOpen(false);
+        // Navigate to order page with verified email
+        router.push(`/order?email=${encodeURIComponent(email)}&verified=true`);
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Mã OTP không đúng!");
+    } finally {
+      setLoadingOtp(false);
+    }
+  };
   return (
     <div className="relative min-h-screen font-sans">
       {/* Background */}
@@ -147,7 +211,7 @@ export default function HomePage() {
             <div>
               <button
                 className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-primary px-8 py-3 font-medium text-white shadow-md transition duration-300 ease-out hover:bg-primary-dark hover:shadow-xl hover:-translate-y-1"
-                onClick={() => router.push("/order")}
+                onClick={showModal}
               >
                 <span className="absolute inset-0 h-full w-full bg-gradient-to-br from-blue-600 via-primary to-blue-400 opacity-0 transition duration-300 ease-out group-hover:opacity-100"></span>
                 <span className="relative flex items-center gap-2">
@@ -183,6 +247,102 @@ export default function HomePage() {
         </div>
       </section>
       <ZaloChat />
+
+      {/* Email Verification Modal */}
+      <Modal
+        title="Xác thực Email để đặt hàng nhanh"
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        centered
+      >
+        <div className="py-4">
+          <p className="mb-4 text-gray-600">
+            Vui lòng nhập email để nhận mã OTP xác thực trước khi tạo đơn hàng.
+          </p>
+
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="email"
+              rules={[
+                { required: true, message: "Vui lòng nhập email!" },
+                { type: "email", message: "Email không hợp lệ!" }
+              ]}
+              className="mb-4"
+            >
+              <Input
+                prefix={<MailOutlined className="text-gray-400" />}
+                placeholder="Nhập email của bạn"
+                size="large"
+                disabled={isOtpSent}
+              />
+            </Form.Item>
+
+            {!isOtpSent ? (
+              <Button
+                type="primary"
+                block
+                size="large"
+                onClick={onSendOtp}
+                loading={loadingOtp}
+                className="bg-primary hover:bg-primary-dark"
+              >
+                Gửi mã OTP
+              </Button>
+            ) : (
+              <div className="animate-fade-in">
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium">Nhập mã OTP</span>
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => {
+                        setIsOtpSent(false);
+                        setOtp("");
+                      }}
+                      className="text-blue-500 p-0"
+                    >
+                      Đổi email
+                    </Button>
+                  </div>
+                  <Input.OTP
+                    length={6}
+                    value={otp}
+                    onChange={setOtp}
+                    size="large"
+                    className="w-full justify-center"
+                  />
+                </div>
+
+                <Button
+                  type="primary"
+                  block
+                  size="large"
+                  onClick={onVerifyOtp}
+                  loading={loadingOtp}
+                  className="bg-green-600 hover:bg-green-700 mb-3"
+                >
+                  Xác thực & Tiếp tục
+                </Button>
+
+                <div className="text-center">
+                  <span className="text-sm text-gray-500">Chưa nhận được mã? </span>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={onSendOtp}
+                    loading={loadingOtp}
+                    className="p-0"
+                  >
+                    Gửi lại
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Form>
+        </div>
+      </Modal>
     </div>
   );
 }
