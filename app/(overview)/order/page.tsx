@@ -2,6 +2,7 @@
 "use client";
 
 import { otpsApi } from "@/apiRequests/otps";
+import { useSearchParams } from "next/navigation";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import { productsApi } from "@/apiRequests/products";
@@ -72,6 +73,11 @@ export default function GuestOrderPage() {
   const [form] = Form.useForm();
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Review Modal State
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [formDataToSubmit, setFormDataToSubmit] = useState<any>(null);
 
   // OTP state
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -133,6 +139,18 @@ export default function GuestOrderPage() {
     const phoneValid = phone && /^0\d{9}$/.test(phone);
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
+
+  // Handle verified email from Home Page
+  useEffect(() => {
+    const emailParam = searchParams.get("email");
+    const verifiedParam = searchParams.get("verified");
+
+    if (emailParam && verifiedParam === "true") {
+      form.setFieldValue("email", emailParam);
+      setIsVerified(true);
+      setIsOtpSent(false); // No need to send OTP if already verified
+    }
+  }, [searchParams, form]);
 
   // Fetch product suggestions and paper types
   const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
@@ -233,50 +251,55 @@ export default function GuestOrderPage() {
     });
 
   const onFinish = async (values: any) => {
+    // Check if any file is still uploading
+    const isUploading = fileList.some((file) => file.status === "uploading");
+    if (isUploading) {
+      message.warning("Vui lòng đợi quá trình tải lên hoàn tất!");
+      return;
+    }
+
+    // Get design file paths from uploaded files
+    const designFilePath = fileList
+      .map((file) => file.url)
+      .filter((url) => !!url) // Filter out undefined/null/empty
+      .join(",");
+
+    // Build request body according to API schema
+    const requestBody = {
+      customer_name: values.customerName,
+      customer_phone: values.phone,
+      customer_email: values.email || "",
+      delivery_date:
+        values.desiredDate?.toISOString() || new Date().toISOString(),
+      product_name: values.productName,
+      quantity: values.quantity || 1,
+      description: values.note || "",
+      product_length_mm: values.length ? values.length * 10 : 0,
+      product_width_mm: values.width ? values.width * 10 : 0,
+      product_height_mm: values.height ? values.height * 10 : 0,
+      paper_name: values.paperName || "",
+      design_file_path: designFilePath,
+      order_request_date: new Date().toISOString(),
+      // Address from map picker
+      province: "",
+      district: "",
+      detail_address:
+        selectedAddress?.formattedAddress || values.shippingAddress || "",
+    };
+
+    setFormDataToSubmit(requestBody);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!formDataToSubmit) return;
+
     setIsSubmitting(true);
-    //fix upload file
     try {
-      // Check if any file is still uploading
-      const isUploading = fileList.some((file) => file.status === "uploading");
-      if (isUploading) {
-        message.warning("Vui lòng đợi quá trình tải lên hoàn tất!");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Get design file paths from uploaded files
-      const designFilePath = fileList
-        .map((file) => file.url)
-        .filter((url) => !!url) // Filter out undefined/null/empty
-        .join(",");
-
-      // Build request body according to API schema
-
-      const requestBody = {
-        customer_name: values.customerName,
-        customer_phone: values.phone,
-        customer_email: values.email || "",
-        delivery_date:
-          values.desiredDate?.toISOString() || new Date().toISOString(),
-        product_name: values.productName,
-        quantity: values.quantity || 1,
-        description: values.note || "",
-        product_length_mm: values.length ? values.length * 10 : 0,
-        product_width_mm: values.width ? values.width * 10 : 0,
-        product_height_mm: values.height ? values.height * 10 : 0,
-        paper_name: values.paperName || "",
-        design_file_path: designFilePath,
-        order_request_date: new Date().toISOString(),
-        // Address from map picker
-        province: "",
-        district: "",
-        detail_address:
-          selectedAddress?.formattedAddress || values.shippingAddress || "",
-      };
-
-      await requestOrderApi.createRequestOrderByCustomer(requestBody);
+      await requestOrderApi.createRequestOrderByCustomer(formDataToSubmit);
       message.success("Gửi yêu cầu thành công!");
       setIsSuccess(true);
+      setIsReviewModalOpen(false);
     } catch (error: any) {
       console.error("Create order error:", error);
       message.error(
@@ -790,6 +813,124 @@ export default function GuestOrderPage() {
           onCancel={() => setPreviewOpen(false)}
         >
           <img alt="preview" style={{ width: "100%" }} src={previewImage} />
+        </Modal>
+
+        {/* Review Order Modal */}
+        <Modal
+          title={<Title level={3} className="text-center text-primary-dark">Xác nhận thông tin đặt hàng</Title>}
+          open={isReviewModalOpen}
+          onCancel={() => setIsReviewModalOpen(false)}
+          footer={[
+            <Button key="back" size="large" onClick={() => setIsReviewModalOpen(false)}>
+              Chỉnh sửa
+            </Button>,
+            <Button
+              key="submit"
+              type="primary"
+              size="large"
+              loading={isSubmitting}
+              onClick={handleConfirmSubmit}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Xác nhận & Gửi
+            </Button>,
+          ]}
+          width={700}
+          centered
+        >
+          {formDataToSubmit && (
+            <div className="py-4 space-y-6">
+
+              {/* Customer Info Section */}
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-2 mb-3 text-blue-600 border-b pb-2 border-gray-200">
+                  <EnvironmentOutlined />
+                  <span className="font-semibold text-base">Thông tin liên hệ</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
+                  <div>
+                    <span className="text-gray-500 text-sm block">Họ tên:</span>
+                    <span className="font-medium text-gray-800">{formDataToSubmit.customer_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-sm block">Số điện thoại:</span>
+                    <span className="font-medium text-gray-800">{formDataToSubmit.customer_phone}</span>
+                  </div>
+                  <div className="col-span-1 md:col-span-2">
+                    <span className="text-gray-500 text-sm block">Email:</span>
+                    <span className="font-medium text-gray-800">{formDataToSubmit.customer_email}</span>
+                  </div>
+                  <div className="col-span-1 md:col-span-2">
+                    <span className="text-gray-500 text-sm block">Địa chỉ giao hàng:</span>
+                    <span className="font-medium text-gray-800">{formDataToSubmit.detail_address}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Info Section */}
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-2 mb-3 text-blue-600 border-b pb-2 border-gray-200">
+                  <PlusOutlined />
+                  <span className="font-semibold text-base">Chi tiết đơn hàng</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
+                  <div className="col-span-1 md:col-span-2">
+                    <span className="text-gray-500 text-sm block">Sản phẩm:</span>
+                    <span className="font-medium text-gray-800 text-lg">{formDataToSubmit.product_name}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-500 text-sm block">Số lượng:</span>
+                    <span className="font-medium text-gray-800">{formatVietnameseNumber(formDataToSubmit.quantity)}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-500 text-sm block">Thời gian nhận hàng:</span>
+                    <span className="font-medium text-gray-800">
+                      {dayjs(formDataToSubmit.delivery_date).format("DD/MM/YYYY")}
+                    </span>
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2">
+                    <span className="text-gray-500 text-sm block">Kích thước (Không bắt buộc):</span>
+                    <span className="font-medium text-gray-800">
+                      {formDataToSubmit.product_length_mm / 10} x {formDataToSubmit.product_width_mm / 10} x {formDataToSubmit.product_height_mm / 10} (cm)
+                    </span>
+                  </div>
+
+                  {formDataToSubmit.paper_name && (
+                    <div className="col-span-1 md:col-span-2">
+                      <span className="text-gray-500 text-sm block">Loại giấy:</span>
+                      <span className="font-medium text-gray-800">{formDataToSubmit.paper_name}</span>
+                    </div>
+                  )}
+
+                  {formDataToSubmit.description && (
+                    <div className="col-span-1 md:col-span-2">
+                      <span className="text-gray-500 text-sm block">Ghi chú:</span>
+                      <span className="font-medium text-gray-800 italic">{formDataToSubmit.description}</span>
+                    </div>
+                  )}
+
+                  {fileList.length > 0 && (
+                    <div className="col-span-1 md:col-span-2">
+                      <span className="text-gray-500 text-sm block">File thiết kế ({fileList.length}):</span>
+                      <ul className="list-disc pl-5 text-sm text-blue-600">
+                        {fileList.map((f, index) => (
+                          <li key={index} className="truncate max-w-xs">{f.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center text-xs text-gray-500 italic mt-4">
+                * Vui lòng kiểm tra kỹ thông tin trước khi gửi. Nhân viên sẽ liên hệ với bạn trong thời gian sớm nhất.
+              </div>
+
+            </div>
+          )}
         </Modal>
 
         <style jsx global>{`

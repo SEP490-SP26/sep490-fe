@@ -30,7 +30,8 @@ function RejectDealContent() {
   // const orderId = searchParams.get('id');
   // const token = searchParams.get('token');
 
-  const [reason, setReason] = useState("");
+  const [selectedReason, setSelectedReason] = useState("");
+  const [otherReason, setOtherReason] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
 
@@ -66,7 +67,9 @@ function RejectDealContent() {
       message.error("Vui lòng nhập đầy đủ thông tin xác thực");
       return;
     }
-    if (!reason) {
+    const finalReason = selectedReason === "Lý do khác" ? otherReason : selectedReason;
+
+    if (!finalReason) {
       message.error("Vui lòng chọn hoặc nhập lý do từ chối");
       return;
     }
@@ -76,7 +79,7 @@ function RejectDealContent() {
       const bodyResquest = {
         order_request_id: Number(orderId),
         // token: token || "",
-        reason,
+        reason: finalReason,
         phone,
         otp
       }
@@ -193,12 +196,12 @@ function RejectDealContent() {
               <Space direction="vertical" className="w-full">
                 <Select
                   size="large"
-                  value={reason}
+                  value={selectedReason}
                   disabled={!otpSent}
-                  onChange={(e) => setReason(e)}
+                  onChange={(e) => setSelectedReason(e)}
                   placeholder="Chọn lý do từ chối..."
                   className="w-full"
-                  status={!reason && otpSent ? "warning" : ""}
+                  status={!selectedReason && otpSent ? "warning" : ""}
                 >
                   <Select.Option value="Ngày giao quá gấp">Ngày giao quá gấp</Select.Option>
                   <Select.Option value="Giá không hợp lý">Giá không hợp lý</Select.Option>
@@ -206,10 +209,11 @@ function RejectDealContent() {
                   <Select.Option value="Lý do khác">Lý do khác</Select.Option>
                 </Select>
 
-                {reason === "Lý do khác" && (
+                {selectedReason === "Lý do khác" && (
                   <TextArea
                     rows={3}
-                    onChange={(e) => setReason(e.target.value)}
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
                     placeholder="Nhập chi tiết lý do..."
                     className="mt-2"
                   />
@@ -232,7 +236,7 @@ function RejectDealContent() {
               danger
               className="flex-1"
               icon={<CloseCircleOutlined />}
-              disabled={!otpSent || !otp || !reason}
+              disabled={!otpSent || !otp || !selectedReason || (selectedReason === "Lý do khác" && !otherReason)}
               loading={loading}
               onClick={handleRejectDeal}
             >

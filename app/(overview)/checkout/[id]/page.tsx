@@ -66,9 +66,8 @@ export default function RequestDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestId = params.id as string;
-  const quoteId = Number(searchParams.get('quote_id'));
-  const estimateId = Number(searchParams.get('estimate_id'));
-
+  const quoteId = Number(searchParams.get('quote_id') || searchParams.get('quoteId'));
+  const estimateId = Number(searchParams.get('estimate_id') || searchParams.get('estimateId'));
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [designFiles, setDesignFiles] = useState<UploadFile[]>([]); // Keep state for upload logic logic
@@ -407,6 +406,11 @@ export default function RequestDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Design File Display for Reference */}
+            <div className="mt-8 pt-8 border-t border-slate-200">
+              <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+            </div>
           </div>
 
           {/* Action Block - Payment QR */}
@@ -486,10 +490,7 @@ export default function RequestDetailPage() {
             Email này được gửi tự động từ hệ thống MES.
           </div>
 
-          {/* Design File Display for Reference */}
-          <div className="mt-8 pt-8 border-t border-slate-200">
-            <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
-          </div>
+
 
         </div>
       </div>

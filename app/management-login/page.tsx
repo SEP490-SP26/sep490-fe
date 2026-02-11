@@ -1,22 +1,19 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import authApiRequest from "@/apiRequests/auth";
+import { useAuth } from "@/lib/auth-context";
 import {
     LoginBodyAlternative,
     LoginBodyAlternativeType,
 } from "@/schemaValidations/auth.schema";
-import { useAuth } from "@/lib/auth-context";
-import authApiRequest from "@/apiRequests/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { setCookie } from "cookies-next";
-import Image from "next/image";
 import { jwtDecode } from "jwt-decode";
-import Link from "next/link";
-
-
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 
 declare global {
     interface Window {
@@ -271,18 +268,18 @@ export default function LoginPage() {
     return (
 
         <div className="min-h-screen mx-auto">
-            {/* Decorative Elements */}
-            <div className="absolute top-0 left-0 w-64 h-64 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-            <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-sky-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
-
             <div className="relative flex min-h-screen">
-
-
                 <div className="flex-1 flex items-center justify-center p-8">
                     <div className="w-full max-w-md bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-100">
+                        <img
+                            src="/assets/images/icon.ico"
+                            alt="Logo"
+                            className="w-12 h-12 mx-auto mb-4"
+
+                        />
                         <div className="text-center mb-8">
-                            <h2 className="text-3xl font-bold text-gray-800">Đăng nhập</h2>
+
+                            <h2 className="text-3xl font-bold text-gray-800">Đăng nhập nội bộ</h2>
                             <div className="max-w-md w-full space-y-8">
 
                                 <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
