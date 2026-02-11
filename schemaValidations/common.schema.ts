@@ -1,4 +1,5 @@
 import { ProcessCostDetail } from '@/lib/estimation.types'
+import Stream from 'node:stream'
 import z from 'zod'
 
 export const MessageRes = z
@@ -62,6 +63,10 @@ export interface CreateRequestBody {
   province?: string;
   district?: string;
   detail_address?: string;
+  product_length_mm?: number;
+  product_width_mm?: number;
+  product_height_mm?: number;
+  paper_name?: string;
 }
 
 export interface RejectDealRequest {

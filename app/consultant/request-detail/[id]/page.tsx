@@ -12,7 +12,9 @@ import {
     UserOutlined,
     PhoneOutlined,
     MailOutlined,
-    HomeOutlined
+    HomeOutlined,
+    SendOutlined,
+    EditOutlined
 } from "@ant-design/icons";
 import {
     Button,
@@ -46,29 +48,46 @@ export default function ConsultantRequestDetailPage() {
     const [loading, setLoading] = useState(true);
     const [orderDetail, setOrderDetail] = useState<VerifiedRequestReponse | null>(null);
 
+    const [sending, setSending] = useState(false);
+
     // Fetch order detail from API
-    useEffect(() => {
-        const fetchOrderDetail = async () => {
-            if (!requestId) return;
+    const fetchOrderDetail = async () => {
+        if (!requestId) return;
 
-            setLoading(true);
-            try {
-                const response = await requestOrderApi.getRequestDetailbyConsultant(requestId);
-                const orderData = response?.data || response;
+        setLoading(true);
+        try {
+            const response = await requestOrderApi.getRequestDetailbyConsultant(requestId);
+            const orderData = response?.data || response;
 
-                if (orderData) {
-                    setOrderDetail(orderData);
-                }
-            } catch (error) {
-                console.error("Error fetching order detail:", error);
-                message.error("Không thể tải thông tin đơn hàng");
-            } finally {
-                setLoading(false);
+            if (orderData) {
+                setOrderDetail(orderData);
             }
-        };
+        } catch (error) {
+            console.error("Error fetching order detail:", error);
+            message.error("Không thể tải thông tin đơn hàng");
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchOrderDetail();
     }, [requestId]);
+
+    const handleSendQuote = async () => {
+        if (!orderDetail) return;
+        setSending(true);
+        try {
+            await requestOrderApi.sendDeal({ request_id: orderDetail.request_id });
+            message.success("Đã gửi báo giá cho khách hàng thành công!");
+            await fetchOrderDetail(); // Refresh data to update status
+        } catch (error) {
+            console.error("Lỗi khi gửi báo giá:", error);
+            message.error("Không thể gửi báo giá. Vui lòng thử lại sau.");
+        } finally {
+            setSending(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -131,9 +150,32 @@ export default function ConsultantRequestDetailPage() {
                                     orderDetail.process_status === 'Accepted' ? 'green' : orderDetail.process_status === 'Rejected' ? 'red' : 'orange'
                             } className="text-xs lg:text-sm px-3 py-1 rounded-full uppercase font-medium">
                                 {orderDetail.process_status === 'Waiting' ? 'Chờ Khách hàng xác nhận' :
-                                    orderDetail.process_status === 'Pending' ? 'Đơn mới' : orderDetail.process_status === 'Accepted' ? 'Đã xác nhận' : orderDetail.process_status === 'Rejected' ? 'Đã hủy' : 'Chưa xác nhận'}
+                                    orderDetail.process_status === 'Pending' ? 'Đơn mới' : orderDetail.process_status === 'Accepted' ? 'Đã xác nhận' : orderDetail.process_status === 'Rejected' ? 'Đã hủy' : orderDetail.process_status === 'Verified' ? 'Đã được duyệt' : orderDetail.process_status === 'Processing' ? 'Đang xử lý' : 'Chưa xác nhận'}
                             </Tag>
                         </div>
+                        <div className="flex gap-2">
+                            {orderDetail.process_status === 'Verified' && (
+                                <Button
+                                    type="primary"
+                                    icon={<SendOutlined />}
+                                    className="bg-blue-600 hover:bg-blue-500"
+                                    size="small"
+                                    loading={sending}
+                                    onClick={handleSendQuote}
+                                >
+                                    Gửi báo giá cho khách hàng
+                                </Button>
+                            )}
+                            <Button
+                                type="primary"
+                                icon={<EditOutlined />}
+                                className="bg-blue-600 hover:bg-blue-500"
+                                size="small"
+                            >
+                                Cập nhật yêu cầu
+                            </Button>
+                        </div>
+
 
                     </div>
                 </div>
@@ -177,7 +219,7 @@ export default function ConsultantRequestDetailPage() {
                             {/* Email */}
                             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                                 <div className="flex items-center gap-2">
-                                    <MailOutlined className="text-slate-500" />
+
                                     <Text className="text-slate-500 text-sm font-medium">Email:</Text>
                                 </div>
                                 <Text className="text-slate-800 font-bold text-base truncate ml-2">{orderDetail.email}</Text>
@@ -233,67 +275,63 @@ export default function ConsultantRequestDetailPage() {
 
                         {orderDetail.design_file_path ? (
                             <div className="flex-1">
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
-                                    {orderDetail.design_file_path.split(',').map((url, index) => {
-                                        const trimmedUrl = url.trim();
-                                        const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(trimmedUrl);
-                                        const fileName = trimmedUrl.split('/').pop() || `File ${index + 1}`;
+                                {(() => {
+                                    const fileList = orderDetail.design_file_path.split(',').filter(f => f.trim());
+                                    const isSingleFile = fileList.length === 1;
 
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="aspect-square border border-slate-200 rounded-lg overflow-hidden hover:border-blue-300 hover:shadow-sm transition-all duration-200 group design-file-image"
-                                            >
-                                                {isImage ? (
-                                                    <>
-                                                        <Image
-                                                            src={trimmedUrl}
-                                                            alt={fileName}
-                                                            width="100%"
-                                                            height="100%"
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                                            preview={{
-                                                                mask: (
-                                                                    <div className="flex items-center justify-center gap-1 text-white text-xs">
-                                                                        <FileImageOutlined />
-                                                                        Xem
-                                                                    </div>
-                                                                )
-                                                            }}
-                                                        />
+                                    return (
+                                        <div className={isSingleFile ? "h-40" : "grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4"}>
+                                            {fileList.map((url, index) => {
+                                                const trimmedUrl = url.trim();
+                                                const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(trimmedUrl);
+                                                const fileName = trimmedUrl.split('/').pop() || `File ${index + 1}`;
 
-                                                    </>
-                                                ) : (
-                                                    <a
-                                                        href={trimmedUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="flex flex-col items-center justify-center h-full p-2 bg-gradient-to-br from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 transition-all duration-200 relative"
+                                                return (
+                                                    <div
+                                                        key={index}
+                                                        className={`${isSingleFile ? "w-full h-50" : "aspect-square"} border border-slate-200 rounded-lg overflow-hidden hover:border-blue-300 hover:shadow-sm transition-all duration-200 group design-file-image`}
                                                     >
-                                                        <FileImageOutlined className="text-xl text-slate-400 group-hover:text-blue-400 mb-1 transition-colors" />
-                                                        <span className="text-xs text-slate-600 font-medium truncate w-full text-center">
-                                                            File {index + 1}
-                                                        </span>
-                                                        <div className="absolute bottom-1 right-1">
-                                                            <DownloadOutlined className="text-slate-400 text-xs" />
-                                                        </div>
-                                                    </a>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                                        {isImage ? (
+                                                            <>
+                                                                <Image
+                                                                    src={trimmedUrl}
+                                                                    alt={fileName}
+                                                                    width="100%"
+                                                                    height="50s%"
+                                                                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200`}
+                                                                    preview={{
+                                                                        mask: (
+                                                                            <div className="flex items-center justify-center gap-1 text-white text-xs">
+                                                                                <FileImageOutlined />
+                                                                                Xem
+                                                                            </div>
+                                                                        )
+                                                                    }}
+                                                                />
 
-                                {/* <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <FileImageOutlined className="text-blue-600" />
-                                            <Text className="text-blue-700 text-sm font-medium">
-                                                Tổng cộng {orderDetail.design_file_path.split(',').length} file thiết kế
-                                            </Text>
+                                                            </>
+                                                        ) : (
+                                                            <a
+                                                                href={trimmedUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex flex-col items-center justify-center h-full p-2 bg-gradient-to-br from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 transition-all duration-200 relative"
+                                                            >
+                                                                <FileImageOutlined className={isSingleFile ? "text-4xl text-slate-400 group-hover:text-blue-400 mb-2" : "text-xl text-slate-400 group-hover:text-blue-400 mb-1 transition-colors"} />
+                                                                <span className={isSingleFile ? "text-sm text-slate-600 font-medium truncate w-full text-center" : "text-xs text-slate-600 font-medium truncate w-full text-center"}>
+                                                                    File {index + 1}
+                                                                </span>
+                                                                <div className="absolute bottom-2 right-2">
+                                                                    <DownloadOutlined className="text-slate-400 text-sm" />
+                                                                </div>
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    </div>
-                                </div> */}
+                                    );
+                                })()}
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center py-8">
@@ -303,10 +341,121 @@ export default function ConsultantRequestDetailPage() {
                         )}
                     </Card>
 
-                    {/* Card 3: Cost Estimates (Bottom Left) */}
+                    {/* Card 4: Product Detail (Full Width) */}
                     <Card
-                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full"
+                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full lg:col-span-2"
                         bodyStyle={{ padding: '20px' }}
+                    >
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                    <ShoppingOutlined className="text-xl" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-800">Chi tiết sản phẩm:<span className="text-primary"> {orderDetail.product_name}</span></h3>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Left Column: Quantity, Delivery, Description */}
+                                <div className="space-y-4">
+                                    {/* Quantity and Delivery Date - Single Line */}
+                                    {/* <div className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                                        <div className="flex items-center gap-3">
+                                            <ShoppingOutlined className="text-indigo-600 text-xl" />
+                                            <div>
+                                                <Text className="text-indigo-700 font-bold text-sm">Sản phẩm:</Text>
+                                                <Text className="text-indigo-800 font-bold text-lg ml-2">{orderDetail.product_name}</Text>
+                                            </div>
+                                        </div>
+                                        <Tag color="blue" className="px-3 py-1 font-medium">
+                                            {orderDetail.product_type}
+                                        </Tag>
+                                    </div> */}
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Quantity */}
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                            <div className="flex items-center gap-2">
+                                                <Text className="text-slate-500 text-sm font-medium">Số lượng:</Text>
+                                            </div>
+                                            <Tag bordered={false} className="bg-white text-slate-700 font-bold text-lg px-3 py-1 rounded-lg border border-slate-200">
+                                                {orderDetail.quantity.toLocaleString("vi-VN")}
+                                            </Tag>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                            <div className="flex items-center gap-2">
+                                                <CalendarOutlined className="text-slate-500" />
+                                                <Text className="text-slate-500 text-sm font-medium">Giao hàng:</Text>
+                                            </div>
+                                            <Tag icon={<CalendarOutlined />} bordered={false} color="cyan" className="text-base px-3 py-1 m-0 font-medium">
+                                                {dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}
+                                            </Tag>
+                                        </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Text className="text-slate-700 font-bold">Mô tả yêu cầu:</Text>
+                                        </div>
+                                        <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[80px] max-h-48 overflow-y-auto">
+                                            {orderDetail.description || <span className="text-slate-400 italic">Không có mô tả chi tiết</span>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Technical Specs */}
+                                <div>
+                                    {/* Technical Specs - In Collapse */}
+                                    <div className="bg-white rounded-lg  h-full">
+
+                                        <div
+                                            className="h-full"
+                                        >
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
+                                                    </div>
+                                                    <Text className="text-slate-800 font-bold text-base">
+                                                        {orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm}
+                                                    </Text>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                                        <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
+                                                        <Text className="text-slate-800 font-bold text-base">{orderDetail.paper_name}</Text>
+                                                    </div>
+                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                                        <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
+                                                        <Text className="text-slate-800 font-bold text-sm">{orderDetail.wave_type}</Text>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                                        <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
+                                                        <Text className="text-slate-800 font-bold text-sm">{orderDetail.coating_type}</Text>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                                        <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
+                                                        <Text className="text-slate-800 font-bold text-sm">{orderDetail.number_of_plates}</Text>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Card 3: Cost Estimates (Full Width) */}
+                    <Card
+                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full lg:col-span-2"
+
                     >
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -323,72 +472,89 @@ export default function ConsultantRequestDetailPage() {
                         </div>
 
                         {orderDetail.cost_estimate && orderDetail.cost_estimate.length > 0 ? (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {orderDetail.cost_estimate.map((estimate, index) => (
-                                    <div key={estimate.estimate_id} className="border border-emerald-100 rounded-xl p-4 bg-gradient-to-r from-emerald-50/50 to-white hover:border-emerald-200 transition-colors">
-                                        {/* Estimate Header */}
-                                        <div className="flex items-center justify-between mb-3">
+                                    <div key={estimate.estimate_id} className="border border-emerald-100 rounded-lg p-3 bg-gradient-to-r from-emerald-50/30 to-white hover:border-emerald-200 transition-colors">
+                                        {/* Estimate Header & Summary - Compact Row */}
+                                        {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                                             <div className="flex items-center gap-2">
-                                                <Tag color="green" className="px-3 py-1 font-bold bg-green-100 text-green-700 border-0">
+                                                <Tag color="green" className="m-0 font-bold bg-green-100 text-green-700 border-0">
                                                     BÁO GIÁ #{index + 1}
                                                 </Tag>
-                                                {/* <Text className="text-slate-500 text-sm">
-                                                    {dayjs(estimate.estimate_date).format("DD/MM/YYYY")}
-                                                </Text> */}
+                                                <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
                                             </div>
-                                        </div>
 
-                                        {/* Cost Summary - Single Line */}
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-100">
-                                                <div className="flex items-center gap-2">
-                                                    <DollarOutlined className="text-emerald-600" />
-                                                    <Text className="text-emerald-700 text-sm font-medium">Đặt cọc:</Text>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Text className="text-slate-500 text-sm">Đặt cọc:</Text>
+                                                    <Text className="text-emerald-700 font-bold text-sm">
+                                                        {formatCurrency(estimate.deposit_amount)}
+                                                    </Text>
                                                 </div>
-                                                <Text className="text-emerald-700 font-bold text-base">
-                                                    {formatCurrency(estimate.deposit_amount)}
-                                                </Text>
-                                            </div>
-
-                                            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-white rounded-lg border border-emerald-200">
-                                                <div className="flex items-center gap-2">
-                                                    <DollarOutlined className="text-emerald-700" />
-                                                    <Text className="text-emerald-800 text-sm font-bold">Tổng chi phí:</Text>
+                                                <div className="h-4 w-px bg-emerald-200"></div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Text className="text-slate-500 text-sm font-bold">Tổng:</Text>
+                                                    <Text className="text-emerald-700 font-bold text-base">
+                                                        {formatCurrency(estimate.final_total_cost)}
+                                                    </Text>
                                                 </div>
-                                                <Text className="text-emerald-800 font-bold text-lg">
-                                                    {formatCurrency(estimate.final_total_cost)}
-                                                </Text>
                                             </div>
-                                        </div>
+                                        </div> */}
 
-                                        {/* Process Costs - In Collapse */}
-                                        <div className="bg-white rounded-lg border border-slate-100">
+                                        {/* Process Costs - In Compact Collapse */}
+                                        <div className="bg-white rounded border border-slate-100">
                                             <Collapse
                                                 ghost
                                                 expandIconPosition="end"
                                                 size="small"
+                                                className="compact-collapse"
                                             >
                                                 <Panel
                                                     header={
-                                                        <div className="flex items-center justify-between gap-4 w-full">
-                                                            <Text className="text-slate-700 font-medium">Chi tiết chi phí sản xuất</Text>
-                                                            <Badge count={estimate.process_cost.length} style={{ backgroundColor: '#10b981' }} />
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <Tag color="green" className="m-0 font-bold bg-green-100 text-green-700 border-0">
+                                                                    BÁO GIÁ #{index + 1}
+                                                                </Tag>
+                                                                <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+                                                                {/* <span className="text-slate-500 text-sm hidden sm:inline">Ngày tạo: {dayjs(estimate.created_at).format("DD/MM/YYYY")}</span> */}
+                                                            </div>
+
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Text className="text-slate-500 text-sm">Đặt cọc:</Text>
+                                                                    <Text className="text-emerald-700 font-bold text-sm">
+                                                                        {formatCurrency(estimate.deposit_amount)}
+                                                                    </Text>
+                                                                </div>
+                                                                <div className="h-4 w-px bg-emerald-200"></div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Text className="text-slate-500 text-sm font-bold">Tổng:</Text>
+                                                                    <Text className="text-emerald-700 font-bold text-base">
+                                                                        {formatCurrency(estimate.final_total_cost)}
+                                                                    </Text>
+                                                                </div>
+                                                            </div>
+                                                            <div className="h-4 w-px bg-emerald-200"></div>
+                                                            <Text className="text-slate-600 text-sm font-medium">Chi tiết chi phí sản xuất</Text>
+                                                            <Badge count={estimate.process_cost.length} style={{ backgroundColor: '#10b981', transform: 'scale(0.8)' }} />
                                                         </div>
                                                     }
                                                     key="1"
+                                                    className="!border-b-0"
                                                 >
-                                                    <div className="space-y-2 max-h-48 overflow-y-auto grid grid-cols-2 gap-3">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 pt-1 pb-2 px-1">
                                                         {estimate.process_cost.map((proc) => (
                                                             <div
                                                                 key={proc.process_cost_id}
-                                                                className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 transition-colors"
+                                                                className="flex items-center justify-between px-1 border-r border-slate-400 last:border-0"
                                                             >
-
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                                                    <Text className="text-slate-700 font-medium text-sm">{proc.process_code}:</Text>
+                                                                <div className="flex items-center gap-1.5    overflow-hidden">
+                                                                    <Tag color="blue" className="m-0 font-bold bg-blue-100 text-blue-700 border-0">
+                                                                        {proc.process_code}
+                                                                    </Tag>
                                                                 </div>
-                                                                <Text className="text-emerald-600 font-bold text-sm">
+                                                                <Text className="text-emerald-600 font-medium text-xs whitespace-nowrap ml-1">
                                                                     {formatCurrency(proc.cost)}
                                                                 </Text>
                                                             </div>
@@ -399,148 +565,14 @@ export default function ConsultantRequestDetailPage() {
                                         </div>
                                     </div>
                                 ))}
-
-                                {/* Total Summary */}
-                                {/* <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <DollarOutlined className="text-blue-600 text-xl" />
-                                            <div>
-                                                <Text className="text-blue-700 font-bold">Tổng hợp báo giá</Text>
-                                                <Text className="text-blue-600 text-sm">
-                                                    {orderDetail.cost_estimate.length} báo giá được tạo
-                                                </Text>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <Text className="text-slate-500 text-xs">Tổng chi phí cao nhất</Text>
-                                            <Text className="text-emerald-700 text-xl font-bold">
-                                                {formatCurrency(Math.max(...orderDetail.cost_estimate.map(e => e.final_total_cost)))}
-                                            </Text>
-                                        </div>
-                                    </div>
-                                </div> */}
                             </div>
+
                         ) : (
                             <div className="flex flex-col items-center justify-center py-8">
                                 <DollarOutlined className="text-4xl text-slate-300 mb-3" />
                                 <Text className="text-slate-400">Chưa có báo giá nào</Text>
                             </div>
                         )}
-                    </Card>
-
-                    {/* Card 4:  (Bottom Right) */}
-                    <Card
-                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full"
-                        bodyStyle={{ padding: '20px' }}
-                    >
-                        <div className="flex items-center justify-between gap-3 mb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                    <ShoppingOutlined className="text-xl" />
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-800">Chi tiết sản phẩm:<span className="text-primary"> {orderDetail.product_name}</span></h3>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            {/* Product Header - Single Line */}
-                            {/* <div className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
-                                <div className="flex items-center gap-3">
-                                    <ShoppingOutlined className="text-indigo-600 text-xl" />
-                                    <div>
-                                        <Text className="text-indigo-700 font-bold text-sm">Sản phẩm:</Text>
-                                        <Text className="text-indigo-800 font-bold text-lg ml-2">{orderDetail.product_name}</Text>
-                                    </div>
-                                </div>
-                                <Tag color="blue" className="px-3 py-1 font-medium">
-                                    {orderDetail.product_type}
-                                </Tag>
-                            </div>
-
-                            {/* Quantity and Delivery Date - Single Line */}
-                            <div className="grid grid-cols-2 gap-4">
-
-
-                                {/* Quantity */}
-                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <Text className="text-slate-500 text-sm font-medium">Số lượng:</Text>
-                                    </div>
-                                    <Tag bordered={false} className="bg-white text-slate-700 font-bold text-lg px-3 py-1 rounded-lg border border-slate-200">
-                                        {orderDetail.quantity.toLocaleString("vi-VN")}
-                                    </Tag>
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <CalendarOutlined className="text-slate-500" />
-                                        <Text className="text-slate-500 text-sm font-medium">Giao hàng:</Text>
-                                    </div>
-                                    <Tag icon={<CalendarOutlined />} bordered={false} color="cyan" className="text-base px-3 py-1 m-0 font-medium">
-                                        {dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}
-                                    </Tag>
-                                </div>
-                            </div>
-
-                            {/* Technical Specs - In Collapse */}
-                            <div className="bg-white rounded-lg border border-slate-100">
-                                <Collapse
-                                    ghost
-                                    expandIconPosition="end"
-                                    size="small"
-                                >
-                                    <Panel
-                                        header={<Text className="text-slate-700 font-bold">Thông số kỹ thuật</Text>}
-                                        key="1"
-                                    >
-                                        <div className="space-y-2 pt-2">
-                                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                <div className="flex items-center gap-2">
-                                                    <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
-                                                </div>
-                                                <Text className="text-slate-800 font-bold text-base">
-                                                    {orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm}
-                                                </Text>
-                                            </div>
-
-
-
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
-                                                    <Text className="text-slate-800 font-bold text-base">{orderDetail.paper_name}</Text>
-                                                </div>
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
-                                                    <Text className="text-slate-800 font-bold text-sm">{orderDetail.wave_type}</Text>
-                                                </div>
-
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
-                                                    <Text className="text-slate-800 font-bold text-sm">{orderDetail.coating_type}</Text>
-                                                </div>
-
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
-                                                    <Text className="text-slate-800 font-bold text-sm">{orderDetail.number_of_plates}</Text>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Panel>
-                                </Collapse>
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <Text className="text-slate-700 font-bold">Mô tả yêu cầu:</Text>
-                                </div>
-                                <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[80px] max-h-48 overflow-y-auto">
-                                    {orderDetail.description || <span className="text-slate-400 italic">Không có mô tả chi tiết</span>}
-                                </div>
-                            </div>
-                        </div>
                     </Card>
                 </div>
 
@@ -570,30 +602,19 @@ export default function ConsultantRequestDetailPage() {
                         animation: fadeInUp 0.6s ease-out forwards;
                     }
                     
-                    /* Custom scrollbar */
-                    .max-h-48::-webkit-scrollbar {
-                        width: 4px;
-                    }
-                    .max-h-48::-webkit-scrollbar-track {
-                        background: #f1f5f9;
-                        border-radius: 2px;
-                    }
-                    .max-h-48::-webkit-scrollbar-thumb {
-                        background: #cbd5e1;
-                        border-radius: 2px;
-                    }
-                    
-                    /* Custom image fit */
-                    .design-file-image .ant-image,
-                    .design-file-image .ant-image-img {
-                        width: 100%;
-                        height: 100%;
-                    }
                     .design-file-image .ant-image-img {
                         object-fit: cover;
                     }
+                    
+                    /* Compact collapse styles */
+                    .compact-collapse .ant-collapse-header {
+                        padding: 8px 12px !important;
+                    }
+                    .compact-collapse .ant-collapse-content-box {
+                        padding: 0 12px 8px !important;
+                    }
                 `}</style>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
