@@ -1,4 +1,5 @@
 "use client";
+import Footer from "@/components/Footer/Footer";
 import { managerNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { useRouter } from "next/navigation";
@@ -37,8 +38,9 @@ export default function LayoutManager({
       icon: BiLogOut,
     },
   ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Sidebar */}
       {/* <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
         <div className="p-6">
@@ -67,6 +69,7 @@ export default function LayoutManager({
           })}
         </nav>
       </aside> */}
+
       <Sidebar
         userInfo={{
           name: "Quản Lý Tổng Hợp",
@@ -76,7 +79,8 @@ export default function LayoutManager({
         onLogout={() => {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+          document.cookie =
+            "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
           router.push("/management-login");
         }}
         onItemClick={(item) => {
@@ -85,8 +89,15 @@ export default function LayoutManager({
         }}
       />
 
-      {/* Main content */}
-      <main className="ml-72 p-4">{children}</main>
+      {/* Content wrapper (bù khoảng sidebar fixed) */}
+      <div className="ml-72 min-h-screen flex flex-col">
+        {/* Main content */}
+        <main className="flex-1 p-6">
+          {children}
+        </main>
+
+        <Footer />
+      </div>
     </div>
   );
 }

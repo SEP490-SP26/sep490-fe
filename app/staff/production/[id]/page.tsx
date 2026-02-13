@@ -16,6 +16,7 @@ import {
 } from "react-icons/bs";
 
 import { getSignalRConnection } from "@/lib/signalr";
+import { parse } from "path";
 
 
 /* =======================
@@ -82,8 +83,10 @@ function QrModal({
 }: {
   token: string;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (manualToken?: string) => void;
 }) {
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualToken, setManualToken] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const hasScannedRef = useRef(false);
 
@@ -97,12 +100,57 @@ function QrModal({
     if (e.key === "Enter") {
       hasScannedRef.current = true;
       inputRef.current?.blur();
-      onConfirm();
+      onConfirm(token);
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      {showManualInput && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] shadow-lg">
+              <h3 className="font-semibold text-blue-700 mb-3 text-center">
+                Nhập token thủ công
+              </h3>
+
+              <p className="text-sm text-gray-600 mb-3 text-center">
+                Token cần nhập:
+                <br />
+                <span className="font-mono text-blue-600 break-all">
+                  {token}
+                </span>
+              </p>
+
+              <input
+                type="text"
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                placeholder="Nhập token..."
+                className="w-full border rounded-lg px-3 py-2 mb-4"
+              />
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowManualInput(false)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 rounded-lg py-2"
+                >
+                  Hủy
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (!manualToken.trim()) return;
+                    onConfirm(manualToken.trim());
+                    setShowManualInput(false);
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] text-center shadow-lg">
         <h3 className="font-semibold text-blue-700 mb-4">
           Quét QR để hoàn thành công đoạn
@@ -115,7 +163,8 @@ function QrModal({
         <input
           ref={inputRef}
           onKeyDown={handleKeyDown}
-          className="absolute opacity-0"
+          autoFocus
+          className="absolute opacity-0 size-1"
         />
 
         <button
@@ -124,6 +173,13 @@ function QrModal({
         >
           Đóng
         </button>
+        <button
+          onClick={() => setShowManualInput(true)}
+          className="w-full mt-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-lg py-2 transition"
+        >
+          Nhập token thủ công
+        </button>
+
       </div>
     </div>
   );
@@ -277,10 +333,18 @@ export default function ProductionDetailPage() {
   try {
     setQrLoading(true);
 
-    const defaultQty = stage.input_materials.reduce(
-      (sum: number, m: any) => sum + Number(m.quantity || 0),
-      0
-    );
+    const defaultQty = Number(stage.output_product?.quantity || 0);
+
+    console.log(qtyOverride);
+    if(qtyOverride !== undefined && qtyOverride < 0)
+    {
+      setPopup({
+        open: true,
+        type: "error",
+        message: "Số lượng không hợp lệ",
+      })
+      return;
+    }
 
     const finalQty =
       qtyOverride && qtyOverride > 0 ? qtyOverride : defaultQty;
@@ -309,7 +373,7 @@ export default function ProductionDetailPage() {
   const handleQrScanned = async (scannedToken: string) => {
     try {
       setQrLoading(true);
-
+      console.log(scannedToken);
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/finish`,
         {
@@ -548,7 +612,9 @@ export default function ProductionDetailPage() {
         <QrModal
           token={qrToken}
           onClose={() => setQrToken(null)}
-          onConfirm={() => handleQrScanned(qrToken)}
+          onConfirm={(manualToken) =>
+            handleQrScanned(manualToken ?? qrToken)
+          }
         />
       )}
 
