@@ -44,7 +44,8 @@ import {
   Upload,
   UploadProps,
   UploadFile,
-  message
+  message,
+  Steps
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
@@ -140,6 +141,33 @@ export default function OrderDetailPage() {
     const config = statusConfig[status] || { color: "default", text: status };
     return <Tag color={config.color} className="text-sm px-3 py-0.5 rounded mr-0">{config.text}</Tag>;
   };
+
+  const getStepStatus = (status: string) => {
+    const steps = ["Scheduled", "InProcessing", "Finished"];
+    const currentIndex = steps.indexOf(status);
+
+    // If status is not in the flow (e.g. Cancelled), return -1 or handle as needed
+    if (currentIndex === -1) {
+      if (status === 'Cancelled') return -1;
+      return 0; // Default to first step if unknown
+    }
+    return currentIndex;
+  };
+
+  const stepItems = [
+    {
+      title: "Đã lên lịch",
+      icon: <CalendarOutlined />,
+    },
+    {
+      title: "Đang sản xuất",
+      icon: <SyncOutlined spin={order?.status === "InProcessing"} />,
+    },
+    {
+      title: "Hoàn thành",
+      icon: <CheckCircleFilled />,
+    },
+  ];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -256,6 +284,17 @@ export default function OrderDetailPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4">
+        {/* Status Steps */}
+        <Card className="mb-6 rounded-2xl shadow-sm border-gray-100" bordered={false}>
+          <div className="py-2">
+            <Steps
+              current={getStepStatus(order.status)}
+              items={stepItems}
+              status={order.status === 'Cancelled' ? 'error' : 'process'}
+            />
+          </div>
+        </Card>
+
         <Row gutter={[24, 24]}>
           {/* Left Column - Main Info */}
           <Col xs={24} lg={16}>

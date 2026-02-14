@@ -274,9 +274,9 @@ export default function GuestOrderPage() {
       product_name: values.productName,
       quantity: values.quantity || 1,
       description: values.note || "",
-      product_length_mm: values.length ? values.length * 10 : 0,
-      product_width_mm: values.width ? values.width * 10 : 0,
-      product_height_mm: values.height ? values.height * 10 : 0,
+      product_length_mm: values.length ? values.length : 0,
+      product_width_mm: values.width ? values.width : 0,
+      product_height_mm: values.height ? values.height : 0,
       paper_name: values.paperName || "",
       design_file_path: designFilePath,
       order_request_date: new Date().toISOString(),
@@ -894,7 +894,7 @@ export default function GuestOrderPage() {
                   <div className="col-span-1 md:col-span-2">
                     <span className="text-gray-500 text-sm block">Kích thước (Không bắt buộc):</span>
                     <span className="font-medium text-gray-800">
-                      {formDataToSubmit.product_length_mm / 10} x {formDataToSubmit.product_width_mm / 10} x {formDataToSubmit.product_height_mm / 10} (cm)
+                      {formDataToSubmit.product_length_mm} x {formDataToSubmit.product_width_mm} x {formDataToSubmit.product_height_mm} (mm)
                     </span>
                   </div>
 
