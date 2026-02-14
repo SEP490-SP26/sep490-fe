@@ -35,6 +35,7 @@ import {
   Empty,
   message,
   Skeleton,
+  Steps,
   Tag,
   Typography,
   Upload
@@ -230,6 +231,40 @@ export default function RequestDetailPage() {
     );
   };
 
+  const getStepInfo = () => {
+    const status = requestDetail?.process_status?.toUpperCase();
+    const steps = [
+      { title: "Chờ xử lý" },
+      { title: "Đang xử lý" },
+      { title: "Chờ thanh toán" },
+      { title: "Đã thanh toán" },
+    ];
+
+    let current = 0;
+    let stepStatus: "wait" | "process" | "finish" | "error" = "process";
+
+    if (status) {
+      if (["PENDING"].includes(status)) {
+        current = 0;
+      } else if (["PROCESSING", "VERIFIED"].includes(status)) {
+        current = 1;
+      } else if (["DECLINED"].includes(status)) {
+        current = 1;
+        stepStatus = "error";
+      } else if (["WAITING", "WAITING_CONFIRM"].includes(status)) {
+        current = 2;
+      } else if (["ACCEPTED", "COMPLETED", "PAID"].includes(status)) {
+        current = 3;
+        stepStatus = "finish";
+      } else if (["CANCEL", "CANCELLED", "REJECTED"].includes(status)) {
+        current = 0;
+        stepStatus = "error";
+      }
+    }
+
+    return { current, status: stepStatus, items: steps };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
@@ -291,6 +326,18 @@ export default function RequestDetailPage() {
               </div> */}
             </div>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <Card className="rounded-2xl shadow-sm border-slate-100" bordered={false}>
+            <Steps
+              current={getStepInfo().current}
+              status={getStepInfo().status}
+              items={getStepInfo().items}
+              responsive
+              className="px-4 py-2"
+            />
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
