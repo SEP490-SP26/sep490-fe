@@ -66,7 +66,7 @@ export default function RequestDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestId = params.id as string;
-  const quoteId = Number(searchParams.get('quote_id') || searchParams.get('quoteId'));
+  const quoteId = Number(searchParams.get('eId') || searchParams.get('quoteId'));
   const estimateId = Number(searchParams.get('estimate_id') || searchParams.get('estimateId'));
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
