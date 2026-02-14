@@ -43,9 +43,9 @@ export default function ManagerRequestsProcessingPage() {
     const [allOrders, setAllOrders] = useState<OrderRequest[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Sorting state - Default by Delivery Date ascending (closest first)
-    const [sortField, setSortField] = useState<SortField>("delivery_date");
-    const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+    // Sorting state - Default by Order ID descending (newest first)
+    const [sortField, setSortField] = useState<SortField>("order_request_id");
+    const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
     // Fetch ALL orders
     const fetchAllOrders = async () => {

@@ -777,7 +777,9 @@ export default function ProductionDetailPage() {
                         {item.material_name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                        {item.quantity?.toLocaleString("vi-VN")}
+                        {item.quantity && item.quantity > 0
+                          ? item.quantity.toLocaleString("vi-VN")
+                          : ""}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                         {item.unit}

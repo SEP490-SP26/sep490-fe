@@ -101,6 +101,55 @@ export interface RequestQuotationItem {
   cost_note: string;
 }
 
+export interface QuoteDetail {
+  // --- Định danh và Liên kết ---
+  order_request_id: number;
+  estimate_id: number;
+  quote_id: number;
+
+  // --- Thông tin Khách hàng ---
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  detail_address: string;
+
+  // --- Thông tin Sản phẩm ---
+  product_name: string;
+  quantity: number;
+  paper_name: string;
+  coating_type: string;
+  wave_type: string;
+  is_send_design: boolean;
+  design_type_text: string; // VD: "Sử dụng bản thiết kế của doanh nghiệp"
+  production_process_text: string; // Danh sách công đoạn đã format tiếng Việt
+
+  // --- Thời gian (Dữ liệu gốc & Format) ---
+  delivery_date: string; // ISO Date
+  delivery_text: string; // VD: "26/02/2026"
+  order_request_date: string; 
+  request_date_text: string; // VD: "13/02/2026 22:25"
+  quote_created_at: string;
+  quote_expired_at: string;
+  quote_expired_at_text: string; // VD: "15/02/2026 21:15"
+
+  // --- Chi tiết Tài chính (VNĐ) ---
+  material_cost: number;   // Chi phí vật tư
+  labor_cost: number;      // Chi phí nhân công
+  other_fees: number;      // Phí khác (thường là phí thiết kế)
+  rush_amount: number;     // Phí làm gấp
+  subtotal: number;        // Tổng cộng chưa thuế/phí
+  final_total: number;     // Tổng giá trị cuối cùng
+  discount_percent: number;
+  discount_amount: number;
+  deposit: number;         // Tiền đặt cọc cần thu
+
+  // --- Cấu hình khác ---
+  is_customer_copy: boolean;
+}
+
+/** Nếu dữ liệu trả về là 1 array */
+export type QuoteDetailList = QuoteDetail[];
+
 /** Kiểu dữ liệu mảng các báo giá yêu cầu */
 export type RequestQuotationList = RequestQuotationItem[];
 
@@ -137,4 +186,6 @@ export const estimatesApi = {
         http.post<EstimationResponse>("/api/Estimates/cost-save", body),
 
     getAllDeal: (requestId: number) => http.get<RequestQuotationList>(`/api/Estimates/all-deal-by-${requestId}`),
+
+    emailPreview: (quoteId: number) => http.get<QuoteDetail>(`/api/Estimates/email-preview/${quoteId}`),
 };
