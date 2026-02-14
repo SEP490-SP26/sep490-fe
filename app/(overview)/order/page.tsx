@@ -174,6 +174,8 @@ export default function GuestOrderPage() {
           setPaperTypes(papersRes);
         } else if ((papersRes as any)?.data) {
           setPaperTypes((papersRes as any).data);
+        } else if ((papersRes as any)?.paperTypes) {
+          setPaperTypes((papersRes as any).paperTypes);
         }
 
       } catch (error) {
