@@ -1422,119 +1422,234 @@ function ConsultantForm() {
           ]}
           width={750}
         >
-          {submitValues && Array.isArray(submitValues) && (
-            <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              {/* Customer Info - Ultra Compact */}
-              <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-sm">
-                <div className="flex gap-2 items-center">
-                  <span className="text-blue-800 font-semibold"><UserOutlined /> {submitValues[0]?.customer_name || "Khách hàng"}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-gray-600">{submitValues[0]?.customer_phone || "SĐT"}</span>
+          {submitValues && Array.isArray(submitValues) && (() => {
+            // --- LOGIC TO EXTRACT COMMON SPECS ---
+            const allQuotes = submitValues;
+            if (allQuotes.length === 0) return null;
+
+            // Define fields to check for commonality
+            // Keys must match submitValues keys
+            const specFields: { key: string; label: string; format?: (val: any) => string }[] = [
+              { key: "product_name", label: "Sản phẩm" },
+              { key: "product_type", label: "Loại sản phẩm", format: (v) => productTypes.find(pt => pt.code === v || pt.product_type_id === v)?.name || v },
+              {
+                key: "dimensions", // Virtual key for combined dimensions
+                label: "Kích thước",
+                format: (_) => "" // Handled manually below
+              },
+              { key: "paper_code", label: "Giấy/Chất liệu", format: (v) => paperTypes.find(p => p.code === v)?.name || v },
+              { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v },
+              { key: "wave_type", label: "Sóng", format: (v) => v },
+              { key: "number_of_plates", label: "Số lượng kẽm", format: (v) => v },
+              {
+                key: "production_processes",
+                label: "Công đoạn",
+                format: (v) => {
+                  if (!v) return "Không";
+                  const arr = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(',') : []);
+                  return arr.map((p: string) => PROCESS_TYPE_LABELS[p] || p).join(", ");
+                }
+              },
+              // { key: "print_width", label: "Khổ in (Rộng)", format: (v) => `${v} mm` },
+              // { key: "print_height", label: "Khổ in (Cao)", format: (v) => `${v} mm` },
+              { key: "is_one_side_box", label: "Kiểu in", format: (v) => v ? "In 1 mặt" : "In 2 mặt" },
+              // { key: "glue_tab", label: "Nắp dán", format: (v) => `${v} mm` }
+            ];
+
+            const commonSpecs: Record<string, any> = {};
+            const uniqueSpecsMap: Record<number, Record<string, any>> = {};
+
+            // Helper to get value
+            const getVal = (quote: any, fieldKey: string) => {
+              if (fieldKey === "dimensions") {
+                return `${quote.length} x ${quote.width} x ${quote.height}`;
+              }
+              return quote[fieldKey];
+            };
+
+            // Check each field
+            specFields.forEach(field => {
+              const firstVal = getVal(allQuotes[0], field.key);
+              const isCommon = allQuotes.every(q => getVal(q, field.key) === firstVal);
+
+              if (isCommon && firstVal) {
+                // If it's common (and not empty), add to commonSpecs
+                // For dimensions, stick to the formatted string. For others, keep raw value but we might need formatted for display?
+                // Let's store formatted if possible or raw?
+                // Let's store raw and format on render
+                commonSpecs[field.key] = firstVal;
+              } else {
+                // Not common, add to uniqueSpecs for each quote
+                allQuotes.forEach((q, idx) => {
+                  if (!uniqueSpecsMap[idx]) uniqueSpecsMap[idx] = {};
+                  uniqueSpecsMap[idx][field.key] = getVal(q, field.key);
+                });
+              }
+            });
+
+
+            return (
+              <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* 1. Customer Info - Ultra Compact */}
+                <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-sm">
+                  <div className="flex gap-2 items-center">
+                    <span className="text-blue-800 font-semibold"><UserOutlined /> {submitValues[0]?.customer_name || "Khách hàng"}</span>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-600">{submitValues[0]?.customer_phone || "SĐT"}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 italic">
+                    {submitValues?.length} phương án báo giá
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 italic">
-                  {submitValues?.length} phương án
-                </div>
-              </div>
 
-              {submitValues.map((quote: any, index: number) => {
-                const calc = quote.calculations?.costEstimate?.cost;
-                const paperName = paperTypes.find(p => p.code === quote.paper_code)?.name || quote.paper_code;
-
-                // Derived Values
-                const subtotal = Math.round(calc?.subtotal || 0);
-                const discountAmt = Math.round((subtotal * discountPercent) / 100) || 0; // Discount applied to subtotal
-
-                const vatAmt = Math.round(calc?.overhead_cost || 0); // VAT/Overhead
-                const finalTotal = Math.round(calc?.final_total_cost || 0); // This is the final price after all calculations including VAT
-                const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000; // 30% deposit, rounded to nearest 1000
-
-                const negotiatedPrice = quote.final_price && quote.final_price !== finalTotal ? quote.final_price : null;
-
-                return (
-                  <div key={quote.key || index} className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
-                    {/* Header Line: Label + Product + Quantity */}
-                    <div className="bg-gray-50 px-4 py-2 flex justify-between items-center border-b border-gray-100">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
-                          {quote.label || `PA ${index + 1}`}
-                        </span>
-                        <span className="font-bold text-gray-800 text-sm truncate" title={quote.product_name}>
-                          {quote.product_name}
-                        </span>
-                      </div>
-                      <span className="text-gray-600 text-xs font-medium whitespace-nowrap bg-white border px-2 py-0.5 rounded">
-                        SL: {Number(quote.quantity)?.toLocaleString()}
-                      </span>
+                {/* 2. Common Technical Specs Card (Only if there are common specs) */}
+                {Object.keys(commonSpecs).length > 0 && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs">
+                    <div className="font-bold text-gray-700 mb-2 uppercase border-b border-gray-200 pb-1">
+                      Thông số kỹ thuật chung
                     </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      {specFields.map(field => {
+                        if (Object.prototype.hasOwnProperty.call(commonSpecs, field.key)) {
+                          let displayVal = commonSpecs[field.key];
+                          if (field.key === "dimensions") {
+                            displayVal = displayVal + " mm";
+                          } else if (field.format) {
+                            displayVal = field.format(displayVal);
+                          }
 
-                    {/* Content Grid */}
-                    <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                      {/* Left: Specs */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between border-b border-dashed border-gray-100 pb-1">
-                          <span className="text-gray-500">Kích thước:</span>
-                          <span className="font-medium text-gray-700">{quote.length} x {quote.width} x {quote.height} mm</span>
-                        </div>
-                        <div className="flex justify-between border-b border-dashed border-gray-100 pb-1">
-                          <span className="text-gray-500">Loại giấy:</span>
-                          <span className="font-medium text-gray-700 truncate max-w-[150px]" title={paperName}>{paperName}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-dashed border-gray-100 pb-1">
-                          <span className="text-gray-500">Số lượng:</span>
-                          <span className="font-medium text-gray-700">{Number(quote.quantity)?.toLocaleString()}</span>
-                        </div>
-                      </div>
+                          // Hide empty values or "None" if desired? 
+                          if (!displayVal || displayVal === "Không") return null;
 
-                      {/* Right: Financials */}
-                      <div className="space-y-1 pl-2 border-l border-gray-100">
-                        {calc ? (
-                          <>
-                            <div className="flex justify-between text-gray-500">
-                              <span>Thành tiền (Trước chiết khấu):</span>
-                              <span>{subtotal.toLocaleString()} đ</span>
-                            </div>
-                            <div className="flex justify-between text-gray-500">
-                              <span>Chiết khấu ({discountPercent}%):</span>
-                              <span className="text-red-500">-{discountAmt.toLocaleString()} đ</span>
-                            </div>
-                            <div className="flex justify-between text-gray-500 border-t border-dashed border-gray-100 pt-1 mt-1">
-                              <span>Sau chiết khấu (Trước VAT):</span>
-                              <span className="font-medium">{(subtotal - discountAmt).toLocaleString()} đ</span>
-                            </div>
-                            {/* <div className="flex justify-between text-gray-500">
-                                                <span>VAT/Overhead:</span>
-                                                <span>+{vatAmt.toLocaleString()} đ</span>
-                                            </div> */}
-
-                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                              <span className="font-bold text-gray-700">Tổng cộng (Sau VAT):</span>
-                              <span className={`font-bold text-base ${negotiatedPrice ? 'text-gray-400 line-through text-sm' : 'text-blue-600'}`}>
-                                {finalTotal.toLocaleString()} đ
+                          return (
+                            <div key={field.key} className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                              <span className="text-gray-500">{field.label}:</span>
+                              <span className="font-medium text-gray-800 text-right truncate pl-2 max-w-[200px]" title={displayVal.toString()}>
+                                {displayVal}
                               </span>
                             </div>
-
-                            {negotiatedPrice && (
-                              <div className="flex justify-between items-center bg-yellow-50 px-2 py-1 rounded mt-1 border border-yellow-100">
-                                <span className="font-bold text-yellow-700">Giá chốt khách:</span>
-                                <span className="font-bold text-lg text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
-                              </div>
-                            )}
-
-                            <div className="flex justify-between items-center text-xs text-orange-600 mt-1">
-                              <span>Cọc (30%):</span>
-                              <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-red-400 italic text-center block py-2">Chưa có giá</span>
-                        )}
-                      </div>
+                          );
+                        }
+                        return null;
+                      })}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                )}
+
+                {/* 3. Individual Quote Cards */}
+                {submitValues.map((quote: any, index: number) => {
+                  const calc = quote.calculations?.costEstimate?.cost;
+                  // unique specs for this quote
+                  const uniqueForThis = uniqueSpecsMap[index] || {};
+
+                  // Derived Values
+                  const subtotal = Math.round(calc?.subtotal || 0);
+                  const discountAmt = Math.round((subtotal * discountPercent) / 100) || 0;
+                  const finalTotal = Math.round(calc?.final_total_cost || 0);
+                  const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000;
+                  const negotiatedPrice = quote.final_price && quote.final_price !== finalTotal ? quote.final_price : null;
+
+                  return (
+                    <div key={quote.key || index} className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
+                      {/* Header */}
+                      <div className="bg-white px-4 py-2 flex justify-between items-center border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                            {quote.label || `PA ${index + 1}`}
+                          </span>
+                          {/* If product name is unique, show it here? Or just show it in common? 
+                              Usually product name is common. Use it here anyway for identity. */}
+                          {/* <span className="font-bold text-gray-800 text-sm truncate" title={quote.product_name}>
+                            {quote.product_name}
+                          </span> */}
+                        </div>
+                        {/* <span className="text-blue-600 text-xs font-bold whitespace-nowrap bg-blue-50 border border-blue-100 px-2 py-0.5 rounded">
+                          SL: {Number(quote.quantity)?.toLocaleString()}
+                        </span> */}
+                      </div>
+
+                      {/* Content Grid */}
+                      <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        {/* Left: Unique Specs */}
+                        <div className="space-y-1">
+                          {/* Always show Quantity first if needed, but it's in header. */}
+
+                          {/* Render Unique Specs */}
+                          {specFields.map(field => {
+                            // Check if this field is in uniqueForThis
+                            if (Object.prototype.hasOwnProperty.call(uniqueForThis, field.key)) {
+                              let val = uniqueForThis[field.key];
+                              if (field.key === "dimensions") {
+                                val = val + " mm";
+                              } else if (field.format) {
+                                val = field.format(val);
+                              }
+
+                              if (!val || val === "Không") return null;
+
+                              return (
+                                <div key={field.key} className="flex justify-between border-b border-dashed border-gray-100 pb-1">
+                                  <span className="text-gray-500">{field.label}:</span>
+                                  <span className="font-medium text-gray-700 text-right">{val}</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+
+                          {/* If no unique specs, maybe show a message? or just empty */}
+                          {Object.keys(uniqueForThis).length === 0 && (
+                            <div className="text-gray-400 italic py-2">
+                              (Thông số giống như trên)
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right: Financials */}
+                        <div className="space-y-1 pl-2 border-l border-gray-100">
+                          {calc ? (
+                            <>
+                              <div className="flex justify-between text-gray-500">
+                                <span>Thành tiền:</span>
+                                <span>{subtotal.toLocaleString()} đ</span>
+                              </div>
+                              {discountAmt > 0 && (
+                                <div className="flex justify-between text-gray-500">
+                                  <span>Chiết khấu ({discountPercent}%):</span>
+                                  <span className="text-red-500">-{discountAmt.toLocaleString()} đ</span>
+                                </div>
+                              )}
+
+                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                                <span className="font-bold text-gray-700">Tổng cộng (Sau VAT):</span>
+                                <span className={`font-bold text-base ${negotiatedPrice ? 'text-gray-400 line-through text-sm' : 'text-blue-600'}`}>
+                                  {finalTotal.toLocaleString()} đ
+                                </span>
+                              </div>
+
+                              {negotiatedPrice && (
+                                <div className="flex justify-between items-center bg-yellow-50 px-2 py-1 rounded mt-1 border border-yellow-100">
+                                  <span className="font-bold text-yellow-700">Giá chốt:</span>
+                                  <span className="font-bold text-lg text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
+                                </div>
+                              )}
+
+                              <div className="flex justify-between items-center text-xs text-orange-600 mt-1">
+                                <span>Cọc (30%):</span>
+                                <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-red-400 italic text-center block py-2">Chưa có giá</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </Modal>
 
       </div>
