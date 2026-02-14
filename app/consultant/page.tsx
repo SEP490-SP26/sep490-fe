@@ -47,7 +47,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import CustomerInfoSection from "./components/CustomerInfoSection";
 import DesignUploadSection from "./components/DesignUploadSection";
 import EstimatesCard from "./components/EstimatesCard";
@@ -162,6 +162,7 @@ function ConsultantForm() {
       paperEstimate: any;
       costEstimate: any;
       discountPercent: number;
+      estimate_id?: number | null;
     };
   }
   const [quoteTabs, setQuoteTabs] = useState<QuoteTab[]>([
@@ -198,6 +199,7 @@ function ConsultantForm() {
       paperEstimate,
       costEstimate,
       discountPercent,
+      estimate_id: savedEstimateId,
     };
 
     // Generate new key
@@ -263,6 +265,7 @@ function ConsultantForm() {
       paperEstimate,
       costEstimate,
       discountPercent,
+      estimate_id: savedEstimateId,
     };
 
     const updatedTabs = currentTabs.map((tab) => {
@@ -295,11 +298,13 @@ function ConsultantForm() {
         setPaperEstimate(targetTab.calculations.paperEstimate);
         setCostEstimate(targetTab.calculations.costEstimate);
         setDiscountPercent(targetTab.calculations.discountPercent);
+        setSavedEstimateId(targetTab.calculations.estimate_id || null);
       } else {
         setEstimate(null);
         setPaperEstimate(null);
         setCostEstimate(null);
         setDiscountPercent(0);
+        setSavedEstimateId(null);
 
         // Force calculation if needed
         setTimeout(() => {
@@ -514,6 +519,12 @@ function ConsultantForm() {
               orderData.coating_type && orderData.coating_type !== "NONE"
                 ? orderData.coating_type
                 : "KEO_NUOC",
+            // Add dimensions and paper code if available
+            length: orderData.product_length_mm,
+            width: orderData.product_width_mm,
+            height: orderData.product_height_mm,
+            paper_code: orderData.paper_code,
+            paper_name: orderData.paper_name, // Store paper_name to detect if custom paper was requested
           });
 
           if (orderData.design_file_path) {
@@ -525,6 +536,7 @@ function ConsultantForm() {
 
           const values = form.getFieldsValue();
           handleCalculate(values, values);
+          setTimeout(() => calculateEstimates(), 500);
         }
 
         // Trigger sync after setting form values
@@ -535,7 +547,7 @@ function ConsultantForm() {
     };
 
     fetchOrderDetails();
-  }, [orderId, form, products, productTypes]);
+  }, [orderId, form, products, productTypes, materials, configLoading]);
 
 
 
@@ -576,11 +588,16 @@ function ConsultantForm() {
   useEffect(() => {
     if (productTempalte && productTempalte.length > 0) {
       const profile = productTempalte[0];
+      const currentValues = form.getFieldsValue(true); // Get current form values including hidden
+
       const newValues = {
-        paper_code: profile.paper_code,
-        length: profile.product_length_mm,
-        width: profile.product_width_mm,
-        height: profile.product_height_mm,
+        // Only set paper_code if NOT already set OR if paper_name is empty (meaning no custom paper)
+        paper_code: (currentValues.paper_code || currentValues.paper_name) ? currentValues.paper_code : profile.paper_code,
+
+        // Only set dimensions if NOT already set
+        length: currentValues.length ? currentValues.length : profile.product_length_mm,
+        width: currentValues.width ? currentValues.width : profile.product_width_mm,
+        height: currentValues.height ? currentValues.height : profile.product_height_mm,
         number_of_plates: profile.number_of_plates,
         coating_type: profile.coating_type,
         wave_type: profile.wave_type,
@@ -592,13 +609,13 @@ function ConsultantForm() {
         bleed: profile.bleed_mm,
         default_quantity: profile.default_quantity,
         // quantity: profile.default_quantity,
-        // ...(selectedProductTypeCode === "HOP_MAU" && {
-        //   glueTab: profile.glue_tab_mm,
-        //   isOneSideBox: profile.is_one_side_box,
-        // }),
+        ...(selectedProductTypeCode === "HOP_MAU" && {
+          glueTab: profile.glue_tab_mm,
+          isOneSideBox: profile.is_one_side_box,
+        }),
       };
       form.setFieldsValue(newValues);
-      // setTimeout(() => calculatePaperEstimate(), 100);
+      setTimeout(() => calculateEstimates(), 500);
     }
   }, [productTempalte, form, selectedProductTypeCode]);
 
@@ -614,7 +631,8 @@ function ConsultantForm() {
     }
   }, [productTypes]);
 
-  const calculateEstimates = () => {
+
+  function calculateEstimates() {
     const values = form.getFieldsValue();
     const {
       paper_code,
@@ -784,7 +802,7 @@ function ConsultantForm() {
     } catch (err) {
       console.error("Calculation error", err);
     }
-  };
+  }
 
   // Debounce
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -863,7 +881,10 @@ function ConsultantForm() {
         ...tab.data,
         key: tab.key,
         label: tab.label,
-        calculations: tab.calculations
+        calculations: {
+          ...tab.calculations,
+          estimate_id: tab.key === activeTabKey ? savedEstimateId : tab.calculations?.estimate_id
+        }
       };
     });
 
@@ -1001,6 +1022,12 @@ function ConsultantForm() {
         const { calculations } = quote;
         if (calculations && calculations.costEstimate && calculations.paperEstimate) {
           try {
+            // Check if estimate_id already exists (saved via Adjust Price)
+            if (calculations.estimate_id) {
+              console.log(`Skipping costSave for ${quote.label}, using existing estimate_id: ${calculations.estimate_id}`);
+              continue;
+            }
+
             const originalPrice = calculations.costEstimate.cost.final_total_cost;
             const discountAmt = Math.round((originalPrice * calculations.discountPercent) / 100);
 

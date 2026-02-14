@@ -246,6 +246,16 @@ export default function ConsultantOrdersPage() {
     [allOrders, sortOrders, filterBySearch]
   );
 
+  const declinedOrders = useMemo(
+    () =>
+      sortOrders(
+        filterBySearch(
+          allOrders.filter((o) => o.process_status?.toLowerCase() === "declined")
+        )
+      ),
+    [allOrders, sortOrders, filterBySearch]
+  );
+
   const processingOrders = useMemo(
     () =>
       sortOrders(
@@ -330,6 +340,18 @@ export default function ConsultantOrdersPage() {
             </Button>
           </Space>
 
+        );
+      case "declined":
+        return (
+          <Space size="small" >
+            <Link
+              href={`/consultant?orderId=${record.order_request_id}&mode=negotiate`}
+            >
+              <Button type="primary" size="small" icon={<EditOutlined />} className="bg-orange-500 hover:bg-orange-600">
+                Chỉnh sửa lại
+              </Button>
+            </Link>
+          </Space>
         );
       case "processing":
       case "verified":
@@ -595,6 +617,37 @@ export default function ConsultantOrdersPage() {
           })}
           bordered
           size="middle"
+        />
+      ),
+    },
+    {
+      key: "declined",
+      label: (
+        <span>
+          Yêu cầu chỉnh sửa
+          {declinedOrders.length > 0 && (
+            <Tag color="orange" className="ml-2">
+              {declinedOrders.length}
+            </Tag>
+          )}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columns}
+          dataSource={declinedOrders}
+          rowKey="order_request_id"
+          pagination={{
+            pageSize: 10,
+            showTotal: (total) => `Tổng ${total} đơn`,
+          }}
+          locale={{ emptyText: <Empty description="Không có đơn yêu cầu chỉnh sửa" /> }}
+          bordered
+          size="middle"
+          onRow={(record) => ({
+            onClick: () => router.push(`/consultant?orderId=${record.order_request_id}&mode=negotiate`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
         />
       ),
     },
