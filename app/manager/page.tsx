@@ -3,8 +3,78 @@ import { useProduction } from "@/context/ProductionContext";
 import Link from "next/link";
 import { BiCalendar, BiCheckCircle, BiPackage } from "react-icons/bi";
 import { FiAlertTriangle, FiClock } from "react-icons/fi";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
+
+  const [missingMaterials, setMissingMaterials] = useState<any[]>([]);
+  const [loadingMissing, setLoadingMissing] = useState(false);
+
+  useEffect(() => {
+    const fetchMissingMaterials = async () => {
+      try {
+        setLoadingMissing(true);
+
+        const res = await fetch(
+          "https://amms-juaa.onrender.com/api/MissingMaterials/paged?page=1&pageSize=10"
+        );
+
+        const data = await res.json();
+        setMissingMaterials(data.data || []);
+      } catch (error) {
+        console.error("Lỗi khi fetch Missing Materials:", error);
+      } finally {
+        setLoadingMissing(false);
+      }
+    };
+
+    fetchMissingMaterials();
+  }, []);
+
+  // ======== PRODUCTIONS (Chỉ lấy 5 đơn gần nhất) ========
+
+  const [productions, setProductions] = useState<any[]>([]);
+  const [loadingProd, setLoadingProd] = useState(false);
+
+  useEffect(() => {
+    const fetchProductions = async () => {
+      try {
+        setLoadingProd(true);
+
+        const res = await fetch(
+          `https://amms-juaa.onrender.com/api/Productions/get-all-production?page=1&pageSize=50`
+        );
+
+        const data = await res.json();
+
+        const filtered = (data.data || []).filter(
+          (item: any) =>
+            item.status === "Scheduled" ||
+            item.status === "InProcessing"
+        );
+
+        // Sort mới nhất trước (ưu tiên delivery_date)
+        const sorted = filtered.sort(
+          (a: any, b: any) =>
+            new Date(b.delivery_date).getTime() -
+            new Date(a.delivery_date).getTime()
+        );
+
+        // Lấy 5 đơn gần nhất
+        setProductions(sorted.slice(0, 5));
+
+      } catch (err) {
+        console.error("Lỗi fetch production:", err);
+      } finally {
+        setLoadingProd(false);
+      }
+    };
+
+    fetchProductions();
+  }, []);
+
+  // =========
+
   const { orders, inventory, materials, productionSchedules } = useProduction();
 
   // KPIs
@@ -12,6 +82,7 @@ export default function Dashboard() {
   const scheduledOrders = orders.filter(
     (o) => o.status === "scheduled" || o.status === "in_production"
   ).length;
+
   const scheduledRate =
     totalOrders > 0 ? ((scheduledOrders / totalOrders) * 100).toFixed(0) : 0;
 
@@ -24,15 +95,18 @@ export default function Dashboard() {
     .slice(0, 5);
 
   // Tồn kho thấp (< 100 đơn vị)
+  {/*
   const lowStockItems = inventory
     .filter((inv) => inv.on_hand < 100)
     .map((inv) => ({
       ...inv,
       material: materials.find((m) => m.id === inv.material_id),
     }));
+    */}
 
   // Lịch sản xuất hôm nay
   const today = new Date().toISOString().split("T")[0];
+
   const todaySchedules = productionSchedules
     .filter((s) => {
       const startDate = s.start_date;
@@ -44,36 +118,16 @@ export default function Dashboard() {
       order: orders.find((o) => o.order_id === schedule.order_id),
     }));
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: "bg-gray-100 text-gray-700",
-      scheduled: "bg-blue-100 text-blue-700",
-      in_production: "bg-yellow-100 text-yellow-700",
-      completed: "bg-green-100 text-green-700",
-    };
-    return colors[status] || "bg-gray-100 text-gray-700";
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending: "Chờ xử lý",
-      scheduled: "Đã lên lịch",
-      in_production: "Đang sản xuất",
-      completed: "Hoàn thành",
-    };
-    return labels[status] || status;
-  };
-
   return (
     <div>
-      {/* <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-      </div> */}
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
 
         <div className="flex gap-3">
-          <Link href="/warehouse">Chuyển đến giao diện Nhân viên lập lịch</Link>
+          <Link href="/warehouse">
+            Chuyển đến giao diện Nhân viên lập lịch
+          </Link>
         </div>
       </div>
 
@@ -111,104 +165,45 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Đơn hàng gần đây */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="mb-4">Đơn hàng gần đây</h2>
+
           <div className="space-y-3">
-            {recentOrders.length > 0 ? (
-              recentOrders.map((order) => (
+            {loadingProd ? (
+              <div className="text-gray-400 text-center py-8">
+                Đang tải dữ liệu...
+              </div>
+            ) : productions.length > 0 ? (
+              productions.map((order) => (
                 <div
                   key={order.order_id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div className="flex-1">
-                    <div className="text-gray-900">{order.customer_name}</div>
-                    <div className="text-gray-500 text-sm">
-                      Số lượng: {order.quantity} • Giao:{" "}
-                      {new Date(order.delivery_date).toLocaleDateString(
-                        "vi-VN"
-                      )}
+                    <div className="text-gray-900 font-medium">
+                      Mã đơn hàng: {order.code}
                     </div>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs ${getStatusColor(
-                      order.status
-                    )}`}
-                  >
-                    {getStatusLabel(order.status)}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-400 text-center py-8">
-                Chưa có đơn hàng
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Tồn kho thấp */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="mb-4 flex items-center gap-2">
-            <FiAlertTriangle className="w-5 h-5 text-orange-500" />
-            Cảnh báo tồn kho thấp
-          </h2>
-          <div className="space-y-3">
-            {lowStockItems.length > 0 ? (
-              lowStockItems.map((item) => (
-                <div
-                  key={item.material_id}
-                  className="flex items-center justify-between p-3 bg-orange-50 rounded-lg"
-                >
-                  <div className="flex-1">
-                    <div className="text-gray-900">{item.material?.name}</div>
                     <div className="text-gray-500 text-sm">
-                      Khả dụng: {item.on_hand - item.reserved}{" "}
-                      {item.material?.unit}
+                      {order.product_name} • SL: {order.quantity}
                     </div>
-                  </div>
-                  <div className="text-orange-600">
-                    {item.on_hand} {item.material?.unit}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-400 text-center py-8">
-                Tồn kho ổn định
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Lịch sản xuất hôm nay */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 lg:col-span-2">
-          <h2 className="mb-4 flex items-center gap-2">
-            <FiClock className="w-5 h-5 text-blue-500" />
-            Lịch sản xuất hôm nay
-          </h2>
-          <div className="space-y-3">
-            {todaySchedules.length > 0 ? (
-              todaySchedules.map((schedule) => (
-                <div
-                  key={schedule.id}
-                  className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
-                >
-                  <div className="flex-1">
-                    <div className="text-gray-900">
-                      Đơn hàng: {schedule.order?.customer_name}
-                    </div>
                     <div className="text-gray-500 text-sm">
-                      Số lượng: {schedule.order?.quantity} •{" "}
-                      {schedule.start_date} đến {schedule.end_date}
+                      Giao:{" "}
+                      {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
                     </div>
                   </div>
+
                   <span
-                    className={`px-3 py-1 rounded-full text-xs ${schedule.status === "in_progress"
+                    className={`px-3 py-1 rounded-full text-xs ${
+                      order.status === "InProcessing"
                         ? "bg-yellow-100 text-yellow-700"
                         : "bg-blue-100 text-blue-700"
-                      }`}
+                    }`}
                   >
-                    {schedule.status === "in_progress"
+                    {order.status === "InProcessing"
                       ? "Đang sản xuất"
                       : "Đã lên lịch"}
                   </span>
@@ -216,7 +211,51 @@ export default function Dashboard() {
               ))
             ) : (
               <div className="text-gray-400 text-center py-8">
-                Không có lịch sản xuất hôm nay
+                Không có đơn phù hợp
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Cảnh báo thiếu nguyên vật liệu */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="mb-4 flex items-center gap-2">
+            <FiAlertTriangle className="w-5 h-5 text-orange-500" />
+            Cảnh báo thiếu nguyên vật liệu
+          </h2>
+
+          <div className="space-y-3">
+            {loadingMissing ? (
+              <div className="text-gray-400 text-center py-8">
+                Đang tải dữ liệu...
+              </div>
+            ) : missingMaterials.length > 0 ? (
+              missingMaterials.map((item) => (
+                <div
+                  key={item.material_id}
+                  className="flex items-center justify-between p-3 bg-red-50 rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="text-gray-900 font-medium">
+                      {item.material_name}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      Cần: {item.needed} {item.unit}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      Hiện có: {item.available} {item.unit}
+                    </div>
+                  </div>
+
+                  <div className="text-red-600 font-semibold">
+                    Thiếu: {(item.needed - item.available).toFixed(2)}{" "}
+                    {item.unit}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-400 text-center py-8">
+                Không có vật liệu thiếu
               </div>
             )}
           </div>
