@@ -1547,7 +1547,11 @@ function ConsultantForm() {
                   const discountAmt = Math.round((subtotal * discountPercent) / 100) || 0;
                   const finalTotal = Math.round(calc?.final_total_cost || 0);
                   const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000;
-                  const negotiatedPrice = quote.final_price && quote.final_price !== finalTotal ? quote.final_price : null;
+
+                  // Calculate default rounded price (same logic as in EstimatesCard)
+                  const defaultAutoPrice = Math.round(finalTotal / 1000) * 1000;
+                  // Only show negotiated price if it differs from the default rounded value
+                  const negotiatedPrice = quote.final_price && quote.final_price !== defaultAutoPrice ? quote.final_price : null;
 
                   return (
                     <div key={quote.key || index} className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">

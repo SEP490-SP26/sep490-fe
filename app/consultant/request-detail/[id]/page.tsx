@@ -171,6 +171,7 @@ export default function ConsultantRequestDetailPage() {
                                 icon={<EditOutlined />}
                                 className="bg-blue-600 hover:bg-blue-500"
                                 size="small"
+                                onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate`)}
                             >
                                 Cập nhật yêu cầu
                             </Button>
