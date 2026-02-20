@@ -351,6 +351,7 @@ export default function CustomerHistoryPage() {
           pagination={{
             current: paginationOrder.page,
             pageSize: paginationOrder.pageSize,
+            total: paginationOrder.hasNext ? (paginationOrder.page * paginationOrder.pageSize) + 1 : (paginationOrder.page * paginationOrder.pageSize),
             onChange: (page) => handleVerifyOtp(page, 'orders'),
             size: 'small',
             showSizeChanger: false
@@ -383,6 +384,7 @@ export default function CustomerHistoryPage() {
           pagination={{
             current: paginationRequest.page,
             pageSize: paginationRequest.pageSize,
+            total: paginationRequest.hasNext ? (paginationRequest.page * paginationRequest.pageSize) + 1 : (paginationRequest.page * paginationRequest.pageSize),
             onChange: (page) => handleVerifyOtp(page, 'requests'),
             size: 'small',
             showSizeChanger: false

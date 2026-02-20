@@ -74,6 +74,8 @@ interface OrderDetail {
   production_processes?: string;
   is_send_design?: boolean;
   payments?: any[]; // Using any[] or OrderPayment[] if imported
+  final_total_cost?: number;
+  deposit_amount?: number;
 }
 
 export default function RequestDetailPage() {
@@ -127,6 +129,8 @@ export default function RequestDetailPage() {
             production_processes: orderData.production_processes,
             is_send_design: orderData.is_send_design,
             payments: orderData.payments || [],
+            final_total_cost: orderData.final_total_cost,
+            deposit_amount: orderData.deposit_amount,
           });
         }
       } catch (error) {
@@ -237,7 +241,7 @@ export default function RequestDetailPage() {
       { title: "Chờ xử lý" },
       { title: "Đang xử lý" },
       { title: "Chờ thanh toán" },
-      { title: "Đã thanh toán" },
+      { title: "Đã xác nhận" },
     ];
 
     let current = 0;
@@ -469,6 +473,38 @@ export default function RequestDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Cost Information */}
+            {(requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                    <CreditCardOutlined className="text-xl" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 m-0">Chi phí & Thanh toán</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {requestDetail.final_total_cost !== undefined && (
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="text-slate-500 text-sm font-medium mb-1">Tổng chi phí dự kiến</div>
+                      <div className="text-2xl font-bold text-emerald-600">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(requestDetail.final_total_cost)}
+                      </div>
+                    </div>
+                  )}
+
+                  {requestDetail.deposit_amount !== undefined && (
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="text-slate-500 text-sm font-medium mb-1">Số tiền đặt cọc</div>
+                      <div className="text-2xl font-bold text-amber-600">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(requestDetail.deposit_amount)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Payment Information Card (if exists) */}
             {requestDetail.payments && requestDetail.payments.length > 0 && (

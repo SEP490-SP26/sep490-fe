@@ -670,24 +670,24 @@ export default function GuestOrderPage() {
                         <Row gutter={8}>
                           <Col span={8}>
                             <Form.Item name="length" className="mb-0">
-                              <InputNumber placeholder="Dài" style={{ width: "100%" }} min={0} />
+                              <FloatingInputAntd className="text-right" placeholder="Dài" style={{ width: "100%" }} min={0} />
                             </Form.Item>
                           </Col>
                           <Col span={8}>
                             <Form.Item name="width" className="mb-0">
-                              <InputNumber placeholder="Rộng" style={{ width: "100%" }} min={0} />
+                              <FloatingInputAntd className="text-right" placeholder="Rộng" style={{ width: "100%" }} min={0} />
                             </Form.Item>
                           </Col>
                           <Col span={8}>
                             <Form.Item name="height" className="mb-0">
-                              <InputNumber placeholder="Cao" style={{ width: "100%" }} min={0} />
+                              <FloatingInputAntd className="text-right" placeholder="Cao" style={{ width: "100%",  }} min={0} />
                             </Form.Item>
                           </Col>
                         </Row>
                       </Col>
 
                       {/* Paper Type */}
-                      <Col xs={24} md={12}>
+                      {/* <Col xs={24} md={12}>
                         <div className={`${labelStyle} mb-2`}>Loại giấy (Không bắt buộc)</div>
                         <Form.Item name="paperName" className="mb-0">
                           <Select
@@ -704,7 +704,7 @@ export default function GuestOrderPage() {
                             allowClear
                           />
                         </Form.Item>
-                      </Col>
+                      </Col> */}
                     </Row>
 
                     <Form.Item
@@ -878,12 +878,12 @@ export default function GuestOrderPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
                   <div className="col-span-1 md:col-span-2">
                     <span className="text-gray-500 text-sm block">Sản phẩm:</span>
-                    <span className="font-medium text-gray-800 text-lg">{formDataToSubmit.product_name}</span>
+                    <span className="font-medium text-gray-800 text-lg text-end">{formDataToSubmit.product_name}</span>
                   </div>
 
                   <div>
                     <span className="text-gray-500 text-sm block">Số lượng:</span>
-                    <span className="font-medium text-gray-800">{formatVietnameseNumber(formDataToSubmit.quantity)}</span>
+                    <span className="font-medium text-gray-800 text-end">{formatVietnameseNumber(formDataToSubmit.quantity)}</span>
                   </div>
 
                   <div>
