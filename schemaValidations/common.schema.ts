@@ -468,6 +468,13 @@ export interface RequestDetailResponse {
   // Giao hàng & Địa chỉ
   delivery_date: string; // ISO Date
   detail_address: string;
+  order_request_date: string;
+
+  reason:string;
+  final_total_cost:number;
+  deposit_amount:number;
+  rush_amount:number;
+  file_url:string;
 
   // Thông tin thanh toán
   payments: OrderPayment[];

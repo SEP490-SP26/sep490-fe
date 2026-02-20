@@ -8,12 +8,15 @@ export interface CostEstimate {
   estimate_id: number;
   final_total_cost: number;
   deposit_amount: number;
+  isActive: boolean;
   process_cost: ProcessCostItem[];
+  reason: string | null;
+  is_active: boolean;
 }
 
 export interface VerifiedRequestReponse {
   request_id: number;
-  
+
   // Thông tin liên hệ
   customer_name: string;
   customer_phone: string;
@@ -38,12 +41,13 @@ export interface VerifiedRequestReponse {
   paper_code: string;
   paper_name: string;
   wave_type: string;
-  
+
   // Kích thước kỹ thuật (mm)
   product_length_mm: number;
   product_width_mm: number;
   product_height_mm: number;
 
+  reason: string;
   // Mảng chứa các bản dự toán chi phí
   cost_estimate: CostEstimate[];
 }

@@ -265,7 +265,8 @@ export default function RequestDetailPage() {
   const finalTotalValue = orderDetail.final_total_cost || paymentInfo?.amount || 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
+    <div className="min-h-screen bg-slate-50 py-8 px-4 grid grid grid-cols-2 md:grid-cols-2 gap-8">
+
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-6">
@@ -297,7 +298,7 @@ export default function RequestDetailPage() {
           </div>
 
           {/* Main Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-8">
+          <div className="">
             <div className="grid grid-cols-2 md:grid-cols-2 gap-8">
               {/* Left Column - Order Info */}
               <div>
@@ -419,84 +420,7 @@ export default function RequestDetailPage() {
               </div>
             </div>
 
-            <div>
-              {/* Action Block - Payment QR */}
-              <div className="mt-8 border-t border-slate-200 pt-8">
-                {paymentInfo ? (
-                  <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                    <div className="text-center mb-6">
-                      <h3 className="text-lg font-bold text-slate-800 m-0">QUÉT MÃ THANH TOÁN</h3>
-                      <p className="text-slate-500 text-sm mt-1">Vui lòng quét mã bên dưới để hoàn tất đặt cọc</p>
-                    </div>
 
-                    <div className="flex flex-col items-center gap-6">
-                      <div className="p-4 bg-white border-2 border-slate-200 rounded-xl">
-                        <QRCodeCanvas
-                          value={paymentInfo.qr_code}
-                          size={200}
-                          level={"H"}
-                          includeMargin={true}
-                        />
-                      </div>
-
-                      <div className="w-full max-w-sm space-y-3 p-4 bg-white rounded-xl border border-slate-200 text-sm shadow-sm">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <span className="text-slate-500">Ngân hàng</span>
-                          <span className="font-semibold text-slate-700">{paymentInfo.bin}</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <span className="text-slate-500">Số tài khoản</span>
-                          <span className="font-semibold text-slate-700">{paymentInfo.account_number}</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <span className="text-slate-500">Chủ tài khoản</span>
-                          <span className="font-semibold text-slate-700 uppercase">{paymentInfo.account_name}</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                          <span className="text-slate-500">Số tiền</span>
-                          <span className="font-bold text-emerald-600 text-base">{formatVND(paymentInfo.amount)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-500">Nội dung CK</span>
-                          <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded">{paymentInfo.order_code}</span>
-                        </div>
-                      </div>
-
-                      <div className="w-full max-w-sm flex gap-3">
-                        <Button
-                          type="primary"
-                          href={paymentInfo.check_out_url}
-                          target="_blank"
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-10 rounded-xl font-semibold shadow-emerald-200 shadow-lg"
-                          icon={<CreditCardOutlined />}
-                        >
-                          Thanh toán ngay
-                        </Button>
-                        <Button
-                          danger
-                          onClick={() => router.push(`/reject-deal/${requestId}`)}
-                          className="h-10 rounded-xl"
-                        >
-                          Từ chối
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-slate-500">Đang tải thông tin thanh toán...</p>
-                  </div>
-                )}
-
-                <ExpiryNote />
-              </div>
-              {/* Design File Display for Reference */}
-
-              <div className="mt-8 pt-8 border-t border-slate-200">
-                <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
-              </div>
-
-            </div>
           </div>
 
           {/* Footer */}
@@ -507,6 +431,84 @@ export default function RequestDetailPage() {
 
 
         </div>
+      </div>
+      <div className=" gap-8">
+        {/* Action Block - Payment QR */}
+        <div className="mt-8 border-t border-slate-200 pt-8">
+          {paymentInfo ? (
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-bold text-slate-800 m-0">QUÉT MÃ THANH TOÁN</h3>
+                <p className="text-slate-500 text-sm mt-1">Vui lòng quét mã bên dưới để hoàn tất đặt cọc</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-6">
+                <div className="p-4 bg-white border-2 border-slate-200 rounded-xl">
+                  <QRCodeCanvas
+                    value={paymentInfo.qr_code}
+                    size={200}
+                    level={"H"}
+                    includeMargin={true}
+                  />
+                </div>
+
+                <div className="w-full max-w-sm space-y-3 p-4 bg-white rounded-xl border border-slate-200 text-sm shadow-sm">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <span className="text-slate-500">Ngân hàng</span>
+                    <span className="font-semibold text-slate-700">{paymentInfo.bin}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <span className="text-slate-500">Số tài khoản</span>
+                    <span className="font-semibold text-slate-700">{paymentInfo.account_number}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <span className="text-slate-500">Chủ tài khoản</span>
+                    <span className="font-semibold text-slate-700 uppercase">{paymentInfo.account_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <span className="text-slate-500">Số tiền</span>
+                    <span className="font-bold text-emerald-600 text-base">{formatVND(paymentInfo.amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Nội dung CK</span>
+                    <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded">{paymentInfo.order_code}</span>
+                  </div>
+                </div>
+
+                <div className="w-full max-w-sm flex gap-3">
+                  <Button
+                    type="primary"
+                    href={paymentInfo.check_out_url}
+                    target="_blank"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-10 rounded-xl font-semibold shadow-emerald-200 shadow-lg"
+                    icon={<CreditCardOutlined />}
+                  >
+                    Thanh toán ngay
+                  </Button>
+                  <Button
+                    danger
+                    onClick={() => router.push(`/reject-deal/${requestId}`)}
+                    className="h-10 rounded-xl"
+                  >
+                    Từ chối
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-slate-500">Đang tải thông tin thanh toán...</p>
+            </div>
+          )}
+
+          <ExpiryNote />
+        </div>
+        {/* Design File Display for Reference */}
+
+        {/* <div className="mt-8 pt-8 border-t border-slate-200">
+          <DesignFileDisplay designFilePath={orderDetail.design_file_path} requestId={orderDetail.order_request_id} />
+        </div> */}
+
       </div>
     </div>
   );
