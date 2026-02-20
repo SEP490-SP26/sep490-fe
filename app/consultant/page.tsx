@@ -1452,7 +1452,7 @@ function ConsultantForm() {
               },
               // { key: "print_width", label: "Khổ in (Rộng)", format: (v) => `${v} mm` },
               // { key: "print_height", label: "Khổ in (Cao)", format: (v) => `${v} mm` },
-              { key: "is_one_side_box", label: "Kiểu in", format: (v) => v ? "In 1 mặt" : "In 2 mặt" },
+              // { key: "is_one_side_box", label: "Kiểu in", format: (v) => v ? "In 1 mặt" : "In 2 mặt" },
               // { key: "glue_tab", label: "Nắp dán", format: (v) => `${v} mm` }
             ];
 

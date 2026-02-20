@@ -471,9 +471,9 @@ export default function ConsultantRequestDetailPage() {
                             </div>
                         </div>
 
-                        {orderDetail.cost_estimate && orderDetail.cost_estimate.length > 0 ? (
+                        {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
                             <div className="space-y-3">
-                                {orderDetail.cost_estimate.map((estimate, index) => (
+                                {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => (
                                     <div key={estimate.estimate_id} className="border border-emerald-100 rounded-lg p-3 bg-gradient-to-r from-emerald-50/30 to-white hover:border-emerald-200 transition-colors">
                                         {/* Estimate Header & Summary - Compact Row */}
                                         {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
