@@ -171,6 +171,10 @@ export default function ProductionDetailPage() {
   //   const stage = stages.find((s) => s.id === stageId);
   //   return stage?.status || "pending";
   // };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
   const remainingAmount = apiData.final_total_cost - apiData.deposit_amount;
   return (
     <div className="min-h-screen bg-gray-50 ">
@@ -309,23 +313,35 @@ export default function ProductionDetailPage() {
             </div>
 
             {/* Specifications */}
-            {/* <div className="mt-4 flex flex-wrap gap-2">
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium">Quy cách:</span> 300x90x230mm
+            {apiData.quote_fields && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {apiData.quote_fields.paper_name && (
+                  <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    <span className="font-medium">Giấy:</span> {apiData.quote_fields.paper_name}
+                  </div>
+                )}
+                {apiData.quote_fields.coating_type && (
+                  <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    <span className="font-medium">Phủ:</span> {apiData.quote_fields.coating_type}
+                  </div>
+                )}
+                {apiData.quote_fields.wave_type && (
+                  <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    <span className="font-medium">Sóng:</span> {apiData.quote_fields.wave_type}
+                  </div>
+                )}
+                {apiData.quote_fields.design_type && (
+                  <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    <span className="font-medium">Thiết kế:</span> {apiData.quote_fields.design_type}
+                  </div>
+                )}
+                {apiData.quote_fields.production_process && (
+                  <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    <span className="font-medium">Gia công:</span> {apiData.quote_fields.production_process}
+                  </div>
+                )}
               </div>
-
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium">Chất liệu:</span> Giấy Duplex 350
-              </div>
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium"></span> Người tạo: Quản lý sản
-                xuất
-              </div>
-              <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                <span className="font-medium"></span> Ngày tạo:{" "}
-                {new Date(apiData.created_at).toLocaleDateString("vi-VN")}
-              </div>
-            </div> */}
+            )}
           </div>
         </div>
       </div>
@@ -367,11 +383,13 @@ export default function ProductionDetailPage() {
       {/* Tab Content info */}
       {activeTab === "info" && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Cột 1: Thông tin khách hàng */}
-            <div className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                {/* <div className="p-1.5 bg-blue-50 rounded">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
+              {/* Cột 1: Thông tin khách hàng */}
+              <div className="border border-gray-200 rounded-lg p-4">
+
+                <div className="flex items-center gap-2 mb-3">
+                  {/* <div className="p-1.5 bg-blue-50 rounded">
                   <svg
                     className="w-4 h-4 text-blue-600"
                     fill="none"
@@ -386,13 +404,13 @@ export default function ProductionDetailPage() {
                     />
                   </svg>
                 </div> */}
-                <h3 className="font-semibold text-gray-900">
-                  Thông tin khách hàng
-                </h3>
-              </div>
+                  <h3 className="font-semibold text-gray-900">
+                    Thông tin khách hàng
+                  </h3>
+                </div>
 
-              <div className="space-y-2">
-                {/* <div>
+                <div className="space-y-2">
+                  {/* <div>
                   <div className="font-medium text-md text-gray-500 mb-1">
                     Email:{" "}
                     <span className="font-semibold text-md text-gray-900">
@@ -401,52 +419,176 @@ export default function ProductionDetailPage() {
                   </div>
                 </div> */}
 
-                <div className="flex justify-between items-center ">
-                  <div className="text-md text-gray-600">Email:</div>
-                  <div className={`text-md font-medium`}>
-                    {apiData.customer_email}
+                  <div className="flex justify-between items-center ">
+                    <div className="text-md text-gray-600">Email:</div>
+                    <div className={`text-md font-medium`}>
+                      {apiData.customer_email}
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex justify-between items-center ">
-                  <div className="text-md text-gray-600">Số điện thoại:</div>
-                  <div className={`text-md font-medium`}>
-                    {apiData.customer_phone}
+                  <div className="flex justify-between items-center ">
+                    <div className="text-md text-gray-600">Số điện thoại:</div>
+                    <div className={`text-md font-medium`}>
+                      {apiData.customer_phone}
+                    </div>
                   </div>
-                </div>
 
-                {/* <div>
+                  {/* <div>
                   <div className="text-md text-gray-500 mb-1">Địa chỉ</div>
                   <div className="font-medium text-sm">
                     {apiData.customer_address || "Chưa cập nhật"}
                   </div>
                 </div> */}
 
-                <div className="flex justify-between items-center ">
-                  <div className="text-md text-gray-600">Địa chỉ</div>
-                  <div className={`text-md font-medium`}>
-                    {apiData.customer_address || "Chưa cập nhật"}
+                  <div className="flex justify-between items-center ">
+                    <div className="text-md text-gray-600">Địa chỉ</div>
+                    <div className={`text-md font-medium`}>
+                      {apiData.customer_address || "Chưa cập nhật"}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center ">
+                    <div className="text-md text-gray-600">
+                      Trạng thái thanh toán
+                    </div>
+                    <div
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${apiData.payment_status === "paid"
+                        ? "bg-green-100 text-green-800"
+                        : apiData.payment_status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                        }`}
+                    >
+                      {apiData.payment_status === "paid"
+                        ? "Đã thanh toán"
+                        : apiData.payment_status === "pending"
+                          ? "Chờ thanh toán"
+                          : "Chưa thanh toán"}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center ">
-                  <div className="text-md text-gray-600">
-                    Trạng thái thanh toán
+
+              </div>
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1.5 bg-indigo-50 rounded">
+                    <svg
+                      className="w-4 h-4 text-indigo-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
                   </div>
-                  <div
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${apiData.payment_status === "paid"
-                      ? "bg-green-100 text-green-800"
-                      : apiData.payment_status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                      }`}
-                  >
-                    {apiData.payment_status === "paid"
-                      ? "Đã thanh toán"
-                      : apiData.payment_status === "pending"
-                        ? "Chờ thanh toán"
-                        : "Chưa thanh toán"}
+                  <h3 className="font-semibold text-gray-900">File đính kèm</h3>
+                </div>
+
+                <div className="space-y-3">
+                  {/* File mẫu */}
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div className="flex items-center gap-2">
+                      <FileTextOutlined className="text-gray-400 text-sm" />
+                      <div>
+                        <div className="font-medium text-sm">File mẫu</div>
+                        <div className="text-xs text-gray-500">
+                          Thiết kế sản phẩm
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="small"
+                      type={apiData.design_file_url ? "primary" : "default"}
+                      disabled={!apiData.design_file_url}
+                      onClick={() =>
+                        apiData.design_file_url &&
+                        window.open(apiData.design_file_url, "_blank")
+                      }
+                    >
+                      {apiData.design_file_url ? "Tải" : "N/A"}
+                    </Button>
                   </div>
+
+                  {/* Hợp đồng */}
+                  <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <div>
+                        <div className="font-medium text-sm">Hợp đồng</div>
+                        <div className="text-xs text-gray-500">
+                          {apiData.contract_file || "Chưa tải lên"}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="small"
+                      type={apiData.contract_file ? "primary" : "default"}
+                      onClick={() =>
+                        apiData.contract_file &&
+                        window.open(apiData.contract_file_url, "_blank")
+                      }
+                    >
+                      {apiData.contract_file ? "Xem" : "N/A"}
+                    </Button>
+                  </div>
+
+                  {/* File khác */}
+                  {apiData.other_files && apiData.other_files.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs font-medium text-gray-700 mb-1">
+                        File khác ({apiData.other_files.length}):
+                      </div>
+                      <div className="space-y-1">
+                        {apiData.other_files
+                          .slice(0, 2)
+                          .map((file: any, index: number) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                <FileTextOutlined
+                                  className="text-gray-400"
+                                  style={{ fontSize: "12px" }}
+                                />
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                              <Button
+                                type="link"
+                                size="small"
+                                style={{ padding: 0, fontSize: "12px" }}
+                                onClick={() => window.open(file.url, "_blank")}
+                              >
+                                Tải
+                              </Button>
+                            </div>
+                          ))}
+                        {apiData.other_files.length > 2 && (
+                          <div className="text-xs text-gray-500 text-center">
+                            + {apiData.other_files.length - 2} file khác
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -471,14 +613,43 @@ export default function ProductionDetailPage() {
                 <div className="flex justify-between items-center py-1">
                   <div className="text-sm text-gray-600">Phí gấp</div>
                   <div
-                    className={`text-sm font-medium ${apiData.rush_amount.toLocaleString('vi-VN') ? "text-orange-600" : "text-gray-600"
+                    className={`text-sm font-medium ${apiData.rush_amount ? "text-orange-600" : "text-gray-600"
                       }`}
                   >
                     {apiData.rush_amount
-                      ? `+${apiData.rush_amount.toFixed(0).toLocaleString('vi-VN')} ₫`
+                      ? `+${apiData.rush_amount.toLocaleString('vi-VN')} ₫`
                       : "0 ₫"}
                   </div>
                 </div>
+
+                {apiData.quote_fields && (
+                  <>
+                    <div className="flex justify-between items-center py-1 border-t border-dashed border-gray-200 mt-2 pt-2">
+                      <div className="text-sm text-gray-600">Nguyên vật liệu</div>
+                      <div className="font-medium text-sm">
+                        {formatCurrency(apiData.quote_fields.material_cost)}
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center py-1">
+                      <div className="text-sm text-gray-600">Nhân công</div>
+                      <div className="font-medium text-sm">
+                        {formatCurrency(apiData.quote_fields.labor_cost)}
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center py-1">
+                      <div className="text-sm text-gray-600">Chi phí khác</div>
+                      <div className="font-medium text-sm">
+                        {formatCurrency(apiData.quote_fields.other_fees)}
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center py-1">
+                      <div className="text-sm text-gray-600">Giảm giá</div>
+                      <div className="font-medium text-sm text-green-600">
+                        -{formatCurrency(apiData.quote_fields.discount_amount)}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* <div className="flex justify-between items-center py-1">
                   <div className="text-sm text-gray-600">Thuế VAT</div>
@@ -520,128 +691,9 @@ export default function ProductionDetailPage() {
               </div>
             </div>
 
+
             {/* Cột 3: File đính kèm */}
-            <div className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-indigo-50 rounded">
-                  <svg
-                    className="w-4 h-4 text-indigo-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="font-semibold text-gray-900">File đính kèm</h3>
-              </div>
 
-              <div className="space-y-3">
-                {/* File mẫu */}
-                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <FileTextOutlined className="text-gray-400 text-sm" />
-                    <div>
-                      <div className="font-medium text-sm">File mẫu</div>
-                      <div className="text-xs text-gray-500">
-                        Thiết kế sản phẩm
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    size="small"
-                    type={apiData.design_file_url ? "primary" : "default"}
-                    disabled={!apiData.design_file_url}
-                    onClick={() =>
-                      apiData.design_file_url &&
-                      window.open(apiData.design_file_url, "_blank")
-                    }
-                  >
-                    {apiData.design_file_url ? "Tải" : "N/A"}
-                  </Button>
-                </div>
-
-                {/* Hợp đồng */}
-                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <div>
-                      <div className="font-medium text-sm">Hợp đồng</div>
-                      <div className="text-xs text-gray-500">
-                        {apiData.contract_file || "Chưa tải lên"}
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    size="small"
-                    type={apiData.contract_file ? "primary" : "default"}
-                    onClick={() =>
-                      apiData.contract_file &&
-                      window.open(apiData.contract_file_url, "_blank")
-                    }
-                  >
-                    {apiData.contract_file ? "Xem" : "N/A"}
-                  </Button>
-                </div>
-
-                {/* File khác */}
-                {apiData.other_files && apiData.other_files.length > 0 && (
-                  <div className="mt-2">
-                    <div className="text-xs font-medium text-gray-700 mb-1">
-                      File khác ({apiData.other_files.length}):
-                    </div>
-                    <div className="space-y-1">
-                      {apiData.other_files
-                        .slice(0, 2)
-                        .map((file: any, index: number) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
-                          >
-                            <div className="flex items-center gap-1.5 truncate">
-                              <FileTextOutlined
-                                className="text-gray-400"
-                                style={{ fontSize: "12px" }}
-                              />
-                              <span className="truncate">{file.name}</span>
-                            </div>
-                            <Button
-                              type="link"
-                              size="small"
-                              style={{ padding: 0, fontSize: "12px" }}
-                              onClick={() => window.open(file.url, "_blank")}
-                            >
-                              Tải
-                            </Button>
-                          </div>
-                        ))}
-                      {apiData.other_files.length > 2 && (
-                        <div className="text-xs text-gray-500 text-center">
-                          + {apiData.other_files.length - 2} file khác
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Ghi chú (full width) */}
             <div className="border border-gray-200 rounded-lg p-4 lg:col-span-3">
