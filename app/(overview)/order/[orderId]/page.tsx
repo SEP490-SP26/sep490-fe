@@ -1,19 +1,19 @@
 'use client'
 
 import { orderApi } from '@/apiRequests/order'
-import { OrderDetailResponse } from '@/schemaValidations/common.schema'
+import { OrderDetailResponse } from '@/apiRequests/order'
 import {
-    ArrowLeftOutlined,
-    CalendarOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    DollarOutlined,
-    EnvironmentOutlined,
-    FileTextOutlined,
-    MailOutlined,
-    PhoneOutlined,
-    ShoppingOutlined,
-    UserOutlined,
+  ArrowLeftOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  DollarOutlined,
+  EnvironmentOutlined,
+  FileTextOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  ShoppingOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { Button, Card, Descriptions, Result, Skeleton, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
@@ -186,6 +186,25 @@ export default function OrderDetailPage() {
                 {orderDetail.note}
               </Descriptions.Item>
             )}
+            {orderDetail.quote_fields && (
+              <>
+                <Descriptions.Item label="Loại giấy" span={1}>
+                  {orderDetail.quote_fields.paper_name}
+                </Descriptions.Item>
+                <Descriptions.Item label="Phủ" span={1}>
+                  {orderDetail.quote_fields.coating_type}
+                </Descriptions.Item>
+                <Descriptions.Item label="Sóng" span={1}>
+                  {orderDetail.quote_fields.wave_type}
+                </Descriptions.Item>
+                <Descriptions.Item label="Thiết kế" span={1}>
+                  {orderDetail.quote_fields.design_type}
+                </Descriptions.Item>
+                <Descriptions.Item label="Gia công" span={2}>
+                  {orderDetail.quote_fields.production_process}
+                </Descriptions.Item>
+              </>
+            )}
           </Descriptions>
         </Card>
 
@@ -214,6 +233,16 @@ export default function OrderDetailPage() {
                 {(orderDetail.final_total_cost - orderDetail.deposit_amount).toLocaleString()} ₫
               </Text>
             </Descriptions.Item>
+            {orderDetail.quote_fields && (
+              <>
+                <Descriptions.Item label="Tiền hàng">
+                  {orderDetail.quote_fields.sub_total?.toLocaleString()} ₫
+                </Descriptions.Item>
+                <Descriptions.Item label="Giảm giá">
+                  <Text type="success">-{orderDetail.quote_fields.discount_amount?.toLocaleString()} ₫</Text>
+                </Descriptions.Item>
+              </>
+            )}
           </Descriptions>
         </Card>
 

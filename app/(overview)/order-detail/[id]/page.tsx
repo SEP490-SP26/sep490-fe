@@ -171,7 +171,7 @@ export default function OrderDetailPage() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-  };
+  };  
 
   const formatDate = (date: string | null) => {
     return date ? dayjs(date).format("DD/MM/YYYY") : "Chưa cập nhật";
@@ -359,6 +359,46 @@ export default function OrderDetailPage() {
                     </div>
                   </Descriptions.Item>
                 </Descriptions>
+
+                {order.quote_fields && (
+                  <>
+                    <Divider className="my-4" />
+                    <div className="mb-2 font-medium text-slate-700">Thông số kỹ thuật</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {order.quote_fields.paper_name && (
+                        <div className="bg-slate-50 p-2 rounded border border-slate-100 text-sm">
+                          <span className="text-slate-500 block text-xs">Loại giấy</span>
+                          <span className="font-medium text-slate-800">{order.quote_fields.paper_name}</span>
+                        </div>
+                      )}
+                      {order.quote_fields.coating_type && (
+                        <div className="bg-slate-50 p-2 rounded border border-slate-100 text-sm">
+                          <span className="text-slate-500 block text-xs">Phủ</span>
+                          <span className="font-medium text-slate-800">{order.quote_fields.coating_type}</span>
+                        </div>
+                      )}
+                      {order.quote_fields.wave_type && (
+                        <div className="bg-slate-50 p-2 rounded border border-slate-100 text-sm">
+                          <span className="text-slate-500 block text-xs">Sóng</span>
+                          <span className="font-medium text-slate-800">{order.quote_fields.wave_type}</span>
+                        </div>
+                      )}
+                      {order.quote_fields.design_type && (
+                        <div className="bg-slate-50 p-2 rounded border border-slate-100 text-sm">
+                          <span className="text-slate-500 block text-xs">Thiết kế</span>
+                          <span className="font-medium text-slate-800">{order.quote_fields.design_type}</span>
+                        </div>
+                      )}
+                      {order.quote_fields.production_process && (
+                        <div className="bg-slate-50 p-2 rounded border border-slate-100 text-sm md:col-span-2">
+                          <span className="text-slate-500 block text-xs">Gia công</span>
+                          <span className="font-medium text-slate-800">{order.quote_fields.production_process}</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
               </Card>
 
 
@@ -431,6 +471,25 @@ export default function OrderDetailPage() {
                     valueStyle={{ color: '#be123c', fontWeight: 500 }}
                   />
                 </div>
+
+                {order.quote_fields && (
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Tiền hàng (ước tính):</span>
+                        <span className="font-medium">{formatCurrency((order.quote_fields.sub_total || 0))}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Giảm giá:</span>
+                        <span className="font-medium text-green-600">-{formatCurrency((order.quote_fields.discount_amount || 0))}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Chi phí khác:</span>
+                        <span className="font-medium">{formatCurrency((order.quote_fields.other_fees || 0))}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Card>
             </div>
           </Col>

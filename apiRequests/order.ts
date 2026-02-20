@@ -1,6 +1,22 @@
 import http from "@/lib/httpAxios";
 import { CommonResType, CreateRequestBody } from "../schemaValidations/common.schema";
 
+export interface QuoteField {
+  request_date: string;
+  paper_name: string;
+  coating_type: string;
+  wave_type: string;
+  design_type: string;
+  production_process: string;
+  material_cost: number;
+  labor_cost: number;
+  other_fees: number;
+  rush_amount: number;
+  sub_total: number;
+  discount_percent: number;
+  discount_amount: number;
+}
+
 export interface OrderDetailResponse {
   // Định danh đơn hàng
   order_id: number;
@@ -36,6 +52,8 @@ export interface OrderDetailResponse {
   // Tài liệu đính kèm
   file_url: string;            // Link file thiết kế
   contract_file: string | null; // Link file hợp đồng (nếu có)
+
+  quote_fields: QuoteField;
 }
 
 export const orderApi = {
