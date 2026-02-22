@@ -4,6 +4,7 @@ import { Order } from "@/context/ProductionContext";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
+import { Pagination } from "antd";
 import {
   BiCalendar,
   BiCheckCircle,
@@ -36,6 +37,10 @@ export default function OrderListPage() {
   // Sorting
   const [sortBy, setSortBy] = useState<keyof Order>("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
 
   // Fetch orders từ API
   const {
@@ -172,6 +177,16 @@ export default function OrderListPage() {
     sortBy,
     sortOrder,
   ]);
+
+  // Reset trang về 1 khi có thay đổi bộ lọc
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, customerFilter, productFilter, dateFilter, sortBy, sortOrder]);
+
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredOrders.slice(startIndex, startIndex + pageSize);
+  }, [filteredOrders, currentPage, pageSize]);
 
   const toggleExpandOrder = (orderId: string) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
@@ -542,7 +557,7 @@ export default function OrderListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredOrders.map((order) => {
+                {paginatedOrders.map((order) => {
                   const product = products.find(
                     (p: any) => p.order_id === order.product_id
                   );
@@ -796,26 +811,19 @@ export default function OrderListPage() {
 
           {/* Pagination */}
           {filteredOrders.length > 0 && (
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Hiển thị <span className="font-medium">1</span> đến{" "}
-                  <span className="font-medium">{filteredOrders.length}</span>{" "}
-                  của <span className="font-medium">{orders.length}</span> kết
-                  quả
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                    Trước
-                  </button>
-                  <button className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
-                    1
-                  </button>
-                  <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
-                    Sau
-                  </button>
-                </div>
-              </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={filteredOrders.length}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size || 10);
+                }}
+                showSizeChanger
+                pageSizeOptions={['10', '20', '50']}
+                showTotal={(total) => `Tổng ${total} đơn hàng`}
+              />
             </div>
           )}
         </div>

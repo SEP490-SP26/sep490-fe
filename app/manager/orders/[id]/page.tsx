@@ -504,14 +504,14 @@ export default function ProductionDetailPage() {
                     </div>
                     <Button
                       size="small"
-                      type={apiData.design_file_url ? "primary" : "default"}
-                      disabled={!apiData.design_file_url}
+                      type={apiData.file_url ? "primary" : "default"}
+                      disabled={!apiData.file_url}
                       onClick={() =>
-                        apiData.design_file_url &&
-                        window.open(apiData.design_file_url, "_blank")
+                        apiData.file_url &&
+                        window.open(apiData.file_url, "_blank")
                       }
                     >
-                      {apiData.design_file_url ? "Tải" : "N/A"}
+                      {apiData.file_url ? "Tải" : "N/A"}
                     </Button>
                   </div>
 
@@ -543,7 +543,7 @@ export default function ProductionDetailPage() {
                       type={apiData.contract_file ? "primary" : "default"}
                       onClick={() =>
                         apiData.contract_file &&
-                        window.open(apiData.contract_file_url, "_blank")
+                        window.open(apiData.contract_file, "_blank")
                       }
                     >
                       {apiData.contract_file ? "Xem" : "N/A"}

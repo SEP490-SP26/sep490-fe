@@ -168,7 +168,7 @@ export default function ManagerRequestDetailPage() {
                                 orderDetail.process_status === 'Declined' ? 'blue' :
                                     orderDetail.process_status === 'Accepted' ? 'green' : orderDetail.process_status === 'Rejected' ? 'red' : 'orange'
                             } className="text-xs lg:text-sm px-3 py-1 rounded-full uppercase font-medium">
-                                {orderDetail.process_status === 'Waiting' ? 'Chờ Khách hàng xác nhận' :
+                                {orderDetail.process_status === 'Waiting' ? 'Chờ Khách hàng xác nhận' : orderDetail.process_status === 'Processing' ? 'Đang xử lý' :
                                     orderDetail.process_status === 'Declined' ? 'Đơn mới' : orderDetail.process_status === 'Accepted' ? 'Đã xác nhận' : orderDetail.process_status === 'Rejected' ? 'Đã hủy' : orderDetail.process_status}
                             </Tag>
                         </div>

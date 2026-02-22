@@ -244,14 +244,14 @@ export default function ManagerRequestsProcessingPage() {
             align: "right" as const,
             render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
         },
-        {
-            title: "Trạng Thái",
-            dataIndex: "process_status",
-            key: "process_status",
-            render: (status: string) => (
-                <Tag color="processing">{status}</Tag>
-            )
-        },
+        // {
+        //     title: "Trạng Thái",
+        //     dataIndex: "process_status",
+        //     key: "process_status",
+        //     render: (status: string) => (
+        //         <Tag color="processing">{status}</Tag>
+        //     )
+        // },
         {
             key: "action",
             align: "center" as const,
