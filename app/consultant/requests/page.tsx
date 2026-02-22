@@ -516,7 +516,7 @@ export default function ConsultantOrdersPage() {
           dataSource={pendingOrders}
           rowKey="order_request_id"
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showTotal: (total) => `Tổng ${total} đơn`,
           }}
           locale={{ emptyText: <Empty description="Không có đơn hàng mới" /> }}
@@ -539,11 +539,11 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
           dataSource={processingOrders}
           rowKey="order_request_id"
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showTotal: (total) => `Tổng ${total} đơn`,
           }}
           locale={{ emptyText: <Empty description="Không có đơn đang xử lý" /> }}
@@ -570,11 +570,11 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
           dataSource={verifiedOrders}
           rowKey="order_request_id"
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showTotal: (total) => `Tổng ${total} đơn`,
           }}
           locale={{ emptyText: <Empty description="Không có đơn đã xác minh" /> }}
@@ -601,11 +601,11 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
           dataSource={waitingConfirmOrders}
           rowKey="order_request_id"
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showTotal: (total) => `Tổng ${total} đơn`,
           }}
           locale={{
@@ -634,11 +634,11 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
           dataSource={declinedOrders}
           rowKey="order_request_id"
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showTotal: (total) => `Tổng ${total} đơn`,
           }}
           locale={{ emptyText: <Empty description="Không có đơn yêu cầu chỉnh sửa" /> }}
@@ -669,7 +669,7 @@ export default function ConsultantOrdersPage() {
           dataSource={acceptedOrders}
           rowKey="order_request_id"
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showTotal: (total) => `Tổng ${total} đơn`,
           }}
           locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
@@ -692,11 +692,11 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
           dataSource={rejectedOrders}
           rowKey="order_request_id"
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showTotal: (total) => `Tổng ${total} đơn`,
           }}
           locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
@@ -749,7 +749,7 @@ export default function ConsultantOrdersPage() {
       </Card>
 
       {/* Sort info */}
-      {sortField && (
+      {/* {sortField && (
         <div className="mt-3 text-sm text-gray-500">
           Đang sắp xếp theo:{" "}
           <b>
@@ -770,7 +770,7 @@ export default function ConsultantOrdersPage() {
             Khôi phục
           </Button>
         </div>
-      )}
+      )} */}
 
       {/* Cancel Modal */}
       <Modal

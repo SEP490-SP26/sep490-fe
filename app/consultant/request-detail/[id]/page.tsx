@@ -31,7 +31,10 @@ import {
     Divider,
     Tooltip,
     Collapse,
-    Badge
+    Badge,
+    Modal,
+    Form,
+    Input
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
@@ -49,6 +52,9 @@ export default function ConsultantRequestDetailPage() {
     const [orderDetail, setOrderDetail] = useState<VerifiedRequestReponse | null>(null);
 
     const [sending, setSending] = useState(false);
+    const [updateModalOpen, setUpdateModalOpen] = useState(false);
+    const [updateReason, setUpdateReason] = useState("");
+    const [updateForm] = Form.useForm();
 
     // Fetch order detail from API
     const fetchOrderDetail = async () => {
@@ -171,10 +177,61 @@ export default function ConsultantRequestDetailPage() {
                                 icon={<EditOutlined />}
                                 className="bg-blue-600 hover:bg-blue-500"
                                 size="small"
-                                onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate`)}
+                                onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate&reason=${encodeURIComponent(updateReason.trim())}`)}
                             >
                                 Cập nhật yêu cầu
                             </Button>
+
+                            {/* Confirm Update Modal */}
+                            <Modal
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <EditOutlined className="text-blue-600" />
+                                        <span>Xác nhận cập nhật yêu cầu</span>
+                                    </div>
+                                }
+                                open={updateModalOpen}
+                                onCancel={() => setUpdateModalOpen(false)}
+                                footer={[
+                                    <Button key="cancel" onClick={() => setUpdateModalOpen(false)}>
+                                        Hủy
+                                    </Button>,
+                                    <Button
+                                        key="confirm"
+                                        type="primary"
+                                        className="bg-blue-600 hover:bg-blue-500"
+                                        disabled={!updateReason.trim()}
+                                        onClick={() => {
+                                            if (!updateReason.trim()) {
+                                                message.warning("Vui lòng nhập lý do cập nhật!");
+                                                return;
+                                            }
+                                            setUpdateModalOpen(false);
+                                            router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate&reason=${encodeURIComponent(updateReason.trim())}`);
+                                        }}
+                                    >
+                                        Xác nhận
+                                    </Button>
+                                ]}
+                            >
+                                <Form form={updateForm} layout="vertical">
+                                    <Form.Item
+                                        label="Lý do cập nhật"
+                                        required
+                                        help={!updateReason.trim() ? "Vui lòng nhập lý do trước khi tiếp tục" : ""}
+                                        validateStatus={!updateReason.trim() ? "warning" : ""}
+                                    >
+                                        <Input.TextArea
+                                            rows={4}
+                                            placeholder="Nhập lý do cập nhật yêu cầu..."
+                                            value={updateReason}
+                                            onChange={(e) => setUpdateReason(e.target.value)}
+                                            maxLength={500}
+                                            showCount
+                                        />
+                                    </Form.Item>
+                                </Form>
+                            </Modal>
                         </div>
 
 
