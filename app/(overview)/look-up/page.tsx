@@ -231,6 +231,8 @@ export default function CustomerHistoryPage() {
       case 'PENDING':
         return <Tag icon={<ClockCircleOutlined />} color="blue">Chờ Xử Lý</Tag>
       case 'WAITING':
+      case 'VERIFIED':
+      case 'DECLINED':
         return <Tag icon={<SyncOutlined spin />} color="orange">Đang Xử Lý</Tag>
       case 'INPROCESSING':
       case 'IN_PRODUCTION':

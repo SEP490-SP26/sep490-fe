@@ -302,6 +302,8 @@ export default function RequestDetailPage() {
     );
   }
 
+  const showPaymentInfo = ["WAITING", "WAITING_CONFIRM", "ACCEPTED", "COMPLETED", "PAID"].includes(requestDetail.process_status?.toUpperCase() || "");
+
   return (
     <div className="min-h-screen bg-slate-50 pb-8">
       {/* Background decoration */}
@@ -475,7 +477,7 @@ export default function RequestDetailPage() {
             </div>
 
             {/* Cost Information */}
-            {(requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
+            {showPaymentInfo && (requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -507,7 +509,7 @@ export default function RequestDetailPage() {
             )}
 
             {/* Payment Information Card (if exists) */}
-            {requestDetail.payments && requestDetail.payments.length > 0 && (
+            {showPaymentInfo && requestDetail.payments && requestDetail.payments.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
