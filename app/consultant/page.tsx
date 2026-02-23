@@ -572,7 +572,9 @@ function ConsultantForm() {
       form.setFieldValue("delivery_date", dayjs(result.systemDate));
     }
 
-    form.setFieldValue("final_price", result.finalCost);
+    // Prevent overwriting the detailed 'final_price' with the basic cost placeholder
+    // form.setFieldValue("final_price", result.finalCost);
+
     setEstimate(result);
   };
 
@@ -814,6 +816,7 @@ function ConsultantForm() {
       "paper_code", "quantity", "length", "width", "height",
       "product_type", "production_processes", "wave_type",
       "number_of_plates", "coating_type", "delivery_date",
+      "form_product", "is_one_side_box", "glue_tab", "bleed"
     ];
     const hasRelevantChange = Object.keys(changedValues).some((key) =>
       relevantFields.includes(key)
@@ -1040,6 +1043,11 @@ function ConsultantForm() {
               discountAmt
             );
 
+            const calculatedTotal = Math.round(originalPrice);
+            if (quote.final_price !== undefined && quote.final_price !== null && quote.final_price !== calculatedTotal) {
+              estimationResult.final_total_cost = quote.final_price;
+            }
+
             // Only save if it has valid data
             await estimatesApi.costSave(estimationResult);
           } catch (err) {
@@ -1105,6 +1113,12 @@ function ConsultantForm() {
             discountPercent,
             discountAmount
           );
+
+          const calculatedTotal = Math.round(originalPrice);
+          if (finalPrice !== undefined && finalPrice !== null && finalPrice !== calculatedTotal) {
+            estimationResult.final_total_cost = finalPrice;
+          }
+
           const res = await estimatesApi.costSave(estimationResult);
 
           if (res && (res as any).estimate_id) {

@@ -261,7 +261,7 @@ export default function EstimatesCard({
                   </Form.Item>
 
                   {/* Nút xác nhận giá */}
-                  <Button
+                  {/* <Button
                     type="primary"
                     className="w-full "
                     onClick={handleAdjustPrice}
@@ -269,7 +269,7 @@ export default function EstimatesCard({
                   // disabled={!orderId}
                   >
                     Tạo báo giá
-                  </Button>
+                  </Button> */}
                 </div>
 
               </Col>
