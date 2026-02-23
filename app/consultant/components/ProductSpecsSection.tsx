@@ -3,6 +3,7 @@ import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { FloatingSelect } from "@/components/Input/FloatingSelect";
 import { Material } from "@/schemaValidations/common.schema";
 import { Checkbox, Col, Form, InputNumber, Row, Select } from "antd";
+import { useEffect } from "react";
 
 interface ProductSpecsSectionProps {
   orderId: string | null;
@@ -22,6 +23,13 @@ interface ProductSpecsSectionProps {
   form: any;
 }
 
+const FORM_TYPE_LABELS: Record<string, string> = {
+  "HOP_MAU_1LUOT_DON_GIAN": "Hộp màu 1 lượt đơn giản",
+  "HOP_MAU_1LUOT_THUONG": "Hộp màu 1 lượt thường",
+  "HOP_MAU_1LUOT_KHO": "Hộp màu 1 lượt khó",
+  "HOP_MAU_AQUA_DOI": "Hộp màu Aqua đôi",
+  "HOP_MAU_2LUOT": "Hộp màu 2 lượt",
+};
 
 export default function ProductSpecsSection({
   orderId,
@@ -40,6 +48,28 @@ export default function ProductSpecsSection({
   handleFormValuesChange,
   form,
 }: ProductSpecsSectionProps) {
+  useEffect(() => {
+    if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
+      const filteredFormTypes = formTypes.filter((ft) => {
+        if (selectedProductTypeCode === "HOP_MAU") {
+          return ft.startsWith("HOP_MAU_");
+        } else if (selectedProductTypeCode === "VO_HOP_GACH") {
+          return ft.startsWith("GACH_");
+        }
+        return true;
+      });
+
+      if (filteredFormTypes.length > 0) {
+        const currentFormProduct = form.getFieldValue("form_product");
+        if (!currentFormProduct || !filteredFormTypes.includes(currentFormProduct)) {
+          form.setFieldValue("form_product", filteredFormTypes[0]);
+          handleFormValuesChange({ form_product: filteredFormTypes[0] }, form.getFieldsValue());
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProductTypeCode, formTypes, form]);
+
   return (
     <>
       <Row gutter={16}>
@@ -175,7 +205,7 @@ export default function ProductSpecsSection({
                       return true;
                     })
                     .map((ft) => ({
-                      label: ft
+                      label: FORM_TYPE_LABELS[ft] || ft
                         .replace(/^HOP_MAU_/i, "Hộp màu ")
                         .replace(/^GACH_/i, "Gạch ")
                         .replace(/_/g, " "),

@@ -1,40 +1,35 @@
 "use client";
 
 import { requestOrderApi } from "@/apiRequests/request";
+import { uploadApi } from "@/apiRequests/uploads";
 import { VerifiedRequestReponse } from "@/lib/request.types";
 import {
     CalendarOutlined,
-    CompassOutlined,
     DollarOutlined,
-    FileImageOutlined,
     DownloadOutlined,
-    ShoppingOutlined,
-    UserOutlined,
-    PhoneOutlined,
-    MailOutlined,
-    HomeOutlined,
+    EditOutlined,
+    FileImageOutlined,
+    FileTextOutlined,
     SendOutlined,
-    EditOutlined
+    ShoppingOutlined,
+    UploadOutlined,
+    UserOutlined
 } from "@ant-design/icons";
 import {
+    Badge,
     Button,
     Card,
+    Collapse,
     Empty,
+    Form,
     Image,
+    Input,
     message,
+    Modal,
     Skeleton,
     Tag,
     Typography,
-    Statistic,
-    Row,
-    Col,
-    Divider,
-    Tooltip,
-    Collapse,
-    Badge,
-    Modal,
-    Form,
-    Input
+    Upload
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
@@ -55,6 +50,9 @@ export default function ConsultantRequestDetailPage() {
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
     const [updateReason, setUpdateReason] = useState("");
     const [updateForm] = Form.useForm();
+
+    const [uploadingDesign, setUploadingDesign] = useState(false);
+    const [uploadingContract, setUploadingContract] = useState(false);
 
     // Fetch order detail from API
     const fetchOrderDetail = async () => {
@@ -310,93 +308,212 @@ export default function ConsultantRequestDetailPage() {
                                     <FileImageOutlined className="text-xl" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-800 m-0">File thiết kế</h3>
-                                    {orderDetail.design_file_path && (
-                                        <div className="flex items-center gap-1">
-                                            <Text className="text-slate-500 text-sm">
-                                                {orderDetail.design_file_path.split(',').length} file
-                                            </Text>
-                                            <Button
-                                                type="text"
-                                                size="small"
-                                                icon={<DownloadOutlined />}
-                                                onClick={downloadAllDesignFiles}
-                                                className="text-blue-600 p-0 h-auto"
-                                            >
-                                                <span className="text-xs">Tải tất cả</span>
-                                            </Button>
-                                        </div>
-                                    )}
+                                    <h3 className="text-lg font-bold text-slate-800 m-0">File đính kèm</h3>
                                 </div>
                             </div>
                         </div>
 
-                        {orderDetail.design_file_path ? (
-                            <div className="flex-1">
-                                {(() => {
-                                    const fileList = orderDetail.design_file_path.split(',').filter(f => f.trim());
-                                    const isSingleFile = fileList.length === 1;
-
-                                    return (
-                                        <div className={isSingleFile ? "h-40" : "grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4"}>
-                                            {fileList.map((url, index) => {
-                                                const trimmedUrl = url.trim();
-                                                const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(trimmedUrl);
-                                                const fileName = trimmedUrl.split('/').pop() || `File ${index + 1}`;
-
-                                                return (
-                                                    <div
-                                                        key={index}
-                                                        className={`${isSingleFile ? "w-full h-50" : "aspect-square"} border border-slate-200 rounded-lg overflow-hidden hover:border-blue-300 hover:shadow-sm transition-all duration-200 group design-file-image`}
-                                                    >
-                                                        {isImage ? (
-                                                            <>
-                                                                <Image
-                                                                    src={trimmedUrl}
-                                                                    alt={fileName}
-                                                                    width="100%"
-                                                                    height="50s%"
-                                                                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200`}
-                                                                    preview={{
-                                                                        mask: (
-                                                                            <div className="flex items-center justify-center gap-1 text-white text-xs">
-                                                                                <FileImageOutlined />
-                                                                                Xem
-                                                                            </div>
-                                                                        )
-                                                                    }}
-                                                                />
-
-                                                            </>
-                                                        ) : (
-                                                            <a
-                                                                href={trimmedUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex flex-col items-center justify-center h-full p-2 bg-gradient-to-br from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 transition-all duration-200 relative"
-                                                            >
-                                                                <FileImageOutlined className={isSingleFile ? "text-4xl text-slate-400 group-hover:text-blue-400 mb-2" : "text-xl text-slate-400 group-hover:text-blue-400 mb-1 transition-colors"} />
-                                                                <span className={isSingleFile ? "text-sm text-slate-600 font-medium truncate w-full text-center" : "text-xs text-slate-600 font-medium truncate w-full text-center"}>
-                                                                    File {index + 1}
-                                                                </span>
-                                                                <div className="absolute bottom-2 right-2">
-                                                                    <DownloadOutlined className="text-slate-400 text-sm" />
-                                                                </div>
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                        <div className="space-y-3">
+                            {/* File mẫu */}
+                            <div className="flex flex-col gap-2 p-2 bg-gray-50 rounded">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <FileTextOutlined className="text-gray-400 text-sm" />
+                                        <div>
+                                            <div className="font-medium text-sm">File mẫu</div>
+                                            <div className="text-xs text-gray-500">
+                                                {orderDetail.design_file_path ? `${orderDetail.design_file_path.split(',').length} file thiết kế` : "Chưa tải lên"}
+                                            </div>
                                         </div>
-                                    );
-                                })()}
+                                    </div>
+                                    {orderDetail.design_file_path ? (
+                                        <Button
+                                            size="small"
+                                            icon={<DownloadOutlined />}
+                                            onClick={downloadAllDesignFiles}
+                                        >
+                                            Tải tất cả
+                                        </Button>
+                                    ) : (
+                                        <Upload
+                                            showUploadList={false}
+                                            customRequest={async (options) => {
+                                                const { file, onSuccess, onError } = options;
+                                                setUploadingDesign(true);
+                                                try {
+                                                    await uploadApi.updateDesignFile(orderDetail.request_id, file as File);
+                                                    message.success("Tải file thiết kế thành công");
+                                                    fetchOrderDetail();
+                                                    if (onSuccess) onSuccess("ok");
+                                                } catch (error) {
+                                                    message.error("Tải file thất bại");
+                                                    if (onError) onError(error as any);
+                                                } finally {
+                                                    setUploadingDesign(false);
+                                                }
+                                            }}
+                                        >
+                                            <Button size="small" icon={<UploadOutlined />} loading={uploadingDesign}>
+                                                Tải lên
+                                            </Button>
+                                        </Upload>
+                                    )}
+                                </div>
+
+                                {orderDetail.design_file_path && (
+                                    <div className="mt-2">
+                                        {(() => {
+                                            const fileList = orderDetail.design_file_path.split(',').filter(f => f.trim());
+                                            const isSingleFile = fileList.length === 1;
+
+                                            return (
+                                                <div className={isSingleFile ? "h-32" : "grid grid-cols-3 sm:grid-cols-4 gap-2"}>
+                                                    {fileList.map((url, index) => {
+                                                        const trimmedUrl = url.trim();
+                                                        const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(trimmedUrl);
+                                                        const fileName = trimmedUrl.split('/').pop() || `File ${index + 1}`;
+
+                                                        return (
+                                                            <div
+                                                                key={index}
+                                                                className={`${isSingleFile ? "w-full h-full" : "aspect-square"} border border-slate-200 rounded-lg overflow-hidden hover:border-blue-300 hover:shadow-sm transition-all duration-200 group design-file-image`}
+                                                            >
+                                                                {isImage ? (
+                                                                    <Image
+                                                                        src={trimmedUrl}
+                                                                        alt={fileName}
+                                                                        width="100%"
+                                                                        height="100%"
+                                                                        className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200`}
+                                                                        preview={{
+                                                                            mask: (
+                                                                                <div className="flex items-center justify-center gap-1 text-white text-xs">
+                                                                                    <FileImageOutlined /> Xem
+                                                                                </div>
+                                                                            )
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <a
+                                                                        href={trimmedUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex flex-col items-center justify-center h-full p-2 bg-gradient-to-br from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 transition-all duration-200 relative"
+                                                                    >
+                                                                        <FileImageOutlined className={isSingleFile ? "text-4xl text-slate-400 group-hover:text-blue-400 mb-2" : "text-xl text-slate-400 group-hover:text-blue-400 mb-1 transition-colors"} />
+                                                                        <span className={isSingleFile ? "text-sm text-slate-600 font-medium truncate w-full text-center" : "text-[10px] text-slate-600 font-medium truncate w-full text-center"}>
+                                                                            File {index + 1}
+                                                                        </span>
+                                                                        <div className="absolute bottom-1 right-1">
+                                                                            <DownloadOutlined className="text-slate-400 text-xs" />
+                                                                        </div>
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center py-8">
-                                <FileImageOutlined className="text-4xl text-slate-300 mb-3" />
-                                <Text className="text-slate-400">Không có file thiết kế đính kèm</Text>
+
+                            {/* Hợp đồng */}
+                            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <div className="flex items-center gap-2">
+                                    <svg
+                                        className="w-4 h-4 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                        />
+                                    </svg>
+                                    <div>
+                                        <div className="font-medium text-sm">Hợp đồng</div>
+                                        <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div>
+                                    </div>
+                                </div>
+                                {(orderDetail as any).contract_file ? (
+                                    <Button
+                                        size="small"
+                                        type="primary"
+                                        onClick={() => window.open((orderDetail as any).contract_file, "_blank")}
+                                    >
+                                        Xem
+                                    </Button>
+                                ) : (
+                                    <Upload
+                                        showUploadList={false}
+                                        customRequest={async (options) => {
+                                            const { file, onSuccess, onError } = options;
+                                            setUploadingContract(true);
+                                            try {
+                                                const res = await uploadApi.uploadFile([file as File]);
+                                                if (res && res[0] && res[0].url) {
+                                                    await requestOrderApi.updateRequest(orderDetail.request_id.toString(), {
+                                                        contract_file: res[0].url
+                                                    } as any);
+                                                    message.success("Tải hợp đồng thành công");
+                                                    fetchOrderDetail();
+                                                    if (onSuccess) onSuccess("ok");
+                                                }
+                                            } catch (error) {
+                                                message.error("Tải hợp đồng thất bại");
+                                                if (onError) onError(error as any);
+                                            } finally {
+                                                setUploadingContract(false);
+                                            }
+                                        }}
+                                    >
+                                        <Button size="small" icon={<UploadOutlined />} loading={uploadingContract}>
+                                            Tải lên
+                                        </Button>
+                                    </Upload>
+                                )}
                             </div>
-                        )}
+
+                            {/* File khác */}
+                            {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
+                                <div className="mt-2">
+                                    <div className="text-xs font-medium text-gray-700 mb-1">
+                                        File khác ({(orderDetail as any).other_files.length}):
+                                    </div>
+                                    <div className="space-y-1">
+                                        {(orderDetail as any).other_files.slice(0, 2).map((file: any, index: number) => (
+                                            <div
+                                                key={index}
+                                                className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
+                                            >
+                                                <div className="flex items-center gap-1.5 truncate">
+                                                    <FileTextOutlined className="text-gray-400" style={{ fontSize: "12px" }} />
+                                                    <span className="truncate">{file.name}</span>
+                                                </div>
+                                                <Button
+                                                    type="link"
+                                                    size="small"
+                                                    style={{ padding: 0, fontSize: "12px" }}
+                                                    onClick={() => window.open(file.url, "_blank")}
+                                                >
+                                                    Tải
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        {(orderDetail as any).other_files.length > 2 && (
+                                            <div className="text-xs text-gray-500 text-center">
+                                                + {(orderDetail as any).other_files.length - 2} file khác
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </Card>
 
                     {/* Card 4: Product Detail (Full Width) */}
