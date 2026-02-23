@@ -79,29 +79,43 @@ export default function StaffProductionScheduling() {
   });
   /*=========================== SIGNALR =================== */
 
-  useEffect(() => {
-  if (!scheduledOrder.length) return;
-
+useEffect(() => {
   let conn: any;
 
-  getSignalRConnection().then((c) => {
-    conn = c;
-    scheduledOrder.forEach((o: any) => {
-      conn.invoke("JoinOrder", o.order_id);
-    });
+  const init = async () => {
+    conn = await getSignalRConnection();
 
-    conn.on("OrderUpdated", () => {
+    conn.on("OrderUpdated", (data: any) => {
+      console.log("🔥 ORDER UPDATED RECEIVED:", data);
+
       queryClient.invalidateQueries({
         queryKey: ["scheduledOrders"],
       });
     });
-  });
+  };
+
+  init();
 
   return () => {
     if (conn) {
       conn.off("OrderUpdated");
     }
   };
+}, []);
+
+useEffect(() => {
+  if (!scheduledOrder.length) return;
+
+  const joinGroups = async () => {
+    const conn = await getSignalRConnection();
+
+    for (const o of scheduledOrder) {
+      await conn.invoke("JoinOrder", o.order_id);
+      console.log("Joined order-", o.order_id);
+    }
+  };
+
+  joinGroups();
 }, [scheduledOrder]);
 
 
