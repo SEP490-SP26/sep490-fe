@@ -1040,7 +1040,10 @@ function ConsultantForm() {
               currentOrderId,
               quote.delivery_date, // Use quote specific date if available
               calculations.discountPercent,
-              discountAmt
+              discountAmt,
+              {
+                paper_name: quote.paper_name || paperTypes.find((p) => p.code === quote.paper_code)?.name || "",
+              }
             );
 
             const calculatedTotal = Math.round(originalPrice);
@@ -1111,7 +1114,10 @@ function ConsultantForm() {
             orderId,
             form.getFieldValue("delivery_date"),
             discountPercent,
-            discountAmount
+            discountAmount,
+            {
+              paper_name: form.getFieldValue("paper_name") || paperTypes.find((p) => p.code === form.getFieldValue("paper_code"))?.name || "",
+            }
           );
 
           const calculatedTotal = Math.round(originalPrice);

@@ -6,6 +6,9 @@ export interface ProcessCostItem {
 
 export interface CostEstimate {
   estimate_id: number;
+  paper_name: string;
+  paper_code: string;
+  coating_type: string;
   final_total_cost: number;
   deposit_amount: number;
   isActive: boolean;

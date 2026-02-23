@@ -360,7 +360,7 @@ export default function ConsultantRequestDetailPage() {
                                     )}
                                 </div>
 
-                                {orderDetail.design_file_path && (
+                                {/* {orderDetail.design_file_path && (
                                     <div className="mt-2">
                                         {(() => {
                                             const fileList = orderDetail.design_file_path.split(',').filter(f => f.trim());
@@ -416,7 +416,7 @@ export default function ConsultantRequestDetailPage() {
                                             );
                                         })()}
                                     </div>
-                                )}
+                                )} */}
                             </div>
 
                             {/* Hợp đồng */}
@@ -531,7 +531,7 @@ export default function ConsultantRequestDetailPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                                 {/* Left Column: Quantity, Delivery, Description */}
                                 <div className="space-y-4">
                                     {/* Quantity and Delivery Date - Single Line */}
@@ -548,7 +548,7 @@ export default function ConsultantRequestDetailPage() {
                                         </Tag>
                                     </div> */}
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-3 gap-4">
                                         {/* Quantity */}
                                         <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                                             <div className="flex items-center gap-2">
@@ -568,6 +568,15 @@ export default function ConsultantRequestDetailPage() {
                                                 {dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}
                                             </Tag>
                                         </div>
+
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                            <div className="flex items-center gap-2">
+                                                <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
+                                            </div>
+                                            <Text className="text-slate-800 font-bold text-base">
+                                                {orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm}
+                                            </Text>
+                                        </div>
                                     </div>
 
                                     {/* Description */}
@@ -575,16 +584,18 @@ export default function ConsultantRequestDetailPage() {
                                         <div className="flex items-center justify-between mb-2">
                                             <Text className="text-slate-700 font-bold">Mô tả yêu cầu:</Text>
                                         </div>
-                                        <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[80px] max-h-48 overflow-y-auto">
+                                        {/* <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[80px] max-h-48 overflow-y-auto"> */}
+                                        <div className="p-2 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed overflow-y-auto">
                                             {orderDetail.description || <span className="text-slate-400 italic">Không có mô tả chi tiết</span>}
                                         </div>
+                                        {/* </div> */}
                                     </div>
                                 </div>
 
                                 {/* Right Column: Technical Specs */}
                                 <div>
                                     {/* Technical Specs - In Collapse */}
-                                    <div className="bg-white rounded-lg  h-full">
+                                    {/* <div className="bg-white rounded-lg  h-full">
 
                                         <div
                                             className="h-full"
@@ -599,29 +610,10 @@ export default function ConsultantRequestDetailPage() {
                                                     </Text>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                        <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
-                                                        <Text className="text-slate-800 font-bold text-base">{orderDetail.paper_name}</Text>
-                                                    </div>
-                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                        <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
-                                                        <Text className="text-slate-800 font-bold text-sm">{orderDetail.wave_type}</Text>
-                                                    </div>
 
-                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                        <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
-                                                        <Text className="text-slate-800 font-bold text-sm">{orderDetail.coating_type}</Text>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                        <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
-                                                        <Text className="text-slate-800 font-bold text-sm">{orderDetail.number_of_plates}</Text>
-                                                    </div>
-                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </div>
                             </div>
                         </div>
@@ -686,13 +678,19 @@ export default function ConsultantRequestDetailPage() {
                                             >
                                                 <Panel
                                                     header={
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
                                                             <div className="flex items-center gap-2">
                                                                 <Tag color="green" className="m-0 font-bold bg-green-100 text-green-700 border-0">
                                                                     BÁO GIÁ #{index + 1}
                                                                 </Tag>
                                                                 <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-                                                                {/* <span className="text-slate-500 text-sm hidden sm:inline">Ngày tạo: {dayjs(estimate.created_at).format("DD/MM/YYYY")}</span> */}
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Text className="text-slate-500 text-sm">Giấy:</Text>
+                                                                    <Text className="text-slate-700 font-medium text-sm">
+                                                                        {estimate.paper_name || "Chưa xác định"}
+                                                                    </Text>
+                                                                </div>
+                                                                <div className="h-4 w-px bg-emerald-200"></div>
                                                             </div>
 
                                                             <div className="flex items-center gap-4">
@@ -710,9 +708,11 @@ export default function ConsultantRequestDetailPage() {
                                                                     </Text>
                                                                 </div>
                                                             </div>
-                                                            <div className="h-4 w-px bg-emerald-200"></div>
-                                                            <Text className="text-slate-600 text-sm font-medium">Chi tiết chi phí sản xuất</Text>
-                                                            <Badge count={estimate.process_cost.length} style={{ backgroundColor: '#10b981', transform: 'scale(0.8)' }} />
+                                                            <div className="h-4 w-px bg-emerald-200 hidden md:block"></div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Text className="text-slate-600 text-sm font-medium">Chi tiết chi phí sản xuất</Text>
+                                                                <Badge count={estimate.process_cost.length} style={{ backgroundColor: '#10b981', transform: 'scale(0.8)' }} />
+                                                            </div>
                                                         </div>
                                                     }
                                                     key="1"
