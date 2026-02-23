@@ -115,7 +115,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   // Load customer from localStorage on mount
   useEffect(() => {
     initializeSampleCustomers();
-    
+
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
@@ -177,7 +177,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = (data: Partial<Customer>) => {
     if (!customer) return;
-    
+
     const updatedCustomer = { ...customer, ...data };
     setCustomer(updatedCustomer);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCustomer));
@@ -248,7 +248,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
     const addresses = customer.addresses || [];
     const filtered = addresses.filter((a) => a.id !== addressId);
-    
+
     // If deleted address was default, set first one as default
     if (filtered.length > 0 && !filtered.some((a) => a.isDefault)) {
       filtered[0].isDefault = true;
@@ -309,6 +309,17 @@ export function findCustomerByPhone(phone: string): Customer | undefined {
     const stored = localStorage.getItem(CUSTOMERS_DB_KEY);
     const db: Customer[] = stored ? JSON.parse(stored) : [];
     return db.find((c) => c.phone === phone);
+  } catch {
+    return undefined;
+  }
+}
+
+// Helper function to find customer by email (exported for registration page)
+export function findCustomerByEmail(email: string): Customer | undefined {
+  try {
+    const stored = localStorage.getItem(CUSTOMERS_DB_KEY);
+    const db: Customer[] = stored ? JSON.parse(stored) : [];
+    return db.find((c) => c.email === email);
   } catch {
     return undefined;
   }

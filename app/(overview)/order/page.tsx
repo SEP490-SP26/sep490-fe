@@ -45,6 +45,7 @@ import { useEffect, useState } from "react";
 import { disabledDate } from "@/utils/vietnamHolidays";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { formatVietnameseNumber } from "@/utils/format";
+import { useCustomer } from "@/context/CustomerContext";
 
 const { Title, Text } = Typography;
 
@@ -70,6 +71,7 @@ const hd = new Holidays("VN");
 // };
 
 export default function GuestOrderPage() {
+  const { customer, isLoggedIn } = useCustomer();
   const [form] = Form.useForm();
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,17 +142,37 @@ export default function GuestOrderPage() {
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
 
-  // Handle verified email from Home Page
+  // Handle verified email from Home Page / Logged In Customer
   useEffect(() => {
     const emailParam = searchParams.get("email");
     const verifiedParam = searchParams.get("verified");
 
-    if (emailParam && verifiedParam === "true") {
+    if (isLoggedIn && customer) {
+      form.setFieldsValue({
+        customerName: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+      });
+      setIsVerified(true);
+      setIsOtpSent(false);
+
+      if (customer.addresses && customer.addresses.length > 0) {
+        const defaultAddr = customer.addresses.find((a) => a.isDefault) || customer.addresses[0];
+        const addressStr = defaultAddr.formattedAddress || `${defaultAddr.streetAddress}, ${defaultAddr.districtName}, ${defaultAddr.provinceName}`;
+
+        form.setFieldValue("shippingAddress", addressStr);
+        setSelectedAddress({
+          formattedAddress: addressStr,
+          lat: defaultAddr.lat || 0,
+          lng: defaultAddr.lng || 0,
+        } as any);
+      }
+    } else if (emailParam && verifiedParam === "true") {
       form.setFieldValue("email", emailParam);
       setIsVerified(true);
       setIsOtpSent(false); // No need to send OTP if already verified
     }
-  }, [searchParams, form]);
+  }, [searchParams, form, isLoggedIn, customer]);
 
   // Fetch product suggestions and paper types
   const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
@@ -410,7 +432,7 @@ export default function GuestOrderPage() {
                         rules={[{ required: true, message: "Nhập họ tên" }]}
                         className="w-full"
                       >
-                        <Input placeholder="Nguyễn Văn A" />
+                        <Input placeholder="Nguyễn Văn A" disabled={isLoggedIn} />
                       </Form.Item>
 
                       {/* SĐT - simple field without OTP */}
@@ -423,7 +445,7 @@ export default function GuestOrderPage() {
                         ]}
                         className="w-full"
                       >
-                        <Input placeholder="0912345678" />
+                        <Input placeholder="0912345678" disabled={isLoggedIn} />
                       </Form.Item>
                     </div>
 
@@ -680,7 +702,7 @@ export default function GuestOrderPage() {
                           </Col>
                           <Col span={8}>
                             <Form.Item name="height" className="mb-0">
-                              <FloatingInputAntd className="text-right" placeholder="Cao" style={{ width: "100%",  }} min={0} />
+                              <FloatingInputAntd className="text-right" placeholder="Cao" style={{ width: "100%", }} min={0} />
                             </Form.Item>
                           </Col>
                         </Row>
