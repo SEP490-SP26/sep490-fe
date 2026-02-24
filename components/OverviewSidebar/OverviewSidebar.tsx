@@ -12,7 +12,12 @@ import {
     FileSearchOutlined,
     LoginOutlined,
     LogoutOutlined,
-    HomeOutlined
+    HomeOutlined,
+    PhoneOutlined,
+    MailOutlined,
+    FacebookOutlined,
+    InstagramOutlined,
+    YoutubeOutlined
 } from "@ant-design/icons";
 import { Avatar, Button, Tooltip } from "antd";
 import Image from "next/image";
@@ -58,7 +63,7 @@ export default function OverviewSidebar() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto py-6">
+            <nav className="flex-1 overflow-y-auto py-6 flex flex-col">
                 <ul className="space-y-2 px-3">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
@@ -94,6 +99,50 @@ export default function OverviewSidebar() {
                         );
                     })}
                 </ul>
+
+                {/* Contact & Social */}
+                <div className="px-3 mt-auto pt-8">
+                    <div className="border-t border-gray-100 pt-4">
+                        {!collapsed && (
+                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">Liên hệ</h3>
+                        )}
+                        <div className="space-y-1 mb-4">
+                            <Tooltip title={collapsed ? "0987 654 321" : ""} placement="right">
+                                <a href="tel:0987654321" className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-primary transition-colors ${collapsed ? "justify-center" : ""}`}>
+                                    <PhoneOutlined className="text-xl" />
+                                    {!collapsed && <span className="text-sm font-medium">0987 654 321</span>}
+                                </a>
+                            </Tooltip>
+                            <Tooltip title={collapsed ? "contact@sep490.com" : ""} placement="right">
+                                <a href="mailto:contact@sep490.com" className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-primary transition-colors ${collapsed ? "justify-center" : ""}`}>
+                                    <MailOutlined className="text-xl" />
+                                    {!collapsed && <span className="text-sm font-medium">contact@sep490.com</span>}
+                                </a>
+                            </Tooltip>
+                        </div>
+
+                        {/* {!collapsed && (
+                            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">Mạng xã hội</h3>
+                        )} */}
+                        <div className={`flex items-center px-3 ${collapsed ? "flex-col gap-4" : "gap-4"}`}>
+                            <Tooltip title={collapsed ? "Facebook" : ""} placement="right">
+                                <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 transition-colors">
+                                    <FacebookOutlined className="text-xl" />
+                                </a>
+                            </Tooltip>
+                            <Tooltip title={collapsed ? "Instagram" : ""} placement="right">
+                                <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-pink-600 transition-colors">
+                                    <InstagramOutlined className="text-xl" />
+                                </a>
+                            </Tooltip>
+                            <Tooltip title={collapsed ? "Youtube" : ""} placement="right">
+                                <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-red-600 transition-colors">
+                                    <YoutubeOutlined className="text-xl" />
+                                </a>
+                            </Tooltip>
+                        </div>
+                    </div>
+                </div>
             </nav>
 
             {/* User Section */}

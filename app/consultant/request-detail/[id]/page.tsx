@@ -26,6 +26,7 @@ import {
     Input,
     message,
     Modal,
+    Popconfirm,
     Skeleton,
     Tag,
     Typography,
@@ -170,15 +171,23 @@ export default function ConsultantRequestDetailPage() {
                                     Gửi báo giá cho khách hàng
                                 </Button>
                             )}
+                            <Popconfirm
+                                title="Cập nhật lại yêu cầu của khách hàngs"
+                                description="Bạn có chắc chắn muốn cập nhật lại yêu cầu của khách hàng không?"
+                                onConfirm={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate`)}
+                                okText="Đồng ý"
+                                cancelText="Hủy"
+                            >
                             <Button
                                 type="primary"
                                 icon={<EditOutlined />}
                                 className="bg-blue-600 hover:bg-blue-500"
                                 size="small"
-                                onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate&reason=${encodeURIComponent(updateReason.trim())}`)}
+                                //onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate&reason=${encodeURIComponent(updateReason.trim())}`)}
                             >
                                 Cập nhật yêu cầu
                             </Button>
+                            </Popconfirm>
 
                             {/* Confirm Update Modal */}
                             <Modal

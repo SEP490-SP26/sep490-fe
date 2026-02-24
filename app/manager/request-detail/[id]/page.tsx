@@ -541,7 +541,7 @@ export default function ManagerRequestDetailPage() {
                         <div className="flex justify-end gap-3 mt-2">
                             <Popconfirm
                                 title="Yêu cầu chỉnh sửa lại?"
-                                description="Bạn có chắc chắn muốn yêu cầu chỉnh sửa lại đơn này không? Status sẽ chuyển về Declined."
+                                description="Bạn có chắc chắn muốn yêu cầu chỉnh sửa lại đơn này không?"
                                 onConfirm={() => handleApproval('Declined')}
                                 okText="Đồng ý"
                                 cancelText="Hủy"
@@ -559,7 +559,7 @@ export default function ManagerRequestDetailPage() {
 
                             <Popconfirm
                                 title="Duyệt yêu cầu?"
-                                description="Bạn có chắc chắn muốn duyệt đơn này không? Status sẽ chuyển thành Verified."
+                                description="Bạn có chắc chắn muốn duyệt đơn này không?"
                                 onConfirm={() => handleApproval('Verified')}
                                 okText="Duyệt"
                                 cancelText="Hủy"

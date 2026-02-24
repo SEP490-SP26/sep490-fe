@@ -1458,7 +1458,7 @@ function ConsultantForm() {
                 format: (_) => "" // Handled manually below
               },
               { key: "paper_code", label: "Giấy/Chất liệu", format: (v) => paperTypes.find(p => p.code === v)?.name || v },
-              { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v },
+              { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v === "KEO_NUOC" ? "Keo nước" : v === "KEO_DAN" ? "Keo dán" : v },
               { key: "wave_type", label: "Sóng", format: (v) => v },
               { key: "number_of_plates", label: "Số lượng kẽm", format: (v) => v },
               {
