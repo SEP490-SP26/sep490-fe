@@ -483,7 +483,7 @@ export default function RequestDetailPage() {
                     className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-10 rounded-xl font-semibold shadow-emerald-200 shadow-lg"
                     icon={<CreditCardOutlined />}
                   >
-                    Thanh toán ngay
+                    Thanh toán
                   </Button>
                   <Button
                     danger
