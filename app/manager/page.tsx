@@ -4,7 +4,37 @@ import Link from "next/link";
 import { BiCalendar, BiCheckCircle, BiPackage } from "react-icons/bi";
 import { FiAlertTriangle, FiClock } from "react-icons/fi";
 import { useEffect, useState } from "react";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  Chart,
+} from "chart.js";
+import { Doughnut } from "react-chartjs-2";
 
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+const centerTextPlugin = {
+  id: "centerText",
+  afterDraw: (chart: any) => {
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    const centerX = meta.data[0].x;
+    const centerY = meta.data[0].y;
+
+    ctx.save();
+
+    ctx.font = "bold 28px sans-serif";
+    ctx.fillStyle = "#111827";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(`${chart.config.data.datasets[0].data[0]}%`, centerX, centerY);
+
+    ctx.restore();
+  },
+};
 export default function Dashboard() {
 
   const [missingMaterials, setMissingMaterials] = useState<any[]>([]);
@@ -34,6 +64,11 @@ export default function Dashboard() {
   // ======== PRODUCTIONS (Chỉ lấy 5 đơn gần nhất) ========
 
   const [productions, setProductions] = useState<any[]>([]);
+  const [kpis, setKpis] = useState({
+  total: 0,
+  scheduled: 0,
+  rate: 0,
+});
   const [loadingProd, setLoadingProd] = useState(false);
 
   useEffect(() => {
@@ -47,11 +82,31 @@ export default function Dashboard() {
 
         const data = await res.json();
 
-        const filtered = (data.data || []).filter(
-          (item: any) =>
-            item.status === "Scheduled" ||
-            item.status === "InProcessing"
-        );
+        const list = data.data || [];
+
+// ===== KPI =====
+const total = list.length;
+
+const scheduledCount = list.filter(
+  (item: any) =>
+    item.status === "Scheduled" ||
+    item.status === "InProcessing"
+).length;
+
+const rate =
+  total > 0 ? Math.round((scheduledCount / total) * 100) : 0;
+
+setKpis({
+  total,
+  scheduled: scheduledCount,
+  rate,
+});
+
+        const filtered = list.filter(
+  (item: any) =>
+    item.status === "Scheduled" ||
+    item.status === "InProcessing"
+);
 
         // Sort mới nhất trước (ưu tiên delivery_date)
         const sorted = filtered.sort(
@@ -74,7 +129,7 @@ export default function Dashboard() {
   }, []);
 
   // =========
-
+{/* 
   const { orders, inventory, materials, productionSchedules } = useProduction();
 
   // KPIs
@@ -93,7 +148,7 @@ export default function Dashboard() {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
     .slice(0, 5);
-
+*/}
   // Tồn kho thấp (< 100 đơn vị)
   {/*
   const lowStockItems = inventory
@@ -103,7 +158,7 @@ export default function Dashboard() {
       material: materials.find((m) => m.id === inv.material_id),
     }));
     */}
-
+{/* 
   // Lịch sản xuất hôm nay
   const today = new Date().toISOString().split("T")[0];
 
@@ -117,7 +172,29 @@ export default function Dashboard() {
       ...schedule,
       order: orders.find((o) => o.order_id === schedule.order_id),
     }));
+*/}
+//=======================CHART=====================
+const notScheduled = kpis.total - kpis.scheduled;
 
+const chartData = {
+  labels: ["Đã lên lịch", "Chưa lên lịch"],
+  datasets: [
+    {
+      data: [kpis.rate, 100 - kpis.rate],
+      backgroundColor: ["#22c55e", "#facc15"],
+      borderWidth: 1,
+    },
+  ],
+};
+
+const chartOptions = {
+  cutout: "65%",
+  plugins: {
+    legend: {
+      position: "bottom" as const,
+    },
+  },
+};
   return (
     <div>
 
@@ -132,37 +209,39 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <BiPackage className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-          <div className="text-gray-600 mb-1">Tổng đơn hàng</div>
-          <div className="text-blue-600">{totalOrders}</div>
-        </div>
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+  <h2 className="text-lg font-semibold mb-4">
+    Tổng quan sản xuất
+  </h2>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <BiCheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="text-gray-600 mb-1">Đơn đã lên lịch</div>
-          <div className="text-green-600">{scheduledOrders}</div>
-        </div>
+  {loadingProd ? (
+    <div className="text-center text-gray-400 py-10">
+      Đang tải dữ liệu...
+    </div>
+  ) : (
+    <>
+      <div className="w-72 h-72 mx-auto">
+        <Doughnut
+  data={chartData}
+  options={chartOptions}
+  plugins={[centerTextPlugin]}
+/>
+      </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <BiCalendar className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-          <div className="text-gray-600 mb-1">Tỷ lệ lên lịch</div>
-          <div className="text-purple-600">{scheduledRate}%</div>
+      <div className="text-center mt-4 space-y-1">
+        <div className="text-gray-600">
+          Tổng đơn: <b>{kpis.total}</b>
+        </div>
+        <div className="text-green-600">
+          Đã lên lịch: <b>{kpis.scheduled}</b>
+        </div>
+        <div className="text-purple-600">
+          Tỷ lệ lên lịch: <b>{kpis.rate}%</b>
         </div>
       </div>
+    </>
+  )}
+</div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
