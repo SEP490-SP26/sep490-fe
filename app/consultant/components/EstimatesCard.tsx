@@ -260,6 +260,25 @@ export default function EstimatesCard({
                     />
                   </Form.Item>
 
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) => prevValues.final_price !== currentValues.final_price}
+                  >
+                    {({ getFieldValue }) => {
+                      const currentFinalPrice = getFieldValue("final_price") || costEstimate?.cost?.final_total_cost || 0;
+                      const calculatedDeposit = Math.round((currentFinalPrice * 0.3) / 1000) * 1000;
+
+                      return (
+                        <div className="flex justify-between items-center text-blue-900 mt-2 p-2 bg-blue-100/50 rounded-md border border-blue-100">
+                          <span className="font-medium text-sm">Tiền cọc (30%):</span>
+                          <span className="font-bold text-lg">
+                            {formatVietnameseNumber(calculatedDeposit)} ₫
+                          </span>
+                        </div>
+                      );
+                    }}
+                  </Form.Item>
+
                   {/* Nút xác nhận giá */}
                   {/* <Button
                     type="primary"
@@ -495,22 +514,22 @@ export default function EstimatesCard({
                           </span>
                         </div>
 
-                        {/* Tiền đặt cọc (30%) */}
-                        <div className="bg-purple-50 p-3 rounded-lg mt-3 border border-purple-200">
+                        {/* Tiền đặt cọc (30%) - Đã chuyển lên trên phần Giá chốt */}
+                        {/* <div className="bg-purple-50 p-3 rounded-lg mt-3 border border-purple-200">
                           <div className="flex justify-between items-center">
                             <span className="text-purple-800 font-medium">
                               Tiền cọc (30%):
                             </span>
                             <span className="font-bold text-lg text-purple-700">
                               {(() => {
-                                const finalPrice = costEstimate.cost.final_total_cost;
+                                const finalPrice = form?.getFieldValue("final_price") || costEstimate.cost.final_total_cost;
                                 const deposit = Math.round((finalPrice * 0.3) / 1000) * 1000;
                                 return deposit.toLocaleString("vi-VN");
                               })()}{" "}
                               ₫
                             </span>
                           </div>
-                        </div>
+                        </div> */}
 
                         <div className="flex justify-between mt-3 text-sm">
                           <span className="text-gray-600">

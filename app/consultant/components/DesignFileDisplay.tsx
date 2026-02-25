@@ -42,7 +42,7 @@ export default function DesignFileDisplay({ designFilePath, requestId }: DesignF
                                             src={cleanUrl}
                                             alt={`Design file ${index + 1}`}
                                             className="w-full object-contain bg-slate-100"
-                                            style={{ height: 300, width: '100%' }}
+                                            style={{ height: 200, width: '100%' }}
                                             fallback="https://placehold.co/600x400?text=No+Preview"
                                         />
                                     </div>
@@ -52,7 +52,7 @@ export default function DesignFileDisplay({ designFilePath, requestId }: DesignF
                                         </Tooltip>
                                     </div>
                                     <div className="p-3 bg-white border-t border-slate-100">
-                                        <Text ellipsis className="text-slate-500 text-xs block">File thiết kế #{index + 1}</Text>
+                                        {/* <Text ellipsis className="text-slate-500 text-xs block">File thiết kế #{index + 1}</Text> */}
                                         <Text strong className="text-gray-700 text-sm" ellipsis={{ tooltip: fileName }}>
                                             {fileName}
                                         </Text>

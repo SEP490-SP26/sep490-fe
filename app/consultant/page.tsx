@@ -176,14 +176,15 @@ function ConsultantForm() {
     "customer_phone",
     "customer_email",
     "detail_address",
-    // "description", // Note might be specific? Let's keep it specific for now.
-    "contract_file", // File upload state might be tricky, but contract is usually 1 per order.
+    "contract_file",
     "product_name",
     "product_type",
     "quantity",
     "length",
     "width",
     "height",
+    "number_of_plates",
+    "glueTab",
   ];
 
   const handleTabEdit = (
@@ -198,6 +199,11 @@ function ConsultantForm() {
   };
 
   const addTab = () => {
+    if (quoteTabs.length >= 2) {
+      message.warning("Chỉ được phép tạo tối đa 2 báo giá!");
+      return;
+    }
+
     // Clone current form values for the new tab
     const currentValues = form.getFieldsValue();
     const currentCalculations = {
@@ -1271,6 +1277,7 @@ function ConsultantForm() {
 
                 <Tabs
                   type="editable-card"
+                  hideAdd={quoteTabs.length >= 2}
                   onChange={(key) => handleTabChange(key)}
                   activeKey={activeTabKey}
                   onEdit={handleTabEdit}

@@ -167,9 +167,10 @@ export default function ProductSpecsSection({
             <FloatingInputAntd
               label="Số kẽm"
               valueType="number"
-              className="w-full"
+              className={`w-full ${disabledSharedFields ? 'bg-gray-50' : ''}`}
               min={1}
-              controls={false}
+              controls={!disabledSharedFields}
+              disabled={disabledSharedFields}
             />
           </Form.Item>
         </Col>
@@ -250,6 +251,8 @@ export default function ProductSpecsSection({
                       max={50}
                       placeholder="10"
                       style={{ width: "100%" }}
+                      className={disabledSharedFields ? 'bg-gray-50' : ''}
+                      disabled={disabledSharedFields}
                     />
                   </Form.Item>
                 </Col>
