@@ -217,7 +217,7 @@ export default function GuestOrderPage() {
     setLoadingOtp(true);
     try {
       const response = await otpsApi.sendOtp({ email });
-      if (response?.message === "OTP sent") {
+      if (response) {
         setIsOtpSent(true);
         message.success("Mã OTP đã được gửi đến email của bạn!");
       }
@@ -238,7 +238,7 @@ export default function GuestOrderPage() {
     setLoadingOtp(true);
     try {
       const response = await otpsApi.verifyOtp({ email, otp });
-      if (response?.message === "OTP verified") {
+      if (response) {
         setIsVerified(true);
         setIsOtpSent(false);
         message.success("Xác thực email thành công!");

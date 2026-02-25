@@ -471,3 +471,16 @@ export const calculateRushFee = (
 export const roundToThousands = (num: number): number => {
     return Math.round(num / 1000) * 1000;
 };
+
+export const formatCoatingType = (coatingType: string | null | undefined): string => {
+    switch (coatingType) {
+        case 'KEO_NUOC':
+            return 'Keo nước';
+        case 'KEO_DAU':
+            return 'Keo dầu';
+        case 'NONE':
+            return 'Không';
+        default:
+            return coatingType || 'Không';
+    }
+};

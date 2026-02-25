@@ -21,6 +21,7 @@ interface ProductSpecsSectionProps {
   songTypes: Material[];
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   form: any;
+  disabledSharedFields?: boolean;
 }
 
 const FORM_TYPE_LABELS: Record<string, string> = {
@@ -47,6 +48,7 @@ export default function ProductSpecsSection({
   songTypes,
   handleFormValuesChange,
   form,
+  disabledSharedFields = false,
 }: ProductSpecsSectionProps) {
   useEffect(() => {
     if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
@@ -85,8 +87,8 @@ export default function ProductSpecsSection({
                 label: name,
                 value: name,
               }))}
-              // disabled={!!orderId}
-              className={orderId ? "bg-gray-50" : ""}
+              disabled={disabledSharedFields}
+              className={(orderId || disabledSharedFields) ? "bg-gray-50" : ""}
               required
             />
           </Form.Item>
@@ -106,6 +108,8 @@ export default function ProductSpecsSection({
                 label: `${pt.name} - ${pt.description}`,
                 value: pt.product_type_id,
               }))}
+              disabled={disabledSharedFields}
+              className={disabledSharedFields ? "bg-gray-50" : ""}
               required
             />
           </Form.Item>
@@ -146,14 +150,15 @@ export default function ProductSpecsSection({
             <FloatingInputAntd
               label="Số lượng"
               valueType="number"
-              className="w-full text-end"
+              className={`w-full text-end ${disabledSharedFields ? "bg-gray-50" : ""}`}
               formatter={(value: any) =>
                 `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
               }
               parser={(value: any) =>
                 Number(value?.replace(/\./g, "")) || 0
               }
-              controls={true}
+              controls={!disabledSharedFields}
+              disabled={disabledSharedFields}
             />
           </Form.Item>
         </Col>
@@ -266,7 +271,8 @@ export default function ProductSpecsSection({
                   placeholder=" "
                   controls={false}
                   min={100}
-                  className="text-end"
+                  className={`text-end ${disabledSharedFields ? "bg-gray-50" : ""}`}
+                  disabled={disabledSharedFields}
                 />
               </Form.Item>
               <span className="text-gray-400">×</span>
@@ -278,6 +284,8 @@ export default function ProductSpecsSection({
                   placeholder=" "
                   controls={false}
                   min={1}
+                  className={disabledSharedFields ? "bg-gray-50" : ""}
+                  disabled={disabledSharedFields}
                 />
               </Form.Item>
               <span className="text-gray-400">×</span>
@@ -289,7 +297,8 @@ export default function ProductSpecsSection({
                   placeholder=" "
                   controls={false}
                   min={0}
-                  className="text-end"
+                  className={`text-end ${disabledSharedFields ? "bg-gray-50" : ""}`}
+                  disabled={disabledSharedFields}
                 />
               </Form.Item>
               <h1>(mm)</h1>
