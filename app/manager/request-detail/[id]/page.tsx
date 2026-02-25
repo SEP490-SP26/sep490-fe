@@ -3,45 +3,39 @@
 import { requestOrderApi } from "@/apiRequests/request";
 import { VerifiedRequestReponse } from "@/lib/request.types";
 import {
-    CalendarOutlined,
-    CompassOutlined,
+    CheckCircleOutlined,
     DollarOutlined,
-    FileImageOutlined,
     DownloadOutlined,
+    FileImageOutlined,
     ShoppingOutlined,
     UserOutlined,
-    PhoneOutlined,
-    MailOutlined,
-    HomeOutlined,
-    CheckCircleOutlined,
-    CloseCircleOutlined,
-    ExclamationCircleOutlined
+    ArrowLeftOutlined,
+    FileTextOutlined,
+    EditOutlined,
+    CheckOutlined
 } from "@ant-design/icons";
 import {
     Button,
     Card,
+    Collapse,
+    Descriptions,
+    Divider,
     Empty,
     Image,
-    message,
+    Input,
+    Popconfirm,
     Skeleton,
     Tag,
     Typography,
-    Statistic,
-    Row,
-    Col,
-    Divider,
-    Tooltip,
-    Collapse,
-    Badge,
-    Input,
-    Space,
-    Popconfirm
+    message,
+    Modal
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { formatCoatingType } from "@/lib/estimationUtils";
 
-const { Title, Text, Paragraph } = Typography;
+const { Text } = Typography;
 const { Panel } = Collapse;
 const { TextArea } = Input;
 
@@ -54,6 +48,7 @@ export default function ManagerRequestDetailPage() {
     const [orderDetail, setOrderDetail] = useState<VerifiedRequestReponse | null>(null);
     const [note, setNote] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
+    const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
 
     // Fetch order detail from API
     useEffect(() => {
@@ -82,10 +77,8 @@ export default function ManagerRequestDetailPage() {
     const handleApproval = async (status: 'Verified' | 'Declined') => {
         if (!requestId) return;
 
-        // Helper text for confirmation
         const actionText = status === 'Verified' ? "Duyệt yêu cầu" : "Yêu cầu chỉnh sửa";
 
-        // Optional: Require note for "Request Revision"
         if (status === 'Declined' && !note.trim()) {
             message.error("Vui lòng nhập ghi chú lý do yêu cầu chỉnh sửa.");
             return;
@@ -99,7 +92,8 @@ export default function ManagerRequestDetailPage() {
                 status: status
             });
             message.success(status === 'Verified' ? "Đã duyệt yêu cầu thành công" : "Đã gửi yêu cầu chỉnh sửa");
-            router.push('/manager/requests-processing'); // Redirect to list page
+            setIsDeclineModalOpen(false);
+            router.push('/manager/requests-processing');
         } catch (error) {
             console.error(`Error ${status} request:`, error);
             message.error(`Có lỗi xảy ra khi ${actionText.toLowerCase()}, vui lòng thử lại`);
@@ -110,14 +104,15 @@ export default function ManagerRequestDetailPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen p-6">
-                <div className="max-w-6xl mx-auto">
-                    <Skeleton.Button active size="large" className="mb-8" />
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Skeleton active paragraph={{ rows: 8 }} />
-                        <Skeleton active paragraph={{ rows: 8 }} />
-                        <Skeleton active paragraph={{ rows: 8 }} />
-                        <Skeleton active paragraph={{ rows: 8 }} />
+            <div className="min-h-screen p-6 bg-slate-50/50">
+                <div className="max-w-6xl mx-auto space-y-6">
+                    <Skeleton.Button active size="large" />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            <Skeleton active paragraph={{ rows: 8 }} className="bg-white p-6 rounded-2xl" />
+                            <Skeleton active paragraph={{ rows: 6 }} className="bg-white p-6 rounded-2xl" />
+                        </div>
+                        <Skeleton active paragraph={{ rows: 10 }} className="bg-white p-6 rounded-2xl" />
                     </div>
                 </div>
             </div>
@@ -126,12 +121,12 @@ export default function ManagerRequestDetailPage() {
 
     if (!orderDetail) {
         return (
-            <div className="min-h-screen p-6 flex items-center justify-center">
-                <Card className="shadow-lg rounded-2xl max-w-md w-full text-center py-12">
+            <div className="min-h-screen p-6 flex items-center justify-center bg-slate-50/30">
+                <Card className="shadow-sm border-slate-200 rounded-2xl max-w-md w-full text-center py-12">
                     <Empty description={<span className="text-slate-500 font-medium">Không tìm thấy yêu cầu</span>}
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
-                    <Button type="primary" size="large" onClick={() => router.back()} className="mt-8 bg-cyan-600 hover:bg-cyan-500">
+                    <Button type="primary" onClick={() => router.back()} className="mt-8 bg-slate-800 hover:bg-slate-700">
                         Quay lại danh sách
                     </Button>
                 </Card>
@@ -139,482 +134,392 @@ export default function ManagerRequestDetailPage() {
         );
     }
 
-    // Helper to format currency
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
-    // Download all design files
     const downloadAllDesignFiles = () => {
         if (!orderDetail.design_file_path) return;
 
-        orderDetail.design_file_path.split(',').forEach((url, index) => {
+        orderDetail.design_file_path.split(',').forEach((url) => {
             const trimmedUrl = url.trim();
             window.open(trimmedUrl, '_blank');
         });
     };
 
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Declined': return 'blue';
+            case 'Accepted': return 'green';
+            case 'Rejected': return 'red';
+            case 'Waiting': return 'orange';
+            case 'Processing': return 'cyan';
+            default: return 'default';
+        }
+    };
+
+    const getStatusText = (status: string) => {
+        switch (status) {
+            case 'Waiting': return 'Chờ Khách hàng xác nhận';
+            case 'Processing': return 'Đang xử lý';
+            case 'Declined': return 'Đơn mới';
+            case 'Accepted': return 'Đã xác nhận';
+            case 'Rejected': return 'Đã hủy';
+            default: return status;
+        }
+    };
+
     return (
-        <div className="min-h-screen pb-8">
-            <div className="w-full max-w-full px-6 pt-4 relative animate-fade-in-up">
-                {/* Header - Compact */}
-                <div className="mb-2">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                            <h1 className="!mb-0 tracking-tight text-accent text-xl lg:text-2xl font-bold">
-                                Yêu cầu #{orderDetail.request_id}
-                            </h1>
-                            <Tag color={
-                                orderDetail.process_status === 'Declined' ? 'blue' :
-                                    orderDetail.process_status === 'Accepted' ? 'green' : orderDetail.process_status === 'Rejected' ? 'red' : 'orange'
-                            } className="text-xs lg:text-sm px-3 py-1 rounded-full uppercase font-medium">
-                                {orderDetail.process_status === 'Waiting' ? 'Chờ Khách hàng xác nhận' : orderDetail.process_status === 'Processing' ? 'Đang xử lý' :
-                                    orderDetail.process_status === 'Declined' ? 'Đơn mới' : orderDetail.process_status === 'Accepted' ? 'Đã xác nhận' : orderDetail.process_status === 'Rejected' ? 'Đã hủy' : orderDetail.process_status}
+        <div className="min-h-screen pb-8 bg-slate-50/30">
+            <div className="max-w-7xl mx-auto px-2  animate-fade-in-up">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-4">
+                    <div>
+                        <div className="flex items-center gap-2 ">
+                            <h1 className="m-0 text-2xl font-bold text-slate-800 tracking-tight">Yêu cầu #{orderDetail.request_id}</h1>
+                            <Tag color={getStatusColor(orderDetail.process_status)} className="rounded-full border-0 px-3 py-0.5 font-medium m-0">
+                                {getStatusText(orderDetail.process_status)}
                             </Tag>
                         </div>
-                        <Button onClick={() => router.back()} className="rounded-xl">Quay lại</Button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button icon={<EditOutlined />} onClick={() => setIsDeclineModalOpen(true)} danger block className="rounded-lg text-sm font-medium h-auto py-2">
+                            Yêu cầu chỉnh sửa
+                        </Button>
+                        <Popconfirm
+                            title="Duyệt yêu cầu?"
+                            onConfirm={() => handleApproval('Verified')}
+                            okText="Duyệt"
+                            cancelText="Hủy"
+                        >
+                            <Button type="primary" icon={<CheckOutlined />} block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                Duyệt yêu cầu
+                            </Button>
+                        </Popconfirm>
                     </div>
                 </div>
 
-                {/* Main Content - 2x2 Grid with Optimized Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    {/* Card 1: Customer & Address (Top Left) */}
-                    <Card
-                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full"
-                        bodyStyle={{ padding: '20px' }}
-                    >
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600">
-                                <UserOutlined className="text-xl" />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Left Column (2/3 width) - Detail Cards */}
+                    <div className="lg:col-span-2 space-y-6">
+
+                        {/* Summary Card (Customer & Product packed tightly) */}
+                        <Card className="rounded-2xl border border-slate-200 shadow-sm" bodyStyle={{ padding: '24px' }}>
+                            {/* Customer Section */}
+                            <div className="mb-6">
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <UserOutlined className="text-slate-400" />
+                                    Thông tin khách hàng
+                                </h3>
+                                <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} className="text-sm" labelStyle={{ color: '#64748b' }}>
+                                    <Descriptions.Item label="Họ tên"><Text strong className="text-slate-800">{orderDetail.customer_name}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Điện thoại"><Text strong className="text-slate-800">{orderDetail.customer_phone}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Email"><Text strong className="text-slate-800 truncate" style={{ maxWidth: 180 }} title={orderDetail.email}>{orderDetail.email}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Địa chỉ giao hàng" span={3}>
+                                        <Text strong className="text-slate-800">{orderDetail.detail_address || <span className="font-normal italic text-slate-400">Chưa cập nhật</span>}</Text>
+                                    </Descriptions.Item>
+                                </Descriptions>
                             </div>
+
+                            <Divider className="my-0 mb-6 border-slate-100" />
+
+                            {/* Product Section */}
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin khách hàng</h3>
-                            </div>
-                        </div>
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <ShoppingOutlined className="text-slate-400" />
+                                    Chi tiết sản phẩm: <span className="text-primary normal-case font-semibold">{orderDetail.product_name}</span>
+                                </h3>
 
-                        <div className="space-y-3">
-                            {/* Khách hàng & Số điện thoại - Same Line */}
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <div className="flex-1 flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <Text className="text-slate-500 text-sm font-medium">Khách hàng:</Text>
-                                    </div>
-                                    <Text className="text-primary font-bold text-base uppercase truncate max-w-[150px]" title={orderDetail.customer_name}>{orderDetail.customer_name}</Text>
-                                </div>
+                                <Descriptions size="small" column={{ xs: 1, sm: 3, md: 4 }} className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm mb-4" labelStyle={{ color: '#64748b' }}>
+                                    <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm} mm</Text></Descriptions.Item>
 
-                                <div className="flex-1 flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <Text className="text-slate-500 text-sm font-medium">Số điện thoại:</Text>
-                                    </div>
-                                    <Text className="text-slate-800 font-bold text-base">{orderDetail.customer_phone}</Text>
-                                </div>
-                            </div>
+                                    <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Giao hàng" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
 
-                            {/* Email */}
-                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <div className="flex items-center gap-2">
 
-                                    <Text className="text-slate-500 text-sm font-medium">Email:</Text>
-                                </div>
-                                <Text className="text-slate-800 font-bold text-base truncate ml-2">{orderDetail.email}</Text>
-                            </div>
 
-                            {/* Địa chỉ */}
-                            <div className="p-3 bg-cyan-50 rounded-lg border border-cyan-100">
-                                <div className="flex items-start gap-2">
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <Text className="text-cyan-700 text-sm font-medium">Địa chỉ giao hàng:</Text>
+                                    {/* <Descriptions.Item label="Loại giấy" span={2}><Text strong className="text-slate-800">{orderDetail.paper_name}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Kiểu sóng" span={2}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item> */}
+
+                                    {/* <Descriptions.Item label="Loại phủ" span={2}><Text strong className="text-slate-800">{orderDetail.coating_type}</Text></Descriptions.Item> */}
+                                    {/* <Descriptions.Item label="Số bản kẽm" span={2}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item> */}
+                                </Descriptions>
+
+                                {orderDetail.description && (
+                                    <div>
+                                        <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Mô tả yêu cầu</Text>
+                                        <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
+                                            {orderDetail.description}
                                         </div>
-                                        <Text className="text-slate-800 font-medium text-sm leading-relaxed">
-                                            {orderDetail.detail_address || <span className="text-slate-400 italic">Chưa cập nhật địa chỉ</span>}
-                                        </Text>
                                     </div>
+                                )}
+                            </div>
+                        </Card>
+
+                        <div className=""></div>
+                        {/* Cost Estimates Block */}
+                        <Card className="rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <DollarOutlined className="text-slate-400" />
+                                Thông tin báo giá
+                            </h3>
+                            {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
+                                <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-1">
+                                    {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => (
+                                        <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
+                                                <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
+                                            </div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-slate-500 text-sm">Loại giấy:</span>
+                                                <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-slate-500 text-sm">Loại phủ:</span>
+                                                <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-slate-500 text-sm">Đặt cọc:</span>
+                                                <span className="font-semibold text-slate-800">{formatCurrency(estimate.deposit_amount)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
+                                                <span className="font-bold text-base text-slate-800">{formatCurrency(estimate.final_total_cost)}</span>
+                                            </div>
+                                            {estimate.process_cost && estimate.process_cost.length > 0 && (
+                                                <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
+                                                    <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
+                                                        <div className="space-y-2 py-1">
+                                                            {estimate.process_cost.map(proc => (
+                                                                <div key={proc.process_cost_id} className="flex justify-between items-center">
+                                                                    <span className="text-slate-500 text-xs">{proc.process_code}</span>
+                                                                    <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </Panel>
+                                                </Collapse>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6">
+                                    <Text className="text-slate-400 text-sm italic">Chưa có báo giá nào</Text>
+                                </div>
+                            )}
+                        </Card>
+
+                    </div>
+
+                    {/* Right Column (1/3 width) - Approval & Estimates */}
+                    <div className="space-y-12">
+
+
+
+
+
+                        {/* Design Files Card */}
+                        <Card
+                            className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <FileImageOutlined className="text-slate-400" />
+                                        File đính kèm
+                                    </h3>
                                 </div>
                             </div>
-                        </div>
-                    </Card>
 
-                    {/* Card 2: File (Top Right) */}
-                    <Card
-                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full"
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
-                                    <FileImageOutlined className="text-xl" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-slate-800 m-0">File thiết kế</h3>
-                                    {orderDetail.design_file_path && (
-                                        <div className="flex items-center gap-1">
-                                            <Text className="text-slate-500 text-sm">
-                                                {orderDetail.design_file_path.split(',').length} file
-                                            </Text>
+                            <div className="space-y-3">
+                                {/* File mẫu */}
+                                <div className="flex flex-col gap-2 p-2 bg-gray-50 rounded">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <FileTextOutlined className="text-gray-400 text-sm" />
+                                            <div>
+                                                <div className="font-medium text-sm">File mẫu</div>
+                                                <div className="text-xs text-gray-500">
+                                                    {orderDetail.design_file_path ? `${orderDetail.design_file_path.split(',').length} file thiết kế` : "Chưa tải lên"}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {orderDetail.design_file_path ? (
                                             <Button
-                                                type="text"
                                                 size="small"
                                                 icon={<DownloadOutlined />}
                                                 onClick={downloadAllDesignFiles}
-                                                className="text-blue-600 p-0 h-auto"
                                             >
-                                                <span className="text-xs">Tải tất cả</span>
+                                                Tải tất cả
                                             </Button>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">Không có file</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Hợp đồng */}
+                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <div className="flex items-center gap-2">
+                                        <svg
+                                            className="w-4 h-4 text-gray-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                            />
+                                        </svg>
+                                        <div>
+                                            <div className="font-medium text-sm">Hợp đồng</div>
+                                            <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div>
                                         </div>
+                                    </div>
+                                    {(orderDetail as any).contract_file ? (
+                                        <Button
+                                            size="small"
+                                            type="primary"
+                                            onClick={() => window.open((orderDetail as any).contract_file, "_blank")}
+                                        >
+                                            Xem
+                                        </Button>
+                                    ) : (
+                                        <span className="text-xs text-gray-400">Không có file</span>
                                     )}
                                 </div>
-                            </div>
-                        </div>
 
-                        {orderDetail.design_file_path ? (
-                            <div className="flex-1">
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
-                                    {orderDetail.design_file_path.split(',').map((url, index) => {
-                                        const trimmedUrl = url.trim();
-                                        const isImage = /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(trimmedUrl);
-                                        const fileName = trimmedUrl.split('/').pop() || `File ${index + 1}`;
-
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="aspect-square border border-slate-200 rounded-lg overflow-hidden hover:border-blue-300 hover:shadow-sm transition-all duration-200 group design-file-image"
-                                            >
-                                                {isImage ? (
-                                                    <>
-                                                        <Image
-                                                            src={trimmedUrl}
-                                                            alt={fileName}
-                                                            width="100%"
-                                                            height="100%"
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                                            preview={{
-                                                                mask: (
-                                                                    <div className="flex items-center justify-center gap-1 text-white text-xs">
-                                                                        <FileImageOutlined />
-                                                                        Xem
-                                                                    </div>
-                                                                )
-                                                            }}
-                                                        />
-
-                                                    </>
-                                                ) : (
-                                                    <a
-                                                        href={trimmedUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="flex flex-col items-center justify-center h-full p-2 bg-gradient-to-br from-slate-50 to-slate-100 hover:from-blue-50 hover:to-blue-100 transition-all duration-200 relative"
-                                                    >
-                                                        <FileImageOutlined className="text-xl text-slate-400 group-hover:text-blue-400 mb-1 transition-colors" />
-                                                        <span className="text-xs text-slate-600 font-medium truncate w-full text-center">
-                                                            File {index + 1}
-                                                        </span>
-                                                        <div className="absolute bottom-1 right-1">
-                                                            <DownloadOutlined className="text-slate-400 text-xs" />
-                                                        </div>
-                                                    </a>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center py-8">
-                                <FileImageOutlined className="text-4xl text-slate-300 mb-3" />
-                                <Text className="text-slate-400">Không có file thiết kế đính kèm</Text>
-                            </div>
-                        )}
-                    </Card>
-
-                    {/* Card 3: Cost Estimates (Bottom Left) */}
-                    <Card
-                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full"
-                        bodyStyle={{ padding: '20px' }}
-                    >
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                <DollarOutlined className="text-xl" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-800 m-0">Thông tin báo giá</h3>
-                            </div>
-                        </div>
-
-                        {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
-                            <div className="space-y-4">
-                                {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => (
-                                    <div key={estimate.estimate_id} className="border border-emerald-100 rounded-xl p-4 bg-gradient-to-r from-emerald-50/50 to-white hover:border-emerald-200 transition-colors">
-                                        {/* Estimate Header */}
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <Tag color="green" className="px-3 py-1 font-bold bg-green-100 text-green-700 border-0">
-                                                    BÁO GIÁ #{index + 1}
-                                                </Tag>
-                                            </div>
+                                {/* File khác */}
+                                {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
+                                    <div className="mt-2">
+                                        <div className="text-xs font-medium text-gray-700 mb-1">
+                                            File khác ({(orderDetail as any).other_files.length}):
                                         </div>
-
-                                        {/* Cost Summary - Single Line */}
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-100">
-                                                <div className="flex items-center gap-2">
-                                                    <DollarOutlined className="text-emerald-600" />
-                                                    <Text className="text-emerald-700 text-sm font-medium">Đặt cọc:</Text>
-                                                </div>
-                                                <Text className="text-emerald-700 font-bold text-base">
-                                                    {formatCurrency(estimate.deposit_amount)}
-                                                </Text>
-                                            </div>
-
-                                            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-white rounded-lg border border-emerald-200">
-                                                <div className="flex items-center gap-2">
-                                                    <DollarOutlined className="text-emerald-700" />
-                                                    <Text className="text-emerald-800 text-sm font-bold">Tổng chi phí:</Text>
-                                                </div>
-                                                <Text className="text-emerald-800 font-bold text-lg">
-                                                    {formatCurrency(estimate.final_total_cost)}
-                                                </Text>
-                                            </div>
-                                        </div>
-
-                                        {/* Process Costs - In Collapse */}
-                                        <div className="bg-white rounded-lg border border-slate-100">
-                                            <Collapse
-                                                ghost
-                                                expandIconPosition="end"
-                                                size="small"
-                                            >
-                                                <Panel
-                                                    header={
-                                                        <div className="flex items-center justify-between gap-4 w-full">
-                                                            <Text className="text-slate-700 font-medium">Chi tiết chi phí sản xuất</Text>
-                                                            <Badge count={estimate.process_cost.length} style={{ backgroundColor: '#10b981' }} />
-                                                        </div>
-                                                    }
-                                                    key="1"
+                                        <div className="space-y-1">
+                                            {(orderDetail as any).other_files.slice(0, 2).map((file: any, index: number) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
                                                 >
-                                                    <div className="space-y-2 max-h-48 overflow-y-auto grid grid-cols-2 gap-3">
-                                                        {estimate.process_cost.map((proc) => (
-                                                            <div
-                                                                key={proc.process_cost_id}
-                                                                className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 transition-colors"
-                                                            >
-
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                                                    <Text className="text-slate-700 font-medium text-sm">{proc.process_code}:</Text>
-                                                                </div>
-                                                                <Text className="text-emerald-600 font-bold text-sm">
-                                                                    {formatCurrency(proc.cost)}
-                                                                </Text>
-                                                            </div>
-                                                        ))}
+                                                    <div className="flex items-center gap-1.5 truncate">
+                                                        <FileTextOutlined className="text-gray-400" style={{ fontSize: "12px" }} />
+                                                        <span className="truncate">{file.name}</span>
                                                     </div>
-                                                </Panel>
-                                            </Collapse>
+                                                    <Button
+                                                        type="link"
+                                                        size="small"
+                                                        style={{ padding: 0, fontSize: "12px" }}
+                                                        onClick={() => window.open(file.url, "_blank")}
+                                                    >
+                                                        Tải
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                            {(orderDetail as any).other_files.length > 2 && (
+                                                <div className="text-xs text-gray-500 text-center">
+                                                    + {(orderDetail as any).other_files.length - 2} file khác
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-8">
-                                <DollarOutlined className="text-4xl text-slate-300 mb-3" />
-                                <Text className="text-slate-400">Chưa có báo giá nào</Text>
-                            </div>
-                        )}
-                    </Card>
+                        </Card>
 
-                    {/* Card 4: Product Info (Bottom Right) */}
-                    <Card
-                        className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 h-full"
-                        bodyStyle={{ padding: '20px' }}
-                    >
-                        <div className="flex items-center justify-between gap-3 mb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                    <ShoppingOutlined className="text-xl" />
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-800">Chi tiết sản phẩm:<span className="text-primary"> {orderDetail.product_name}</span></h3>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            {/* Quantity and Delivery Date - Single Line */}
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Quantity */}
-                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <Text className="text-slate-500 text-sm font-medium">Số lượng:</Text>
-                                    </div>
-                                    <Tag bordered={false} className="bg-white text-slate-700 font-bold text-lg px-3 py-1 rounded-lg border border-slate-200">
-                                        {orderDetail.quantity.toLocaleString("vi-VN")}
-                                    </Tag>
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <CalendarOutlined className="text-slate-500" />
-                                        <Text className="text-slate-500 text-sm font-medium">Giao hàng:</Text>
-                                    </div>
-                                    <Tag icon={<CalendarOutlined />} bordered={false} color="cyan" className="text-base px-3 py-1 m-0 font-medium">
-                                        {dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}
-                                    </Tag>
-                                </div>
-                            </div>
-
-                            {/* Technical Specs - In Collapse */}
-                            <div className="bg-white rounded-lg border border-slate-100">
-                                <Collapse
-                                    ghost
-                                    expandIconPosition="end"
-                                    size="small"
-                                >
-                                    <Panel
-                                        header={<Text className="text-slate-700 font-bold">Thông số kỹ thuật</Text>}
-                                        key="1"
-                                    >
-                                        <div className="space-y-2 pt-2">
-                                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                <div className="flex items-center gap-2">
-                                                    <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
-                                                </div>
-                                                <Text className="text-slate-800 font-bold text-base">
-                                                    {orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm}
-                                                </Text>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
-                                                    <Text className="text-slate-800 font-bold text-base">{orderDetail.paper_name}</Text>
-                                                </div>
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
-                                                    <Text className="text-slate-800 font-bold text-sm">{orderDetail.wave_type}</Text>
-                                                </div>
-
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
-                                                    <Text className="text-slate-800 font-bold text-sm">{orderDetail.coating_type}</Text>
-                                                </div>
-
-                                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                                    <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
-                                                    <Text className="text-slate-800 font-bold text-sm">{orderDetail.number_of_plates}</Text>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Panel>
-                                </Collapse>
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <Text className="text-slate-700 font-bold">Mô tả yêu cầu:</Text>
-                                </div>
-                                <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[80px] max-h-48 overflow-y-auto">
-                                    {orderDetail.description || <span className="text-slate-400 italic">Không có mô tả chi tiết</span>}
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
-
-                {/* APPROVAL SECTION for MANAGER */}
-                <Card
-                    className="shadow-md rounded-2xl border-t-4 border-t-blue-500 mb-8"
-                    title={<span className="text-lg font-bold text-blue-700">Duyệt yêu cầu</span>}
-                >
-                    <div className="flex flex-col gap-4">
                         <div>
-                            <Text strong className="mb-2 block">Ghi chú (Note):</Text>
-                            <TextArea
-                                rows={4}
-                                placeholder="Nhập ghi chú cho consultant hoặc lý do yêu cầu chỉnh sửa..."
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                className="rounded-lg"
-                            />
                         </div>
 
-                        <div className="flex justify-end gap-3 mt-2">
-                            <Popconfirm
-                                title="Yêu cầu chỉnh sửa lại?"
-                                description="Bạn có chắc chắn muốn yêu cầu chỉnh sửa lại đơn này không?"
-                                onConfirm={() => handleApproval('Declined')}
-                                okText="Đồng ý"
-                                cancelText="Hủy"
-                                okType="danger"
-                            >
-                                <Button
-                                    size="large"
-                                    icon={<ExclamationCircleOutlined />}
-                                    loading={actionLoading}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white border-none h-10 px-6 rounded-lg font-medium"
-                                >
-                                    Yêu cầu chỉnh sửa lại
-                                </Button>
-                            </Popconfirm>
+                        {/* customer note  */}
+                        <Card>
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                            <FileTextOutlined className="text-slate-400" />
+                                            Mô tả yêu cầu
+                                        </h3>
+                                    </div>
+                                </div>
+                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
+                                    {orderDetail.description || "Không có mô tả"}
+                                </div>
+                            </div>
+                        </Card>
 
-                            <Popconfirm
-                                title="Duyệt yêu cầu?"
-                                description="Bạn có chắc chắn muốn duyệt đơn này không?"
-                                onConfirm={() => handleApproval('Verified')}
-                                okText="Duyệt"
-                                cancelText="Hủy"
-                            >
-                                <Button
-                                    type="primary"
-                                    size="large"
-                                    icon={<CheckCircleOutlined />}
-                                    loading={actionLoading}
-                                    className="bg-green-600 hover:bg-green-700 border-none h-10 px-8 rounded-lg font-medium shadow-md hover:shadow-lg"
-                                >
-                                    Duyệt yêu cầu
-                                </Button>
-                            </Popconfirm>
-                        </div>
+
+                        {/* Approval Block - Emphasized but clean */}
+                        {/* <Card className="rounded-2xl shadow-sm border border-slate-200" bodyStyle={{ padding: '24px' }}>
+                            <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <CheckCircleOutlined className="text-slate-400" /> Phê duyệt
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Button onClick={() => setIsDeclineModalOpen(true)} size="large" danger block className="rounded-lg text-sm font-medium h-auto py-2">
+                                        Yêu cầu chỉnh sửa
+                                    </Button>
+                                    <Popconfirm
+                                        title="Duyệt yêu cầu?"
+                                        onConfirm={() => handleApproval('Verified')}
+                                        okText="Duyệt"
+                                        cancelText="Hủy"
+                                    >
+                                        <Button type="primary" size="large" block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                            Duyệt yêu cầu
+                                        </Button>
+                                    </Popconfirm>
+                                </div>
+                            </div>
+                        </Card> */}
+
+                        <Modal
+                            title="Xác nhận yêu cầu chỉnh sửa"
+                            open={isDeclineModalOpen}
+                            onCancel={() => {
+                                setIsDeclineModalOpen(false);
+                                setNote("");
+                            }}
+                            onOk={() => handleApproval('Declined')}
+                            okText="Gửi yêu cầu"
+                            cancelText="Hủy"
+                            okButtonProps={{ danger: true, loading: actionLoading }}
+                        >
+                            <div className="my-4">
+                                <Text type="secondary" className="block text-sm font-medium mb-2">Ghi chú lý do yêu cầu chỉnh sửa (bắt buộc):</Text>
+                                <TextArea
+                                    rows={4}
+                                    placeholder="Nhập chi tiết lý do..."
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    className="rounded-lg"
+                                />
+                            </div>
+                        </Modal>
+
+
                     </div>
-                </Card>
+                </div>
 
                 <style jsx global>{`
                     @keyframes fadeInUp {
-                        from {
-                            opacity: 0;
-                            transform: translate3d(0, 20px, 0);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translate3d(0, 0, 0);
-                        }
+                        from { opacity: 0; transform: translate3d(0, 20px, 0); }
+                        to { opacity: 1; transform: translate3d(0, 0, 0); }
                     }
                     .animate-fade-in-up {
-                        animation: fadeInUp 0.6s ease-out forwards;
+                        animation: fadeInUp 0.4s ease-out forwards;
                     }
+
+                    /* Custom Scrollbar for compact lists */
+                    .overflow-y-auto::-webkit-scrollbar { width: 4px; }
+                    .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
+                    .overflow-y-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
                     
-                    /* Custom scrollbar */
-                    .max-h-48::-webkit-scrollbar {
-                        width: 4px;
-                    }
-                    .max-h-48::-webkit-scrollbar-track {
-                        background: #f1f5f9;
-                        border-radius: 2px;
-                    }
-                    .max-h-48::-webkit-scrollbar-thumb {
-                        background: #cbd5e1;
-                        border-radius: 2px;
-                    }
-                    
-                    /* Custom image fit */
-                    .design-file-image .ant-image,
-                    .design-file-image .ant-image-img {
-                        width: 100%;
-                        height: 100%;
-                    }
-                    .design-file-image .ant-image-img {
-                        object-fit: cover;
-                    }
+                    /* Clean up AntD Collapse padding manually if needed */
+                    .ant-collapse-ghost > .ant-collapse-item > .ant-collapse-header { padding: 8px 12px; }
+                    .ant-collapse-content > .ant-collapse-content-box { padding: 4px 12px 12px; }
                 `}</style>
             </div>
         </div>
