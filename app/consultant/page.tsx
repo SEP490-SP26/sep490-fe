@@ -178,6 +178,12 @@ function ConsultantForm() {
     "detail_address",
     // "description", // Note might be specific? Let's keep it specific for now.
     "contract_file", // File upload state might be tricky, but contract is usually 1 per order.
+    "product_name",
+    "product_type",
+    "quantity",
+    "length",
+    "width",
+    "height",
   ];
 
   const handleTabEdit = (
@@ -869,12 +875,19 @@ function ConsultantForm() {
       discountPercent,
     };
 
+    const currentFormValues = form.getFieldsValue();
+    const sharedValues = SHARED_FIELDS.reduce((acc, field) => {
+      acc[field] = currentFormValues[field];
+      return acc;
+    }, {} as any);
+
     // 2. Consolodate all data
     const allQuotes = quoteTabs.map((tab) => {
       if (tab.key === activeTabKey) {
         return {
           ...tab.data, // Form values (which is 'values' arg)
           ...values, // Ensure we have latest form values
+          ...sharedValues,
           key: tab.key,
           label: tab.label,
           calculations: currentCalculations
@@ -882,6 +895,7 @@ function ConsultantForm() {
       }
       return {
         ...tab.data,
+        ...sharedValues,
         key: tab.key,
         label: tab.label,
         calculations: {
@@ -1281,6 +1295,7 @@ function ConsultantForm() {
                           songTypes={songTypes}
                           handleFormValuesChange={handleFormValuesChange}
                           form={form}
+                          disabledSharedFields={activeTabKey !== "1"}
                         />
                       </div>
                     ),
@@ -1509,7 +1524,7 @@ function ConsultantForm() {
 
 
             return (
-              <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-col gap-2  overflow-y-auto pr-2 custom-scrollbar">
                 {/* 1. Customer Info - Ultra Compact */}
                 <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-sm">
                   <div className="flex gap-2 items-center">
