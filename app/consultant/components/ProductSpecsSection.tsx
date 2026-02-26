@@ -371,19 +371,30 @@ export default function ProductSpecsSection({
                 {loadingProcessTypes ? (
                   <span className="text-gray-400 text-xs">Đang tải...</span>
                 ) : (
-                  processTypes
-                    .filter((pt) => !["IN", "DUT", "DOT", "CAT"].includes(pt))
-                    .map((pt) => (
-                      <Checkbox
-                        value={pt}
-                        key={pt}
-                        className="!flex items-center m-0"
-                      >
-                        <span className="text-[13px] leading-tight">
-                          {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
-                        </span>
-                      </Checkbox>
-                    ))
+                  <>
+                    {processTypes
+                      .filter((pt) => ["IN", "DUT", "DOT", "CAT"].includes(pt))
+                      .map((pt) => (
+                        <Checkbox
+                          value={pt}
+                          key={pt}
+                          style={{ display: "none" }}
+                        />
+                      ))}
+                    {processTypes
+                      .filter((pt) => !["IN", "DUT", "DOT", "CAT"].includes(pt))
+                      .map((pt) => (
+                        <Checkbox
+                          value={pt}
+                          key={pt}
+                          className="!flex items-center m-0"
+                        >
+                          <span className="text-[13px] leading-tight">
+                            {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
+                          </span>
+                        </Checkbox>
+                      ))}
+                  </>
                 )}
               </div>
             </Checkbox.Group>
