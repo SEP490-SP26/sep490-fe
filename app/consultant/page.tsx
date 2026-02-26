@@ -44,10 +44,11 @@ import {
   Tabs,
   Upload,
   Modal,
+  Alert,
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState, useCallback } from "react";
+import { Suspense, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import CustomerInfoSection from "./components/CustomerInfoSection";
 import DesignUploadSection from "./components/DesignUploadSection";
 import EstimatesCard from "./components/EstimatesCard";
@@ -123,6 +124,8 @@ function ConsultantForm() {
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
   const [fileList, setFileList] = useState<any[]>([]);
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
+  const [managerNote, setManagerNote] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
 
   const [estimate, setEstimate] = useState<{
     baseCost: number;
@@ -151,6 +154,32 @@ function ConsultantForm() {
   // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [submitValues, setSubmitValues] = useState<any>(null);
+
+  const highlightFieldsByTabIndex = useMemo(() => {
+    if (!managerNote || orderStatus !== 'Declined') return {};
+
+    // Parse note: "Báo giá 1: Loại giấy: Bristol 300, Đặt cọc: 5.000.000 đ; Báo giá 2: Loại phủ: Phủ keo nước"
+    const highlights: Record<number, string[]> = {};
+    const parts = managerNote.split(';');
+
+    parts.forEach(part => {
+      const match = part.match(/Báo giá (\d+):(.*)/i);
+      if (match) {
+        const index = parseInt(match[1], 10) - 1; // 0-based index
+        const details = match[2];
+        const fields: string[] = [];
+
+        if (details.toLowerCase().includes('loại giấy')) fields.push('paper_code');
+        if (details.toLowerCase().includes('loại phủ')) fields.push('coating_type');
+        if (details.toLowerCase().includes('đặt cọc')) fields.push('depositAmount');
+        if (details.toLowerCase().includes('tổng chi phí')) fields.push('final_price');
+
+        highlights[index] = fields;
+      }
+    });
+
+    return highlights;
+  }, [managerNote, orderStatus]);
 
   // --- MULTIPLE QUOTES TABS STATE ---
   interface QuoteTab {
@@ -513,6 +542,9 @@ function ConsultantForm() {
         const orderData = response?.data || response;
 
         if (orderData) {
+          setOrderStatus(orderData.process_status || null);
+          setManagerNote(orderData.reason || orderData.note || orderData.manager_note || null);
+
           // Find up to 2 active estimates from cost_estimate array
           let activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active) : [];
           if (activeEstimates.length === 0 && orderData.cost_estimate && orderData.cost_estimate.length > 0) {
@@ -1354,6 +1386,18 @@ function ConsultantForm() {
           </div>
         </div>
 
+        {orderStatus === 'Declined' && managerNote && (
+          <div className="mb-4 sticky top-4 z-50">
+            <Alert
+              // title={<span className="font-bold">Yêu cầu chỉnh sửa từ Quản lý</span>}
+              description={<div className="whitespace-pre-wrap text-slate-700">Yêu cầu chỉnh sửa từ Quản lý: <span className="font-bold">{managerNote}</span></div>}
+              type="warning"
+              showIcon
+              className="border border-yellow-300 shadow-sm bg-yellow-50/50"
+            />
+          </div>
+        )}
+
         <Form
           form={form}
           layout="vertical"
@@ -1410,6 +1454,7 @@ function ConsultantForm() {
                           handleFormValuesChange={handleFormValuesChange}
                           form={form}
                           disabledSharedFields={activeTabKey !== "1"}
+                          highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || []}
                         />
                       </div>
                     ),
@@ -1534,6 +1579,7 @@ function ConsultantForm() {
                 orderId={orderId}
                 isSavingCost={isSavingCost}
                 systemParameters={systemParameters}
+                highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || []}
               />
             </Col>
           </Row>

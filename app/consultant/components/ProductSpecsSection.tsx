@@ -22,6 +22,7 @@ interface ProductSpecsSectionProps {
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   form: any;
   disabledSharedFields?: boolean;
+  highlightFields?: string[];
 }
 
 const FORM_TYPE_LABELS: Record<string, string> = {
@@ -49,6 +50,7 @@ export default function ProductSpecsSection({
   handleFormValuesChange,
   form,
   disabledSharedFields = false,
+  highlightFields = [],
 }: ProductSpecsSectionProps) {
   useEffect(() => {
     if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
@@ -137,7 +139,7 @@ export default function ProductSpecsSection({
                 value: paper.code,
                 stockQty: paper.stock,
               }))}
-
+              className={highlightFields.includes('paper_code') ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
             />
           </Form.Item>
         </Col>
@@ -182,6 +184,7 @@ export default function ProductSpecsSection({
                 { label: "Keo nước", value: "KEO_NUOC" },
                 { label: "Keo dầu", value: "KEO_DAU" },
               ]}
+              className={highlightFields.includes('coating_type') ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
             />
           </Form.Item>
         </Col>
