@@ -187,5 +187,5 @@ export const estimatesApi = {
 
     getAllDeal: (requestId: number) => http.get<RequestQuotationList>(`/api/Estimates/all-deal-by-${requestId}`),
 
-    emailPreview: (quoteId: number) => http.get<QuoteDetail>(`/api/Estimates/email-preview/${quoteId}`),
+    emailPreview: (requestId: number) => http.get<QuoteDetailList>(`/api/Estimates/email-preview/${requestId}`),
 };
