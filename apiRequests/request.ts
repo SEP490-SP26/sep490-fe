@@ -31,16 +31,17 @@ export interface VerifiedRequestReponse {
   email: string;
   request_date: string; // ISO Date
   delevery_date: string; // ISO Date (Lưu ý typo 'delevery')
-  
+
   // Thông tin sản phẩm
   product_name: string;
   product_type: string; // VD: "HOP_MAU"
   quantity: number;
   process_status: 'Declined' | 'Waiting' | 'Verified' | string;
   reason: string | null; // Lý do từ chối (nếu có)
-  
+  note: string | null; // Ghi chú của quản lý
+
   // File thiết kế (Dạng chuỗi ngăn cách bằng dấu phẩy)
-  design_file_path: string; 
+  design_file_path: string;
   detail_address: string;
   description: string;
 
@@ -49,7 +50,7 @@ export interface VerifiedRequestReponse {
   product_length_mm: number;
   product_width_mm: number;
   product_height_mm: number;
-  
+
   // Các trường technical có thể null khi chưa duyệt
   production_processes: string | null;
   coating_type: string | null;

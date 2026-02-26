@@ -2,7 +2,7 @@
 
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
-import { formatCoatingType } from "@/lib/estimationUtils";
+import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { VerifiedRequestReponse } from "@/lib/request.types";
 import {
     DollarOutlined,
@@ -347,7 +347,7 @@ export default function ConsultantRequestDetailPage() {
                                                             <div className="space-y-2 py-1">
                                                                 {estimate.process_cost.map(proc => (
                                                                     <div key={proc.process_cost_id} className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">{proc.process_code}</span>
+                                                                        <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
                                                                         <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
                                                                     </div>
                                                                 ))}
