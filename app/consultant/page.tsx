@@ -511,48 +511,115 @@ function ConsultantForm() {
       if (!orderId) return;
 
       try {
-        const response = await requestOrderApi.getDetail(orderId);
+        const response: any = await requestOrderApi.getRequestDetailbyConsultant(orderId);
         const orderData = response?.data || response;
 
         if (orderData) {
-          form.setFieldsValue({
-            customer_name: orderData.customer_name,
-            customer_phone: orderData.customer_phone,
-            customer_email: orderData.customer_email,
-            product_name: orderData.product_name,
-            quantity: orderData.quantity,
-            delivery_date: orderData.delivery_date
-              ? dayjs(orderData.delivery_date)
-              : null,
-            detail_address: orderData.detail_address,
-            description: orderData.description,
-            number_of_plates: orderData.number_of_plates || 1,
-            coating_type:
-              orderData.coating_type && orderData.coating_type !== "NONE"
-                ? orderData.coating_type
-                : "KEO_NUOC",
-            // Add dimensions and paper code if available
-            length: orderData.product_length_mm,
-            width: orderData.product_width_mm,
-            height: orderData.product_height_mm,
-            paper_code: orderData.paper_code,
-            paper_name: orderData.paper_name, // Store paper_name to detect if custom paper was requested
-          });
+          // Find up to 2 active estimates from cost_estimate array
+          const activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active) : [];
 
-          if (orderData.design_file_path) {
-            setDesignFilePath(orderData.design_file_path);
-          }
-          if (orderData.is_send_design !== undefined) {
-            setIsSendDesign(orderData.is_send_design);
-          }
+          if (activeEstimates.length > 0 && isNegotiateMode) {
+            // We have previous quotes to load
+            const newTabs: QuoteTab[] = activeEstimates.slice(0, 2).map((est: any, index: number) => {
+              const tabData = {
+                customer_name: orderData.customer_name,
+                customer_phone: orderData.customer_phone,
+                customer_email: orderData.email || orderData.customer_email,
+                product_name: orderData.product_name,
+                quantity: orderData.quantity,
+                delivery_date: orderData.delevery_date ? dayjs(orderData.delevery_date) : (orderData.delivery_date ? dayjs(orderData.delivery_date) : null),
+                detail_address: orderData.detail_address,
+                description: orderData.description,
+                number_of_plates: est.number_of_plates || orderData.number_of_plates || 1,
+                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : "KEO_NUOC"),
+                length: orderData.product_length_mm,
+                width: orderData.product_width_mm,
+                height: orderData.product_height_mm,
+                paper_code: est.paper_code || orderData.paper_code,
+                paper_name: est.paper_name || orderData.paper_name,
+                final_price: est.final_total_cost || undefined,
+                is_one_side_box: orderData.is_one_side_box,
+                glue_tab: orderData.glue_tab_mm,
+                bleed: orderData.bleed_mm,
+                wave_type: est.wave_type || orderData.wave_type,
+                production_processes: orderData.production_processes ? orderData.production_processes.split(",") : []
+              };
 
-          const values = form.getFieldsValue();
-          handleCalculate(values, values);
-          setTimeout(() => calculateEstimates(), 500);
+              return {
+                key: index === 0 ? "1" : Date.now().toString(),
+                label: `Báo giá ${index + 1}`,
+                data: tabData,
+                calculations: {
+                  estimate: null,
+                  paperEstimate: null,
+                  costEstimate: null,
+                  discountPercent: 0,
+                  estimate_id: est.estimate_id
+                }
+              };
+            });
+
+            setQuoteTabs(newTabs);
+
+            // Set active to first tab
+            setActiveTabKey("1");
+            form.setFieldsValue(newTabs[0].data);
+
+            if (orderData.design_file_path) {
+              setDesignFilePath(orderData.design_file_path);
+            }
+            if (orderData.is_send_design !== undefined) {
+              setIsSendDesign(orderData.is_send_design);
+            }
+
+            // Auto Calculate wait until states update
+            setTimeout(() => {
+              syncProductTypeFromName();
+              calculateEstimates();
+            }, 500);
+
+          } else {
+            form.setFieldsValue({
+              customer_name: orderData.customer_name,
+              customer_phone: orderData.customer_phone,
+              customer_email: orderData.email || orderData.customer_email,
+              product_name: orderData.product_name,
+              quantity: orderData.quantity,
+              delivery_date: orderData.delevery_date
+                ? dayjs(orderData.delevery_date)
+                : orderData.delivery_date ? dayjs(orderData.delivery_date) : null,
+              detail_address: orderData.detail_address,
+              description: orderData.description,
+              number_of_plates: orderData.number_of_plates || 1,
+              coating_type:
+                orderData.coating_type && orderData.coating_type !== "NONE"
+                  ? orderData.coating_type
+                  : "KEO_NUOC",
+              // Add dimensions and paper code if available
+              length: orderData.product_length_mm,
+              width: orderData.product_width_mm,
+              height: orderData.product_height_mm,
+              paper_code: orderData.paper_code,
+              paper_name: orderData.paper_name, // Store paper_name to detect if custom paper was requested
+            });
+
+            if (orderData.design_file_path) {
+              setDesignFilePath(orderData.design_file_path);
+            }
+            if (orderData.is_send_design !== undefined) {
+              setIsSendDesign(orderData.is_send_design);
+            }
+
+            const values = form.getFieldsValue();
+            handleCalculate(values, values);
+            setTimeout(() => calculateEstimates(), 500);
+          }
         }
 
         // Trigger sync after setting form values
-        syncProductTypeFromName();
+        if (!orderData?.cost_estimate || !orderData.cost_estimate.filter((e: any) => e.is_active).length || !isNegotiateMode) {
+          syncProductTypeFromName();
+        }
       } catch (error) {
         console.error("Error fetching order details:", error);
       }

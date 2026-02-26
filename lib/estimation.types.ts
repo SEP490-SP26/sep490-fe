@@ -418,88 +418,86 @@ export interface ProcessCostDetail {
   note: string;
 }
 
-export interface OrderEstimationResult {
+export interface ProcessCostItem {
+  process_code: string;
+  process_name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_cost: number;
+  note: string;
+}
+
+export interface DetailedProductionEstimation {
   order_request_id: number;
 
-  // Chi phí Giấy
+  // --- Chi phí và thông số Giấy ---
   paper_cost: number;
-  paper_sheets_used: number; // Số tờ thực tế dùng cho sản xuất
+  paper_sheets_used: number;
   paper_unit_price: number;
+  paper_code: string;
+  paper_name: string;
+  wave_type: string;
 
-  // Chi phí Mực in
+  // --- Chi phí Mực in ---
   ink_cost: number;
   ink_weight_kg: number;
   ink_rate_per_m2: number;
 
-  // Chi phí Phủ (Coating)
+  // --- Chi phí Phủ (Coating) ---
   coating_glue_cost: number;
   coating_glue_weight_kg: number;
   coating_glue_rate_per_m2: number;
   coating_type: string;
 
-  // Chi phí Bồi (Mounting)
+  // --- Chi phí Bồi (Mounting) ---
   mounting_glue_cost: number;
   mounting_glue_weight_kg: number;
   mounting_glue_rate_per_m2: number;
 
-  // Chi phí Cán màng (Lamination)
+  // --- Chi phí Cán màng (Lamination) ---
   lamination_cost: number;
   lamination_weight_kg: number;
   lamination_rate_per_m2: number;
 
-  // Tổng hợp chi phí vật tư & thiết kế
+  // --- Tổng hợp chi phí cơ bản ---
   material_cost: number;
   design_cost: number;
+  base_cost: number;
 
-  // Chi phí vận hành & phí hệ thống
-  overhead_percent: number;
-  overhead_cost: number;
-  base_cost: number; // Giá thành cơ bản trước khi tính phí gấp/giảm giá
-
-  // Trạng thái đơn hàng gấp
+  // --- Thông tin hàng gấp (Rush) ---
   is_rush: boolean;
   rush_percent: number;
   rush_amount: number;
   days_early: number;
 
-  // Tổng cộng & Giảm giá
+  // --- Tổng kết tài chính ---
   subtotal: number;
   discount_percent: number;
   discount_amount: number;
   final_total_cost: number;
+  cost_note: string;
 
-  // Thời gian
+  // --- Thời gian ---
   estimated_finish_date: string; // ISO Date
   desired_delivery_date: string; // ISO Date
   created_at: string;            // ISO Date
 
-  // Thông số bình bản & Bù hao giấy
-  sheets_required: number; // Số tờ thành phẩm lý thuyết
-  sheets_waste: number;    // Số tờ bù hao (printing + die-cutting + ...)
-  sheets_total: number;    // Tổng số tờ cần xuất kho (required + waste)
-  n_up: number;            // Số con trên một bản in (số sản phẩm/tờ)
-  total_area_m2: number;   // Tổng diện tích bản in (phục vụ tính mực/phủ)
+  // --- Thông số kỹ thuật & Bình bản ---
+  production_processes: string; // VD: "IN,PHU,BE,DAN"
+  sheets_required: number;
+  sheets_waste: number;
+  sheets_total: number;
+  n_up: number;
+  total_area_m2: number;
+  bleed_mm: number;
+  glue_tab_mm: number;
+  is_one_side_box: boolean;
+  print_height_mm: number;
+  print_width_mm: number;
 
-  // Chi tiết các công đoạn sản xuất (Labor costs)
-  process_costs: ProcessCostDetail[];
-
-  cost_note: string;
-
-  // Technical Specs for Saving
-  product_length_mm?: number;
-  product_width_mm?: number;
-  product_height_mm?: number;
-  paper_code?: string;
-  paper_name?: string;
-  product_type?: string;
-
-  number_of_plates?: number;
-  wave_type?: string;
-  glue_tab_mm?: number;
-  bleed_mm?: number;
-  is_one_side_box?: boolean;
-  production_processes?: string;
-  note?: string;
+  // --- Chi tiết chi phí nhân công/công đoạn ---
+  process_costs: ProcessCostItem[];
 }
 
 // export type ProcessCostRulesList = ProcessCostRules[];
