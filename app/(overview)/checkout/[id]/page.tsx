@@ -2,7 +2,7 @@
 
 import { paymentApi, PaymentResponse } from "@/apiRequests/payment";
 import { requestOrderApi } from "@/apiRequests/request";
-import { estimatesApi } from "@/apiRequests/estimates";
+import { estimatesApi, QuoteOption } from "@/apiRequests/estimates";
 import { uploadApi } from "@/apiRequests/uploads";
 import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
@@ -21,45 +21,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useState } from "react";
 
-interface OrderDetail {
-  order_request_id: number;
-  quote_id: number;
-  estimate_id: number;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string;
-  delivery_date: string;
-  product_name: string;
-  quantity: number;
-  description: string;
-  design_file_path: string;
-  order_request_date?: string;
-  detail_address: string;
-  process_status?: string;
 
-  product_type?: string;
-  paper_code?: string;
-  paper_name?: string;
-  coating_type?: string;
-  wave_type?: string;
-  number_of_plates?: number;
-  product_length_mm?: number;
-  product_width_mm?: number;
-  product_height_mm?: number;
-  production_processes?: string;
-  is_send_design?: boolean;
-  payments?: any[];
-
-  material_cost?: number;
-  labor_cost?: number;
-  other_fees?: number;
-  rush_amount?: number;
-  subtotal?: number;
-  discount_percent?: number;
-  discount_amount?: number;
-  final_total_cost?: number;
-  deposit?: number;
-}
 
 export default function RequestDetailPage() {
   const params = useParams();
@@ -67,8 +29,8 @@ export default function RequestDetailPage() {
   const requestId = params.id as string;
 
   const [loading, setLoading] = useState(true);
-  const [quotes, setQuotes] = useState<OrderDetail[]>([]);
-  const [selectedQuote, setSelectedQuote] = useState<OrderDetail | null>(null);
+  const [quotes, setQuotes] = useState<QuoteOption[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<QuoteOption | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<PaymentResponse | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [loadingQR, setLoadingQR] = useState(false);
@@ -82,46 +44,8 @@ export default function RequestDetailPage() {
         const response = await estimatesApi.emailPreview(Number(requestId));
         const data: any = (response as any).data || response;
 
-        if (data) {
-          const dataArray = Array.isArray(data) ? data : [data];
-          const mappedQuotes: OrderDetail[] = dataArray.map((item: any) => ({
-            order_request_id: item.order_request_id,
-            quote_id: item.quote_id,
-            estimate_id: item.estimate_id,
-            customer_name: item.customer_name,
-            customer_phone: item.customer_phone,
-            customer_email: item.customer_email,
-            delivery_date: item.delivery_date,
-            product_name: item.product_name,
-            quantity: item.quantity,
-            description: "",
-            design_file_path: "",
-            order_request_date: item.order_request_date,
-            detail_address: item.detail_address,
-            process_status: "",
-            product_type: "",
-            paper_code: "",
-            paper_name: item.paper_name,
-            coating_type: item.coating_type,
-            wave_type: item.wave_type,
-            number_of_plates: 0,
-            product_length_mm: 0,
-            product_width_mm: 0,
-            product_height_mm: 0,
-            production_processes: item.production_process_text,
-            is_send_design: item.is_send_design,
-            payments: [],
-            material_cost: item.material_cost,
-            labor_cost: item.labor_cost,
-            other_fees: item.other_fees,
-            rush_amount: item.rush_amount,
-            subtotal: item.subtotal,
-            discount_percent: item.discount_percent,
-            discount_amount: item.discount_amount,
-            final_total_cost: item.final_total,
-            deposit: item.deposit,
-          }));
-          setQuotes(mappedQuotes);
+        if (data && data.quotes) {
+          setQuotes(data.quotes);
         }
       } catch (error) {
         console.error("Error fetching order detail:", error);
@@ -134,7 +58,7 @@ export default function RequestDetailPage() {
     fetchQuotes();
   }, [requestId]);
 
-  const handlePayClick = async (quote: OrderDetail) => {
+  const handlePayClick = async (quote: QuoteOption) => {
     setSelectedQuote(quote);
     setIsModalVisible(true);
     setLoadingQR(true);
@@ -154,27 +78,27 @@ export default function RequestDetailPage() {
     }
   };
 
-  useEffect(() => {
-    if (!requestId) return;
+  // useEffect(() => {
+  //   if (!requestId) return;
 
-    const checkPaymentStatus = async () => {
-      try {
-        const response = await paymentApi.getStatusPayment(requestId);
-        const data = (response as any).data || response;
+  //   const checkPaymentStatus = async () => {
+  //     try {
+  //       const response = await paymentApi.getStatusPayment(requestId);
+  //       const data = (response as any).data || response;
 
-        if (data && data.status === 'PAID') {
-          message.success('Thanh toán thành công!');
-          router.push(`/request-detail/${requestId}`);
-        }
-      } catch (error) {
-        // console.error("Error checking payment status:", error);
-      }
-    };
+  //       if (data && data.status === 'PAID') {
+  //         message.success('Thanh toán thành công!');
+  //         router.push(`/request-detail/${requestId}`);
+  //       }
+  //     } catch (error) {
+  //       // console.error("Error checking payment status:", error);
+  //     }
+  //   };
 
-    const intervalId = setInterval(checkPaymentStatus, 2000);
+  //   const intervalId = setInterval(checkPaymentStatus, 2000);
 
-    return () => clearInterval(intervalId);
-  }, [requestId, router]);
+  //   return () => clearInterval(intervalId);
+  // }, [requestId, router]);
 
   const formatVND = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -215,10 +139,10 @@ export default function RequestDetailPage() {
     <div className="min-h-screen bg-slate-50 py-8 px-4 flex justify-center">
       <div className={`grid grid-cols-1 ${quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-12 w-full max-w-7xl`}>
         {quotes.map((quote, index) => {
-          const requestDateText = dayjs(quote.order_request_date).format("DD/MM/YYYY");
-          const deliveryText = dayjs(quote.delivery_date).format("DD/MM/YYYY");
-          const designTypeText = quote.is_send_design ? "Khách gửi file" : "Thuê thiết kế";
-          const finalTotalValue = quote.final_total_cost || 0;
+          const requestDateText = quote.request_date_text || dayjs(quote.order_request_date).format("DD/MM/YYYY");
+          const deliveryText = quote.delivery_text || dayjs(quote.delivery_date).format("DD/MM/YYYY");
+          const designTypeText = quote.design_type_text || (quote.is_send_design ? "Khách gửi file" : "Thuê thiết kế");
+          const finalTotalValue = quote.final_total || 0;
 
           return (
             <div key={quote.quote_id} className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col mx-auto w-full max-w-2xl">
@@ -289,7 +213,7 @@ export default function RequestDetailPage() {
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-slate-100">
                           <span className="text-slate-500 text-[13px]">Loại giấy</span>
-                          <span className="text-slate-800 font-semibold text-[13px]">{quote.paper_name || quote.paper_code || "---"}</span>
+                          <span className="text-slate-800 font-semibold text-[13px]">{quote.paper_name || "---"}</span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-slate-100">
                           <span className="text-slate-500 text-[13px]">Thiết kế</span>

@@ -101,54 +101,69 @@ export interface RequestQuotationItem {
   cost_note: string;
 }
 
-export interface QuoteDetail {
-  // --- Định danh và Liên kết ---
-  order_request_id: number;
-  estimate_id: number;
+export interface QuoteOption {
+  // Định danh báo giá
   quote_id: number;
+  estimate_id: number;
+  order_request_id: number;
 
-  // --- Thông tin Khách hàng ---
+  // Thông tin khách hàng & Địa chỉ
   customer_name: string;
-  customer_phone: string;
   customer_email: string;
+  customer_phone: string;
   detail_address: string;
 
-  // --- Thông tin Sản phẩm ---
+  // Thông tin sản phẩm & Kỹ thuật
   product_name: string;
   quantity: number;
-  paper_name: string;
+  paper_name: string; // VD: "Giấy C300" hoặc "N/A"
   coating_type: string;
   wave_type: string;
   is_send_design: boolean;
-  design_type_text: string; // VD: "Sử dụng bản thiết kế của doanh nghiệp"
-  production_process_text: string; // Danh sách công đoạn đã format tiếng Việt
+  design_type_text: string;
+  production_process_text: string;
 
-  // --- Thời gian (Dữ liệu gốc & Format) ---
-  delivery_date: string; // ISO Date
-  delivery_text: string; // VD: "26/02/2026"
-  order_request_date: string; 
-  request_date_text: string; // VD: "13/02/2026 22:25"
-  quote_created_at: string;
-  quote_expired_at: string;
-  quote_expired_at_text: string; // VD: "15/02/2026 21:15"
-
-  // --- Chi tiết Tài chính (VNĐ) ---
-  material_cost: number;   // Chi phí vật tư
-  labor_cost: number;      // Chi phí nhân công
-  other_fees: number;      // Phí khác (thường là phí thiết kế)
-  rush_amount: number;     // Phí làm gấp
-  subtotal: number;        // Tổng cộng chưa thuế/phí
-  final_total: number;     // Tổng giá trị cuối cùng
+  // Chi phí chi tiết (VNĐ)
+  material_cost: number;
+  labor_cost: number;
+  other_fees: number;
+  rush_amount: number;
+  subtotal: number;
+  final_total: number;
   discount_percent: number;
   discount_amount: number;
-  deposit: number;         // Tiền đặt cọc cần thu
+  deposit: number;
 
-  // --- Cấu hình khác ---
+  // Thời gian & Hiển thị
+  order_request_date: string;
+  request_date_text: string;
+  delivery_date: string;
+  delivery_text: string;
+  quote_created_at: string;
+  quote_expired_at: string;
+  quote_expired_at_text: string;
+
+  // Cấu hình hệ thống
   is_customer_copy: boolean;
+  email_html: string | null;
+  order_detail_url: string | null;
 }
 
-/** Nếu dữ liệu trả về là 1 array */
-export type QuoteDetailList = QuoteDetail[];
+export interface OrderRequestWithQuotes {
+  order_request_id: number;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  detail_address: string;
+  delivery_date: string;
+  order_request_date: string;
+  product_name: string;
+  quantity: number;
+  is_send_design: boolean;
+  
+  /** Danh sách các phương án báo giá cho yêu cầu này */
+  quotes: QuoteOption[];
+}
 
 /** Kiểu dữ liệu mảng các báo giá yêu cầu */
 export type RequestQuotationList = RequestQuotationItem[];
@@ -187,5 +202,5 @@ export const estimatesApi = {
 
     getAllDeal: (requestId: number) => http.get<RequestQuotationList>(`/api/Estimates/all-deal-by-${requestId}`),
 
-    emailPreview: (requestId: number) => http.get<QuoteDetailList>(`/api/Estimates/email-preview/${requestId}`),
+    emailPreview: (requestId: number) => http.get<OrderRequestWithQuotes>(`/api/Estimates/email-preview/${requestId}`),
 };
