@@ -197,7 +197,7 @@ export default function ConsultantRequestDetailPage() {
                                 icon={<EditOutlined />}
                                 size="middle"
                                 className="rounded-lg"
-                                onClick={() => setUpdateModalOpen(true)}
+                                onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate`)}
                             >
                                 Cập nhật yêu cầu
                             </Button>

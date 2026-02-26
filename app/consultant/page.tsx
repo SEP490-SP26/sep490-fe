@@ -305,45 +305,43 @@ function ConsultantForm() {
       form.setFieldsValue(nextValues);
 
       // Restore calculations
-      if (targetTab.calculations) {
+      if (targetTab.calculations && targetTab.calculations.estimate) {
         setEstimate(targetTab.calculations.estimate);
         setPaperEstimate(targetTab.calculations.paperEstimate);
         setCostEstimate(targetTab.calculations.costEstimate);
-        setDiscountPercent(targetTab.calculations.discountPercent);
+        setDiscountPercent(targetTab.calculations.discountPercent || 0);
         setSavedEstimateId(targetTab.calculations.estimate_id || null);
+        form.setFieldValue("final_price", targetTab.calculations.costEstimate?.cost?.final_total_cost);
       } else {
-        setEstimate(null);
-        setPaperEstimate(null);
-        setCostEstimate(null);
-        setDiscountPercent(0);
-        setSavedEstimateId(null);
+        // Calculate immediately using nextValues
+        const result = calculateEstimateResult(nextValues);
+        if (result) {
+          setEstimate(result.estimate);
+          setPaperEstimate(result.paperEstimate);
+          setCostEstimate(result.costEstimate);
+          setDiscountPercent(0);
+          setSavedEstimateId(null);
+          form.setFieldValue("final_price", result.finalTotalCost);
 
-        // Force calculation if needed
-        setTimeout(() => {
-          calculateEstimates();
-        }, 100);
+          // Optionally save back to tab if needed, but state handles UI
+        } else {
+          setEstimate(null);
+          setPaperEstimate(null);
+          setCostEstimate(null);
+          setDiscountPercent(0);
+          setSavedEstimateId(null);
+        }
       }
 
       // Trigger logic to update detailed states (like selectedProductTypeCode) based on new values
-      // We manually call handleFormValuesChange-like logic or just wait for effects?
-      // Effects like `syncProductTypeFromName` depend on form.getFieldValue or dependencies. 
-      // We should manually trigger critical updates.
-
-      // Update local states that control rendering (like isOneSideBox, glueTab visibilty etc)
-      // These are usually derived from form values in render, but some might be state.
-
-      // Force calculation
-      setTimeout(() => {
-        // Also ensure product type code state is synced
-        const pType = nextValues.product_type;
-        if (pType) {
-          const selected = productTypes.find(pt => pt.product_type_id === pType);
-          if (selected) {
-            setSelectedProductTypeCode(selected.code);
-            setselectProductTypeId(selected.product_type_id);
-          }
+      const pType = nextValues.product_type;
+      if (pType) {
+        const selected = productTypes.find(pt => pt.product_type_id === pType);
+        if (selected) {
+          setSelectedProductTypeCode(selected.code);
+          setselectProductTypeId(selected.product_type_id);
         }
-      }, 100);
+      }
     }
   };
 
@@ -516,7 +514,10 @@ function ConsultantForm() {
 
         if (orderData) {
           // Find up to 2 active estimates from cost_estimate array
-          const activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active) : [];
+          let activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active) : [];
+          if (activeEstimates.length === 0 && orderData.cost_estimate && orderData.cost_estimate.length > 0) {
+            activeEstimates = orderData.cost_estimate;
+          }
 
           if (activeEstimates.length > 0 && isNegotiateMode) {
             // We have previous quotes to load
@@ -542,7 +543,9 @@ function ConsultantForm() {
                 glue_tab: orderData.glue_tab_mm,
                 bleed: orderData.bleed_mm,
                 wave_type: est.wave_type || orderData.wave_type,
-                production_processes: orderData.production_processes ? orderData.production_processes.split(",") : []
+                production_processes: est.process_cost && est.process_cost.length > 0
+                  ? est.process_cost.map((pc: any) => pc.process_code)
+                  : (orderData.production_processes ? orderData.production_processes.split(",") : [])
               };
 
               return {
@@ -572,9 +575,35 @@ function ConsultantForm() {
               setIsSendDesign(orderData.is_send_design);
             }
 
-            // Auto Calculate wait until states update
+
+            // Execute pre-calculation for all restored tabs to wake up computations
+            for (let i = 0; i < newTabs.length; i++) {
+              const tab = newTabs[i];
+              try {
+                // Ensure all necessary dependencies exist before calculating
+                if (materials.length > 0 && productTypes.length > 0) {
+                  const result = calculateEstimateResult(tab.data);
+                  if (result) {
+                    tab.calculations = {
+                      ...tab.calculations,
+                      estimate: result.estimate,
+                      paperEstimate: result.paperEstimate,
+                      costEstimate: result.costEstimate,
+                      discountPercent: tab.calculations?.discountPercent || 0
+                    };
+                  }
+                }
+              } catch (err) {
+                console.error("Failed to pre-calculate tab", i, err);
+              }
+            }
+
+            // Sync product types
             setTimeout(() => {
               syncProductTypeFromName();
+
+              // Only call calculateEstimates for the first tab IF materials/productTypes weren't loaded yet during the pre-calculation loop
+              // Either way, it ensures at least the active tab is calculated.
               calculateEstimates();
             }, 500);
 
@@ -601,6 +630,7 @@ function ConsultantForm() {
               height: orderData.product_height_mm,
               paper_code: orderData.paper_code,
               paper_name: orderData.paper_name, // Store paper_name to detect if custom paper was requested
+              production_processes: orderData.production_processes ? orderData.production_processes.split(",") : [],
             });
 
             if (orderData.design_file_path) {
@@ -713,8 +743,8 @@ function ConsultantForm() {
   }, [productTypes]);
 
 
-  function calculateEstimates() {
-    const values = form.getFieldsValue();
+  // Helper to calculate estimations without touching React state
+  function calculateEstimateResult(values: any) {
     const {
       paper_code,
       quantity,
@@ -732,18 +762,16 @@ function ConsultantForm() {
     } = values;
 
     if (!paper_code || !quantity || !length || !width || !height || !product_type || configLoading) {
-      return;
+      return null;
     }
 
-    // const paperCode = paper_code as string;
     const selectedProductType = productTypes.find(
       (pt) => pt.product_type_id === product_type
     );
     const productTypeCode = selectedProductType?.code || "";
 
-    // Find material for sheet size
     const selectedMaterial = materials.find(m => m.code === paper_code);
-    if (!selectedMaterial) return;
+    if (!selectedMaterial) return null;
 
     try {
       const inputs: EstimationInputs = {
@@ -787,8 +815,7 @@ function ConsultantForm() {
         }
       });
 
-      // Map Map result to PaperEstimate (EstimatePaperResponse)
-      setPaperEstimate({
+      const paperEstimateObj = {
         paper_code: inputs.paper_code,
         sheet_width_mm: inputs.sheet_width_mm,
         sheet_height_mm: inputs.sheet_height_mm,
@@ -807,64 +834,45 @@ function ConsultantForm() {
         sheets_with_waste: result.waste.sheetsWithWaste,
         waste_percent: result.waste.wastePercent,
         warning_message: ""
-      });
+      };
 
-      // Map result to CostEstimate (EstimateCostResponse)
-      setCostEstimate({
+      const costEstimateObj = {
         cost: {
-          // Paper
           paper_cost: result.costs.material.paper,
           paper_sheets_used: result.waste.sheetsWithWaste,
           paper_unit_price: selectedMaterial.cost_price || 0,
-
-          // Ink
           ink_cost: result.costs.material.ink.cost,
           ink_weight_kg: result.costs.material.ink.weight,
           ink_rate_per_m2: result.costs.material.ink.rate,
           ink_unit_price: result.costs.material.ink.unitPrice,
-
-          // Coating
           coating_glue_cost: result.costs.material.coatingGlue.cost,
           coating_glue_weight_kg: result.costs.material.coatingGlue.weight,
           coating_glue_rate_per_m2: result.costs.material.coatingGlue.rate,
           coating_glue_unit_price: result.costs.material.coatingGlue.unitPrice,
           coating_type: inputs.coating_type || "KEO_NUOC",
-
-          // Mounting
           mounting_glue_cost: result.costs.material.mountingGlue.cost,
           mounting_glue_weight_kg: result.costs.material.mountingGlue.weight,
           mounting_glue_rate_per_m2: result.costs.material.mountingGlue.rate,
           mounting_glue_unit_price: result.costs.material.mountingGlue.unitPrice,
-
-          // Lamination
           lamination_cost: result.costs.material.lamination.cost,
           lamination_weight_kg: result.costs.material.lamination.weight,
           lamination_rate_per_m2: result.costs.material.lamination.rate,
           lamination_unit_price: result.costs.material.lamination.unitPrice,
-
-          // Totals
           material_cost: result.costs.material.total,
           overhead_percent: systemParameters?.vat_percent || 10,
           overhead_cost: result.costs.overhead,
           base_cost: result.costs.base,
           final_total_cost: result.totals.finalTotalCost,
-
-          // Rush
           rush_amount: result.production.rush.rushAmount,
           rush_percent: result.production.rush.rushPercent,
           is_rush: result.production.rush.isRush,
           days_early: result.production.rush.daysEarly,
-
-          // Discount
           subtotal: result.totals.subtotal,
           discount_percent: discountPercent,
           discount_amount: result.discount.amount,
-
-          // Misc
           total_area_m2: result.printArea.total,
           design_cost: result.costs.design,
           material_cost_details: [],
-
           estimated_finish_date: (() => {
             const date = new Date();
             date.setDate(date.getDate() + result.production.days);
@@ -876,12 +884,34 @@ function ConsultantForm() {
           total_cost: result.costs.process,
           details: result.costs.processDetails
         }
-      });
+      };
 
-      form.setFieldValue("final_price", Math.round(result.totals.finalTotalCost));
+      const basicEstimate = calculateProductionTime(
+        quantity, paper_code, paperTypes, isWorkshopFull,
+        daysUntilFree, values.delivery_date, isBusy
+      );
+
+      return {
+        estimate: basicEstimate,
+        paperEstimate: paperEstimateObj,
+        costEstimate: costEstimateObj,
+        finalTotalCost: Math.round(result.totals.finalTotalCost)
+      };
 
     } catch (err) {
       console.error("Calculation error", err);
+      return null;
+    }
+  }
+
+  function calculateEstimates() {
+    const values = form.getFieldsValue();
+    const result = calculateEstimateResult(values);
+
+    if (result) {
+      setPaperEstimate(result.paperEstimate);
+      setCostEstimate(result.costEstimate);
+      form.setFieldValue("final_price", result.finalTotalCost);
     }
   }
 
@@ -1130,6 +1160,11 @@ function ConsultantForm() {
               discountAmt,
               {
                 paper_name: quote.paper_name || paperTypes.find((p) => p.code === quote.paper_code)?.name || "",
+                wave_type: quote.wave_type,
+                production_processes: Array.isArray(quote.production_processes) ? quote.production_processes.join(",") : quote.production_processes,
+                bleed_mm: quote.bleed,
+                glue_tab_mm: quote.glue_tab,
+                is_one_side_box: quote.is_one_side_box,
               }
             );
 
@@ -1204,6 +1239,11 @@ function ConsultantForm() {
             discountAmount,
             {
               paper_name: form.getFieldValue("paper_name") || paperTypes.find((p) => p.code === form.getFieldValue("paper_code"))?.name || "",
+              wave_type: form.getFieldValue("wave_type"),
+              production_processes: Array.isArray(form.getFieldValue("production_processes")) ? form.getFieldValue("production_processes").join(",") : form.getFieldValue("production_processes"),
+              bleed_mm: form.getFieldValue("bleed"),
+              glue_tab_mm: form.getFieldValue("glue_tab"),
+              is_one_side_box: form.getFieldValue("is_one_side_box"),
             }
           );
 
