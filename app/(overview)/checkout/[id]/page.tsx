@@ -287,13 +287,13 @@ export default function RequestDetailPage() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
-                  <Button
+                  {/* <Button
                     danger
                     onClick={() => router.push(`/reject-deal/${requestId}`)}
                     className="h-10 px-8 rounded-lg font-medium w-full sm:w-auto mt-2 sm:mt-0"
                   >
                     Từ chối báo giá này
-                  </Button>
+                  </Button> */}
                   <Button
                     type="primary"
                     className="h-10 px-8 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 w-full sm:w-auto mt-2 sm:mt-0"

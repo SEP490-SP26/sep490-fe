@@ -484,3 +484,28 @@ export const formatCoatingType = (coatingType: string | null | undefined): strin
             return coatingType || 'Không';
     }
 };
+
+export const formatProcess = (processCode: string | null | undefined): string => {
+    switch (processCode?.trim().toUpperCase()) {
+        case 'IN': return 'In';
+        case 'BE': return 'Bế';
+        case 'BOI': return 'Bồi';
+        case 'PHU': return 'Phủ';
+        case 'CAN': return 'Cán';
+        case 'DAN': return 'Dán';
+        case 'DUT': return 'Dứt';
+        case 'RALO': return 'Ralo';
+        case 'CAT': return 'Cắt';
+        case 'DOT': return 'Đột';
+        case 'CAN_MANG': return 'Cán màng';
+        case 'EP_KIM': return 'Ép kim';
+        case 'PHU_UV': return 'Phủ UV';
+        case 'BE_DEMI': return 'Bế demi';
+        case 'THUC_NOI': return 'Thúc nổi';
+        case 'DAN_MICA': return 'Dán mica';
+        case 'DAN_HOP': return 'Dán hộp';
+        case 'BE_NOI': return 'Bế nổi';
+        case 'UV': return 'UV';
+        default: return processCode || 'Không xác định';
+    }
+};

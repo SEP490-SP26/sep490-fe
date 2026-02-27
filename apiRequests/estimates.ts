@@ -1,7 +1,6 @@
-import { EstimationConfig, OrderEstimationResult, WasteRules } from "@/lib/estimation.types";
+import { DetailedProductionEstimation, EstimationConfig } from "@/lib/estimation.types";
 import http from "@/lib/httpAxios";
 import {
-    AdjustFinalCostRequest,
     DepositResponse,
     EstimateCostRequest,
     EstimateCostResponse,
@@ -197,7 +196,7 @@ export const estimatesApi = {
     getBaseConfig: () => http.get<EstimationConfig>("/api/Estimates/base-config"),
 
     //POST /api/Estimates/cost-save 
-    costSave: (body: OrderEstimationResult) =>
+    costSave: (body: DetailedProductionEstimation) =>
         http.post<EstimationResponse>("/api/Estimates/cost-save", body),
 
     getAllDeal: (requestId: number) => http.get<RequestQuotationList>(`/api/Estimates/all-deal-by-${requestId}`),

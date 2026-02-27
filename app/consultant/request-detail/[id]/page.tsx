@@ -2,9 +2,9 @@
 
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
+import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { VerifiedRequestReponse } from "@/lib/request.types";
 import {
-    CalendarOutlined,
     DollarOutlined,
     DownloadOutlined,
     EditOutlined,
@@ -16,28 +16,24 @@ import {
     UserOutlined
 } from "@ant-design/icons";
 import {
-    Badge,
     Button,
     Card,
     Collapse,
+    Descriptions,
+    Divider,
     Empty,
     Form,
-    Image,
     Input,
     message,
     Modal,
-    Popconfirm,
     Skeleton,
     Tag,
     Typography,
-    Upload,
-    Divider,
-    Descriptions
+    Upload
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { formatCoatingType } from "@/lib/estimationUtils";
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -201,7 +197,7 @@ export default function ConsultantRequestDetailPage() {
                                 icon={<EditOutlined />}
                                 size="middle"
                                 className="rounded-lg"
-                                onClick={() => setUpdateModalOpen(true)}
+                                onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate`)}
                             >
                                 Cập nhật yêu cầu
                             </Button>
@@ -322,43 +318,46 @@ export default function ConsultantRequestDetailPage() {
                             </h3>
                             {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
                                 <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-1">
-                                    {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => (
-                                        <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                                            <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
-                                                <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
+                                    {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => {
+                                        const hasNote = orderDetail.reason?.includes(`Báo giá ${index + 1}:`);
+                                        return (
+                                            <div key={estimate.estimate_id} className={`p-4 rounded-xl border ${hasNote ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-slate-100'}`}>
+                                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
+                                                    <Tag className={`m-0 border-0 font-medium px-2 rounded ${hasNote ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-50 text-blue-600'}`}>Báo giá #{index + 1}</Tag>
+                                                </div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-slate-500 text-sm">Loại giấy:</span>
+                                                    <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-slate-500 text-sm">Loại phủ:</span>
+                                                    <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-slate-500 text-sm">Đặt cọc:</span>
+                                                    <span className="font-semibold text-slate-800">{formatCurrency(estimate.deposit_amount)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
+                                                    <span className="font-bold text-base text-slate-800">{formatCurrency(estimate.final_total_cost)}</span>
+                                                </div>
+                                                {estimate.process_cost && estimate.process_cost.length > 0 && (
+                                                    <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
+                                                        <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
+                                                            <div className="space-y-2 py-1">
+                                                                {estimate.process_cost.map(proc => (
+                                                                    <div key={proc.process_cost_id} className="flex justify-between items-center">
+                                                                        <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
+                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </Panel>
+                                                    </Collapse>
+                                                )}
                                             </div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-slate-500 text-sm">Loại giấy:</span>
-                                                <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-slate-500 text-sm">Loại phủ:</span>
-                                                <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-slate-500 text-sm">Đặt cọc:</span>
-                                                <span className="font-semibold text-slate-800">{formatCurrency(estimate.deposit_amount)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center mb-3">
-                                                <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
-                                                <span className="font-bold text-base text-slate-800">{formatCurrency(estimate.final_total_cost)}</span>
-                                            </div>
-                                            {estimate.process_cost && estimate.process_cost.length > 0 && (
-                                                <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
-                                                    <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
-                                                        <div className="space-y-2 py-1">
-                                                            {estimate.process_cost.map(proc => (
-                                                                <div key={proc.process_cost_id} className="flex justify-between items-center">
-                                                                    <span className="text-slate-500 text-xs">{proc.process_code}</span>
-                                                                    <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </Panel>
-                                                </Collapse>
-                                            )}
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
 
                             ) : (
@@ -550,6 +549,30 @@ export default function ConsultantRequestDetailPage() {
                                 </div>
                             </div>
                         </Card>
+
+                        {/* Yêu cầu chỉnh sửa từ quản lý */}
+                        {orderDetail.reason && (
+                            <Card className="mt-6 border-orange-200 bg-orange-50/30">
+                                <div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-sm uppercase tracking-wider font-bold text-orange-800 mb-4 flex items-center gap-2">
+                                                <FileTextOutlined className="text-orange-500" />
+                                                Yêu cầu chỉnh sửa của quản lý
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <div className="text-slate-700 text-sm leading-relaxed bg-white border border-orange-200 rounded-lg p-3 space-y-2">
+                                        {orderDetail.reason.split(';').filter((r) => r.trim() !== '').map((line, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <span className="text-orange-500 mt-0.5">•</span>
+                                                <span className="font-medium text-slate-800">{line.trim()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
                     </div>
                 </div>
 

@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { Order } from "@/context/ProductionContext";
-import { OrderEstimationResult, ProcessCostDetail } from "@/lib/estimation.types";
+import { DetailedProductionEstimation, ProcessCostItem } from "@/lib/estimation.types";
 import { EstimateCostResponse, EstimatePaperResponse } from "@/schemaValidations/common.schema";
 
 export const RUSH_FEE_LOW = 500000;
@@ -171,100 +171,89 @@ export const mapToOrderEstimationResult = (
   deliveryDate: any, // dayjs or Date
   discountPercent?: number,
   discountAmount?: number,
-  additionalSpecs?: Partial<OrderEstimationResult>
-): OrderEstimationResult => {
+  additionalSpecs?: Partial<DetailedProductionEstimation>
+): DetailedProductionEstimation => {
   const currentOrderId = typeof orderId === 'string' ? parseInt(orderId) : orderId;
 
   // Map Process Costs
-  const mappedProcessCosts: ProcessCostDetail[] = costEstimate.process_cost.details.map((d: any) => ({
-    process: d.process || d.process_name || "",
+  const mappedProcessCosts: ProcessCostItem[] = costEstimate.process_cost.details.map((d: any) => ({
     process_code: d.process_code || d.process || "",
     process_name: d.process_name || d.process || "",
     quantity: d.quantity,
     unit: d.unit,
     unit_price: d.unit_price,
     total_cost: d.total_cost,
-    note: d.note
+    note: d.note || ""
   }));
 
   return {
     order_request_id: currentOrderId,
 
     // Paper
-    paper_cost: costEstimate.cost.paper_cost,
-    paper_sheets_used: costEstimate.cost.paper_sheets_used,
-    paper_unit_price: costEstimate.cost.paper_unit_price,
+    paper_cost: costEstimate.cost.paper_cost || 0,
+    paper_sheets_used: costEstimate.cost.paper_sheets_used || 0,
+    paper_unit_price: costEstimate.cost.paper_unit_price || 0,
+    paper_code: additionalSpecs?.paper_code || costEstimate.cost.material_cost_details?.find((m: any) => m.material_name.includes("Giấy"))?.note || paperEstimate.paper_code || "",
+    paper_name: additionalSpecs?.paper_name || "",
+    wave_type: additionalSpecs?.wave_type || "",
 
     // Ink
-    ink_cost: costEstimate.cost.ink_cost,
-    ink_weight_kg: costEstimate.cost.ink_weight_kg,
-    ink_rate_per_m2: costEstimate.cost.ink_rate_per_m2,
+    ink_cost: costEstimate.cost.ink_cost || 0,
+    ink_weight_kg: costEstimate.cost.ink_weight_kg || 0,
+    ink_rate_per_m2: costEstimate.cost.ink_rate_per_m2 || 0,
 
     // Coating
-    coating_glue_cost: costEstimate.cost.coating_glue_cost,
-    coating_glue_weight_kg: costEstimate.cost.coating_glue_weight_kg,
-    coating_glue_rate_per_m2: costEstimate.cost.coating_glue_rate_per_m2,
-    coating_type: costEstimate.cost.coating_type,
+    coating_glue_cost: costEstimate.cost.coating_glue_cost || 0,
+    coating_glue_weight_kg: costEstimate.cost.coating_glue_weight_kg || 0,
+    coating_glue_rate_per_m2: costEstimate.cost.coating_glue_rate_per_m2 || 0,
+    coating_type: costEstimate.cost.coating_type || "",
 
     // Mounting
-    mounting_glue_cost: costEstimate.cost.mounting_glue_cost,
-    mounting_glue_weight_kg: costEstimate.cost.mounting_glue_weight_kg,
-    mounting_glue_rate_per_m2: costEstimate.cost.mounting_glue_rate_per_m2,
+    mounting_glue_cost: costEstimate.cost.mounting_glue_cost || 0,
+    mounting_glue_weight_kg: costEstimate.cost.mounting_glue_weight_kg || 0,
+    mounting_glue_rate_per_m2: costEstimate.cost.mounting_glue_rate_per_m2 || 0,
 
     // Lamination
-    lamination_cost: costEstimate.cost.lamination_cost,
-    lamination_weight_kg: costEstimate.cost.lamination_weight_kg,
-    lamination_rate_per_m2: costEstimate.cost.lamination_rate_per_m2,
+    lamination_cost: costEstimate.cost.lamination_cost || 0,
+    lamination_weight_kg: costEstimate.cost.lamination_weight_kg || 0,
+    lamination_rate_per_m2: costEstimate.cost.lamination_rate_per_m2 || 0,
 
     // Totals
-    material_cost: costEstimate.cost.material_cost,
-    design_cost: costEstimate.cost.design_cost,
-
-    overhead_percent: costEstimate.cost.overhead_percent,
-    overhead_cost: costEstimate.cost.overhead_cost,
-    base_cost: costEstimate.cost.base_cost,
+    material_cost: costEstimate.cost.material_cost || 0,
+    design_cost: costEstimate.cost.design_cost || 0,
+    base_cost: costEstimate.cost.base_cost || 0,
 
     // Rush
-    is_rush: costEstimate.cost.is_rush,
-    rush_percent: costEstimate.cost.rush_percent,
-    rush_amount: costEstimate.cost.rush_amount,
-    days_early: costEstimate.cost.days_early,
+    is_rush: costEstimate.cost.is_rush || false,
+    rush_percent: costEstimate.cost.rush_percent || 0,
+    rush_amount: costEstimate.cost.rush_amount || 0,
+    days_early: costEstimate.cost.days_early || 0,
 
     // Final
-    subtotal: costEstimate.cost.subtotal,
-    discount_percent: discountPercent !== undefined ? discountPercent : costEstimate.cost.discount_percent,
-    discount_amount: discountAmount !== undefined ? discountAmount : costEstimate.cost.discount_amount,
-    final_total_cost: costEstimate.cost.final_total_cost,
+    subtotal: costEstimate.cost.subtotal || 0,
+    discount_percent: discountPercent !== undefined ? discountPercent : (costEstimate.cost.discount_percent || 0),
+    discount_amount: discountAmount !== undefined ? discountAmount : (costEstimate.cost.discount_amount || 0),
+    final_total_cost: costEstimate.cost.final_total_cost || 0,
+    cost_note: additionalSpecs?.cost_note || "",
 
     // Time
-    estimated_finish_date: costEstimate.cost.estimated_finish_date,
+    estimated_finish_date: costEstimate.cost.estimated_finish_date || new Date().toISOString(),
     desired_delivery_date: deliveryDate ? (typeof deliveryDate.toISOString === 'function' ? deliveryDate.toISOString() : new Date(deliveryDate).toISOString()) : new Date().toISOString(),
     created_at: new Date().toISOString(),
 
     // Specs
-    sheets_required: paperEstimate.sheets_base,
-    sheets_waste: paperEstimate.total_waste,
-    sheets_total: paperEstimate.sheets_with_waste,
-    n_up: paperEstimate.n_up,
-    total_area_m2: costEstimate.cost.total_area_m2,
+    production_processes: additionalSpecs?.production_processes || "",
+    sheets_required: paperEstimate.sheets_base || 0,
+    sheets_waste: paperEstimate.total_waste || 0,
+    sheets_total: paperEstimate.sheets_with_waste || 0,
+    n_up: paperEstimate.n_up || 1,
+    total_area_m2: costEstimate.cost.total_area_m2 || 0,
+    bleed_mm: additionalSpecs?.bleed_mm || 0,
+    glue_tab_mm: additionalSpecs?.glue_tab_mm || 0,
+    is_one_side_box: additionalSpecs?.is_one_side_box || false,
+    print_height_mm: additionalSpecs?.print_height_mm || (paperEstimate as any).print_height_mm || 0,
+    print_width_mm: additionalSpecs?.print_width_mm || (paperEstimate as any).print_width_mm || 0,
 
     process_costs: mappedProcessCosts,
-    cost_note: "",
-
-    // Technical Specs
-    product_length_mm: additionalSpecs?.product_length_mm,
-    product_width_mm: additionalSpecs?.product_width_mm,
-    product_height_mm: additionalSpecs?.product_height_mm,
-    paper_code: additionalSpecs?.paper_code || costEstimate.cost.material_cost_details?.find(m => m.material_name.includes("Giấy"))?.note || paperEstimate.paper_code, // Fallback
-    paper_name: additionalSpecs?.paper_name,
-    product_type: additionalSpecs?.product_type,
-    // coating_type already mapped above
-    number_of_plates: additionalSpecs?.number_of_plates,
-    wave_type: additionalSpecs?.wave_type,
-    glue_tab_mm: additionalSpecs?.glue_tab_mm,
-    bleed_mm: additionalSpecs?.bleed_mm,
-    is_one_side_box: additionalSpecs?.is_one_side_box,
-    production_processes: additionalSpecs?.production_processes,
-    note: additionalSpecs?.note,
   };
 };

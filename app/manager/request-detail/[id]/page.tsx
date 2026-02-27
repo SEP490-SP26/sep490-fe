@@ -1,18 +1,19 @@
 "use client";
 
 import { requestOrderApi } from "@/apiRequests/request";
+import { FloatingInputAntd } from "@/components/Input/FloatingInput";
+import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { VerifiedRequestReponse } from "@/lib/request.types";
+import { materialsApi } from "@/apiRequests/materials";
 import {
-    CheckCircleOutlined,
+    CheckOutlined,
     DollarOutlined,
     DownloadOutlined,
-    FileImageOutlined,
-    ShoppingOutlined,
-    UserOutlined,
-    ArrowLeftOutlined,
-    FileTextOutlined,
     EditOutlined,
-    CheckOutlined
+    FileImageOutlined,
+    FileTextOutlined,
+    ShoppingOutlined,
+    UserOutlined
 } from "@ant-design/icons";
 import {
     Button,
@@ -21,19 +22,19 @@ import {
     Descriptions,
     Divider,
     Empty,
-    Image,
     Input,
+    message,
+    Modal,
     Popconfirm,
+    Select,
     Skeleton,
     Tag,
-    Typography,
-    message,
-    Modal
+    Typography
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { formatCoatingType } from "@/lib/estimationUtils";
+import { formatVietnameseNumber } from "@/utils/format";
 
 const { Text } = Typography;
 const { Panel } = Collapse;
@@ -46,9 +47,19 @@ export default function ManagerRequestDetailPage() {
 
     const [loading, setLoading] = useState(true);
     const [orderDetail, setOrderDetail] = useState<VerifiedRequestReponse | null>(null);
-    const [note, setNote] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
-    const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
+
+    const [noteMode, setNoteMode] = useState(false);
+    const [estimateNotes, setEstimateNotes] = useState<Record<number, {
+        paper_name?: string;
+        paper_code?: string;
+        coating_type?: string;
+        deposit_amount?: string;
+        final_total_cost?: string;
+        general_note?: string;
+    }>>({});
+
+    const [paperTypes, setPaperTypes] = useState<{ code: string; name: string; stock: number; value: string }[]>([]);
 
     // Fetch order detail from API
     useEffect(() => {
@@ -71,28 +82,81 @@ export default function ManagerRequestDetailPage() {
             }
         };
 
+        const fetchPaperTypes = async () => {
+            try {
+                const response = await materialsApi.getAllPaperTypes();
+                if (response?.paperTypes && Array.isArray(response.paperTypes)) {
+                    setPaperTypes(
+                        response.paperTypes.map((pt: any) => ({
+                            code: pt.code,
+                            name: pt.name,
+                            stock: pt.stockQty || 0,
+                            value: pt.code,
+                        }))
+                    );
+                }
+            } catch (error) {
+                console.error("Error fetching paper types:", error);
+            }
+        };
+
         fetchOrderDetail();
+        fetchPaperTypes();
     }, [requestId]);
+
+    const handleNoteChange = (index: number, field: string, value: string) => {
+        setEstimateNotes(prev => ({
+            ...prev,
+            [index]: {
+                ...(prev[index] || {}),
+                [field]: value
+            }
+        }));
+    };
 
     const handleApproval = async (status: 'Verified' | 'Declined') => {
         if (!requestId) return;
 
-        const actionText = status === 'Verified' ? "Duyệt yêu cầu" : "Yêu cầu chỉnh sửa";
+        let finalNote = "";
+        if (status === 'Declined') {
+            const notesArray: string[] = [];
+            Object.keys(estimateNotes).forEach((key) => {
+                const index = parseInt(key);
+                const notes = estimateNotes[index];
+                if (!notes) return;
 
-        if (status === 'Declined' && !note.trim()) {
-            message.error("Vui lòng nhập ghi chú lý do yêu cầu chỉnh sửa.");
-            return;
+                const details = [];
+                if (notes.paper_name?.trim()) details.push(`Loại giấy: ${notes.paper_name.trim()}`);
+                if (notes.coating_type?.trim()) details.push(`Loại phủ: ${formatCoatingType(notes.coating_type.trim())}`);
+                if (notes.deposit_amount?.trim()) details.push(`Đặt cọc: ${notes.deposit_amount.trim()}`);
+                if (notes.final_total_cost?.trim()) details.push(`Tổng chi phí: ${notes.final_total_cost.trim()}`);
+                if (notes.general_note?.trim()) details.push(`Ghi chú: ${notes.general_note.trim()}`);
+
+                if (details.length > 0) {
+                    notesArray.push(`Báo giá ${index + 1}: ${details.join(', ')}`);
+                }
+            });
+
+            if (notesArray.length === 0) {
+                message.error("Vui lòng nhập ít nhất một thay đổi hoặc ghi chú trước khi xác nhận.");
+                return;
+            }
+            finalNote = notesArray.join("; ");
         }
+
+        const actionText = status === 'Verified' ? "Duyệt yêu cầu" : "Yêu cầu chỉnh sửa";
 
         setActionLoading(true);
         try {
             await requestOrderApi.approval({
                 request_id: Number(requestId),
-                note: note,
+                note: finalNote,
                 status: status
             });
             message.success(status === 'Verified' ? "Đã duyệt yêu cầu thành công" : "Đã gửi yêu cầu chỉnh sửa");
-            setIsDeclineModalOpen(false);
+            if (status === 'Declined') {
+                setNoteMode(false);
+            }
             router.push('/manager/requests-processing');
         } catch (error) {
             console.error(`Error ${status} request:`, error);
@@ -183,19 +247,32 @@ export default function ManagerRequestDetailPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button icon={<EditOutlined />} onClick={() => setIsDeclineModalOpen(true)} danger block className="rounded-lg text-sm font-medium h-auto py-2">
-                            Yêu cầu chỉnh sửa
-                        </Button>
-                        <Popconfirm
-                            title="Duyệt yêu cầu?"
-                            onConfirm={() => handleApproval('Verified')}
-                            okText="Duyệt"
-                            cancelText="Hủy"
-                        >
-                            <Button type="primary" icon={<CheckOutlined />} block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
-                                Duyệt yêu cầu
-                            </Button>
-                        </Popconfirm>
+                        {noteMode ? (
+                            <>
+                                <Button onClick={() => setNoteMode(false)} block className="rounded-lg text-sm font-medium h-auto py-2">
+                                    Hủy bỏ
+                                </Button>
+                                <Button type="primary" onClick={() => handleApproval('Declined')} block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                    Xác nhận thay đổi
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button icon={<EditOutlined />} onClick={() => setNoteMode(true)} danger block className="rounded-lg text-sm font-medium h-auto py-2">
+                                    Yêu cầu chỉnh sửa
+                                </Button>
+                                <Popconfirm
+                                    title="Duyệt yêu cầu?"
+                                    onConfirm={() => handleApproval('Verified')}
+                                    okText="Duyệt"
+                                    cancelText="Hủy"
+                                >
+                                    <Button type="primary" icon={<CheckOutlined />} block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                        Duyệt yêu cầu
+                                    </Button>
+                                </Popconfirm>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -271,20 +348,69 @@ export default function ManagerRequestDetailPage() {
                                                 <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
                                             </div>
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="text-slate-500 text-sm">Loại giấy:</span>
-                                                <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
+                                                <span className="text-slate-500 text-sm whitespace-nowrap">Loại giấy:</span>
+                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                                                    <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? 'text-slate-400' : ''}`}>{estimate.paper_name || "Chưa xác định"}</span>
+                                                    {noteMode && (
+                                                        <Select
+                                                            size="small"
+                                                            showSearch
+                                                            optionFilterProp="label"
+                                                            placeholder="Thay đổi..."
+                                                            className="w-40 text-xs"
+                                                            value={estimateNotes[index]?.paper_code || undefined}
+                                                            onChange={(val: string, option: any) => {
+                                                                handleNoteChange(index, 'paper_code', val);
+                                                                handleNoteChange(index, 'paper_name', option?.label || val);
+                                                            }}
+                                                            options={paperTypes.map(pt => ({ value: pt.code, label: pt.name }))}
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="text-slate-500 text-sm">Loại phủ:</span>
-                                                <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
+                                                <span className="text-slate-500 text-sm whitespace-nowrap">Loại phủ:</span>
+                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                                                    <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? ' text-slate-400' : ''}`}>{formatCoatingType(estimate.coating_type)}</span>
+                                                    {noteMode && (
+                                                        <Select
+                                                            size="small"
+                                                            placeholder="Thay đổi..."
+                                                            className="w-32 text-xs"
+                                                            value={estimateNotes[index]?.coating_type || undefined}
+                                                            onChange={(val: string) => handleNoteChange(index, 'coating_type', val)}
+                                                            options={[
+                                                                { value: 'KEO_NUOC', label: 'Phủ keo nước' },
+                                                                { value: 'KEO_DAU', label: 'Phủ keo dầu' },
+                                                                { value: 'NONE', label: 'Không phủ' },
+                                                            ]}
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="text-slate-500 text-sm">Đặt cọc:</span>
-                                                <span className="font-semibold text-slate-800">{formatCurrency(estimate.deposit_amount)}</span>
+                                                <span className="text-slate-500 text-sm whitespace-nowrap">Đặt cọc:</span>
+                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                                                    <span className={`font-semibold text-slate-800 text-right ${noteMode ? 'text-slate-400' : ''}`}>{formatCurrency(estimate.deposit_amount)}</span>
+                                                </div>
                                             </div>
                                             <div className="flex justify-between items-center mb-3">
-                                                <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
-                                                <span className="font-bold text-base text-slate-800">{formatCurrency(estimate.final_total_cost)}</span>
+                                                <span className="text-slate-500 text-sm font-medium whitespace-nowrap">Tổng chi phí:</span>
+                                                <div className="flex  items-center justify-end gap-x-2 gap-y-1">
+                                                    <span className={`font-bold text-base text-slate-800 text-right ${noteMode ? 'text-slate-400' : ''}`}>{formatCurrency(estimate.final_total_cost)}</span>
+                                                    {noteMode && (
+                                                        <FloatingInputAntd
+                                                            type="number"
+                                                            size="small"
+                                                            style={{ width: '100px' }}
+                                                            formatter={(value: any) => value ? formatVietnameseNumber(value) : ''}
+                                                            placeholder="Thay đổi..."
+                                                            className="w-40 text-xs text-right"
+                                                            value={estimateNotes[index]?.final_total_cost || ''}
+                                                            onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value)}
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
                                             {estimate.process_cost && estimate.process_cost.length > 0 && (
                                                 <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
@@ -292,13 +418,25 @@ export default function ManagerRequestDetailPage() {
                                                         <div className="space-y-2 py-1">
                                                             {estimate.process_cost.map(proc => (
                                                                 <div key={proc.process_cost_id} className="flex justify-between items-center">
-                                                                    <span className="text-slate-500 text-xs">{proc.process_code}</span>
+                                                                    <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
                                                                     <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </Panel>
                                                 </Collapse>
+                                            )}
+                                            {noteMode && (
+                                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                                    <span className="text-slate-500 text-sm mb-2 block font-medium">Ghi chú thêm:</span>
+                                                    <TextArea
+                                                        rows={2}
+                                                        placeholder="Nhập ghi chú thêm cho báo giá này..."
+                                                        value={estimateNotes[index]?.general_note || ''}
+                                                        onChange={(e) => handleNoteChange(index, 'general_note', e.target.value)}
+                                                        className="text-sm rounded-lg"
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -475,29 +613,7 @@ export default function ManagerRequestDetailPage() {
                             </div>
                         </Card> */}
 
-                        <Modal
-                            title="Xác nhận yêu cầu chỉnh sửa"
-                            open={isDeclineModalOpen}
-                            onCancel={() => {
-                                setIsDeclineModalOpen(false);
-                                setNote("");
-                            }}
-                            onOk={() => handleApproval('Declined')}
-                            okText="Gửi yêu cầu"
-                            cancelText="Hủy"
-                            okButtonProps={{ danger: true, loading: actionLoading }}
-                        >
-                            <div className="my-4">
-                                <Text type="secondary" className="block text-sm font-medium mb-2">Ghi chú lý do yêu cầu chỉnh sửa (bắt buộc):</Text>
-                                <TextArea
-                                    rows={4}
-                                    placeholder="Nhập chi tiết lý do..."
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    className="rounded-lg"
-                                />
-                            </div>
-                        </Modal>
+
 
 
                     </div>

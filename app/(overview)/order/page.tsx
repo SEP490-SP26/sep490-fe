@@ -841,7 +841,7 @@ export default function GuestOrderPage() {
 
         {/* Review Order Modal */}
         <Modal
-          title={<Title level={3} className="text-center text-primary-dark">Xác nhận thông tin đặt hàng</Title>}
+          title={<Title level={3} className="text-center text-primary-dark">Xác nhận thông tin yêu cầu</Title>}
           open={isReviewModalOpen}
           onCancel={() => setIsReviewModalOpen(false)}
           footer={[
