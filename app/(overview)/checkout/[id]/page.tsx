@@ -308,7 +308,7 @@ export default function RequestDetailPage() {
                       <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-orange-500 text-orange-600 tracking-wide">
                         Bảng kê chi phí
                       </h3>
-                      <div className="bg-orange-50 rounded-lg p-4">
+                      <div className="rounded-lg p-2">
                         <div className="space-y-2">
                           <div className="flex justify-between items-center py-1.5">
                             <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>

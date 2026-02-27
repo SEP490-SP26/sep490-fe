@@ -94,6 +94,19 @@ export default function ConsultantOrdersPage() {
     },
   });
 
+  // Send Deal mutation
+  const sendDealMutation = useMutation({
+    mutationFn: ({ request_id }: { request_id: number }) => requestOrderApi.sendDeal({ request_id }),
+    onSuccess: () => {
+      message.success("Đã gửi báo giá thành công");
+      fetchAllOrders();
+    },
+    onError: (error: any) => {
+      console.error("Send deal error:", error);
+      message.error(error.response?.data?.message || "Có lỗi xảy ra khi gửi báo giá");
+    },
+  });
+
   // Modal logic
   const [cancelModal, setCancelModal] = useState<{ open: boolean; orderId: number | null; reason: string }>({
     open: false,
@@ -354,9 +367,42 @@ export default function ConsultantOrdersPage() {
           </Space>
         );
       case "processing":
+        return (
+          <Space size="small">
+            <Link
+              href={`/consultant/request-detail/${record.order_request_id}`}
+            >
+              <Button size="small" icon={<EyeOutlined />}>
+                Chi Tiết
+              </Button>
+            </Link>
+          </Space>
+        );
       case "verified":
         return (
           <Space size="small">
+            <Popconfirm
+              title="Xác nhận gửi báo giá"
+              description={`Bạn có chắc muốn gửi báo giá cho đơn #${record.order_request_id}?`}
+              onConfirm={(e) => {
+                e?.stopPropagation();
+                sendDealMutation.mutate({ request_id: record.order_request_id });
+              }}
+              onCancel={(e) => e?.stopPropagation()}
+              okText="Gửi"
+              cancelText="Hủy"
+            >
+              <Button
+                type="primary"
+                size="small"
+                icon={<MailOutlined />}
+                className="bg-green-600 hover:bg-green-700"
+                onClick={(e) => e.stopPropagation()}
+                loading={sendDealMutation.isPending && sendDealMutation.variables?.request_id === record.order_request_id}
+              >
+                Gửi báo giá
+              </Button>
+            </Popconfirm>
             <Link
               href={`/consultant/request-detail/${record.order_request_id}`}
             >
