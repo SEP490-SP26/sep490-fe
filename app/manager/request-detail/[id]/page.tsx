@@ -129,7 +129,11 @@ export default function ManagerRequestDetailPage() {
                 if (notes.paper_name?.trim()) details.push(`Loại giấy: ${notes.paper_name.trim()}`);
                 if (notes.coating_type?.trim()) details.push(`Loại phủ: ${formatCoatingType(notes.coating_type.trim())}`);
                 if (notes.deposit_amount?.trim()) details.push(`Đặt cọc: ${notes.deposit_amount.trim()}`);
-                if (notes.final_total_cost?.trim()) details.push(`Tổng chi phí: ${notes.final_total_cost.trim()}`);
+                if (notes.final_total_cost?.toString().trim()) {
+                    const costNum = Number(notes.final_total_cost);
+                    const costStr = !isNaN(costNum) ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(costNum) : notes.final_total_cost;
+                    details.push(`Tổng chi phí: ${costStr}`);
+                }
                 if (notes.general_note?.trim()) details.push(`Ghi chú: ${notes.general_note.trim()}`);
 
                 if (details.length > 0) {
@@ -400,14 +404,13 @@ export default function ManagerRequestDetailPage() {
                                                     <span className={`font-bold text-base text-slate-800 text-right ${noteMode ? 'text-slate-400' : ''}`}>{formatCurrency(estimate.final_total_cost)}</span>
                                                     {noteMode && (
                                                         <FloatingInputAntd
-                                                            type="number"
+                                                            valueType="number"
                                                             size="small"
                                                             style={{ width: '100px' }}
-                                                            formatter={(value: any) => value ? formatVietnameseNumber(value) : ''}
                                                             placeholder="Thay đổi..."
                                                             className="w-40 text-xs text-right"
                                                             value={estimateNotes[index]?.final_total_cost || ''}
-                                                            onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value)}
+                                                            onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value ? String(e.target.value) : '')}
                                                         />
                                                     )}
                                                 </div>
