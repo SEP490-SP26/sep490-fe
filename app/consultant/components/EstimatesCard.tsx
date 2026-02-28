@@ -41,7 +41,7 @@ interface EstimatesCardProps {
   orderId: string | null;
   isSavingCost?: boolean;
   systemParameters: SystemParameters | null;
-  highlightFields?: string[];
+  highlightFields?: Record<string, string>;
 }
 
 export default function EstimatesCard({
@@ -64,7 +64,7 @@ export default function EstimatesCard({
   orderId,
   isSavingCost = false,
   systemParameters,
-  highlightFields = [],
+  highlightFields = {},
 }: EstimatesCardProps) {
   const daysUntilFree = workshopFreeInfo.days;
 

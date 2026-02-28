@@ -159,7 +159,8 @@ function ConsultantForm() {
     if (!managerNote || orderStatus !== 'Declined') return {};
 
     // Parse note: "Báo giá 1: Loại giấy: Bristol 300, Đặt cọc: 5.000.000 đ; Báo giá 2: Loại phủ: Phủ keo nước"
-    const highlights: Record<number, string[]> = {};
+    // Also parses new format separated by " | "
+    const highlights: Record<number, Record<string, string>> = {};
     const parts = managerNote.split(';');
 
     parts.forEach(part => {
@@ -167,12 +168,39 @@ function ConsultantForm() {
       if (match) {
         const index = parseInt(match[1], 10) - 1; // 0-based index
         const details = match[2];
-        const fields: string[] = [];
+        const fields: Record<string, string> = {};
 
-        if (details.toLowerCase().includes('loại giấy')) fields.push('paper_code');
-        if (details.toLowerCase().includes('loại phủ')) fields.push('coating_type');
-        if (details.toLowerCase().includes('đặt cọc')) fields.push('depositAmount');
-        if (details.toLowerCase().includes('tổng chi phí')) fields.push('final_price');
+        // Parse new format using " | "
+        const detailParts = details.split(' | ');
+        detailParts.forEach(detail => {
+          const lowerDetail = detail.toLowerCase();
+          if (lowerDetail.includes('loại giấy:')) {
+            fields['paper_code'] = detail.substring(lowerDetail.indexOf('loại giấy:') + 10).trim();
+          } else if (lowerDetail.includes('loại phủ:')) {
+            fields['coating_type'] = detail.substring(lowerDetail.indexOf('loại phủ:') + 9).trim();
+          } else if (lowerDetail.includes('đặt cọc:')) {
+            fields['depositAmount'] = detail.substring(lowerDetail.indexOf('đặt cọc:') + 8).trim();
+          } else if (lowerDetail.includes('tổng chi phí:')) {
+            fields['final_price'] = detail.substring(lowerDetail.indexOf('tổng chi phí:') + 13).trim();
+          }
+        });
+
+        // Fallback for old format using ", "
+        if (Object.keys(fields).length === 0) {
+          const oldDetailParts = details.split(', ');
+          oldDetailParts.forEach(detail => {
+            const lowerDetail = detail.toLowerCase();
+            if (lowerDetail.includes('loại giấy:')) {
+              fields['paper_code'] = detail.substring(lowerDetail.indexOf('loại giấy:') + 10).trim();
+            } else if (lowerDetail.includes('loại phủ:')) {
+              fields['coating_type'] = detail.substring(lowerDetail.indexOf('loại phủ:') + 9).trim();
+            } else if (lowerDetail.includes('đặt cọc:')) {
+              fields['depositAmount'] = detail.substring(lowerDetail.indexOf('đặt cọc:') + 8).trim();
+            } else if (lowerDetail.includes('tổng chi phí:')) {
+              fields['final_price'] = detail.substring(lowerDetail.indexOf('tổng chi phí:') + 13).trim();
+            }
+          });
+        }
 
         highlights[index] = fields;
       }
@@ -1454,7 +1482,7 @@ function ConsultantForm() {
                           handleFormValuesChange={handleFormValuesChange}
                           form={form}
                           disabledSharedFields={activeTabKey !== "1"}
-                          highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || []}
+                          highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
                         />
                       </div>
                     ),
@@ -1579,7 +1607,7 @@ function ConsultantForm() {
                 orderId={orderId}
                 isSavingCost={isSavingCost}
                 systemParameters={systemParameters}
-                highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || []}
+                highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
               />
             </Col>
           </Row>

@@ -26,6 +26,7 @@ import {
     message,
     Modal,
     Popconfirm,
+    Popover,
     Select,
     Skeleton,
     Tag,
@@ -137,7 +138,7 @@ export default function ManagerRequestDetailPage() {
                 if (notes.general_note?.trim()) details.push(`Ghi chú: ${notes.general_note.trim()}`);
 
                 if (details.length > 0) {
-                    notesArray.push(`Báo giá ${index + 1}: ${details.join(', ')}`);
+                    notesArray.push(`Báo giá ${index + 1}: ${details.join(' | ')}`);
                 }
             });
 
@@ -356,19 +357,25 @@ export default function ManagerRequestDetailPage() {
                                                 <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
                                                     <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? 'text-slate-400' : ''}`}>{estimate.paper_name || "Chưa xác định"}</span>
                                                     {noteMode && (
-                                                        <Select
-                                                            size="small"
-                                                            showSearch
-                                                            optionFilterProp="label"
-                                                            placeholder="Thay đổi..."
-                                                            className="w-40 text-xs"
-                                                            value={estimateNotes[index]?.paper_code || undefined}
-                                                            onChange={(val: string, option: any) => {
-                                                                handleNoteChange(index, 'paper_code', val);
-                                                                handleNoteChange(index, 'paper_name', option?.label || val);
-                                                            }}
-                                                            options={paperTypes.map(pt => ({ value: pt.code, label: pt.name }))}
-                                                        />
+                                                        <Popover
+                                                            content={
+                                                                <TextArea
+                                                                    rows={3}
+                                                                    placeholder="Ghi chú thay đổi..."
+                                                                    className="w-64 text-xs font-normal"
+                                                                    value={estimateNotes[index]?.paper_name || ''}
+                                                                    onChange={(e) => handleNoteChange(index, 'paper_name', e.target.value)}
+                                                                />
+                                                            }
+                                                            title={<span className="text-xs">Chỉnh sửa loại giấy</span>}
+                                                            trigger="click"
+                                                        >
+                                                            <Button
+                                                                size="small"
+                                                                type={estimateNotes[index]?.paper_name ? "primary" : "default"}
+                                                                icon={<EditOutlined />}
+                                                            />
+                                                        </Popover>
                                                     )}
                                                 </div>
                                             </div>
@@ -377,18 +384,25 @@ export default function ManagerRequestDetailPage() {
                                                 <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
                                                     <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? ' text-slate-400' : ''}`}>{formatCoatingType(estimate.coating_type)}</span>
                                                     {noteMode && (
-                                                        <Select
-                                                            size="small"
-                                                            placeholder="Thay đổi..."
-                                                            className="w-32 text-xs"
-                                                            value={estimateNotes[index]?.coating_type || undefined}
-                                                            onChange={(val: string) => handleNoteChange(index, 'coating_type', val)}
-                                                            options={[
-                                                                { value: 'KEO_NUOC', label: 'Phủ keo nước' },
-                                                                { value: 'KEO_DAU', label: 'Phủ keo dầu' },
-                                                                { value: 'NONE', label: 'Không phủ' },
-                                                            ]}
-                                                        />
+                                                        <Popover
+                                                            content={
+                                                                <TextArea
+                                                                    rows={3}
+                                                                    placeholder="Ghi chú thay đổi..."
+                                                                    className="w-64 text-xs font-normal"
+                                                                    value={estimateNotes[index]?.coating_type || ''}
+                                                                    onChange={(e) => handleNoteChange(index, 'coating_type', e.target.value)}
+                                                                />
+                                                            }
+                                                            title={<span className="text-xs">Chỉnh sửa loại phủ</span>}
+                                                            trigger="click"
+                                                        >
+                                                            <Button
+                                                                size="small"
+                                                                type={estimateNotes[index]?.coating_type ? "primary" : "default"}
+                                                                icon={<EditOutlined />}
+                                                            />
+                                                        </Popover>
                                                     )}
                                                 </div>
                                             </div>
@@ -403,15 +417,27 @@ export default function ManagerRequestDetailPage() {
                                                 <div className="flex  items-center justify-end gap-x-2 gap-y-1">
                                                     <span className={`font-bold text-base text-slate-800 text-right ${noteMode ? 'text-slate-400' : ''}`}>{formatCurrency(estimate.final_total_cost)}</span>
                                                     {noteMode && (
-                                                        <FloatingInputAntd
-                                                            valueType="number"
-                                                            size="small"
-                                                            style={{ width: '100px' }}
-                                                            placeholder="Thay đổi..."
-                                                            className="w-40 text-xs text-right"
-                                                            value={estimateNotes[index]?.final_total_cost || ''}
-                                                            onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value ? String(e.target.value) : '')}
-                                                        />
+                                                        <Popover
+                                                            content={
+                                                                <FloatingInputAntd
+                                                                    valueType="number"
+                                                                    size="small"
+                                                                    style={{ width: '150px' }}
+                                                                    placeholder="Thay đổi..."
+                                                                    className="font-normal"
+                                                                    value={estimateNotes[index]?.final_total_cost || ''}
+                                                                    onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value ? String(e.target.value) : '')}
+                                                                />
+                                                            }
+                                                            title={<span className="text-xs">Chỉnh sửa tổng chi phí</span>}
+                                                            trigger="click"
+                                                        >
+                                                            <Button
+                                                                size="small"
+                                                                type={estimateNotes[index]?.final_total_cost ? "primary" : "default"}
+                                                                icon={<EditOutlined />}
+                                                            />
+                                                        </Popover>
                                                     )}
                                                 </div>
                                             </div>

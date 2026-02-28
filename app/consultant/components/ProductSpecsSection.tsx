@@ -2,7 +2,7 @@
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { FloatingSelect } from "@/components/Input/FloatingSelect";
 import { Material } from "@/schemaValidations/common.schema";
-import { Checkbox, Col, Form, InputNumber, Row, Select } from "antd";
+import { Checkbox, Col, Form, InputNumber, Row, Select, Tooltip } from "antd";
 import { useEffect } from "react";
 
 interface ProductSpecsSectionProps {
@@ -22,7 +22,7 @@ interface ProductSpecsSectionProps {
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   form: any;
   disabledSharedFields?: boolean;
-  highlightFields?: string[];
+  highlightFields?: Record<string, string>;
 }
 
 const FORM_TYPE_LABELS: Record<string, string> = {
@@ -50,7 +50,7 @@ export default function ProductSpecsSection({
   handleFormValuesChange,
   form,
   disabledSharedFields = false,
-  highlightFields = [],
+  highlightFields = {},
 }: ProductSpecsSectionProps) {
   useEffect(() => {
     if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
@@ -121,27 +121,29 @@ export default function ProductSpecsSection({
       <Row gutter={16}>
 
         <Col span={9}>
-          <Form.Item
-            name="paper_code"
-            rules={[{ required: true, message: "Vui lòng chọn loại giấy" }]}
-          >
-            <FloatingSelect
-              label="Loại giấy"
-              showSearch
-              placeholder="Chọn loại giấy"
-              loading={loadingPaperTypes}
-              optionFilterProp="label"
-              options={paperTypes.map((paper) => ({
-                label: <div className="flex justify-between gap-2">
-                  <span>{paper.name}</span>
-                  <span className="text-gray-500">(SL: {paper.stock ?? 0})</span>
-                </div>,
-                value: paper.code,
-                stockQty: paper.stock,
-              }))}
-              className={highlightFields.includes('paper_code') ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-            />
-          </Form.Item>
+          <Tooltip title={highlightFields['paper_code']} color="orange" placement="topLeft">
+            <Form.Item
+              name="paper_code"
+              rules={[{ required: true, message: "Vui lòng chọn loại giấy" }]}
+            >
+              <FloatingSelect
+                label="Loại giấy"
+                showSearch
+                placeholder="Chọn loại giấy"
+                loading={loadingPaperTypes}
+                optionFilterProp="label"
+                options={paperTypes.map((paper) => ({
+                  label: <div className="flex justify-between gap-2">
+                    <span>{paper.name}</span>
+                    <span className="text-gray-500">(SL: {paper.stock ?? 0})</span>
+                  </div>,
+                  value: paper.code,
+                  stockQty: paper.stock,
+                }))}
+                className={highlightFields['paper_code'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+              />
+            </Form.Item>
+          </Tooltip>
         </Col>
 
         <Col span={5}>
@@ -177,16 +179,18 @@ export default function ProductSpecsSection({
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Form.Item name="coating_type" initialValue="KEO_NUOC">
-            <FloatingSelect
-              label="Loại keo"
-              options={[
-                { label: "Keo nước", value: "KEO_NUOC" },
-                { label: "Keo dầu", value: "KEO_DAU" },
-              ]}
-              className={highlightFields.includes('coating_type') ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-            />
-          </Form.Item>
+          <Tooltip title={highlightFields['coating_type']} color="orange" placement="topLeft">
+            <Form.Item name="coating_type" initialValue="KEO_NUOC">
+              <FloatingSelect
+                label="Loại keo"
+                options={[
+                  { label: "Keo nước", value: "KEO_NUOC" },
+                  { label: "Keo dầu", value: "KEO_DAU" },
+                ]}
+                className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+              />
+            </Form.Item>
+          </Tooltip>
         </Col>
       </Row>
 
