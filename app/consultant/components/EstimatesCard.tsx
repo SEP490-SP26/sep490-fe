@@ -154,8 +154,7 @@ export default function EstimatesCard({
 
     return (
       <Alert
-        message="Đủ điều kiện sản xuất"
-        description="Kho đủ giấy & Tiến độ phù hợp."
+        title="Đủ điều kiện sản xuất - Kho đủ giấy & Tiến độ phù hợp."
         type="success"
         showIcon
         className="mb-4"

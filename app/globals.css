@@ -15,6 +15,15 @@
   --color-accent-dark: #FB923C; /* Amber 600 - Close to Yellow */
   /* --color-accent: #ec4899;      */
     /* Pink 500 - Close to Magenta */
+
+  /* Success & Danger */
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-success-dark: #047857;
+  --color-danger: #ef4444;
+  --color-danger-light: #fee2e2;
+  --color-danger-dark: #b91c1c;
+
   /* Neutral Backgrounds */
   --background: #ffffff;
   --foreground: #0f172a;         /* Slate 900 */
@@ -31,6 +40,15 @@
   --color-primary-dark: (var(--color-primary-dark));
   --color-secondary: (var(--color-secondary));
   --color-accent: (var(--color-accent));
+  --color-accent-light: (var(--color-accent-light));
+  --color-accent-dark: (var(--color-accent-dark));
+  --color-success: (var(--color-success));
+  --color-success-light: (var(--color-success-light));
+  --color-success-dark: (var(--color-success-dark));
+  --color-danger: (var(--color-danger));
+  --color-danger-light: (var(--color-danger-light));
+  --color-danger-dark: (var(--color-danger-dark));
+  --color-surface: (var(--color-surface));
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-heading: var(--font-fa), var(--font-inter), sans-serif;
