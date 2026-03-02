@@ -31,11 +31,7 @@ const authApiRequest = {
       password: body.password,
     }),
   register: (otp: string, body: RegisterBodyType) =>
-    http.post("/api/register", body, {
-      headers: {
-        "otp": otp,
-      },
-    }),
+    http.post("/register?otp=" + otp, body),
   loginWithGoogle: (id_token: string) =>
     http.post<GoogleLoginRes>("/login-with-google", {
       id_token,

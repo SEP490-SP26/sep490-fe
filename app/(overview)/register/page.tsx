@@ -1,8 +1,9 @@
 'use client'
 
-import { findCustomerByEmail, findCustomerByPhone, useCustomer } from '@/context/CustomerContext'
-import { CheckCircleOutlined, MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons'
 import { otpsApi } from '@/apiRequests/otps'
+import authApiRequest from '@/apiRequests/auth'
+import { useCustomer } from '@/context/CustomerContext'
+import { CheckCircleOutlined, LockOutlined, MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons'
 import {
   Button,
   Card,
@@ -17,8 +18,6 @@ import { useEffect, useState } from 'react'
 
 const { Title, Text } = Typography
 
-
-
 export default function RegisterPage() {
   const [form] = Form.useForm()
   const { register, isLoggedIn } = useCustomer()
@@ -26,7 +25,7 @@ export default function RegisterPage() {
 
   const [isOtpSent, setIsOtpSent] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState('')
   const [loadingOtp, setLoadingOtp] = useState(false)
   const [loadingSubmit, setLoadingSubmit] = useState(false)
 
@@ -37,31 +36,9 @@ export default function RegisterPage() {
     }
   }, [isLoggedIn, router])
 
-
-
   // Handle OTP input change for 6-box input
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value.slice(-1)
-    }
-
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
-
-    // Auto focus next input
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`)
-      nextInput?.focus()
-    }
-  }
-
-  // Handle backspace
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`)
-      prevInput?.focus()
-    }
+  const handleOtpChange = (text: string) => {
+    setOtp(text)
   }
 
   // Send OTP
@@ -73,29 +50,23 @@ export default function RegisterPage() {
       return
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      form.setFields([{ name: 'email', errors: ['Email không hợp lệ'] }])
-      return
-    }
-
-    // Check if email already registered
-    const existingCustomer = findCustomerByEmail(email)
-    if (existingCustomer) {
-      message.error('Email này đã được đăng ký! Vui lòng đăng nhập.')
+    const emailError = form.getFieldError('email')
+    if (emailError.length > 0) {
+      message.error('Vui lòng nhập đúng định dạng email!')
       return
     }
 
     setLoadingOtp(true)
 
     try {
-      await otpsApi.sendOtp({ email })
-      setIsOtpSent(true)
-      message.success('Mã OTP đã được gửi đến email của bạn!')
-    } catch (error) {
+      const response = await otpsApi.sendOtp({ email })
+      if (response) {
+        setIsOtpSent(true)
+        message.success('Mã OTP đã được gửi đến email của bạn!')
+      }
+    } catch (error: any) {
       console.error(error)
-      message.error('Gửi OTP thất bại. Vui lòng thử lại.')
+      message.error(error?.message || 'Gửi OTP thất bại. Vui lòng kiểm tra lại email.')
     } finally {
       setLoadingOtp(false)
     }
@@ -104,59 +75,58 @@ export default function RegisterPage() {
   // Verify OTP
   const onVerifyOtp = async () => {
     const email = form.getFieldValue('email')
-    const otpCode = otp.join('')
+    const otpCode = otp
     if (otpCode.length !== 6) {
       message.error('Vui lòng nhập đủ 6 số OTP!')
       return
     }
 
-    if (!email) {
-      message.error('Không tìm thấy email cần xác nhận!')
-      return
-    }
-
     setLoadingOtp(true)
     try {
-      await otpsApi.verifyOtp({ email, otp: otpCode })
-      setIsVerified(true)
-      setIsOtpSent(false)
-      message.success('Xác thực email thành công!')
-    } catch (err) {
+      const response = await otpsApi.verifyOtp({ email, otp: otpCode })
+      if (response) {
+        setIsVerified(true)
+        setIsOtpSent(false)
+        message.success('Xác thực email thành công! Bạn có thể điền thông tin đăng ký.')
+      }
+    } catch (err: any) {
       console.error(err)
-      message.error('Mã OTP không đúng hoặc đã hết hạn!')
+      message.error(err?.message || 'Mã OTP không đúng!')
     } finally {
       setLoadingOtp(false)
     }
   }
 
   // Submit registration
-  const onFinish = (values: any) => {
+  const onFinish = async (values: any) => {
     if (!isVerified) {
       message.error('Vui lòng xác thực email trước!')
       return
     }
 
-    // Check if phone already registered
-    const existingCustomer = findCustomerByPhone(values.phone)
-    if (existingCustomer) {
-      form.setFields([{ name: 'phone', errors: ['Số điện thoại này đã được đăng ký!'] }])
-      message.error('Số điện thoại này đã được đăng ký! Vui lòng sử dụng số khác.')
+    if (values.password !== values.confirmPassword) {
+      message.error('Mật khẩu xác nhận không khớp!')
       return
     }
 
     setLoadingSubmit(true)
 
     try {
-      register({
-        phone: values.phone,
-        name: values.name,
+      const registerData = {
+        user_name: values.user_name,
         email: values.email,
-      })
+        password: values.password,
+        phone_number: values.phone,
+        full_name: values.name,
+      }
 
-      message.success('Đăng ký thành công! Chào mừng bạn đến với hệ thống.')
-      router.push('/')
-    } catch (error) {
-      message.error('Đăng ký thất bại. Vui lòng thử lại.')
+      await authApiRequest.register(otp, registerData)
+
+      message.success('Đăng ký thành công! Chào mừng bạn đến với hệ thống. Vui lòng đăng nhập.')
+      router.push('/login')
+    } catch (error: any) {
+      console.error('Registration error:', error)
+      message.error(error?.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.')
     } finally {
       setLoadingSubmit(false)
     }
@@ -166,7 +136,6 @@ export default function RegisterPage() {
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 flex items-center justify-center'>
-
       <div className='w-full max-w-md'>
         <div className='text-center mb-8'>
           <Title level={2} style={{ color: '#1677ff', marginBottom: 8 }}>
@@ -185,7 +154,7 @@ export default function RegisterPage() {
             size='large'
             requiredMark='optional'
           >
-            {/* Email - Required for OTP Verification */}
+            {/* Email - Required FIRST */}
             <Form.Item
               name='email'
               label={<span className='font-semibold'>Email</span>}
@@ -203,7 +172,7 @@ export default function RegisterPage() {
               />
             </Form.Item>
 
-            {/* OTP Section (Only before verification) */}
+            {/* OTP Section */}
             {!isVerified && (
               <div className='mb-6'>
                 {!isOtpSent ? (
@@ -219,24 +188,16 @@ export default function RegisterPage() {
                 ) : (
                   <div className='space-y-4'>
                     <div className='text-center'>
-                      <Text type='secondary'>Nhập mã OTP đã gửi đến email của bạn</Text>
+                      <Text type='secondary'>Nhập mã OTP đã gửi đến điện thoại của bạn</Text>
                     </div>
 
-                    {/* 6-box OTP input */}
-                    <div className='flex justify-center gap-2'>
-                      {otp.map((digit, index) => (
-                        <input
-                          key={index}
-                          id={`otp-${index}`}
-                          type='text'
-                          inputMode='numeric'
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(index, e.target.value.replace(/\D/g, ''))}
-                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                          className='w-12 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none hover:border-blue-400 transition-colors'
-                        />
-                      ))}
+                    <div className='flex justify-center mb-4'>
+                      <Input.OTP
+                        length={6}
+                        value={otp}
+                        onChange={handleOtpChange}
+                        size="large"
+                      />
                     </div>
 
                     <div className='flex gap-2'>
@@ -253,10 +214,10 @@ export default function RegisterPage() {
                         danger
                         onClick={() => {
                           setIsOtpSent(false)
-                          setOtp(['', '', '', '', '', ''])
+                          setOtp('')
                         }}
                       >
-                        Đổi Email
+                        Đổi email
                       </Button>
                     </div>
                   </div>
@@ -265,15 +226,71 @@ export default function RegisterPage() {
             )}
 
             {isVerified && (
-              <div className='mb-6 p-3 bg-green-50 border border-green-200 rounded-lg text-center'>
+              <div className='mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-center'>
                 <CheckCircleOutlined className='text-green-500 mr-2' />
                 <span className='text-green-700 font-medium'>Email đã được xác minh</span>
               </div>
             )}
 
-            {/* Additional Info - Only reveal if Verified */}
+            {/* User details section */}
             {isVerified && (
               <>
+                {/* Tên đăng nhập */}
+                <Form.Item
+                  name='user_name'
+                  label={<span className='font-semibold'>Tên đăng nhập</span>}
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập tên đăng nhập' },
+                    { min: 3, message: 'Tên đăng nhập phải có ít nhất 3 ký tự' }
+                  ]}
+                >
+                  <Input
+                    prefix={<UserOutlined className='text-gray-400' />}
+                    placeholder='tendangnhap'
+                    className={inputStyle}
+                  />
+                </Form.Item>
+
+                {/* Mật khẩu */}
+                <Form.Item
+                  name='password'
+                  label={<span className='font-semibold'>Mật khẩu</span>}
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập mật khẩu' },
+                    { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined className='text-gray-400' />}
+                    placeholder='Mật khẩu'
+                    className={inputStyle}
+                  />
+                </Form.Item>
+
+                {/* Xác nhận mật khẩu */}
+                <Form.Item
+                  name='confirmPassword'
+                  label={<span className='font-semibold'>Xác nhận mật khẩu</span>}
+                  dependencies={['password']}
+                  rules={[
+                    { required: true, message: 'Vui lòng xác nhận mật khẩu' },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('password') === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined className='text-gray-400' />}
+                    placeholder='Xác nhận mật khẩu'
+                    className={inputStyle}
+                  />
+                </Form.Item>
+
                 {/* Họ tên */}
                 <Form.Item
                   name='name'
@@ -304,8 +321,6 @@ export default function RegisterPage() {
                 </Form.Item>
               </>
             )}
-
-
 
             {/* Submit button */}
             <Form.Item className='mb-2'>

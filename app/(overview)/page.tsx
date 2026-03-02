@@ -160,7 +160,7 @@ export default function HomePage() {
 
       setLoadingOtp(true);
       const response = await otpsApi.sendOtp({ email: emailInput });
-      if (response?.message === "OTP sent") {
+      if (response) {
         setEmail(emailInput);
         setIsOtpSent(true);
         message.success("Mã OTP đã được gửi đến email của bạn!");
@@ -181,7 +181,7 @@ export default function HomePage() {
     setLoadingOtp(true);
     try {
       const response = await otpsApi.verifyOtp({ email, otp });
-      if (response?.message === "OTP verified") {
+      if (response) {
         message.success("Xác thực email thành công!");
         setIsModalOpen(false);
         // Navigate to order page with verified email

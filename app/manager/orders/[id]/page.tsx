@@ -235,7 +235,7 @@ export default function ProductionDetailPage() {
             </div>
 
             {/* Order details in cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">KHÁCH HÀNG</div>
                 <div className="font-medium text-gray-900 truncate">
@@ -265,7 +265,7 @@ export default function ProductionDetailPage() {
               </div>
               {/* Schedule info */}
 
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+              {/* <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                 <div className="text-sm font-medium text-blue-700 mb-1">
                   LỊCH SẢN XUẤT
                 </div>
@@ -309,7 +309,7 @@ export default function ProductionDetailPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Specifications */}
@@ -330,11 +330,11 @@ export default function ProductionDetailPage() {
                     <span className="font-medium">Sóng:</span> {apiData.quote_fields.wave_type}
                   </div>
                 )}
-                {apiData.quote_fields.design_type && (
+                {/* {apiData.quote_fields.design_type && (
                   <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                     <span className="font-medium">Thiết kế:</span> {apiData.quote_fields.design_type}
                   </div>
-                )}
+                )} */}
                 {apiData.quote_fields.production_process && (
                   <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                     <span className="font-medium">Gia công:</span> {apiData.quote_fields.production_process}

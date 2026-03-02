@@ -217,7 +217,7 @@ export default function GuestOrderPage() {
     setLoadingOtp(true);
     try {
       const response = await otpsApi.sendOtp({ email });
-      if (response?.message === "OTP sent") {
+      if (response) {
         setIsOtpSent(true);
         message.success("Mã OTP đã được gửi đến email của bạn!");
       }
@@ -238,7 +238,7 @@ export default function GuestOrderPage() {
     setLoadingOtp(true);
     try {
       const response = await otpsApi.verifyOtp({ email, otp });
-      if (response?.message === "OTP verified") {
+      if (response) {
         setIsVerified(true);
         setIsOtpSent(false);
         message.success("Xác thực email thành công!");
@@ -841,7 +841,7 @@ export default function GuestOrderPage() {
 
         {/* Review Order Modal */}
         <Modal
-          title={<Title level={3} className="text-center text-primary-dark">Xác nhận thông tin đặt hàng</Title>}
+          title={<Title level={3} className="text-center text-primary-dark">Xác nhận thông tin yêu cầu</Title>}
           open={isReviewModalOpen}
           onCancel={() => setIsReviewModalOpen(false)}
           footer={[
@@ -873,20 +873,20 @@ export default function GuestOrderPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
                   <div>
-                    <span className="text-gray-500 text-sm block">Họ tên:</span>
-                    <span className="font-medium text-gray-800">{formDataToSubmit.customer_name}</span>
+
+                    <span className="text-gray-500 text-sm block">Khách hàng: <span className="font-medium text-gray-800">{formDataToSubmit.customer_name}</span></span>
+
                   </div>
                   <div>
-                    <span className="text-gray-500 text-sm block">Số điện thoại:</span>
-                    <span className="font-medium text-gray-800">{formDataToSubmit.customer_phone}</span>
+                    <span className="text-gray-500 text-sm block">Số điện thoại: <span className="font-medium text-gray-800">{formDataToSubmit.customer_phone}</span></span>
+
                   </div>
                   <div className="col-span-1 md:col-span-2">
-                    <span className="text-gray-500 text-sm block">Email:</span>
-                    <span className="font-medium text-gray-800">{formDataToSubmit.customer_email}</span>
+                    <span className="text-gray-500 text-sm block">Email: <span className="font-medium text-gray-800">{formDataToSubmit.customer_email}</span></span>
+
                   </div>
                   <div className="col-span-1 md:col-span-2">
-                    <span className="text-gray-500 text-sm block">Địa chỉ giao hàng:</span>
-                    <span className="font-medium text-gray-800">{formDataToSubmit.detail_address}</span>
+                    <span className="text-gray-500 text-sm block">Địa chỉ giao hàng: <span className="font-medium text-gray-800">{formDataToSubmit.detail_address}</span></span>
                   </div>
                 </div>
               </div>
@@ -899,27 +899,26 @@ export default function GuestOrderPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-4">
                   <div className="col-span-1 md:col-span-2">
-                    <span className="text-gray-500 text-sm block">Sản phẩm:</span>
-                    <span className="font-medium text-gray-800 text-lg text-end">{formDataToSubmit.product_name}</span>
+                    <span className="text-gray-500 text-sm block">Sản phẩm: <span className="font-medium text-gray-800 text-lg text-end">{formDataToSubmit.product_name}</span></span>
+
                   </div>
 
                   <div>
-                    <span className="text-gray-500 text-sm block">Số lượng:</span>
-                    <span className="font-medium text-gray-800 text-end">{formatVietnameseNumber(formDataToSubmit.quantity)}</span>
+                    <span className="text-gray-500 text-sm block">Số lượng: <span className="font-medium text-gray-800 text-end">{formatVietnameseNumber(formDataToSubmit.quantity)}</span></span>
+
                   </div>
 
                   <div>
-                    <span className="text-gray-500 text-sm block">Thời gian nhận hàng:</span>
-                    <span className="font-medium text-gray-800">
+                    <span className="text-gray-500 text-sm block">Thời gian nhận hàng: <span className="font-medium text-gray-800">
                       {dayjs(formDataToSubmit.delivery_date).format("DD/MM/YYYY")}
-                    </span>
+                    </span></span>
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
-                    <span className="text-gray-500 text-sm block">Kích thước (Không bắt buộc):</span>
-                    <span className="font-medium text-gray-800">
+                    <span className="text-gray-500 text-sm block">Kích thước (Không bắt buộc): <span className="font-medium text-gray-800">
                       {formDataToSubmit.product_length_mm} x {formDataToSubmit.product_width_mm} x {formDataToSubmit.product_height_mm} (mm)
-                    </span>
+                    </span></span>
+
                   </div>
 
                   {formDataToSubmit.paper_name && (
@@ -941,7 +940,13 @@ export default function GuestOrderPage() {
                       <span className="text-gray-500 text-sm block">File thiết kế ({fileList.length}):</span>
                       <ul className="list-disc pl-5 text-sm text-blue-600">
                         {fileList.map((f, index) => (
-                          <li key={index} className="truncate max-w-xs">{f.name}</li>
+                          <li
+                            key={index}
+                            className="truncate max-w-xs cursor-pointer hover:underline hover:text-blue-700"
+                            onClick={() => handlePreview(f)}
+                          >
+                            {f.name}
+                          </li>
                         ))}
                       </ul>
                     </div>

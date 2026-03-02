@@ -68,12 +68,10 @@ export default function DesignUploadSection({
         {designFilePath ? (
           <Form.Item label="File Thiết Kế" className="mb-2">
             <div className="flex flex-col gap-3">
-              Khách hàng đã gửi file thiết kế
-
               {/* Show previously uploaded files if any (from API, usually passed via designFilePath string) */}
               {designFilePath && (
                 <div className=" rounded text-sm text-gray-500">
-                  <div className="font-semibold mb-2">File đã có trên hệ thống:</div>
+                  {/* <div className="font-semibold mb-2">File đã có trên hệ thống:</div> */}
                   <div className="flex flex-wrap gap-2">
                     {designFilePath.split(',').map((url, index) => {
                       const trimmedUrl = url.trim();

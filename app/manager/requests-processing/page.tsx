@@ -270,10 +270,10 @@ export default function ManagerRequestsProcessingPage() {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <Title level={2} style={{ margin: 0 }}>
-                        Yêu Cầu Đang Xử Lý
+                        Yêu Cầu Cần Được Duyệt
                     </Title>
                     <p className="text-gray-500">
-                        Danh sách các yêu cầu đang trong quá trình sản xuất/xử lý
+                        Danh sách các yêu cầu đang chờ được duyệt
                     </p>
                 </div>
                 <div className="w-1/3">
