@@ -1,20 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { materialsApi } from "@/apiRequests/materials";
 import { otpsApi } from "@/apiRequests/otps";
-import { useSearchParams } from "next/navigation";
+import { productsApi } from "@/apiRequests/products";
+import { productTypesApi } from "@/apiRequests/producttypes";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
-import { productsApi } from "@/apiRequests/products";
-import { materialsApi } from "@/apiRequests/materials";
 import AddressMapPicker, { AddressResult } from "@/components/AddressMapPicker";
 import {
   CheckCircleOutlined,
   EnvironmentOutlined,
   EyeOutlined,
-  UploadOutlined,
-  MailOutlined,
   PlusOutlined,
+  UploadOutlined
 } from "@ant-design/icons";
 import type { UploadFile } from "antd";
 import {
@@ -25,7 +24,6 @@ import {
   DatePicker,
   Form,
   Input,
-  InputNumber,
   message,
   Modal,
   Popconfirm,
@@ -34,18 +32,18 @@ import {
   Space,
   Typography,
   Upload,
-  Select,
+  Radio
 } from "antd";
 import Holidays from "date-holidays";
 import dayjs from "dayjs";
+import { useSearchParams } from "next/navigation";
 
-import { RangePickerProps } from "antd/es/date-picker";
+import { FloatingInputAntd } from "@/components/Input/FloatingInput";
+import { useCustomer } from "@/context/CustomerContext";
+import { formatVietnameseNumber } from "@/utils/format";
+import { disabledDate } from "@/utils/vietnamHolidays";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { disabledDate } from "@/utils/vietnamHolidays";
-import { FloatingInputAntd } from "@/components/Input/FloatingInput";
-import { formatVietnameseNumber } from "@/utils/format";
-import { useCustomer } from "@/context/CustomerContext";
 
 const { Title, Text } = Typography;
 
@@ -142,6 +140,65 @@ export default function GuestOrderPage() {
     setIsBasicInfoFilled(nameValid && phoneValid);
   }, [customerName, phone]);
 
+  const [designOption, setDesignOption] = useState<number>(1);
+
+  const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
+  const [unitValue, setUnitValue] = useState<number>(0);
+
+  const [productsList, setProductsList] = useState<any[]>([]);
+  const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
+  const [paperTypes, setPaperTypes] = useState<any[]>([]);
+
+  const productNameField = Form.useWatch("productName", form);
+  const quantityField = Form.useWatch("quantity", form);
+
+  useEffect(() => {
+    const fetchTemplate = async () => {
+      if (!productNameField || productsList.length === 0) return;
+
+      const selectedProduct = productsList.find(p => p.name === productNameField);
+      if (selectedProduct && selectedProduct.product_type_id) {
+        try {
+          const templRes = await productTypesApi.getProductTemplete(selectedProduct.product_type_id);
+          const templates = Array.isArray(templRes) ? templRes : (templRes as any)?.data;
+
+          if (templates && templates.length > 0) {
+            const profile = templates[0];
+            const currentValues = form.getFieldsValue();
+
+            form.setFieldsValue({
+              length: currentValues.length || profile.product_length_mm || 0,
+              width: currentValues.width || profile.product_width_mm || 0,
+              height: currentValues.height || profile.product_height_mm || 0,
+            });
+
+            if (profile.unit_value) {
+              setUnitValue(profile.unit_value);
+            } else {
+              setUnitValue(0);
+            }
+          } else {
+            setUnitValue(0);
+          }
+        } catch (error) {
+          console.error("Failed to fetch product template:", error);
+          setUnitValue(0);
+        }
+      } else {
+        setUnitValue(0);
+      }
+    };
+    fetchTemplate();
+  }, [productNameField, productsList, form]);
+
+  useEffect(() => {
+    if (unitValue > 0 && quantityField && quantityField > 0) {
+      setEstimatedPrice(unitValue * quantityField);
+    } else {
+      setEstimatedPrice(null);
+    }
+  }, [unitValue, quantityField]);
+
   // Handle verified email from Home Page / Logged In Customer
   useEffect(() => {
     const emailParam = searchParams.get("email");
@@ -175,9 +232,6 @@ export default function GuestOrderPage() {
   }, [searchParams, form, isLoggedIn, customer]);
 
   // Fetch product suggestions and paper types
-  const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
-  const [paperTypes, setPaperTypes] = useState<any[]>([]);
-
   useEffect(() => {
     const fetchRefData = async () => {
       try {
@@ -187,8 +241,10 @@ export default function GuestOrderPage() {
         ]);
 
         if (Array.isArray(productsRes)) {
+          setProductsList(productsRes);
           setProductSuggestions(productsRes.map((p: any) => p.name));
         } else if ((productsRes as any)?.data && Array.isArray((productsRes as any).data)) {
+          setProductsList((productsRes as any).data);
           setProductSuggestions((productsRes as any).data.map((p: any) => p.name));
         }
 
@@ -309,6 +365,7 @@ export default function GuestOrderPage() {
       district: "",
       detail_address:
         selectedAddress?.formattedAddress || values.shippingAddress || "",
+      is_send_design: designOption === 2
     };
 
     setFormDataToSubmit(requestBody);
@@ -413,8 +470,8 @@ export default function GuestOrderPage() {
               form={form}
               layout="vertical"
               onFinish={onFinish}
+              requiredMark={false}
               size="middle"
-              requiredMark="optional"
               className="compact-form"
             >
               <Row gutter={24}>
@@ -428,7 +485,7 @@ export default function GuestOrderPage() {
                     <div className="flex justify-between gap-4">
                       <Form.Item
                         name="customerName"
-                        label={<span className={labelStyle}>Họ và tên</span>}
+                        label={<span className={labelStyle}>Họ và tên <span className="text-red-500">*</span></span>}
                         rules={[{ required: true, message: "Nhập họ tên" }]}
                         className="w-full"
                       >
@@ -438,7 +495,7 @@ export default function GuestOrderPage() {
                       {/* SĐT - simple field without OTP */}
                       <Form.Item
                         name="phone"
-                        label={<span className={labelStyle}>Số điện thoại</span>}
+                        label={<span className={labelStyle}>SĐT <span className="text-red-500">*</span></span>}
                         rules={[
                           { required: true, message: "Nhập SĐT" },
                           { pattern: /^0\d{9}$/, message: "SĐT không hợp lệ" },
@@ -603,7 +660,7 @@ export default function GuestOrderPage() {
                           name="productName"
                           label={
                             <span className={labelStyle}>
-                              Tên sản phẩm cần in
+                              Tên sản phẩm cần in <span className="text-red-500">*</span>
                             </span>
                           }
                           rules={[
@@ -643,7 +700,7 @@ export default function GuestOrderPage() {
                           <div onBlur={handleQuantityBlur}>
                             <Form.Item
                               name="quantity"
-                              label={<span className={labelStyle}>Số lượng</span>}
+                              label={<span className={labelStyle}>Số lượng <span className="text-red-500">*</span></span>}
                               rules={[{
                                 required: true,
                                 message: "Nhập số lượng"
@@ -667,7 +724,7 @@ export default function GuestOrderPage() {
                           name="desiredDate"
                           label={
                             <span className={labelStyle}>
-                              Thời gian nhận hàng
+                              Thời gian nhận hàng <span className="text-red-500">*</span>
                             </span>
                           }
                           rules={[{ required: true, message: "Chọn ngày" }]}
@@ -688,7 +745,7 @@ export default function GuestOrderPage() {
                     <Row gutter={16} className="mt-4">
                       {/* Dimensions Group */}
                       <Col xs={24} md={12}>
-                        <div className={`${labelStyle} mb-2`}>Kích thước (Dài x Rộng x Cao)</div>
+                        <div className={`${labelStyle} mb-2`}>Kích thước (Dài x Rộng x Cao) (mm)</div>
                         <Row gutter={8}>
                           <Col span={8}>
                             <Form.Item name="length" className="mb-0">
@@ -707,6 +764,8 @@ export default function GuestOrderPage() {
                           </Col>
                         </Row>
                       </Col>
+
+
 
                       {/* Paper Type */}
                       {/* <Col xs={24} md={12}>
@@ -729,78 +788,108 @@ export default function GuestOrderPage() {
                       </Col> */}
                     </Row>
 
+                    {/* Estimated Price */}
+                    <Form.Item
+                      name="estimatedPrice"
+                      label={<span className={labelStyle}>Giá chỉ từ</span>}
+                    >
+                      {estimatedPrice !== null && estimatedPrice > 0 && (
+                        <Col xs={24} md={12} className="mt-4 md:mt-0">
+                          <div className="bg-orange-50 border border-orange-200 text-orange-600 font-bold px-2 py-[4px] rounded-lg text-lg text-right">
+                            {formatVietnameseNumber(estimatedPrice)} VNĐ
+                          </div>
+                        </Col>
+                      )}
+                    </Form.Item>
+
                     <Form.Item
                       name="note"
                       label={<span className={labelStyle}>Mô tả thêm</span>}
                     >
                       <Input.TextArea
-                        rows={3}
+                        rows={2}
                         placeholder="Kích thước, chất liệu, yêu cầu đặc biệt..."
                       />
                     </Form.Item>
 
-                    <Form.Item
-                      // label={
-                      //   <span className={labelStyle}>File thiết kế mẫu</span>
-                      // }
-                      name="designFile"
-                      valuePropName="fileList"
-                      getValueFromEvent={normFile}
-                    >
-                      <Space>
-                        {/* <Typography.Text className={labelStyle}>File thiết kế mẫu (optional)</Typography.Text> */}
-                        <Upload
-                          name="files"
-                          customRequest={async (options) => {
-                            const { file, onSuccess, onError } = options;
-                            try {
-                              const response: any = await uploadApi.uploadFile([file as any]);
-                              console.log("Upload response:", response);
+                    <Form.Item label={<span className={labelStyle}>Tùy chọn file thiết kế</span>}>
+                      <Radio.Group
+                        onChange={(e) => setDesignOption(e.target.value)}
+                        value={designOption}
+                        className="flex flex-col gap-3"
+                      >
+                        <Radio value={1} className="text-gray-700">
+                          <span className="font-medium">Đã có file thiết kế (File thiết kế là chuẩn vector, PDF, PSD)</span>
+                          
 
-                              let uploadedUrl = "";
-                              if (Array.isArray(response) && response[0]?.url) {
-                                uploadedUrl = response[0].url;
-                              } else if (response?.url) {
-                                uploadedUrl = response.url;
-                              }
+                          {designOption === 1 && (
+                            <div className="mt-2 ml-6">
+                              <Form.Item
+                                name="designFile"
+                                valuePropName="fileList"
+                                getValueFromEvent={normFile}
+                                className="mb-0"
+                              >
+                                  <Upload
+                                    name="files"
+                                    customRequest={async (options) => {
+                                      const { file, onSuccess, onError } = options;
+                                      try {
+                                        const response: any = await uploadApi.uploadFile([file as any]);
+                                        console.log("Upload response:", response);
 
-                              if (uploadedUrl) {
-                                onSuccess?.(uploadedUrl);
-                              } else {
-                                console.error("No URL found in response:", response);
-                                throw new Error("No URL returned");
-                              }
-                            } catch (err) {
-                              console.error("Upload error details:", err);
-                              onError?.(err as Error);
-                              message.error(`${(file as any).name} tải lên thất bại.`);
-                            }
-                          }}
-                          listType="picture"
-                          maxCount={5}
-                          multiple
-                          fileList={fileList}
-                          onChange={({ fileList: newFileList }) => {
-                            const updatedList = newFileList.map((file) => {
-                              if (file.status === 'done' && file.response) {
-                                // Update url from response if available
-                                return { ...file, url: file.response as string };
-                              }
-                              return file;
-                            });
-                            setFileList(updatedList);
-                          }}
-                          onPreview={handlePreview}
-                          className="bg-white design-upload-success"
-                          showUploadList={{
-                            showPreviewIcon: true,
-                            previewIcon: <EyeOutlined className="text-blue-500" />,
-                          }}
-                        >
-                          <Button icon={<UploadOutlined />}>Tải lên file (không bắt buộc)</Button>
-                        </Upload>
-                      </Space>
+                                        let uploadedUrl = "";
+                                        if (Array.isArray(response) && response[0]?.url) {
+                                          uploadedUrl = response[0].url;
+                                        } else if (response?.url) {
+                                          uploadedUrl = response.url;
+                                        }
 
+                                        if (uploadedUrl) {
+                                          onSuccess?.(uploadedUrl);
+                                        } else {
+                                          console.error("No URL found in response:", response);
+                                          throw new Error("No URL returned");
+                                        }
+                                      } catch (err) {
+                                        console.error("Upload error details:", err);
+                                        onError?.(err as Error);
+                                        message.error(`${(file as any).name} tải lên thất bại.`);
+                                      }
+                                    }}
+                                    listType="picture"
+                                    maxCount={5}
+                                    multiple
+                                    fileList={fileList}
+                                    onChange={({ fileList: newFileList }) => {
+                                      const updatedList = newFileList.map((file) => {
+                                        if (file.status === 'done' && file.response) {
+                                          return { ...file, url: file.response as string };
+                                        }
+                                        return file;
+                                      });
+                                      setFileList(updatedList);
+                                    }}
+                                    onPreview={handlePreview}
+                                    className="bg-white design-upload-success"
+                                    showUploadList={{
+                                      showPreviewIcon: true,
+                                      previewIcon: <EyeOutlined className="text-blue-500" />,
+                                    }}
+                                  >
+                                    <Button icon={<UploadOutlined />}>Tải lên file </Button>
+                                  </Upload>
+                           
+                              </Form.Item>
+                            </div>
+                          )}
+                        </Radio>
+
+                        <Radio value={2} className="text-gray-700">
+                          <span className="font-medium">Cần thiết kế File</span>
+                          <span className="ml-2 font-bold text-orange-600">200,000 ₫</span>
+                        </Radio>
+                      </Radio.Group>
                     </Form.Item>
                   </div>
                 </Col>
@@ -935,7 +1024,14 @@ export default function GuestOrderPage() {
                     </div>
                   )}
 
-                  {fileList.length > 0 && (
+                  {formDataToSubmit.is_send_design && (
+                    <div className="col-span-1 md:col-span-2">
+                      <span className="text-gray-500 text-sm block">Yêu cầu thiết kế:</span>
+                      <span className="font-medium text-gray-800">Cần thiết kế File mới (200,000 ₫)</span>
+                    </div>
+                  )}
+
+                  {!formDataToSubmit.is_send_design && fileList.length > 0 && (
                     <div className="col-span-1 md:col-span-2">
                       <span className="text-gray-500 text-sm block">File thiết kế ({fileList.length}):</span>
                       <ul className="list-disc pl-5 text-sm text-blue-600">
@@ -980,6 +1076,6 @@ export default function GuestOrderPage() {
         }
       `}</style>
       </div>
-    </div>
+    </div >
   );
 }
