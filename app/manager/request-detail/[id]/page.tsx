@@ -617,6 +617,25 @@ export default function ManagerRequestDetailPage() {
                             </div>
                         </Card>
 
+                        {/* Ghi chú của consultant */}
+                        {orderDetail.consultant_note && (
+                            <Card className="mt-6 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
+                                <div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 mb-4 flex items-center gap-2">
+                                                <FileTextOutlined className="text-blue-500" />
+                                                Ghi chú của Consultant
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
+                                        {orderDetail.consultant_note}
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+
 
                         {/* Approval Block - Emphasized but clean */}
                         {/* <Card className="rounded-2xl shadow-sm border border-slate-200" bodyStyle={{ padding: '24px' }}>

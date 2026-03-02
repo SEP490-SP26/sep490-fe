@@ -36,6 +36,7 @@ export interface VerifiedRequestReponse {
   quantity: number;
   description: string;
   design_file_path: string;
+  consultant_note?: string | null;
 
   // Thông số kỹ thuật sản xuất
   number_of_plates: number;

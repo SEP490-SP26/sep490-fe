@@ -244,6 +244,7 @@ function ConsultantForm() {
     "height",
     "number_of_plates",
     "glueTab",
+    "consultant_note",
   ];
 
   const handleTabEdit = (
@@ -607,7 +608,8 @@ function ConsultantForm() {
                 wave_type: est.wave_type || orderData.wave_type,
                 production_processes: est.process_cost && est.process_cost.length > 0
                   ? est.process_cost.map((pc: any) => pc.process_code)
-                  : (orderData.production_processes ? orderData.production_processes.split(",") : [])
+                  : (orderData.production_processes ? orderData.production_processes.split(",") : []),
+                consultant_note: orderData.consultant_note || "",
               };
 
               return {
@@ -693,6 +695,7 @@ function ConsultantForm() {
               paper_code: orderData.paper_code,
               paper_name: orderData.paper_name, // Store paper_name to detect if custom paper was requested
               production_processes: orderData.production_processes ? orderData.production_processes.split(",") : [],
+              consultant_note: orderData.consultant_note || "",
             });
 
             if (orderData.design_file_path) {
@@ -1258,7 +1261,8 @@ function ConsultantForm() {
         }
       } else {
         await requestOrderApi.submitEstimateForApproval({
-          request_id: parseInt(currentOrderId)
+          request_id: parseInt(currentOrderId),
+          consultant_note: primaryQuote.consultant_note,
         });
         message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
       }
@@ -1513,6 +1517,12 @@ function ConsultantForm() {
                   <Col span={isCreateMode ? 12 : 24}>
                     <Form.Item name="description" label="Ghi Chú khách hàng" className="mb-2">
                       <Input.TextArea disabled rows={1} placeholder="Ghi chú thêm..." />
+                    </Form.Item>
+                  </Col>
+                  {/* consultant note */}
+                  <Col span={24}>
+                    <Form.Item name="consultant_note" label="Ghi chú của Consultant" className="mb-2">
+                      <Input.TextArea rows={2} placeholder="Nhập ghi chú dành cho Manager..." />
                     </Form.Item>
                   </Col>
                   {isCreateMode && (

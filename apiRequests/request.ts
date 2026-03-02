@@ -39,6 +39,7 @@ export interface VerifiedRequestReponse {
   process_status: 'Declined' | 'Waiting' | 'Verified' | string;
   reason: string | null; // Lý do từ chối (nếu có)
   note: string | null; // Ghi chú của quản lý
+  consultant_note: string | null; // Ghi chú của consultant
 
   // File thiết kế (Dạng chuỗi ngăn cách bằng dấu phẩy)
   design_file_path: string;
@@ -99,7 +100,7 @@ export const requestOrderApi = {
   createRequestOrderByConsultant: (body: CreateRequestBodyForConsultant) =>
     http.post<CommonResType>("/api/Requests/create-request-by-consultant", body),
 
-  submitEstimateForApproval: (body: { request_id: number }) =>
+  submitEstimateForApproval: (body: { request_id: number, consultant_note?: string }) =>
     http.put<CommonResType>('/api/Requests/submit-estimate-for-approval', body),
 
   approval: (body: { request_id: number, note: string, status: string }) =>
