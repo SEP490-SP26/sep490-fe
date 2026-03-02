@@ -42,6 +42,7 @@ interface EstimatesCardProps {
   isSavingCost?: boolean;
   systemParameters: SystemParameters | null;
   highlightFields?: Record<string, string>;
+  isDeclined?: boolean;
 }
 
 export default function EstimatesCard({
@@ -65,6 +66,7 @@ export default function EstimatesCard({
   isSavingCost = false,
   systemParameters,
   highlightFields = {},
+  isDeclined = false,
 }: EstimatesCardProps) {
   const daysUntilFree = workshopFreeInfo.days;
 
@@ -244,20 +246,18 @@ export default function EstimatesCard({
                   </div>
 
                   {/* Input nhập giá chốt */}
-                  <Form.Item
-                    name="final_price"
-                    className="flex justify-end"
-                  >
+                  <Form.Item name="final_price" className="mb-0">
                     <FloatingInputAntd
                       type="number"
-                      className="w-full text-end font-bold text-lg"
-                      min={costEstimate?.cost?.base_cost || 0}
-                      formatter={(value: any) => value ? formatVietnameseNumber(value) : ''}
-                      parser={(value: any) => {
-                        return (value ? value.replace(/\./g, '') : '') as any;
-                      }}
-                      placeholder="Nhập giá chốt"
-                      style={{ width: '100%' }}
+                      style={{ width: "100%" }}
+                      className={`text-right font-bold text-base text-red-600 ${highlightFields['final_price'] ? "!border-2 !border-yellow-400 ring-2 ring-yellow-200" : ""}`}
+                      formatter={(value: any) =>
+                        `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+                      }
+                      parser={(value: any) =>
+                        Number(value?.replace(/\./g, "")) || 0
+                      }
+                      disabled={isDeclined && !highlightFields['final_price']}
                     />
                   </Form.Item>
 
