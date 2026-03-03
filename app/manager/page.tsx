@@ -123,12 +123,6 @@ export default function Dashboard() {
 
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-
-        <div className="flex gap-3">
-          <Link href="/warehouse">
-            Chuyển đến giao diện Nhân viên lập lịch
-          </Link>
-        </div>
       </div>
 
       {/* KPI Cards */}
@@ -197,11 +191,10 @@ export default function Dashboard() {
                   </div>
 
                   <span
-                    className={`px-3 py-1 rounded-full text-xs ${
-                      order.status === "InProcessing"
+                    className={`px-3 py-1 rounded-full text-xs ${order.status === "InProcessing"
                         ? "bg-yellow-100 text-yellow-700"
                         : "bg-blue-100 text-blue-700"
-                    }`}
+                      }`}
                   >
                     {order.status === "InProcessing"
                       ? "Đang sản xuất"

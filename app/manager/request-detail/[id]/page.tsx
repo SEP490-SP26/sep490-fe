@@ -488,7 +488,7 @@ export default function ManagerRequestDetailPage() {
 
                         {/* Design Files Card */}
                         <Card
-                            className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary"
+                            className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary h-62"
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">

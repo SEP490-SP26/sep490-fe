@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { IconType } from "react-icons";
+import { BellOutlined } from "@ant-design/icons";
 
 export interface NavItem {
   path: string;
@@ -126,13 +127,18 @@ export default function Sidebar({
     >
       {/* Header */}
       {headerContent || (
-        <div className="p-6 border-b border-gray-100">
-          <h1
-            className={`text-${primaryColor} font-heading text-xl font-semibold`}
-          >
-            {userInfo?.name}
-          </h1>
-          <p className="text-secondary text-sm mt-1">{userInfo?.role}</p>
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h1
+              className={`text-${primaryColor} font-heading text-xl font-semibold`}
+            >
+              {userInfo?.name}
+            </h1>
+            <p className="text-secondary text-sm mt-1">{userInfo?.role}</p>
+          </div>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors relative text-gray-600">
+            <BellOutlined className="text-xl" />
+          </button>
         </div>
       )}
 
@@ -164,8 +170,8 @@ export default function Sidebar({
                 <Link
                   href={href}
                   className={`flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition-all duration-200 ${isActive
-                      ? `bg-${primaryColor}/10 text-${primaryColor} shadow-lg shadow-${accentColor}/20 border-l-4 border-${accentColor} font-semibold`
-                      : "text-gray-700 hover:bg-primary/5 hover:text-primary"
+                    ? `bg-${primaryColor}/10 text-${primaryColor} shadow-lg shadow-${accentColor}/20 border-l-4 border-${accentColor} font-semibold`
+                    : "text-gray-700 hover:bg-primary/5 hover:text-primary"
                     }`}
                   onClick={() => handleItemClick(item)}
                 >
