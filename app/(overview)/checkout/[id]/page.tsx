@@ -136,7 +136,7 @@ export default function RequestDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 flex justify-center">
+    <div className="min-h-screen  bg-slate-50 py-8 px-4 flex flex-col items-center">
       <div className={`grid grid-cols-1 ${quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-12 w-full max-w-7xl`}>
         {quotes.map((quote, index) => {
           const requestDateText = quote.request_date_text || dayjs(quote.order_request_date).format("DD/MM/YYYY");
@@ -233,23 +233,31 @@ export default function RequestDetailPage() {
                         Bảng kê chi phí
                       </h3>
                       <div className="rounded-lg p-2">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center py-1.5">
-                            <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
-                            <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.material_cost || 0)}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-1.5">
-                            <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
-                            <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.labor_cost || 0)}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-1.5">
-                            <span className="text-slate-600 text-[13px]">Chi phí khác</span>
-                            <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.other_fees || 0)}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-1.5">
-                            <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
-                            <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.rush_amount || 0)}</span>
-                          </div>
+                        <div className="space-y-2 min-h-[154px]">
+                          {!!quote.material_cost && (
+                            <div className="flex justify-between items-center py-1.5">
+                              <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
+                              <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.material_cost)}</span>
+                            </div>
+                          )}
+                          {!!quote.labor_cost && (
+                            <div className="flex justify-between items-center py-1.5">
+                              <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
+                              <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.labor_cost)}</span>
+                            </div>
+                          )}
+                          {!!quote.other_fees && (
+                            <div className="flex justify-between items-center py-1.5">
+                              <span className="text-slate-600 text-[13px]">Chi phí khác</span>
+                              <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.other_fees)}</span>
+                            </div>
+                          )}
+                          {!!quote.rush_amount && (
+                            <div className="flex justify-between items-center py-1.5">
+                              <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
+                              <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.rush_amount)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -259,14 +267,16 @@ export default function RequestDetailPage() {
                         Tổng thanh toán
                       </h3>
                       <div className="space-y-2">
-                        <div className="flex justify-between items-center py-2">
+                        <div className={`flex justify-between items-center py-2 ${!quote.discount_amount ? "border-b border-dashed border-slate-300" : ""}`}>
                           <span className="text-slate-500 text-[13px]">Tạm tính</span>
                           <span className="text-slate-800 font-semibold text-[13px]">{formatVND(quote.subtotal || 0)}</span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-dashed border-slate-300">
-                          <span className="text-slate-500 text-[13px]">Giảm giá ({quote.discount_percent || 0}%)</span>
-                          <span className="text-red-500 font-semibold text-[13px]">- {formatVND(quote.discount_amount || 0)}</span>
-                        </div>
+                        {!!quote.discount_amount && (
+                          <div className="flex justify-between items-center py-2 border-b border-dashed border-slate-300">
+                            <span className="text-slate-500 text-[13px]">Giảm giá ({quote.discount_percent || 0}%)</span>
+                            <span className="text-red-500 font-semibold text-[13px]">- {formatVND(quote.discount_amount)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center pt-3">
                           <span className="text-slate-800 font-bold text-[15px]">THÀNH TIỀN</span>
                           <span className="text-blue-700 font-extrabold text-lg">{formatVND(finalTotalValue)}</span>
@@ -306,6 +316,16 @@ export default function RequestDetailPage() {
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
+        <Button
+          danger
+          onClick={() => router.push(`/reject-deal/${requestId}`)}
+          className="h-10 px-8 rounded-lg font-medium w-full sm:w-auto mt-2 sm:mt-0"
+        >
+          Từ chối yêu cầu báo giá
+        </Button>
       </div>
 
       <Modal
