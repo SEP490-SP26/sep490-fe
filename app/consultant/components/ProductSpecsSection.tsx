@@ -23,6 +23,7 @@ interface ProductSpecsSectionProps {
   form: any;
   disabledSharedFields?: boolean;
   highlightFields?: Record<string, string>;
+  isDeclined?: boolean;
 }
 
 const FORM_TYPE_LABELS: Record<string, string> = {
@@ -51,6 +52,7 @@ export default function ProductSpecsSection({
   form,
   disabledSharedFields = false,
   highlightFields = {},
+  isDeclined = false,
 }: ProductSpecsSectionProps) {
   useEffect(() => {
     if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
@@ -89,7 +91,7 @@ export default function ProductSpecsSection({
                 label: name,
                 value: name,
               }))}
-              disabled={disabledSharedFields}
+              disabled={disabledSharedFields || (isDeclined && !highlightFields['product_name'])}
               className={(orderId || disabledSharedFields) ? "bg-gray-50" : ""}
               required
             />
@@ -110,7 +112,7 @@ export default function ProductSpecsSection({
                 label: `${pt.name} - ${pt.description}`,
                 value: pt.product_type_id,
               }))}
-              disabled={disabledSharedFields}
+              disabled={disabledSharedFields || (isDeclined && !highlightFields['product_type'])}
               className={disabledSharedFields ? "bg-gray-50" : ""}
               required
             />
@@ -121,28 +123,32 @@ export default function ProductSpecsSection({
       <Row gutter={16}>
 
         <Col span={9}>
-          <Tooltip title={highlightFields['paper_code']} color="orange" placement="topLeft">
-            <Form.Item
-              name="paper_code"
-              rules={[{ required: true, message: "Vui lòng chọn loại giấy" }]}
-            >
-              <FloatingSelect
-                label="Loại giấy"
-                showSearch
-                placeholder="Chọn loại giấy"
-                loading={loadingPaperTypes}
-                optionFilterProp="label"
-                options={paperTypes.map((paper) => ({
-                  label: <div className="flex justify-between gap-2">
-                    <span>{paper.name}</span>
-                    <span className="text-gray-500">(SL: {paper.stock ?? 0})</span>
-                  </div>,
-                  value: paper.code,
-                  stockQty: paper.stock,
-                }))}
-                className={highlightFields['paper_code'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-              />
-            </Form.Item>
+          <Tooltip title={highlightFields['paper_code'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
+            <div className="w-full">
+              <Form.Item
+                name="paper_code"
+                rules={[{ required: true, message: "Vui lòng chọn loại giấy" }]}
+                className="mb-0"
+              >
+                <FloatingSelect
+                  label="Loại giấy"
+                  showSearch
+                  placeholder="Chọn loại giấy..."
+                  loading={loadingPaperTypes}
+                  optionFilterProp="label"
+                  options={paperTypes.map((paper) => ({
+                    label: <div className="flex justify-between gap-2">
+                      <span>{paper.name}</span>
+                      <span className="text-gray-500">(SL: {paper.stock ?? 0})</span>
+                    </div>,
+                    value: paper.code,
+                    stockQty: paper.stock,
+                  }))}
+                  className={highlightFields['paper_code'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                  disabled={isDeclined && !highlightFields['paper_code']}
+                />
+              </Form.Item>
+            </div>
           </Tooltip>
         </Col>
 
@@ -161,8 +167,8 @@ export default function ProductSpecsSection({
               parser={(value: any) =>
                 Number(value?.replace(/\./g, "")) || 0
               }
-              controls={!disabledSharedFields}
-              disabled={disabledSharedFields}
+              controls={!disabledSharedFields && !(isDeclined && !highlightFields['quantity'])}
+              disabled={disabledSharedFields || (isDeclined && !highlightFields['quantity'])}
             />
           </Form.Item>
         </Col>
@@ -173,23 +179,26 @@ export default function ProductSpecsSection({
               valueType="number"
               className={`w-full ${disabledSharedFields ? 'bg-gray-50' : ''}`}
               min={1}
-              controls={!disabledSharedFields}
-              disabled={disabledSharedFields}
+              controls={!disabledSharedFields && !(isDeclined && !highlightFields['number_of_plates'])}
+              disabled={disabledSharedFields || (isDeclined && !highlightFields['number_of_plates'])}
             />
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Tooltip title={highlightFields['coating_type']} color="orange" placement="topLeft">
-            <Form.Item name="coating_type" initialValue="KEO_NUOC">
-              <FloatingSelect
-                label="Loại keo"
-                options={[
-                  { label: "Keo nước", value: "KEO_NUOC" },
-                  { label: "Keo dầu", value: "KEO_DAU" },
-                ]}
-                className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-              />
-            </Form.Item>
+          <Tooltip title={highlightFields['coating_type'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
+            <div className="w-full">
+              <Form.Item name="coating_type" initialValue="KEO_NUOC" className="mb-0">
+                <FloatingSelect
+                  label="Loại keo"
+                  options={[
+                    { label: "Keo nước", value: "KEO_NUOC" },
+                    { label: "Keo dầu", value: "KEO_DAU" },
+                  ]}
+                  className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                  disabled={isDeclined && !highlightFields['coating_type']}
+                />
+              </Form.Item>
+            </div>
           </Tooltip>
         </Col>
       </Row>
@@ -224,6 +233,7 @@ export default function ProductSpecsSection({
                         .replace(/_/g, " "),
                       value: ft,
                     }))}
+                  disabled={isDeclined && !highlightFields['form_product']}
                 />
               </Form.Item>
             </Col>
@@ -241,6 +251,7 @@ export default function ProductSpecsSection({
                         { label: "Hộp 1 mặt", value: true },
                         { label: "Hộp 2 mặt", value: false },
                       ]}
+                      disabled={isDeclined && !highlightFields['isOneSideBox']}
                     />
                   </Form.Item>
                 </Col>
@@ -259,7 +270,7 @@ export default function ProductSpecsSection({
                       placeholder="10"
                       style={{ width: "100%" }}
                       className={disabledSharedFields ? 'bg-gray-50' : ''}
-                      disabled={disabledSharedFields}
+                      disabled={disabledSharedFields || (isDeclined && !highlightFields['glueTab'])}
                     />
                   </Form.Item>
                 </Col>
@@ -282,7 +293,7 @@ export default function ProductSpecsSection({
                   controls={false}
                   min={100}
                   className={`text-end ${disabledSharedFields ? "bg-gray-50" : ""}`}
-                  disabled={disabledSharedFields}
+                  disabled={disabledSharedFields || (isDeclined && !highlightFields['dimensions'])}
                 />
               </Form.Item>
               <span className="text-gray-400">×</span>
@@ -295,7 +306,7 @@ export default function ProductSpecsSection({
                   controls={false}
                   min={1}
                   className={disabledSharedFields ? "bg-gray-50" : ""}
-                  disabled={disabledSharedFields}
+                  disabled={disabledSharedFields || (isDeclined && !highlightFields['dimensions'])}
                 />
               </Form.Item>
               <span className="text-gray-400">×</span>
@@ -308,7 +319,7 @@ export default function ProductSpecsSection({
                   controls={false}
                   min={0}
                   className={`text-end ${disabledSharedFields ? "bg-gray-50" : ""}`}
-                  disabled={disabledSharedFields}
+                  disabled={disabledSharedFields || (isDeclined && !highlightFields['dimensions'])}
                 />
               </Form.Item>
               <h1>(mm)</h1>
@@ -344,6 +355,7 @@ export default function ProductSpecsSection({
                       label: `${st.name}`,
                     }))}
                     allowClear
+                    disabled={isDeclined && !highlightFields['wave_type']}
                   />
                 </Form.Item>
               ) : null;
@@ -362,6 +374,7 @@ export default function ProductSpecsSection({
           >
             <Checkbox.Group
               className="w-full"
+              disabled={isDeclined && !highlightFields['production_processes']}
               onChange={(checkedValues) => {
                 if (
                   checkedValues.includes("BOI") &&

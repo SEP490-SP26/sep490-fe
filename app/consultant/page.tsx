@@ -45,6 +45,7 @@ import {
   Upload,
   Modal,
   Alert,
+  Checkbox,
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -154,6 +155,7 @@ function ConsultantForm() {
   // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [submitValues, setSubmitValues] = useState<any>(null);
+  const [isCustomerContacted, setIsCustomerContacted] = useState(false);
 
   const highlightFieldsByTabIndex = useMemo(() => {
     if (!managerNote || orderStatus !== 'Declined') return {};
@@ -242,6 +244,7 @@ function ConsultantForm() {
     "height",
     "number_of_plates",
     "glueTab",
+    "consultant_note",
   ];
 
   const handleTabEdit = (
@@ -605,7 +608,8 @@ function ConsultantForm() {
                 wave_type: est.wave_type || orderData.wave_type,
                 production_processes: est.process_cost && est.process_cost.length > 0
                   ? est.process_cost.map((pc: any) => pc.process_code)
-                  : (orderData.production_processes ? orderData.production_processes.split(",") : [])
+                  : (orderData.production_processes ? orderData.production_processes.split(",") : []),
+                consultant_note: orderData.consultant_note || "",
               };
 
               return {
@@ -691,6 +695,7 @@ function ConsultantForm() {
               paper_code: orderData.paper_code,
               paper_name: orderData.paper_name, // Store paper_name to detect if custom paper was requested
               production_processes: orderData.production_processes ? orderData.production_processes.split(",") : [],
+              consultant_note: orderData.consultant_note || "",
             });
 
             if (orderData.design_file_path) {
@@ -1256,7 +1261,8 @@ function ConsultantForm() {
         }
       } else {
         await requestOrderApi.submitEstimateForApproval({
-          request_id: parseInt(currentOrderId)
+          request_id: parseInt(currentOrderId),
+          consultant_note: primaryQuote.consultant_note,
         });
         message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
       }
@@ -1380,6 +1386,10 @@ function ConsultantForm() {
     }
   };
 
+  const isSendToManagerAction = isCreateMode ||
+    !(existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified" ||
+      existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing");
+
   return (
     <div className="p-4 bg-gradient-to-br from-primary-dark to-primary-light min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -1483,6 +1493,7 @@ function ConsultantForm() {
                           form={form}
                           disabledSharedFields={activeTabKey !== "1"}
                           highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
+                          isDeclined={orderStatus === 'Declined'}
                         />
                       </div>
                     ),
@@ -1506,6 +1517,12 @@ function ConsultantForm() {
                   <Col span={isCreateMode ? 12 : 24}>
                     <Form.Item name="description" label="Ghi Chú khách hàng" className="mb-2">
                       <Input.TextArea disabled rows={1} placeholder="Ghi chú thêm..." />
+                    </Form.Item>
+                  </Col>
+                  {/* consultant note */}
+                  <Col span={24}>
+                    <Form.Item name="consultant_note" label="Ghi chú của Consultant" className="mb-2">
+                      <Input.TextArea rows={2} placeholder="Nhập ghi chú dành cho Manager..." />
                     </Form.Item>
                   </Col>
                   {isCreateMode && (
@@ -1539,7 +1556,18 @@ function ConsultantForm() {
                   )}
                 </Row>
 
-                <Form.Item className="mt-4">
+                {isSendToManagerAction && orderStatus !== 'Declined' && (
+                  <div className="mb-2">
+                    <Checkbox
+                      checked={isCustomerContacted}
+                      onChange={(e) => setIsCustomerContacted(e.target.checked)}
+                      className="font-medium text-blue-700"
+                    >
+                      Tôi đã liên hệ với khách hàng và được sự thống nhất với khách
+                    </Checkbox>
+                  </div>
+                )}
+                <Form.Item className={isSendToManagerAction && orderStatus !== 'Declined' ? "mt-2" : "mt-4"}>
                   <Button
                     type="primary"
                     htmlType="submit"
@@ -1554,7 +1582,10 @@ function ConsultantForm() {
                           ? "bg-orange-500 hover:bg-orange-600"
                           : "bg-blue-600"
                       }`}
-                    disabled={(existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing")}
+                    disabled={
+                      (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing") ||
+                      (isSendToManagerAction && orderStatus !== 'Declined' && !isCustomerContacted)
+                    }
                   >
                     {isCreateMode
                       ? "GỬI MANAGER DUYỆT"
@@ -1608,6 +1639,7 @@ function ConsultantForm() {
                 isSavingCost={isSavingCost}
                 systemParameters={systemParameters}
                 highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
+                isDeclined={orderStatus === 'Declined'}
               />
             </Col>
           </Row>

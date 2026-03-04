@@ -272,7 +272,7 @@ export default function ManagerRequestDetailPage() {
                                     okText="Duyệt"
                                     cancelText="Hủy"
                                 >
-                                    <Button type="primary" icon={<CheckOutlined />} block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                    <Button icon={<CheckOutlined />} block className="rounded-lg bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" loading={actionLoading}>
                                         Duyệt yêu cầu
                                     </Button>
                                 </Popconfirm>
@@ -286,11 +286,11 @@ export default function ManagerRequestDetailPage() {
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* Summary Card (Customer & Product packed tightly) */}
-                        <Card className="rounded-2xl border border-slate-200 shadow-sm" bodyStyle={{ padding: '24px' }}>
+                        <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
                             {/* Customer Section */}
                             <div className="mb-6">
-                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <UserOutlined className="text-slate-400" />
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                    <UserOutlined />
                                     Thông tin khách hàng
                                 </h3>
                                 <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} className="text-sm" labelStyle={{ color: '#64748b' }}>
@@ -307,9 +307,9 @@ export default function ManagerRequestDetailPage() {
 
                             {/* Product Section */}
                             <div>
-                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <ShoppingOutlined className="text-slate-400" />
-                                    Chi tiết sản phẩm: <span className="text-primary normal-case font-semibold">{orderDetail.product_name}</span>
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                    <ShoppingOutlined />
+                                    Chi tiết sản phẩm: <span className="text-slate-800 normal-case font-semibold">{orderDetail.product_name}</span>
                                 </h3>
 
                                 <Descriptions size="small" column={{ xs: 1, sm: 3, md: 4 }} className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm mb-4" labelStyle={{ color: '#64748b' }}>
@@ -340,9 +340,9 @@ export default function ManagerRequestDetailPage() {
 
                         <div className=""></div>
                         {/* Cost Estimates Block */}
-                        <Card className="rounded-2xl border border-slate-200 shadow-sm">
-                            <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <DollarOutlined className="text-slate-400" />
+                        <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-accent">
+                            <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                <DollarOutlined />
                                 Thông tin báo giá
                             </h3>
                             {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
@@ -409,13 +409,13 @@ export default function ManagerRequestDetailPage() {
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-slate-500 text-sm whitespace-nowrap">Đặt cọc:</span>
                                                 <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                    <span className={`font-semibold text-slate-800 text-right ${noteMode ? 'text-slate-400' : ''}`}>{formatCurrency(estimate.deposit_amount)}</span>
+                                                    <span className={`font-semibold text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>{formatCurrency(estimate.deposit_amount)}</span>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center mb-3">
                                                 <span className="text-slate-500 text-sm font-medium whitespace-nowrap">Tổng chi phí:</span>
                                                 <div className="flex  items-center justify-end gap-x-2 gap-y-1">
-                                                    <span className={`font-bold text-base text-slate-800 text-right ${noteMode ? 'text-slate-400' : ''}`}>{formatCurrency(estimate.final_total_cost)}</span>
+                                                    <span className={`font-bold text-lg text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>{formatCurrency(estimate.final_total_cost)}</span>
                                                     {noteMode && (
                                                         <Popover
                                                             content={
@@ -488,12 +488,12 @@ export default function ManagerRequestDetailPage() {
 
                         {/* Design Files Card */}
                         <Card
-                            className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100"
+                            className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary h-62"
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                        <FileImageOutlined className="text-slate-400" />
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                        <FileImageOutlined />
                                         File đính kèm
                                     </h3>
                                 </div>
@@ -601,12 +601,12 @@ export default function ManagerRequestDetailPage() {
                         </div>
 
                         {/* customer note  */}
-                        <Card>
+                        <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
                             <div>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <h3 className="text-sm uppercase tracking-wider font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                            <FileTextOutlined className="text-slate-400" />
+                                        <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                            <FileTextOutlined />
                                             Mô tả yêu cầu
                                         </h3>
                                     </div>
@@ -616,6 +616,25 @@ export default function ManagerRequestDetailPage() {
                                 </div>
                             </div>
                         </Card>
+
+                        {/* Ghi chú của consultant */}
+                        {orderDetail.consultant_note && (
+                            <Card className="mt-6 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
+                                <div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 mb-4 flex items-center gap-2">
+                                                <FileTextOutlined className="text-blue-500" />
+                                                Ghi chú của Consultant
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
+                                        {orderDetail.consultant_note}
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
 
 
                         {/* Approval Block - Emphasized but clean */}
