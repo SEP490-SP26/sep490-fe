@@ -1,10 +1,10 @@
 "use client";
 
+import { materialsApi } from "@/apiRequests/materials";
 import { requestOrderApi } from "@/apiRequests/request";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { VerifiedRequestReponse } from "@/lib/request.types";
-import { materialsApi } from "@/apiRequests/materials";
 import {
     CheckOutlined,
     DollarOutlined,
@@ -24,10 +24,8 @@ import {
     Empty,
     Input,
     message,
-    Modal,
     Popconfirm,
     Popover,
-    Select,
     Skeleton,
     Tag,
     Typography
@@ -35,7 +33,6 @@ import {
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { formatVietnameseNumber } from "@/utils/format";
 
 const { Text } = Typography;
 const { Panel } = Collapse;
@@ -257,9 +254,16 @@ export default function ManagerRequestDetailPage() {
                                 <Button onClick={() => setNoteMode(false)} block className="rounded-lg text-sm font-medium h-auto py-2">
                                     Hủy bỏ
                                 </Button>
-                                <Button type="primary" onClick={() => handleApproval('Declined')} block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
-                                    Xác nhận thay đổi
-                                </Button>
+                                <Popconfirm
+                                    title={<span className="text-lg font-medium">Xác nhận thay đổi?</span>}
+                                    onConfirm={() => handleApproval('Declined')}
+                                    okText="Xác nhận"
+                                    cancelText="Hủy"
+                                >
+                                    <Button type="primary" block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                        Xác nhận thay đổi
+                                    </Button>
+                                </Popconfirm>
                             </>
                         ) : (
                             <>
@@ -267,10 +271,13 @@ export default function ManagerRequestDetailPage() {
                                     Yêu cầu chỉnh sửa
                                 </Button>
                                 <Popconfirm
-                                    title="Duyệt yêu cầu?"
+                                    title={<span className="text-lg font-medium">Duyệt yêu cầu?</span>}
                                     onConfirm={() => handleApproval('Verified')}
+                                    icon={<CheckOutlined style={{ color: "#1890ff", width: "30px", height: "30px", display: "flex", justifyContent: "center", alignItems: "center" }} />}
                                     okText="Duyệt"
                                     cancelText="Hủy"
+                                    okButtonProps={{ className: "bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" }}
+                                    cancelButtonProps={{ className: "bg-slate-800 hover:bg-slate-700 text-sm font-medium h-auto py-2 shadow-none border-0" }}
                                 >
                                     <Button icon={<CheckOutlined />} block className="rounded-lg bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" loading={actionLoading}>
                                         Duyệt yêu cầu

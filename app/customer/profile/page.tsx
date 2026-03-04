@@ -422,8 +422,13 @@ const myOrders = useMemo(() => {
                                   onClick={() => openEditAddressModal(addr)}
                                 />
                                 <Popconfirm
-                                  title='Xóa địa chỉ này?'
+                                  title={<span className="text-lg font-medium">Xóa địa chỉ này?</span>}
                                   onConfirm={() => handleDeleteAddress(addr.id)}
+                                  icon={<DeleteOutlined style={{ color: "#1890ff", width: "30px", height: "30px", display: "flex", justifyContent: "center", alignItems: "center" }} />}
+                                  okText="Xóa"
+                                  cancelText="Hủy"
+                                  okButtonProps={{ className: "bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" }}
+                                  cancelButtonProps={{ className: "text-sm font-medium h-auto py-2 shadow-none border-0" }}
                                 >
                                   <Button
                                     size='small'

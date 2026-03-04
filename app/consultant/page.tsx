@@ -1588,12 +1588,12 @@ function ConsultantForm() {
                     }
                   >
                     {isCreateMode
-                      ? "GỬI MANAGER DUYỆT"
+                      ? "GỬI QUẢN LÝ DUYỆT"
                       : (existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified")
                         ? "GỬI BÁO GIÁ CHO KHÁCH HÀNG"
                         : (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing")
                           ? "ĐANG CHỜ DUYỆT"
-                          : "GỬI MANAGER DUYỆT"}
+                          : "GỬI QUẢN LÝ DUYỆT"}
                   </Button>
                   {/* <Button
                     type="primary"

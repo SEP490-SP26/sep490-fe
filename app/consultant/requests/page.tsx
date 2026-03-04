@@ -382,7 +382,7 @@ export default function ConsultantOrdersPage() {
         return (
           <Space size="small">
             <Popconfirm
-              title="Xác nhận gửi báo giá"
+              title={<span className="text-lg font-medium">Xác nhận gửi báo giá</span>}
               description={`Bạn có chắc muốn gửi báo giá cho đơn #${record.order_request_id}?`}
               onConfirm={(e) => {
                 e?.stopPropagation();
