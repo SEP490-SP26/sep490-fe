@@ -365,7 +365,7 @@ export default function GuestOrderPage() {
       district: "",
       detail_address:
         selectedAddress?.formattedAddress || values.shippingAddress || "",
-      is_send_design: designOption === 2
+      is_send_design: designOption === 1
     };
 
     setFormDataToSubmit(requestBody);
@@ -820,7 +820,7 @@ export default function GuestOrderPage() {
                       >
                         <Radio value={1} className="text-gray-700">
                           <span className="font-medium">Đã có file thiết kế (File thiết kế là chuẩn vector, PDF, PSD)</span>
-                          
+
 
                           {designOption === 1 && (
                             <div className="mt-2 ml-6">
@@ -830,56 +830,56 @@ export default function GuestOrderPage() {
                                 getValueFromEvent={normFile}
                                 className="mb-0"
                               >
-                                  <Upload
-                                    name="files"
-                                    customRequest={async (options) => {
-                                      const { file, onSuccess, onError } = options;
-                                      try {
-                                        const response: any = await uploadApi.uploadFile([file as any]);
-                                        console.log("Upload response:", response);
+                                <Upload
+                                  name="files"
+                                  customRequest={async (options) => {
+                                    const { file, onSuccess, onError } = options;
+                                    try {
+                                      const response: any = await uploadApi.uploadFile([file as any]);
+                                      console.log("Upload response:", response);
 
-                                        let uploadedUrl = "";
-                                        if (Array.isArray(response) && response[0]?.url) {
-                                          uploadedUrl = response[0].url;
-                                        } else if (response?.url) {
-                                          uploadedUrl = response.url;
-                                        }
-
-                                        if (uploadedUrl) {
-                                          onSuccess?.(uploadedUrl);
-                                        } else {
-                                          console.error("No URL found in response:", response);
-                                          throw new Error("No URL returned");
-                                        }
-                                      } catch (err) {
-                                        console.error("Upload error details:", err);
-                                        onError?.(err as Error);
-                                        message.error(`${(file as any).name} tải lên thất bại.`);
+                                      let uploadedUrl = "";
+                                      if (Array.isArray(response) && response[0]?.url) {
+                                        uploadedUrl = response[0].url;
+                                      } else if (response?.url) {
+                                        uploadedUrl = response.url;
                                       }
-                                    }}
-                                    listType="picture"
-                                    maxCount={5}
-                                    multiple
-                                    fileList={fileList}
-                                    onChange={({ fileList: newFileList }) => {
-                                      const updatedList = newFileList.map((file) => {
-                                        if (file.status === 'done' && file.response) {
-                                          return { ...file, url: file.response as string };
-                                        }
-                                        return file;
-                                      });
-                                      setFileList(updatedList);
-                                    }}
-                                    onPreview={handlePreview}
-                                    className="bg-white design-upload-success"
-                                    showUploadList={{
-                                      showPreviewIcon: true,
-                                      previewIcon: <EyeOutlined className="text-blue-500" />,
-                                    }}
-                                  >
-                                    <Button icon={<UploadOutlined />}>Tải lên file </Button>
-                                  </Upload>
-                           
+
+                                      if (uploadedUrl) {
+                                        onSuccess?.(uploadedUrl);
+                                      } else {
+                                        console.error("No URL found in response:", response);
+                                        throw new Error("No URL returned");
+                                      }
+                                    } catch (err) {
+                                      console.error("Upload error details:", err);
+                                      onError?.(err as Error);
+                                      message.error(`${(file as any).name} tải lên thất bại.`);
+                                    }
+                                  }}
+                                  listType="picture"
+                                  maxCount={5}
+                                  multiple
+                                  fileList={fileList}
+                                  onChange={({ fileList: newFileList }) => {
+                                    const updatedList = newFileList.map((file) => {
+                                      if (file.status === 'done' && file.response) {
+                                        return { ...file, url: file.response as string };
+                                      }
+                                      return file;
+                                    });
+                                    setFileList(updatedList);
+                                  }}
+                                  onPreview={handlePreview}
+                                  className="bg-white design-upload-success"
+                                  showUploadList={{
+                                    showPreviewIcon: true,
+                                    previewIcon: <EyeOutlined className="text-blue-500" />,
+                                  }}
+                                >
+                                  <Button icon={<UploadOutlined />}>Tải lên file </Button>
+                                </Upload>
+
                               </Form.Item>
                             </div>
                           )}
@@ -1024,14 +1024,14 @@ export default function GuestOrderPage() {
                     </div>
                   )}
 
-                  {formDataToSubmit.is_send_design && (
+                  {!formDataToSubmit.is_send_design && (
                     <div className="col-span-1 md:col-span-2">
                       <span className="text-gray-500 text-sm block">Yêu cầu thiết kế:</span>
                       <span className="font-medium text-gray-800">Cần thiết kế File mới (200,000 ₫)</span>
                     </div>
                   )}
 
-                  {!formDataToSubmit.is_send_design && fileList.length > 0 && (
+                  {formDataToSubmit.is_send_design && fileList.length > 0 && (
                     <div className="col-span-1 md:col-span-2">
                       <span className="text-gray-500 text-sm block">File thiết kế ({fileList.length}):</span>
                       <ul className="list-disc pl-5 text-sm text-blue-600">
