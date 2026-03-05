@@ -1,12 +1,12 @@
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
+import { SystemParameters } from "@/lib/estimation.types";
 import {
   EstimateCostResponse,
   EstimatePaperResponse,
 } from "@/schemaValidations/common.schema";
-import { SystemParameters } from "@/lib/estimation.types";
 import { formatVietnameseNumber } from "@/utils/format";
 import { CalculatorOutlined, LoadingOutlined, WarningOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Col, Form, Row } from "antd";
+import { Alert, Button, Card, Col, Form, Row, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useEffect } from "react";
 
@@ -222,6 +222,11 @@ export default function EstimatesCard({
                         {paperEstimate.sheets_base.toLocaleString("vi-VN")}
                       </div>
 
+                      <div className="text-gray-600">Số tờ hao hụt:</div>
+                      <div className="font-medium text-right text-orange-600">
+                        {paperEstimate.total_waste?.toLocaleString("vi-VN") || 0}
+                      </div>
+
                       <div className="col-span-2 border-t pt-2 mt-2">
                         <div className="flex justify-between">
                           <span className="text-gray-700 font-semibold">
@@ -324,6 +329,33 @@ export default function EstimatesCard({
                           ₫
                         </span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Chi phí keo phủ:</span>
+                        <span className="font-medium">
+                          {Math.round(costEstimate.cost.coating_glue_cost || 0).toLocaleString(
+                            "vi-VN"
+                          )}{" "}
+                          ₫
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Chi phí keo bồi:</span>
+                        <span className="font-medium">
+                          {Math.round(costEstimate.cost.mounting_glue_cost || 0).toLocaleString(
+                            "vi-VN"
+                          )}{" "}
+                          ₫
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Chi phí màng:</span>
+                        <span className="font-medium">
+                          {Math.round(costEstimate.cost.lamination_cost || 0).toLocaleString(
+                            "vi-VN"
+                          )}{" "}
+                          ₫
+                        </span>
+                      </div>
 
                       {costEstimate.cost.design_cost > 0 && (
                         <div className="flex justify-between">
@@ -378,17 +410,7 @@ export default function EstimatesCard({
                           </div>
                         ))}
 
-                      {costEstimate.cost.mounting_glue_cost > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Keo bồi:</span>
-                          <span className="font-medium">
-                            {Math.round(
-                              costEstimate.cost.mounting_glue_cost
-                            ).toLocaleString("vi-VN")}{" "}
-                            ₫
-                          </span>
-                        </div>
-                      )}
+
 
                       <div className="border-t pt-2 mt-2">
                         <div className="flex justify-between text-gray-700">
@@ -400,7 +422,17 @@ export default function EstimatesCard({
                             ₫
                           </span>
                         </div>
-
+                        {costEstimate.process_cost?.total_cost > 0 && (
+                          <div className="flex justify-between text-gray-700 mt-1">
+                            <span>Chi phí gia công:</span>
+                            <span className="font-semibold">
+                              {Math.round(
+                                costEstimate.process_cost.total_cost
+                              ).toLocaleString("vi-VN")}{" "}
+                              ₫
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* <div className="flex justify-between font-medium">
@@ -447,17 +479,16 @@ export default function EstimatesCard({
 
                         {/* Phần giảm giá */}
                         <div className="bg-green-50 p-3 rounded-lg mt-3 border border-green-200">
-                          <div className="flex items-center justify-between gap-1 ">
-                            <span className="text-green-800 font-medium w-100">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-green-800 font-medium whitespace-nowrap">
                               Chiết khấu (%):
                             </span>
                             <FloatingInputAntd
-                              className=" text-end"
+                              className="text-end min-w-[60px]"
                               valueType="number"
                               min={0}
                               max={100}
-                              // defaultValue={discountPercent}
-                              style={{ width: "100%" }}
+                              style={{ width: "80px" }}
                               value={discountPercent}
                               onChange={(e: any) => setDiscountPercent(Number(e.target.value) || 0)}
                               size="small"
@@ -475,16 +506,17 @@ export default function EstimatesCard({
                                   ₫
                                 </span>
                               </div>
-                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
-                                <span className="font-bold text-green-900">
+                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-300 gap-1">
+                                <span className="font-bold text-green-900 leading-tight">
                                   Sau chiết khấu:
                                 </span>
-                                <span className="font-bold text-xl text-green-700">
-                                  {Math.round(
-                                    (costEstimate.cost.subtotal || 0) - (costEstimate.cost.discount_amount || 0)
-                                  ).toLocaleString("vi-VN")}{" "}
-                                  ₫
-                                </span>
+                               
+                                  <span className="font-bold text-base lg:text-lg xl:text-xl text-green-700 leading-none text-right shrink-0">
+                                    {Math.round(
+                                      (costEstimate.cost.subtotal || 0) - (costEstimate.cost.discount_amount || 0)
+                                    ).toLocaleString("vi-VN")}{" "}
+                                    ₫
+                                  </span>
                               </div>
                             </>
                           )}

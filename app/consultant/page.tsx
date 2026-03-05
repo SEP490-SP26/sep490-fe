@@ -1023,7 +1023,12 @@ function ConsultantForm() {
     if (form.getFieldValue("paper_code") && form.getFieldValue("quantity")) {
       calculateEstimates();
     }
-  }, [isSendDesign, configLoading, discountPercent]);
+  }, [isSendDesign, configLoading]);
+
+  // Handle immediate recalculation specifically when discount changes manually
+  useEffect(() => {
+    calculateEstimates();
+  }, [discountPercent]);
 
   // Reset saved ID when estimate changes
   useEffect(() => {
@@ -1211,14 +1216,15 @@ function ConsultantForm() {
             }
 
             const originalPrice = calculations.costEstimate.cost.final_total_cost;
-            const discountAmt = Math.round((originalPrice * calculations.discountPercent) / 100);
+            const quoteDiscountPercent = calculations.discountPercent || 0;
+            const discountAmt = Math.round((originalPrice * quoteDiscountPercent) / 100);
 
             const estimationResult = mapToOrderEstimationResult(
               calculations.costEstimate,
               calculations.paperEstimate,
               currentOrderId,
               quote.delivery_date, // Use quote specific date if available
-              calculations.discountPercent,
+              quoteDiscountPercent,
               discountAmt,
               {
                 paper_name: quote.paper_name || paperTypes.find((p) => p.code === quote.paper_code)?.name || "",
@@ -1290,15 +1296,19 @@ function ConsultantForm() {
 
       if (costEstimate && paperEstimate) {
         try {
+          // Lấy chiết khấu của tab hiện tại đang active
+          const activeTabQuote = quoteTabs.find(t => t.key === activeTabKey);
+          const currentTabDiscountPercent = activeTabQuote?.calculations?.discountPercent || 0;
+
           const originalPrice = costEstimate.cost.final_total_cost;
-          const discountAmount = Math.round((originalPrice * discountPercent) / 100);
+          const discountAmount = Math.round((originalPrice * currentTabDiscountPercent) / 100);
 
           const estimationResult = mapToOrderEstimationResult(
             costEstimate,
             paperEstimate,
             orderId,
             form.getFieldValue("delivery_date"),
-            discountPercent,
+            currentTabDiscountPercent,
             discountAmount,
             {
               paper_name: form.getFieldValue("paper_name") || paperTypes.find((p) => p.code === form.getFieldValue("paper_code"))?.name || "",
@@ -1438,6 +1448,12 @@ function ConsultantForm() {
           layout="vertical"
           onFinish={onFinish}
           onValuesChange={handleFormValuesChange}
+          initialValues={{
+            number_of_plates: 1,
+            coating_type: "KEO_NUOC",
+            isOneSideBox: true,
+            glueTab: 10,
+          }}
         >
           <Row gutter={16}>
             <Col span={12}>
@@ -1627,7 +1643,28 @@ function ConsultantForm() {
                 runningMachines={runningMachines}
                 totalMachines={totalMachines}
                 discountPercent={discountPercent}
-                setDiscountPercent={setDiscountPercent}
+                setDiscountPercent={(val) => {
+                  setDiscountPercent(val);
+
+                  // Cũng update value cho cái tab hiện hành ngay lập tức vào state QuoteTabs
+                  setQuoteTabs((prev) =>
+                    prev.map(tab => {
+                      if (tab.key === activeTabKey) {
+                        return {
+                          ...tab,
+                          calculations: {
+                            estimate: tab.calculations?.estimate || null,
+                            paperEstimate: tab.calculations?.paperEstimate || null,
+                            costEstimate: tab.calculations?.costEstimate || null,
+                            estimate_id: tab.calculations?.estimate_id,
+                            discountPercent: val
+                          }
+                        }
+                      }
+                      return tab;
+                    })
+                  );
+                }}
                 depositAmount={depositAmount}
                 form={form}
                 isCreateMode={isCreateMode}
@@ -1791,12 +1828,13 @@ function ConsultantForm() {
                 {/* 3. Individual Quote Cards */}
                 {submitValues.map((quote: any, index: number) => {
                   const calc = quote.calculations?.costEstimate?.cost;
+                  const quoteDiscountPercent = quote.calculations?.discountPercent || 0;
                   // unique specs for this quote
                   const uniqueForThis = uniqueSpecsMap[index] || {};
 
                   // Derived Values
                   const subtotal = Math.round(calc?.subtotal || 0);
-                  const discountAmt = Math.round((subtotal * discountPercent) / 100) || 0;
+                  const discountAmt = Math.round((subtotal * quoteDiscountPercent) / 100) || 0;
                   const finalTotal = Math.round(calc?.final_total_cost || 0);
                   const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000;
 
@@ -1871,7 +1909,7 @@ function ConsultantForm() {
                               </div>
                               {discountAmt > 0 && (
                                 <div className="flex justify-between text-gray-500">
-                                  <span>Chiết khấu ({discountPercent}%):</span>
+                                  <span>Chiết khấu ({quoteDiscountPercent}%):</span>
                                   <span className="text-red-500">-{discountAmt.toLocaleString()} đ</span>
                                 </div>
                               )}

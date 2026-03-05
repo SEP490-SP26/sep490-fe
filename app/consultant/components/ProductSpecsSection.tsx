@@ -173,7 +173,7 @@ export default function ProductSpecsSection({
           </Form.Item>
         </Col>
         <Col span={4}>
-          <Form.Item name="number_of_plates" initialValue={1}>
+          <Form.Item name="number_of_plates">
             <FloatingInputAntd
               label="Số kẽm"
               valueType="number"
@@ -187,7 +187,7 @@ export default function ProductSpecsSection({
         <Col span={6}>
           <Tooltip title={highlightFields['coating_type'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
             <div className="w-full">
-              <Form.Item name="coating_type" initialValue="KEO_NUOC" className="mb-0">
+              <Form.Item name="coating_type" className="mb-0">
                 <FloatingSelect
                   label="Loại keo"
                   options={[
@@ -242,8 +242,6 @@ export default function ProductSpecsSection({
                 <Col span={6}>
                   <Form.Item
                     name="isOneSideBox"
-
-                    initialValue={true}
                   >
                     <FloatingSelect
                       label="Loại Hộp"
@@ -258,8 +256,6 @@ export default function ProductSpecsSection({
                 <Col span={6}>
                   <Form.Item
                     name="glueTab"
-
-                    initialValue={10}
                     tooltip="Chiều rộng táp dán, mặc định 10mm"
                   >
                     <FloatingInputAntd
