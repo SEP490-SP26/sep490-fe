@@ -45,6 +45,7 @@ type SortField =
   | "product_name"
   | "quantity"
   | "delivery_date"
+  | "order_request_date"
   | null;
 type SortOrder = "asc" | "desc";
 
@@ -334,7 +335,7 @@ export default function ConsultantOrdersPage() {
               href={`/consultant?orderId=${record.order_request_id}&mode=negotiate`}
             >
               <Button type="primary" size="small" icon={<EditOutlined />}>
-                Tiếp nhận & Báo giá
+                Tiếp nhận
               </Button>
             </Link>
 
@@ -504,8 +505,15 @@ export default function ConsultantOrdersPage() {
       key: "quantity",
       align: "right" as const,
       render: (val: number) => (
-        <b className="text-blue-600">{val?.toLocaleString()}</b>
+        <b className="text-blue-600">{val?.toLocaleString()} SP</b>
       ),
+    },
+    {
+      title: <SortableHeader field="order_request_date" title="Ngày tạo yêu cầu" />,
+      dataIndex: "order_request_date",
+      key: "order_request_date",
+      align: "right" as const,
+      render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-")
     },
     {
       title: <SortableHeader field="delivery_date" title="Ngày Giao" />,

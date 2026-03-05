@@ -683,18 +683,15 @@ function ConsultantForm() {
                 : orderData.delivery_date ? dayjs(orderData.delivery_date) : null,
               detail_address: orderData.detail_address,
               description: orderData.description,
-              number_of_plates: orderData.number_of_plates || 1,
-              coating_type:
-                orderData.coating_type && orderData.coating_type !== "NONE"
-                  ? orderData.coating_type
-                  : "KEO_NUOC",
+              ...(orderData.number_of_plates && { number_of_plates: orderData.number_of_plates }),
+              ...((orderData.coating_type && orderData.coating_type !== "NONE") && { coating_type: orderData.coating_type }),
               // Add dimensions and paper code if available
-              length: orderData.product_length_mm,
-              width: orderData.product_width_mm,
-              height: orderData.product_height_mm,
-              paper_code: orderData.paper_code,
-              paper_name: orderData.paper_name, // Store paper_name to detect if custom paper was requested
-              production_processes: orderData.production_processes ? orderData.production_processes.split(",") : [],
+              ...(orderData.product_length_mm && { length: orderData.product_length_mm }),
+              ...(orderData.product_width_mm && { width: orderData.product_width_mm }),
+              ...(orderData.product_height_mm && { height: orderData.product_height_mm }),
+              ...(orderData.paper_code && { paper_code: orderData.paper_code }),
+              ...(orderData.paper_name && { paper_name: orderData.paper_name }),
+              ...(orderData.production_processes && { production_processes: orderData.production_processes.split(",") }),
               consultant_note: orderData.consultant_note || "",
             });
 
