@@ -44,6 +44,7 @@ import { formatVietnameseNumber } from "@/utils/format";
 import { disabledDate } from "@/utils/vietnamHolidays";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import axios from "@/apiRequests/axios";
 
 const { Title, Text } = Typography;
 
@@ -378,6 +379,7 @@ export default function GuestOrderPage() {
     setIsSubmitting(true);
     try {
       await requestOrderApi.createRequestOrderByCustomer(formDataToSubmit);
+      //await axios.post("https://localhost:7109/api/Requests",formDataToSubmit);
       message.success("Gửi yêu cầu thành công!");
       setIsSuccess(true);
       setIsReviewModalOpen(false);
