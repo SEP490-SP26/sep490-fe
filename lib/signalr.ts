@@ -9,6 +9,7 @@ export async function getSignalRConnection() {
     connection = new signalR.HubConnectionBuilder()
       .withUrl(
         `${env.NEXT_PUBLIC_API_ENDPOINT}/hubs/realtime`,
+        //`https://localhost:7109/hubs/realtime`,
         {
           accessTokenFactory: () =>
             localStorage.getItem("token") || "",
