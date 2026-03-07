@@ -18,6 +18,7 @@ import {
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 import RejectDealSuccess from '../confirm'
+import axios from '@/apiRequests/axios'
 
 const { Title, Text } = Typography
 const { TextArea } = Input
@@ -83,7 +84,8 @@ function RejectDealContent() {
         phone,
         otp
       }
-      await requestOrderApi.rejectDeal(bodyResquest);
+      //await requestOrderApi.rejectDeal(bodyResquest);
+      await axios.post("https://localhost:7109/api/Requests/reject", bodyResquest);
       message.success("Đã từ chối đơn hàng thành công");
       setIsSuccess(true);
       // router.push("/");

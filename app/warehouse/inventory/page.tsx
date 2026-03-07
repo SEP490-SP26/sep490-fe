@@ -156,7 +156,7 @@ export default function InventoryManagement() {
                       po.etaDate
                         ? po.etaDate
                         : new Date(new Date(po.createdAt).setDate(
-                            new Date(po.createdAt).getDate() + 10
+                            new Date(po.createdAt).getDate() + 3
                           ))
                     ).toLocaleDateString("vi-VN")}
                   </div>
