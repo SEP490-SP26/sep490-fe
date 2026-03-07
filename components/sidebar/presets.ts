@@ -92,13 +92,19 @@ export const staffNavItems: NavItem[] = [
 export const warehouseNavItems: NavItem[] = [
   {
     path: "/inventory",
-    label: "Tồn Kho",
+    label: "Nhập kho",
     icon: FaWarehouse,
     basePath: "/warehouse",
   },
+  // {
+  //   path: "/purchase",
+  //   label: "Đặt nguyên vật liệu",
+  //   icon: FiList,
+  //   basePath: "/warehouse",
+  // },
   {
-    path: "/purchase",
-    label: "Đặt nguyên vật liệu",
+    path: "/delivery",
+    label: "Thành phẩm",
     icon: FiList,
     basePath: "/warehouse",
   },
@@ -109,6 +115,22 @@ export const warehouseNavItems: NavItem[] = [
     isLogout: true,
   },
 ];
+
+export const materialsNavItems: NavItem[] = [
+  {
+    path: "",
+    label: "Đặt mua nguyên vật liệu",
+    icon: FaWarehouse,
+    basePath: "/materials-manager",
+  },
+  {
+    path: "/",
+    label: "Đăng xuất",
+    icon: FiLogOut,
+    isLogout: true,
+  },
+]
+;
 
 //Peset cho manager
 export const managerNavItems: NavItem[] = [
