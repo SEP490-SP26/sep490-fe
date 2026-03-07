@@ -25,7 +25,7 @@ export default function LayoutWarehouse({
       {/* Sidebar */}
       <Sidebar
         userInfo={{
-          name: "Warehouse",
+          name: "Quản lý kho",
           role: "Thủ kho",
         }}
         navItems={warehouseNavItems}
