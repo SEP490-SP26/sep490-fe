@@ -49,4 +49,7 @@ export const productionsApi = {
 
   getProductionInformation: (orderId: string) =>
     http.get<ProductionInformationResponse>(`/api/Productions/information/${orderId}`),
+
+  transferToShipping: (orderId: number) =>
+    http.put(`/api/Productions/delivery/${orderId}`, {}),
 };

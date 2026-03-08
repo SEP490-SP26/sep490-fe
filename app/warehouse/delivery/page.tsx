@@ -58,7 +58,7 @@ const statusConfig: Record<
   ProductionStatus,
   { label: string; color: string }
 > = {
-  Finished: { label: "Hoàn thành", color: "green" },
+  Finished: { label: "Sẵn sàng giao", color: "green" },
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
 };
@@ -81,8 +81,7 @@ const FinishProduction: React.FC = () => {
      Fetch API
   ======================= */
 
-  useEffect(() => {
-    const fetchProductions = async () => {
+      const fetchProductions = async () => {
       try {
         setLoading(true);
         const res: ProductionResponse =
@@ -95,6 +94,7 @@ const FinishProduction: React.FC = () => {
       }
     };
 
+  useEffect(() => {
     fetchProductions();
   }, []);
 
@@ -181,8 +181,13 @@ const FinishProduction: React.FC = () => {
   const handleTransfer = async (orderId: number) => {
     try {
     // gọi API bàn giao
-    // await productionsApi.transferToShipping(orderId)
-
+      await productionsApi.transferToShipping(orderId);
+      setData((prev) =>
+      prev.map((item) =>
+        item.order_id === orderId
+          ? { ...item, production_status: "Scheduled" }
+          : item
+      ));
       message.success("Đã bàn giao cho đơn vị vận chuyển");
     }catch (err) {
       console.error(err);
@@ -246,7 +251,7 @@ const FinishProduction: React.FC = () => {
           bordered
           onRow={(record) => ({
             onClick: () => {
-              router.push(`/staff/production/${record.order_id}`);
+              router.push(`/warehouse/production/${record.order_id}`);
             },
             style: {
               cursor: "pointer",
