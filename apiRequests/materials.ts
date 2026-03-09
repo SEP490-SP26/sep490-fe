@@ -24,9 +24,9 @@ export const materialsApi = {
     getSongTypes: () =>
         http.get<Material[]>("/api/Materials/get-material-by-type-song"),
 
-    getListMissingMaterial: (page: number = 1, pageSize: number = 10) =>
+    getListMissingMaterial: (page: number = 1, pageSize: number = 100) =>
         http.get<Material[]>(
-            `/api/Orders/missing-materials?page=${page}&pageSize=${pageSize}`
+            `/api/MissingMaterials/paged?page=${page}&pageSize=${pageSize}`
         ),
 
 };

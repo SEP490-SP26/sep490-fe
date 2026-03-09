@@ -29,6 +29,7 @@ import {
   Popconfirm,
   Result,
   Row,
+  Select,
   Space,
   Typography,
   Upload,
@@ -56,6 +57,20 @@ const { Title, Text } = Typography;
 // Khởi tạo Vietnamese Holidays
 const hd = new Holidays("VN");
 
+const quantityOptions = [
+  { value: 500, label: "Gói 500" },
+  { value: 1000, label: "Từ 500 đến 1,000" },
+  { value: 2000, label: "Từ 1,000 đến 2,000" },
+  { value: 3000, label: "Từ 2,000 đến 3,000" },
+  { value: 5000, label: "Từ 3,000 đến 5,000" },
+  { value: 10000, label: "Từ 5,000 đến 10,000" },
+  { value: 20000, label: "Trên 10,000" },
+];
+
+const getQuantityLabel = (val: number) => {
+  const option = quantityOptions.find((opt) => opt.value === val);
+  return option ? option.label : formatVietnameseNumber(val);
+};
 
 // const disabledDate: RangePickerProps["disabledDate"] = (current) => {
 //   // Không thể chọn ngày trong quá khứ
@@ -108,31 +123,6 @@ export default function GuestOrderPage() {
 
   const handleDateChange = (date: dayjs.Dayjs | null) => {
     setSelectedDate(date);
-  };
-
-  // Quantity Validation State
-  const [openQuantityConfirm, setOpenQuantityConfirm] = useState(false);
-  const [suggestedQuantity, setSuggestedQuantity] = useState(0);
-
-  const handleQuantityBlur = () => {
-    const currentQty = form.getFieldValue("quantity");
-    console.log("handleQuantityBlur triggered. Current Qty:", currentQty);
-    if (currentQty && currentQty > 0 && currentQty % 100 !== 0) {
-      const rounded = Math.ceil(currentQty / 100) * 100;
-      console.log("Rounding to:", rounded);
-      setSuggestedQuantity(rounded);
-      setOpenQuantityConfirm(true);
-    }
-  };
-
-  const confirmQuantity = () => {
-    form.setFieldValue("quantity", suggestedQuantity);
-    setOpenQuantityConfirm(false);
-  };
-
-  const cancelQuantity = () => {
-    form.setFieldValue("quantity", 0);
-    setOpenQuantityConfirm(false);
   };
 
   useEffect(() => {
@@ -330,6 +320,43 @@ export default function GuestOrderPage() {
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = (error) => reject(error);
     });
+
+  // Validation Kích thước
+  const validateDimension = () => ({
+    validator(_: any, value: any) {
+      if (!value) return Promise.resolve();
+      if (value > 3000) {
+        return Promise.reject(new Error("Tối đa 3000mm"));
+      }
+
+      const length = Number(form.getFieldValue("length")) || 0;
+      const width = Number(form.getFieldValue("width")) || 0;
+      const height = Number(form.getFieldValue("height")) || 0;
+
+      if (length > 0 && width > 0) {
+        if (length < width) {
+          return Promise.reject(new Error("Dài phải ≥ Rộng"));
+        }
+        if (length > width * 20) {
+          return Promise.reject(new Error("Dài không quá 20 lần Rộng"));
+        }
+      }
+
+      if (width > 0 && height > 0) {
+        if (width > height * 20) {
+          return Promise.reject(new Error("Rộng không quá 20 lần Cao"));
+        }
+      }
+
+      if (length > 0 && height > 0) {
+        if (length > height * 30) {
+          return Promise.reject(new Error("Dài không quá 30 lần Cao"));
+        }
+      }
+
+      return Promise.resolve();
+    }
+  });
 
   const onFinish = async (values: any) => {
     // Check if any file is still uploading
@@ -690,37 +717,17 @@ export default function GuestOrderPage() {
                           />
                         </Form.Item>
 
-                        <Popconfirm
-                          title="Xác nhận số lượng"
-                          description={`Số lượng phải là bội số của 100. Bạn có muốn làm tròn lên ${formatVietnameseNumber(suggestedQuantity)}?`}
-                          open={openQuantityConfirm}
-                          onConfirm={confirmQuantity}
-                          onCancel={cancelQuantity}
-                          okText="Đồng ý"
-                          cancelText="Hủy"
+                        <Form.Item
+                          name="quantity"
+                          label={<span className={labelStyle}>Số lượng <span className="text-red-500">*</span></span>}
+                          rules={[{ required: true, message: "Chọn số lượng" }]}
                         >
-                          <div onBlur={handleQuantityBlur}>
-                            <Form.Item
-                              name="quantity"
-                              label={<span className={labelStyle}>Số lượng <span className="text-red-500">*</span></span>}
-                              rules={[{
-                                required: true,
-                                message: "Nhập số lượng"
-                              }]}
-                              className="mb-0" // Reset margin to avoid layout issues inside div
-                            >
-                              <FloatingInputAntd
-                                className="w-full text-right"
-                                valueType="number"
-                                style={{ width: 100, textAlign: "right" }}
-                                min={100} // Đặt min là 100 để tránh nhập số quá nhỏ
-                                placeholder="VD: 1,000"
-                              // onBlur handled by div wrapper for consistent behavior? 
-                              // OR keep it on Input but wrap the whole thing for Popconfirm
-                              />
-                            </Form.Item>
-                          </div>
-                        </Popconfirm>
+                          <Select
+                            placeholder="Chọn số lượng"
+                            style={{ minWidth: 160 }}
+                            options={quantityOptions}
+                          />
+                        </Form.Item>
 
                         <Form.Item
                           name="desiredDate"
@@ -750,17 +757,17 @@ export default function GuestOrderPage() {
                         <div className={`${labelStyle} mb-2`}>Kích thước (Dài x Rộng x Cao) (mm)</div>
                         <Row gutter={8}>
                           <Col span={8}>
-                            <Form.Item name="length" className="mb-0">
+                            <Form.Item name="length" dependencies={['width', 'height']} rules={[validateDimension]}>
                               <FloatingInputAntd className="text-right" placeholder="Dài" style={{ width: "100%" }} min={0} />
                             </Form.Item>
                           </Col>
                           <Col span={8}>
-                            <Form.Item name="width" className="mb-0">
+                            <Form.Item name="width" dependencies={['length', 'height']} rules={[validateDimension]}>
                               <FloatingInputAntd className="text-right" placeholder="Rộng" style={{ width: "100%" }} min={0} />
                             </Form.Item>
                           </Col>
                           <Col span={8}>
-                            <Form.Item name="height" className="mb-0">
+                            <Form.Item name="height" dependencies={['length', 'width']} rules={[validateDimension]}>
                               <FloatingInputAntd className="text-right" placeholder="Cao" style={{ width: "100%", }} min={0} />
                             </Form.Item>
                           </Col>
@@ -995,7 +1002,7 @@ export default function GuestOrderPage() {
                   </div>
 
                   <div>
-                    <span className="text-gray-500 text-sm block">Số lượng: <span className="font-medium text-gray-800 text-end">{formatVietnameseNumber(formDataToSubmit.quantity)}</span></span>
+                    <span className="text-gray-500 text-sm block">Số lượng: <span className="font-medium text-gray-800 text-end">{getQuantityLabel(formDataToSubmit.quantity)}</span></span>
 
                   </div>
 
@@ -1071,7 +1078,12 @@ export default function GuestOrderPage() {
           display: none;
         }
         .compact-form .ant-form-item {
-          margin-bottom: 12px;
+          /* Do not set margin-bottom here blindly; or just make standard form tight */
+          /* margin-bottom: 12px; */
+        }
+        .compact-form .ant-form-item-explain-error {
+          font-size: 12px;
+          line-height: 1.2;
         }
         .compact-form .ant-form-item-label {
           padding-bottom: 4px;

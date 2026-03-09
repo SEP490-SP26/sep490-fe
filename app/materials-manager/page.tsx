@@ -5,6 +5,7 @@ import { supplierApi } from "@/apiRequests/supplier";
 import SupplierQuoteCard from "@/components/Card/SupplierQuoteCard ";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { useProduction } from "@/context/ProductionContext";
+import { Material } from "@/lib/estimation.types";
 import {
   showErrorToast,
   showSuccessToast,
@@ -133,6 +134,20 @@ export default function PurchaseManagement() {
     },
   });
   // console.log("poData", poData);
+
+  const { data: allMaterials = [], isPending: allMaterialLoading, refetch: refetchAllMaterials } = useQuery({
+    queryKey: ["all-materials"],
+    queryFn: async () => {
+      try {
+        const response: any = await materialsApi.getAll();
+        console.log("Response all materials data:", response);
+        return response?.data ?? response ?? [];
+      } catch (error) {
+        console.error("Error fetching all materials:", error);
+        return [];
+      }
+    },
+  });
 
   // Lấy danh sách vật tư cần đặt hàng
   const { data: missing_materials = [], isPending: materialLoading, refetch: refetchMissingMaterials } = useQuery({
@@ -522,7 +537,7 @@ export default function PurchaseManagement() {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {displayMaterials.map((pr: any) => {
-                      const currentQuantity = Math.round(parseFloat(pr.quantity) || 0);
+                      // const currentQuantity = Math.round(parseFloat(pr.quantity) || 0);
                       // const displayValue = currentQuantity.toFixed(0);
 
                       return (
@@ -546,7 +561,7 @@ export default function PurchaseManagement() {
                                     {
                                       material_id: pr.material_id,
                                       ui_id: pr.ui_id,
-                                      quantity: currentQuantity,
+                                      quantity: pr.quantity,
                                       price: 0,
                                     },
                                   ]);
@@ -571,7 +586,7 @@ export default function PurchaseManagement() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-medium text-gray-900 text-end">
-                              {currentQuantity}
+                              {pr.quantity}
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -606,7 +621,7 @@ export default function PurchaseManagement() {
                             <button
                               type="button"
                               onClick={() =>
-                                handleOpenQuotePopup(pr, currentQuantity)
+                                handleOpenQuotePopup(pr, pr.quantity)
                               }
                               className="mt-2 bg-accent px-2 py-1 rounded-md text-primary"
                             >
@@ -1179,52 +1194,52 @@ export default function PurchaseManagement() {
 
       {/* Direct Purchase Order Modal */}
       {/* Direct Purchase Order Modal */}
-{showDirectPO && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Đặt hàng trực tiếp</h2>
-          <button
-            onClick={() => setShowDirectPO(false)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <BsX className="w-6 h-6" />
-          </button>
-        </div>
+      {showDirectPO && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Đặt hàng trực tiếp</h2>
+                <button
+                  onClick={() => setShowDirectPO(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <BsX className="w-6 h-6" />
+                </button>
+              </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-gray-700 mb-2">
-              Vật tư cần mua
-            </label>
-            <select
-              value={directMaterialId ?? ""}
-              onChange={(e) => setDirectMaterialId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Chọn vật tư</option>
-              {materials.map((material) => (
-                <option key={material.id} value={material.id}>
-                  {material.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 mb-2">
+                    Vật tư cần mua
+                  </label>
+                  <select
+                    value={directMaterialId ?? ""}
+                    onChange={(e) => setDirectMaterialId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Chọn vật tư</option>
+                    {allMaterials.map((material: Material) => (
+                      <option key={material.material_code} value={material.material_code}>
+                        {material.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <FloatingInputAntd
-                className="h-[40px]"
-                label="Số lượng"
-                value={directQuantity}
-                valueType="integer"
-                required
-                min={1}
-                onChange={(e: any) => setDirectQuantity(e.target.value)}
-              />
-            </div>
-            {/*
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <FloatingInputAntd
+                      className="h-[40px]"
+                      label="Số lượng"
+                      value={directQuantity}
+                      valueType="integer"
+                      required
+                      min={1}
+                      onChange={(e: any) => setDirectQuantity(e.target.value)}
+                    />
+                  </div>
+                  {/*
             <div>
               <label className="block text-gray-700 mb-2">
                 Nhà cung cấp
@@ -1240,91 +1255,91 @@ export default function PurchaseManagement() {
             </div>
             */}
 
-            {/* Nhà cung cấp (phiên bản đang dùng) */}
-            <div>
-              <select
-                value={directSupplierId ?? ""}
-                onChange={(e) =>
-                  setDirectSupplierId(Number(e.target.value))
-                }
-                className="w-full h-[40px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Chọn nhà cung cấp</option>
-                {suppliersData.map((s: any) => (
-                  <option key={s.supplierId} value={s.supplierId}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                  {/* Nhà cung cấp (phiên bản đang dùng) */}
+                  <div>
+                    <select
+                      value={directSupplierId ?? ""}
+                      onChange={(e) =>
+                        setDirectSupplierId(Number(e.target.value))
+                      }
+                      className="w-full h-[40px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Chọn nhà cung cấp</option>
+                      {suppliersData.map((s: any) => (
+                        <option key={s.supplierId} value={s.supplierId}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={async () => {
+                      if (!directMaterialId || !directQuantity || !directSupplierId) {
+                        showWarningToast("Vui lòng nhập đầy đủ thông tin");
+                        return;
+                      }
+
+                      const quantity = Number(directQuantity);
+                      if (quantity <= 0) {
+                        showWarningToast("Số lượng phải lớn hơn 0");
+                        return;
+                      }
+
+                      // 🔥 MAP CODE -> ID
+                      const material = materials.find(
+                        (m) => m.id === directMaterialId
+                      );
+
+                      if (!material) {
+                        showWarningToast("Không tìm thấy vật tư hợp lệ");
+                        return;
+                      }
+                      const materialIdNum = Number(material.id.replace("m", ""));
+                      try {
+                        const payload = {
+                          supplier_id: Number(directSupplierId),
+                          items: [
+                            {
+                              material_id: materialIdNum, // ✅ ID số
+                              quantity,
+                              price: 0,
+                            },
+                          ],
+                        };
+
+                        console.log(
+                          "Create PO (Direct) payload:",
+                          JSON.stringify(payload, null, 2)
+                        );
+
+                        await purchasesApi.createPO(payload);
+
+                        showSuccessToast("Tạo đơn đặt hàng trực tiếp thành công");
+                        setShowDirectPO(false);
+                      } catch (error: any) {
+                        console.error("Create PO error:", error);
+                        showErrorToast("Tạo đơn đặt hàng thất bại");
+                      }
+                    }}
+                    className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Tạo đơn đặt hàng
+                  </button>
+                  <button
+                    onClick={() => setShowDirectPO(false)}
+                    className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={async () => {
-                  if (!directMaterialId || !directQuantity || !directSupplierId) {
-                    showWarningToast("Vui lòng nhập đầy đủ thông tin");
-                    return;
-                  }
-
-                  const quantity = Number(directQuantity);
-                  if (quantity <= 0) {
-                    showWarningToast("Số lượng phải lớn hơn 0");
-                    return;
-                  }
-
-                  // 🔥 MAP CODE -> ID
-                  const material = materials.find(
-                    (m) => m.id === directMaterialId
-                  );
-                  
-                  if (!material) {
-                    showWarningToast("Không tìm thấy vật tư hợp lệ");
-                    return;
-                  }
-                  const materialIdNum = Number(material.id.replace("m", ""));
-                  try {
-                    const payload = {
-                      supplier_id: Number(directSupplierId),
-                      items: [
-                        {
-                          material_id: materialIdNum, // ✅ ID số
-                          quantity,
-                          price: 0,
-                        },
-                      ],
-                    };
-
-                    console.log(
-                      "Create PO (Direct) payload:",
-                      JSON.stringify(payload, null, 2)
-                    );
-
-                    await purchasesApi.createPO(payload);
-
-                    showSuccessToast("Tạo đơn đặt hàng trực tiếp thành công");
-                    setShowDirectPO(false);
-                  } catch (error: any) {
-                    console.error("Create PO error:", error);
-                    showErrorToast("Tạo đơn đặt hàng thất bại");
-                  }
-                }}
-              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Tạo đơn đặt hàng
-            </button>
-            <button
-              onClick={() => setShowDirectPO(false)}
-              className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Hủy
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }
