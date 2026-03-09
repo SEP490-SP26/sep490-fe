@@ -60,6 +60,8 @@ import {
   getEstimatedFreeDate,
   mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
+import axios from "@/apiRequests/axios";
+import { log } from "console";
 
 
 
@@ -1103,6 +1105,7 @@ function ConsultantForm() {
           };
 
           const res: any = await requestOrderApi.createRequestOrderByConsultant(payload);
+          //const {data : res} : any = await axios.post("https://localhost:7109/api/Requests/create-request-by-consultant", payload);
           const newId = res?.order_request_id || res?.data?.order_request_id; // Check both structures
 
           if (newId) {
@@ -1263,10 +1266,14 @@ function ConsultantForm() {
           message.success("Đã gửi báo giá (Kiểm tra lại nếu không thấy mail)");
         }
       } else {
-        await requestOrderApi.submitEstimateForApproval({
-          request_id: parseInt(currentOrderId),
-          consultant_note: primaryQuote.consultant_note,
-        });
+        // await requestOrderApi.submitEstimateForApproval({
+        //   request_id: parseInt(currentOrderId),
+        //   consultant_note: primaryQuote.consultant_note,
+        // });
+        await axios.put("https://localhost:7109/api/Requests/submit-estimate-for-approval",{
+            request_id: parseInt(currentOrderId),
+            consultant_note: primaryQuote.consultant_note,
+          });
         message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
       }
 

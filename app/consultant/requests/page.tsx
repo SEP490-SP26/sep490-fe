@@ -102,7 +102,19 @@ export default function ConsultantOrdersPage() {
       if (evt.action === "created") {
         fetchAllOrders();
         message.info(`🆕 Đơn hàng mới #${evt.request_id} vừa được tạo`);
-      } else {
+      }
+      else if(evt.action === "manager_verified")
+      {
+        fetchAllOrders();
+        setAllOrders((prev) =>
+          prev.map((o) =>
+            o.order_request_id === evt.request_id
+              ? { ...o, process_status: evt.new_status }
+              : o
+          )
+        ); 
+      }
+      else{
         setAllOrders((prev) =>
           prev.map((o) =>
             o.order_request_id === evt.request_id

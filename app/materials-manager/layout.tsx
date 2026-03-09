@@ -1,7 +1,7 @@
 "use client";
 
 import Footer from "@/components/Footer/Footer";
-import { warehouseNavItems } from "@/components/sidebar/presets";
+import { materialsNavItems, warehouseNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -25,10 +25,10 @@ export default function LayoutWarehouse({
       {/* Sidebar */}
       <Sidebar
         userInfo={{
-          name: "Quản lý kho",
-          role: "Thủ kho",
+          name: "Nhân viên vật tư",
+          role: "Quản lý NVL",
         }}
-        navItems={warehouseNavItems}
+        navItems={materialsNavItems}
         onLogout={handleLogout}
       />
 
