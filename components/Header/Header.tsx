@@ -28,7 +28,7 @@ export default function Header() {
           <div className="text-xl font-bold">
             <Link href="/">
               {/* <span className="text-primary uppercase ">In Ấn Đại Phúc Hải</span> */}
-              <img src="assets/images/logo.png" alt="" />
+              <img src="/assets/images/logo.png" alt="" />
             </Link>
           </div>
 

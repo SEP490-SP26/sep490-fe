@@ -55,9 +55,9 @@ export default function OverviewSidebar() {
             <div className={`flex items-center ${collapsed ? "justify-center" : "px-6"} border-b border-gray-100 h-16 transition-all duration-300`}>
                 <Link href="/" className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
                     {!collapsed ? (
-                        <img src="assets/images/logo.png" alt="Logo" className=" object-contain transition-all duration-300" />
+                        <img src="/assets/images/logo.png" alt="Logo" className=" object-contain transition-all duration-300" />
                     ) : (
-                        <img src="assets/images/icon.ico" alt="Icon" className="w-8 h-8 object-contain transition-all duration-300" />
+                        <img src="/assets/images/icon.ico" alt="Icon" className="w-8 h-8 object-contain transition-all duration-300" />
                     )}
                 </Link>
             </div>
