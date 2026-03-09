@@ -21,8 +21,8 @@ export interface PaymentStatusResponse {
 }
 
 export const paymentApi = {
-    getPaymentQR: (request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos-deposit/${request_id}?estimate_id=${estimate_id}&quote_id=${quote_id}`),
+    getPaymentQR: (request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos-deposit/${request_id}?quote_id=${quote_id}&estimate_id=${estimate_id}`),
 
-    getStatusPayment: (order_request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos/status-by-request-id?order_request_id=${order_request_id}&quote_id=${quote_id}&estimate_id=${estimate_id}`)
+    getStatusPayment: (request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos/status-by-request-id?request_id=${request_id}&estimate_id=${estimate_id}&quote_id=${quote_id}`)
 }
 
