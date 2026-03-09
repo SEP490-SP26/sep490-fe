@@ -79,11 +79,11 @@ export default function RequestDetailPage() {
   };
 
   useEffect(() => {
-    if (!requestId) return;
+    if (!requestId || !selectedQuote) return;
 
     const checkPaymentStatus = async () => {
       try {
-        const response = await paymentApi.getStatusPayment(requestId);
+        const response = await paymentApi.getStatusPayment(requestId, selectedQuote.quote_id, selectedQuote.estimate_id);
         const data = (response as any).data || response;
 
         if (data && data.status === 'PAID') {
@@ -98,7 +98,7 @@ export default function RequestDetailPage() {
     const intervalId = setInterval(checkPaymentStatus, 2000);
 
     return () => clearInterval(intervalId);
-  }, [requestId, router]);
+  }, [requestId, router, selectedQuote]);
 
   const formatVND = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -320,7 +320,7 @@ export default function RequestDetailPage() {
 
       <div className="mt-2 pt-2 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
         <button
-          
+
           onClick={() => router.push(`/reject-deal/${requestId}`)}
           className="h-10 px-8 rounded-lg font-medium w-full sm:w-auto mt-2 sm:mt-0 bg-red-500 text-white hover:bg-red-600 hover:text-white"
         >
