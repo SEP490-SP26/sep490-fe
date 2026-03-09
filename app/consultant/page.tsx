@@ -1266,14 +1266,14 @@ function ConsultantForm() {
           message.success("Đã gửi báo giá (Kiểm tra lại nếu không thấy mail)");
         }
       } else {
-        // await requestOrderApi.submitEstimateForApproval({
-        //   request_id: parseInt(currentOrderId),
-        //   consultant_note: primaryQuote.consultant_note,
-        // });
-        await axios.put("https://localhost:7109/api/Requests/submit-estimate-for-approval",{
-            request_id: parseInt(currentOrderId),
-            consultant_note: primaryQuote.consultant_note,
-          });
+         await requestOrderApi.submitEstimateForApproval({
+           request_id: parseInt(currentOrderId),
+           consultant_note: primaryQuote.consultant_note,
+         });
+       // await axios.put("https://localhost:7109/api/Requests/submit-estimate-for-approval",{
+      //    request_id: parseInt(currentOrderId),
+    //      consultant_note: primaryQuote.consultant_note,
+      //    });
         message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
       }
 
