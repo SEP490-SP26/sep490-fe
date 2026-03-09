@@ -1778,22 +1778,22 @@ function ConsultantForm() {
 
 
             return (
-              <div className="flex flex-col gap-2  overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-col gap-2 overflow-y-auto pr-2 custom-scrollbar">
                 {/* 1. Customer Info - Ultra Compact */}
-                <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-sm">
+                <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-base">
                   <div className="flex gap-2 items-center">
                     <span className="text-blue-800 font-semibold"><UserOutlined /> {submitValues[0]?.customer_name || "Khách hàng"}</span>
                     <span className="text-gray-400">|</span>
                     <span className="text-gray-600">{submitValues[0]?.customer_phone || "SĐT"}</span>
                   </div>
-                  <div className="text-xs text-gray-500 italic">
+                  <div className="text-sm text-gray-500 italic">
                     {submitValues?.length} phương án báo giá
                   </div>
                 </div>
 
                 {/* 2. Common Technical Specs Card (Only if there are common specs) */}
                 {Object.keys(commonSpecs).length > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
                     <div className="font-bold text-gray-700 mb-2 uppercase border-b border-gray-200 pb-1">
                       Thông số kỹ thuật chung
                     </div>
@@ -1848,7 +1848,7 @@ function ConsultantForm() {
                       {/* Header */}
                       <div className="bg-white px-4 py-2 flex justify-between items-center border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                         <div className="flex items-center gap-3 overflow-hidden">
-                          <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                          <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
                             {quote.label || `PA ${index + 1}`}
                           </span>
                           {/* If product name is unique, show it here? Or just show it in common? 
@@ -1863,7 +1863,7 @@ function ConsultantForm() {
                       </div>
 
                       {/* Content Grid */}
-                      <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         {/* Left: Unique Specs */}
                         <div className="space-y-1">
                           {/* Always show Quantity first if needed, but it's in header. */}
@@ -1916,7 +1916,7 @@ function ConsultantForm() {
 
                               <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
                                 <span className="font-bold text-gray-700">Tổng cộng (Sau VAT):</span>
-                                <span className={`font-bold text-base ${negotiatedPrice ? 'text-gray-400 line-through text-sm' : 'text-blue-600'}`}>
+                                <span className={`font-bold text-lg ${negotiatedPrice ? 'text-gray-400 line-through text-base' : 'text-blue-600'}`}>
                                   {finalTotal.toLocaleString()} đ
                                 </span>
                               </div>
@@ -1924,11 +1924,11 @@ function ConsultantForm() {
                               {negotiatedPrice && (
                                 <div className="flex justify-between items-center bg-yellow-50 px-2 py-1 rounded mt-1 border border-yellow-100">
                                   <span className="font-bold text-yellow-700">Giá chốt:</span>
-                                  <span className="font-bold text-lg text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
+                                  <span className="font-bold text-xl text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
                                 </div>
                               )}
 
-                              <div className="flex justify-between items-center text-xs text-orange-600 mt-1">
+                              <div className="flex justify-between items-center text-sm text-orange-600 mt-1">
                                 <span>Cọc (30%):</span>
                                 <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
                               </div>

@@ -258,345 +258,342 @@ export default function ConsultantRequestDetailPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* Left Column (2/3 width) - Detail Cards */}
-                    <div className="lg:col-span-2 space-y-6">
+                <div className="flex flex-col gap-6">
+                    {/* ROW 1: Summary & Design Files */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                        <div className="lg:col-span-2">
+                            {/* Summary Card (Customer & Product packed tightly) */}
+                            <Card className="h-full rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
+                                {/* Customer Section */}
+                                <div className="mb-6">
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                        <UserOutlined />
+                                        Thông tin khách hàng
+                                    </h3>
+                                    <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} className="text-sm" labelStyle={{ color: '#64748b' }}>
+                                        <Descriptions.Item label="Họ tên"><Text strong className="text-slate-800">{orderDetail.customer_name}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Điện thoại"><Text strong className="text-slate-800">{orderDetail.customer_phone}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Email"><Text strong className="text-slate-800 truncate" style={{ maxWidth: 180 }} title={orderDetail.email}>{orderDetail.email}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Địa chỉ giao hàng" span={3}>
+                                            <Text strong className="text-slate-800">{orderDetail.detail_address || <span className="font-normal italic text-slate-400">Chưa cập nhật</span>}</Text>
+                                        </Descriptions.Item>
+                                    </Descriptions>
+                                </div>
 
-                        {/* Summary Card (Customer & Product packed tightly) */}
-                        <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
-                            {/* Customer Section */}
-                            <div className="mb-6">
-                                <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                    <UserOutlined />
-                                    Thông tin khách hàng
-                                </h3>
-                                <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} className="text-sm" labelStyle={{ color: '#64748b' }}>
-                                    <Descriptions.Item label="Họ tên"><Text strong className="text-slate-800">{orderDetail.customer_name}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Điện thoại"><Text strong className="text-slate-800">{orderDetail.customer_phone}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Email"><Text strong className="text-slate-800 truncate" style={{ maxWidth: 180 }} title={orderDetail.email}>{orderDetail.email}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Địa chỉ giao hàng" span={3}>
-                                        <Text strong className="text-slate-800">{orderDetail.detail_address || <span className="font-normal italic text-slate-400">Chưa cập nhật</span>}</Text>
-                                    </Descriptions.Item>
-                                </Descriptions>
-                            </div>
+                                <Divider className="my-0 mb-6 border-slate-100" />
 
-                            <Divider className="my-0 mb-6 border-slate-100" />
+                                {/* Product Section */}
+                                <div>
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                        <ShoppingOutlined />
+                                        Chi tiết sản phẩm: <span className="text-slate-800 normal-case font-semibold">{orderDetail.product_name}</span>
+                                    </h3>
 
-                            {/* Product Section */}
-                            <div>
-                                <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                    <ShoppingOutlined />
-                                    Chi tiết sản phẩm: <span className="text-slate-800 normal-case font-semibold">{orderDetail.product_name}</span>
-                                </h3>
+                                    <Descriptions size="small" column={{ xs: 1, sm: 3, md: 4 }} className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm mb-4" labelStyle={{ color: '#64748b' }}>
+                                        <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Giao hàng" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm} mm</Text></Descriptions.Item>
+                                    </Descriptions>
 
-                                <Descriptions size="small" column={{ xs: 1, sm: 3, md: 4 }} className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm mb-4" labelStyle={{ color: '#64748b' }}>
-                                    <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Giao hàng" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm} mm</Text></Descriptions.Item>
-                                </Descriptions>
+                                    {orderDetail.description && (
+                                        <div>
+                                            <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Mô tả yêu cầu</Text>
+                                            <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
+                                                {orderDetail.description}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </Card>
+                        </div>
+                        <div className="lg:col-span-1">
+                            {/* Design Files Card */}
+                            <Card
+                                className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary h-full flex flex-col"
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                            <FileImageOutlined />
+                                            File đính kèm
+                                        </h3>
+                                    </div>
+                                </div>
 
-                                {orderDetail.description && (
-                                    <div>
-                                        <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Mô tả yêu cầu</Text>
-                                        <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
-                                            {orderDetail.description}
+                                <div className="space-y-3">
+                                    {/* File mẫu */}
+                                    <div className="flex flex-col gap-2 p-2 bg-gray-50 rounded">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FileTextOutlined className="text-gray-400 text-sm" />
+                                                <div>
+                                                    <div className="font-medium text-sm">File mẫu</div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {orderDetail.design_file_path ? `${orderDetail.design_file_path.split(',').length} file thiết kế` : "Chưa tải lên"}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {orderDetail.design_file_path ? (
+                                                <Button
+                                                    size="small"
+                                                    icon={<DownloadOutlined />}
+                                                    onClick={downloadAllDesignFiles}
+                                                >
+                                                    Tải tất cả
+                                                </Button>
+                                            ) : (
+                                                <Upload
+                                                    showUploadList={false}
+                                                    customRequest={async (options) => {
+                                                        const { file, onSuccess, onError } = options;
+                                                        setUploadingDesign(true);
+                                                        try {
+                                                            await uploadApi.updateDesignFile(orderDetail.request_id, file as File);
+                                                            message.success("Tải file thiết kế thành công");
+                                                            fetchOrderDetail();
+                                                            if (onSuccess) onSuccess("ok");
+                                                        } catch (error) {
+                                                            message.error("Tải file thất bại");
+                                                            if (onError) onError(error as any);
+                                                        } finally {
+                                                            setUploadingDesign(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Button size="small" icon={<UploadOutlined />} loading={uploadingDesign}>
+                                                        Tải lên
+                                                    </Button>
+                                                </Upload>
+                                            )}
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        </Card>
 
-                        <div className="">
-
-                        </div>
-
-                        {/* Cost Estimates Block */}
-                        <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-accent">
-                            <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                <DollarOutlined />
-                                Thông tin báo giá
-                            </h3>
-                            {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
-                                <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-1">
-                                    {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => {
-                                        const hasNote = orderDetail.reason?.includes(`Báo giá ${index + 1}:`);
-                                        return (
-                                            <div key={estimate.estimate_id} className={`p-4 rounded-xl border ${hasNote ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-slate-100'}`}>
-                                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
-                                                    <Tag className={`m-0 border-0 font-medium px-2 rounded ${hasNote ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-50 text-blue-600'}`}>Báo giá #{index + 1}</Tag>
-                                                </div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-sm">Loại giấy:</span>
-                                                    <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-sm">Loại phủ:</span>
-                                                    <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-sm">Đặt cọc:</span>
-                                                    <span className="font-semibold text-accent-dark">{formatCurrency(estimate.deposit_amount)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
-                                                    <span className="font-bold text-lg text-accent-dark">{formatCurrency(estimate.final_total_cost)}</span>
-                                                </div>
-                                                {estimate.process_cost && estimate.process_cost.length > 0 && (
-                                                    <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
-                                                        <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
-                                                            <div className="space-y-2 py-1">
-                                                                {estimate.process_cost.map(proc => (
-                                                                    <div key={proc.process_cost_id} className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </Panel>
-                                                    </Collapse>
-                                                )}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-
-                            ) : (
-                                <div className="text-center py-6">
-                                    <Text className="text-slate-400 text-sm italic">Chưa có báo giá nào</Text>
-                                </div>
-                            )}
-                        </Card>
-                    </div>
-
-                    {/* Right Column (1/3 width) - Files */}
-                    <div className="space-y-6">
-
-                        {/* Design Files Card */}
-                        <Card
-                            className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary h-62"
-                        >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                        <FileImageOutlined />
-                                        File đính kèm
-                                    </h3>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                {/* File mẫu */}
-                                <div className="flex flex-col gap-2 p-2 bg-gray-50 rounded">
-                                    <div className="flex items-center justify-between">
+                                    {/* Hợp đồng */}
+                                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                         <div className="flex items-center gap-2">
-                                            <FileTextOutlined className="text-gray-400 text-sm" />
+                                            <svg
+                                                className="w-4 h-4 text-gray-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                />
+                                            </svg>
                                             <div>
-                                                <div className="font-medium text-sm">File mẫu</div>
-                                                <div className="text-xs text-gray-500">
-                                                    {orderDetail.design_file_path ? `${orderDetail.design_file_path.split(',').length} file thiết kế` : "Chưa tải lên"}
-                                                </div>
+                                                <div className="font-medium text-sm">Hợp đồng</div>
+                                                <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div>
                                             </div>
                                         </div>
-                                        {orderDetail.design_file_path ? (
+                                        {(orderDetail as any).contract_file ? (
                                             <Button
                                                 size="small"
-                                                icon={<DownloadOutlined />}
-                                                onClick={downloadAllDesignFiles}
+                                                type="primary"
+                                                onClick={() => window.open((orderDetail as any).contract_file, "_blank")}
                                             >
-                                                Tải tất cả
+                                                Xem
                                             </Button>
                                         ) : (
                                             <Upload
                                                 showUploadList={false}
                                                 customRequest={async (options) => {
                                                     const { file, onSuccess, onError } = options;
-                                                    setUploadingDesign(true);
+                                                    setUploadingContract(true);
                                                     try {
-                                                        await uploadApi.updateDesignFile(orderDetail.request_id, file as File);
-                                                        message.success("Tải file thiết kế thành công");
-                                                        fetchOrderDetail();
-                                                        if (onSuccess) onSuccess("ok");
+                                                        const res = await uploadApi.uploadFile([file as File]);
+                                                        if (res && res[0] && res[0].url) {
+                                                            await requestOrderApi.updateRequest(orderDetail.request_id.toString(), {
+                                                                contract_file: res[0].url
+                                                            } as any);
+                                                            message.success("Tải hợp đồng thành công");
+                                                            fetchOrderDetail();
+                                                            if (onSuccess) onSuccess("ok");
+                                                        }
                                                     } catch (error) {
-                                                        message.error("Tải file thất bại");
+                                                        message.error("Tải hợp đồng thất bại");
                                                         if (onError) onError(error as any);
                                                     } finally {
-                                                        setUploadingDesign(false);
+                                                        setUploadingContract(false);
                                                     }
                                                 }}
                                             >
-                                                <Button size="small" icon={<UploadOutlined />} loading={uploadingDesign}>
+                                                <Button size="small" icon={<UploadOutlined />} loading={uploadingContract}>
                                                     Tải lên
                                                 </Button>
                                             </Upload>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Hợp đồng */}
-                                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <div className="flex items-center gap-2">
-                                        <svg
-                                            className="w-4 h-4 text-gray-400"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                            />
-                                        </svg>
-                                        <div>
-                                            <div className="font-medium text-sm">Hợp đồng</div>
-                                            <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div>
+                                    {/* File khác */}
+                                    {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
+                                        <div className="mt-2">
+                                            <div className="text-xs font-medium text-gray-700 mb-1">
+                                                File khác ({(orderDetail as any).other_files.length}):
+                                            </div>
+                                            <div className="space-y-1">
+                                                {(orderDetail as any).other_files.slice(0, 2).map((file: any, index: number) => (
+                                                    <div
+                                                        key={index}
+                                                        className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
+                                                    >
+                                                        <div className="flex items-center gap-1.5 truncate">
+                                                            <FileTextOutlined className="text-gray-400" style={{ fontSize: "12px" }} />
+                                                            <span className="truncate">{file.name}</span>
+                                                        </div>
+                                                        <Button
+                                                            type="link"
+                                                            size="small"
+                                                            style={{ padding: 0, fontSize: "12px" }}
+                                                            onClick={() => window.open(file.url, "_blank")}
+                                                        >
+                                                            Tải
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                {(orderDetail as any).other_files.length > 2 && (
+                                                    <div className="text-xs text-gray-500 text-center">
+                                                        + {(orderDetail as any).other_files.length - 2} file khác
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    {(orderDetail as any).contract_file ? (
-                                        <Button
-                                            size="small"
-                                            type="primary"
-                                            onClick={() => window.open((orderDetail as any).contract_file, "_blank")}
-                                        >
-                                            Xem
-                                        </Button>
-                                    ) : (
-                                        <Upload
-                                            showUploadList={false}
-                                            customRequest={async (options) => {
-                                                const { file, onSuccess, onError } = options;
-                                                setUploadingContract(true);
-                                                try {
-                                                    const res = await uploadApi.uploadFile([file as File]);
-                                                    if (res && res[0] && res[0].url) {
-                                                        await requestOrderApi.updateRequest(orderDetail.request_id.toString(), {
-                                                            contract_file: res[0].url
-                                                        } as any);
-                                                        message.success("Tải hợp đồng thành công");
-                                                        fetchOrderDetail();
-                                                        if (onSuccess) onSuccess("ok");
-                                                    }
-                                                } catch (error) {
-                                                    message.error("Tải hợp đồng thất bại");
-                                                    if (onError) onError(error as any);
-                                                } finally {
-                                                    setUploadingContract(false);
-                                                }
-                                            }}
-                                        >
-                                            <Button size="small" icon={<UploadOutlined />} loading={uploadingContract}>
-                                                Tải lên
-                                            </Button>
-                                        </Upload>
                                     )}
                                 </div>
+                            </Card>
+                        </div>
+                    </div>
 
-                                {/* File khác */}
-                                {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
-                                    <div className="mt-2">
-                                        <div className="text-xs font-medium text-gray-700 mb-1">
-                                            File khác ({(orderDetail as any).other_files.length}):
-                                        </div>
-                                        <div className="space-y-1">
-                                            {(orderDetail as any).other_files.slice(0, 2).map((file: any, index: number) => (
-                                                <div
-                                                    key={index}
-                                                    className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
-                                                >
-                                                    <div className="flex items-center gap-1.5 truncate">
-                                                        <FileTextOutlined className="text-gray-400" style={{ fontSize: "12px" }} />
-                                                        <span className="truncate">{file.name}</span>
+                    {/* ROW 2: Cost Estimates & Notes */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                        <div className="lg:col-span-2">
+                            {/* Cost Estimates Block */}
+                            <Card className="h-full rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-accent">
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                    <DollarOutlined />
+                                    Thông tin báo giá
+                                </h3>
+                                {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
+                                    <div className={`grid gap-4 max-h-[500px] overflow-y-auto pr-1 ${orderDetail.cost_estimate.filter(x => x.is_active).length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                        {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => {
+                                            const hasNote = orderDetail.reason?.includes(`Báo giá ${index + 1}:`);
+                                            return (
+                                                <div key={estimate.estimate_id} className={`p-4 rounded-xl border ${hasNote ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-slate-100'}`}>
+                                                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
+                                                        <Tag className={`m-0 border-0 font-medium px-2 rounded ${hasNote ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-50 text-blue-600'}`}>Báo giá #{index + 1}</Tag>
                                                     </div>
-                                                    <Button
-                                                        type="link"
-                                                        size="small"
-                                                        style={{ padding: 0, fontSize: "12px" }}
-                                                        onClick={() => window.open(file.url, "_blank")}
-                                                    >
-                                                        Tải
-                                                    </Button>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-slate-500 text-sm">Loại giấy:</span>
+                                                        <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-slate-500 text-sm">Loại phủ:</span>
+                                                        <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-slate-500 text-sm">Đặt cọc:</span>
+                                                        <span className="font-semibold text-accent-dark">{formatCurrency(estimate.deposit_amount)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
+                                                        <span className="font-bold text-lg text-accent-dark">{formatCurrency(estimate.final_total_cost)}</span>
+                                                    </div>
+                                                    {estimate.process_cost && estimate.process_cost.length > 0 && (
+                                                        <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
+                                                            <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
+                                                                <div className="space-y-2 py-1">
+                                                                    {estimate.process_cost.map(proc => (
+                                                                        <div key={proc.process_cost_id} className="flex justify-between items-center">
+                                                                            <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
+                                                                            <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </Panel>
+                                                        </Collapse>
+                                                    )}
                                                 </div>
-                                            ))}
-                                            {(orderDetail as any).other_files.length > 2 && (
-                                                <div className="text-xs text-gray-500 text-center">
-                                                    + {(orderDetail as any).other_files.length - 2} file khác
-                                                </div>
-                                            )}
-                                        </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                ) : (
+                                    <div className="text-center py-6">
+                                        <Text className="text-slate-400 text-sm italic">Chưa có báo giá nào</Text>
                                     </div>
                                 )}
-                            </div>
-                        </Card>
-
-                        <div>
-
-                        </div>
-
-                        <div className="space-y-2">
-                            {/* mô tả yêu cầu */}
-                            <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
-                                <div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                                <FileTextOutlined />
-                                                Mô tả yêu cầu
-                                            </h3>
-                                        </div>
-                                    </div>
-                                    <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
-                                        {orderDetail.description || "Không có mô tả"}
-                                    </div>
-                                </div>
                             </Card>
-
-                            {/* Ghi chú của consultant */}
-                            {orderDetail.consultant_note && (
-                                <Card className="mt-6 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 mb-4 flex items-center gap-2">
-                                                    <FileTextOutlined className="text-blue-500" />
-                                                    Ghi chú của Consultant
-                                                </h3>
-                                            </div>
-                                        </div>
-                                        <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
-                                            {orderDetail.consultant_note}
-                                        </div>
-                                    </div>
-                                </Card>
-                            )}
-
-                            {/* Yêu cầu chỉnh sửa từ quản lý */}
-                            {orderDetail.reason && (
-                                <Card className="mt-6 border-orange-200 bg-orange-50/30">
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <h3 className="text-sm uppercase tracking-wider font-bold text-orange-800 mb-4 flex items-center gap-2">
-                                                    <FileTextOutlined className="text-orange-500" />
-                                                    Yêu cầu chỉnh sửa của quản lý
-                                                </h3>
-                                            </div>
-                                        </div>
-                                        <div className="text-slate-700 text-sm leading-relaxed bg-white border border-orange-200 rounded-lg p-3 space-y-2">
-                                            {orderDetail.reason.split(';').filter((r) => r.trim() !== '').map((line, idx) => (
-                                                <div key={idx} className="flex gap-2">
-                                                    <span className="text-orange-500 mt-0.5">•</span>
-                                                    <span className="font-medium text-slate-800">{line.trim()}</span>
+                        </div>
+                        <div className="lg:col-span-1">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    {/* mô tả yêu cầu */}
+                                    <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
+                                        <div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                                        <FileTextOutlined />
+                                                        Mô tả yêu cầu
+                                                    </h3>
                                                 </div>
-                                            ))}
+                                            </div>
+                                            <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
+                                                {orderDetail.description || "Không có mô tả"}
+                                            </div>
                                         </div>
-                                    </div>
-                                </Card>
-                            )}
+                                    </Card>
+
+                                    {/* Ghi chú của consultant */}
+                                    {orderDetail.consultant_note && (
+                                        <Card className="mt-6 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
+                                            <div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 mb-4 flex items-center gap-2">
+                                                            <FileTextOutlined className="text-blue-500" />
+                                                            Ghi chú của Consultant
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
+                                                    {orderDetail.consultant_note}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+
+                                    {/* Yêu cầu chỉnh sửa từ quản lý */}
+                                    {orderDetail.reason && (
+                                        <Card className="mt-6 border-orange-200 bg-orange-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-orange-800 mb-4 flex items-center gap-2">
+                                                            <FileTextOutlined className="text-orange-500" />
+                                                            Yêu cầu chỉnh sửa của quản lý
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-orange-200 rounded-lg p-3 space-y-2">
+                                                    {orderDetail.reason.split(';').filter((r) => r.trim() !== '').map((line, idx) => (
+                                                        <div key={idx} className="flex gap-2">
+                                                            <span className="text-orange-500 mt-0.5">•</span>
+                                                            <span className="font-medium text-slate-800">{line.trim()}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-
                 {/* Mobile Back Button */}
                 <div className="mt-8 flex justify-center lg:hidden">
                     <Button

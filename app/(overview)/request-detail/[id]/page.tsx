@@ -351,7 +351,7 @@ export default function RequestDetailPage() {
           <div className="lg:col-span-8 space-y-8">
             {/* Customer Info */}
             <Card
-              title={<span className="text-base font-semibold">Thông tin khách hàng</span>}
+              title={<span className="text-base font-bold text-slate-800">Thông tin khách hàng</span>}
               className="rounded-2xl shadow-sm border-gray-100"
               bordered={false}
               extra={<UserOutlined className="text-gray-400" />}
@@ -394,7 +394,7 @@ export default function RequestDetailPage() {
                     </div> */}
                   <div>
                     {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Sản phẩm</Text> */}
-                    <div className="text-lg font-bold text-slate-800">Sản Phẩm: {requestDetail.product_name}</div>
+                    <div className="text-lg font-bold text-slate-800">SP: {requestDetail.product_name}</div>
                   </div>
                   {/* </div> */}
 
@@ -404,7 +404,7 @@ export default function RequestDetailPage() {
                     </div> */}
                   <div>
                     {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text> */}
-                    <div className="text-lg font-bold text-slate-800">Số lượng: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
+                    <div className="text-lg font-bold text-slate-800">SL: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
                   </div>
                   {/* </div> */}
 
@@ -422,7 +422,7 @@ export default function RequestDetailPage() {
                 {/* Mô tả yêu cầu */}
                 <div>
                   {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text> */}
-                  <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[100px]">
+                  <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[50px]">
                     {requestDetail.description || <span className="text-slate-400 italic">MÔ tả yêu cầu: Không có mô tả chi tiết</span>}
                   </div>
                 </div>
@@ -477,7 +477,7 @@ export default function RequestDetailPage() {
             </div>
 
             {/* Cost Information */}
-            {showPaymentInfo && (requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
+            {/* {showPaymentInfo && (requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -506,7 +506,7 @@ export default function RequestDetailPage() {
                   )}
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Payment Information Card (if exists) */}
             {showPaymentInfo && requestDetail.payments && requestDetail.payments.length > 0 && (
@@ -540,75 +540,39 @@ export default function RequestDetailPage() {
           </div>
 
           {/* Sidebar - Design Files */}
-          <div className="lg:col-span-4 space-y-8">
+          <div className="lg:col-span-4 space-y-6">
             <DesignFileDisplay designFilePath={requestDetail.design_file_path} requestId={requestDetail.order_request_id} />
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <div className="w-10 h-10 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600">
-                  <CloudUploadOutlined className="text-xl" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 m-0">Tải lên file thiết kế</h3>
-              </div>
-
-              {/* New Uploads List */}
-              {designFiles.length > 0 && (
-                <div className="mb-6">
-                  <Text className="text-slate-800 font-semibold mb-3 block">File mới tải lên ({designFiles.length})</Text>
-                  <div className="space-y-3">
-                    {designFiles.map((file) => (
-                      <div key={file.uid} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group">
-                        <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 overflow-hidden flex-shrink-0">
-                          <AntImage src={file.url} className="w-full h-full object-cover" preview={false} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <Text strong className="block text-sm truncate">{file.name}</Text>
-                          <Text type="secondary" className="text-xs">Vừa tải lên</Text>
-                        </div>
-                        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleRemoveFile(file)} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    ))}
+            {showPaymentInfo && (requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
+                <div className="flex items-center gap-3 mb-2 border-b border-slate-100 pb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                    <CreditCardOutlined className="text-xl" />
                   </div>
+                  <h3 className="text-lg font-bold text-slate-800 m-0">Chi phí & Thanh toán</h3>
                 </div>
-              )}
 
-              {/* Upload Area */}
-              {/* <div className="mt-2">
-                {!requestDetail.design_file_path ? (
-                  <Upload
-                    customRequest={handleUpload}
-                    showUploadList={false}
-                    accept="image/*,.pdf"
-                    disabled={uploading}
-                    className="block w-full"
-                  >
-                    <div className={`
-                        border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-300
-                        ${uploading ? 'border-cyan-400 bg-cyan-50' : 'border-slate-300 hover:border-cyan-500 hover:bg-slate-50'}
-                     `}>
-                      <div className="flex flex-col items-center gap-3">
-                        {uploading ? (
-                          <SyncOutlined spin className="text-3xl text-cyan-500" />
-                        ) : (
-                          <CloudUploadOutlined className="text-4xl text-cyan-500 drop-shadow-sm" />
-                        )}
-                        <div className="text-slate-700 font-semibold">
-                          {uploading ? "Đang tải lên..." : "Tải lên file thiết kế"}
-                        </div>
-                        <Text type="secondary" className="text-xs max-w-[200px] mx-auto">
-                          Kéo thả hoặc nhấn để chọn file (JPG, PNG, PDF)
-                        </Text>
+                <div className="space-y-2">
+                  {requestDetail.final_total_cost !== undefined && (
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="text-slate-500 text-sm font-medium mb-1">Tổng chi phí dự kiến</div>
+                      <div className="text-2xl font-bold text-emerald-600">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(requestDetail.final_total_cost)}
                       </div>
                     </div>
-                  </Upload>
-                ) : (
-                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex gap-3 text-amber-700 text-sm">
-                    <InfoCircleOutlined className="mt-1 flex-shrink-0" />
-                    <span>Đã có file thiết kế. Nếu cần thay đổi, vui lòng liên hệ quản trị viên.</span>
-                  </div>
-                )}
-              </div> */}
-            </div>
+                  )}
+
+                  {requestDetail.deposit_amount !== undefined && (
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="text-slate-500 text-sm font-medium mb-1">Số tiền đặt cọc</div>
+                      <div className="text-2xl font-bold text-amber-600">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(requestDetail.deposit_amount)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

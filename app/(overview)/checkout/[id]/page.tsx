@@ -78,27 +78,27 @@ export default function RequestDetailPage() {
     }
   };
 
-  // useEffect(() => {
-  //   if (!requestId) return;
+  useEffect(() => {
+    if (!requestId) return;
 
-  //   const checkPaymentStatus = async () => {
-  //     try {
-  //       const response = await paymentApi.getStatusPayment(requestId);
-  //       const data = (response as any).data || response;
+    const checkPaymentStatus = async () => {
+      try {
+        const response = await paymentApi.getStatusPayment(requestId);
+        const data = (response as any).data || response;
 
-  //       if (data && data.status === 'PAID') {
-  //         message.success('Thanh toán thành công!');
-  //         router.push(`/request-detail/${requestId}`);
-  //       }
-  //     } catch (error) {
-  //       // console.error("Error checking payment status:", error);
-  //     }
-  //   };
+        if (data && data.status === 'PAID') {
+          message.success('Thanh toán thành công!');
+          router.push(`/request-detail/${requestId}`);
+        }
+      } catch (error) {
+        // console.error("Error checking payment status:", error);
+      }
+    };
 
-  //   const intervalId = setInterval(checkPaymentStatus, 2000);
+    const intervalId = setInterval(checkPaymentStatus, 2000);
 
-  //   return () => clearInterval(intervalId);
-  // }, [requestId, router]);
+    return () => clearInterval(intervalId);
+  }, [requestId, router]);
 
   const formatVND = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -318,14 +318,14 @@ export default function RequestDetailPage() {
         })}
       </div>
 
-      <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
-        <Button
-          danger
+      <div className="mt-2 pt-2 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
+        <button
+          
           onClick={() => router.push(`/reject-deal/${requestId}`)}
-          className="h-10 px-8 rounded-lg font-medium w-full sm:w-auto mt-2 sm:mt-0"
+          className="h-10 px-8 rounded-lg font-medium w-full sm:w-auto mt-2 sm:mt-0 bg-red-500 text-white hover:bg-red-600 hover:text-white"
         >
           Từ chối yêu cầu báo giá
-        </Button>
+        </button>
       </div>
 
       <Modal
