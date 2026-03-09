@@ -13,6 +13,7 @@ interface DesignUploadSectionProps {
   setFileList: (files: UploadFile[] | ((prev: UploadFile[]) => UploadFile[])) => void;
 }
 
+
 const getBase64 = (file: RcFile): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();

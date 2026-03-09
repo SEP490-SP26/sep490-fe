@@ -72,7 +72,7 @@ export default function LayoutManager({
 
       <Sidebar
         userInfo={{
-          name: "Quản Lý Tổng Hợp",
+          name: "Quản Lý",
           role: "Công ty in ấn",
         }}
         navItems={[...managerNavItems]}

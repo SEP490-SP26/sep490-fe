@@ -152,7 +152,13 @@ export default function InventoryManagement() {
                   </div>
                   <div className="text-gray-500 text-sm">
                     Dự kiến:{" "}
-                    {new Date(po.etaDate).toLocaleDateString("vi-VN")}
+                    {new Date(
+                      po.etaDate
+                        ? po.etaDate
+                        : new Date(new Date(po.createdAt).setDate(
+                            new Date(po.createdAt).getDate() + 3
+                          ))
+                    ).toLocaleDateString("vi-VN")}
                   </div>
                 </div>
 

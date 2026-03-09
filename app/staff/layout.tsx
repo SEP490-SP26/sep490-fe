@@ -25,7 +25,7 @@ export default function StaffLayout({
       {/* Sidebar */}
       <Sidebar
         userInfo={{
-          name: "Staff",
+          name: "Nhân viên",
           role: "Nhân viên sản xuất",
         }}
         navItems={staffNavItems}

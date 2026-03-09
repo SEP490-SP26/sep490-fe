@@ -1,6 +1,7 @@
 "use client";
 
 import { requestOrderApi } from "@/apiRequests/request";
+import { getSignalRConnection } from "@/lib/signalr";
 import { OrderRequest } from "@/schemaValidations/common.schema";
 import {
     CaretDownOutlined,
@@ -67,6 +68,26 @@ export default function ManagerRequestsProcessingPage() {
     useEffect(() => {
         fetchAllOrders();
     }, []);
+    //===============Signalr================
+    useEffect(() => {
+    let mounted = true;
+
+    const setup = async () => {
+        const conn = await getSignalRConnection();
+        conn.invoke("JoinRequestsAll").catch(console.error);
+        conn.on("request.noteChanged", () => {
+            console.log("SignalR event -> refetch orders");
+            if (mounted) fetchAllOrders();
+        });
+    };
+
+    setup();
+
+    return () => {
+        mounted = false;
+        getSignalRConnection().then((conn) => conn.off("request.notedchanged"));
+    };
+}, []);
 
     // Sorting function
     const sortOrders = useMemo(
