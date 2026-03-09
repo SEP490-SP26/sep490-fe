@@ -5,6 +5,7 @@ import { supplierApi } from "@/apiRequests/supplier";
 import SupplierQuoteCard from "@/components/Card/SupplierQuoteCard ";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { useProduction } from "@/context/ProductionContext";
+import { Material } from "@/lib/estimation.types";
 import {
   showErrorToast,
   showSuccessToast,
@@ -133,6 +134,21 @@ export default function PurchaseManagement() {
     },
   });
   // console.log("poData", poData);
+
+  const { data: allMaterials = [], isPending: allMaterialLoading, refetch: refetchAllMaterials } = useQuery({
+    queryKey: ["all-materials"],
+    queryFn: async () => {
+      try {
+        const response = await materialsApi.getAll();
+        // console.log("Response miss data:", response.data);
+        //Chì lấy is_buy = false
+        return response.data.filter((m: any) => m.is_buy === false);
+      } catch (error) {
+        console.error("Error fetching purchase orders:", error);
+        return [];
+      }
+    },
+  });
 
   // Lấy danh sách vật tư cần đặt hàng
   const { data: missing_materials = [], isPending: materialLoading, refetch: refetchMissingMaterials } = useQuery({
@@ -1204,7 +1220,7 @@ export default function PurchaseManagement() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Chọn vật tư</option>
-              {materials.map((material) => (
+              {allMaterials.map((material: Material) => (
                 <option key={material.id} value={material.id}>
                   {material.name}
                 </option>

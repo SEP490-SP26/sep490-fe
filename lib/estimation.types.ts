@@ -120,10 +120,11 @@ export interface Material {
   code: string;
   name: string;
   unit: string;
+  type: string;
   stock_qty: number;
   min_stock: number;
   cost_price: number;
-  description: string;
+  description?: string;
   main_material_type: string;
   boms: [];
   purchase_items: [];
@@ -131,6 +132,8 @@ export interface Material {
   supplier_materials: [];
   sheet_width_mm: number;
   sheet_height_mm: number;
+  sheet_length_mm?: number;
+  material_class: string;
   [key: string]: any;
 }
 
