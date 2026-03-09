@@ -353,7 +353,7 @@ export default function ManagerRequestDetailPage() {
                                 Thông tin báo giá
                             </h3>
                             {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
-                                <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-1">
+                                <div className={`grid gap-4 max-h-[500px] overflow-y-auto pr-1 ${orderDetail.cost_estimate.filter(x => x.is_active).length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                                     {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => (
                                         <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                                             <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">

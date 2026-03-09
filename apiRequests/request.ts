@@ -105,4 +105,7 @@ export const requestOrderApi = {
 
   approval: (body: { request_id: number, note: string, status: string }) =>
     http.put<CommonResType>('/api/Requests/approval', body),
+
+  cloneRequest: (body: { request_id: number }) =>
+    http.post<CommonResType>('/api/Requests/clone-request', body),
 };

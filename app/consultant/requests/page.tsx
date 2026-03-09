@@ -5,6 +5,7 @@ import { OrderRequest } from "@/schemaValidations/common.schema";
 import {
   CaretDownOutlined,
   CaretUpOutlined,
+  CopyOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
@@ -105,6 +106,19 @@ export default function ConsultantOrdersPage() {
     onError: (error: any) => {
       console.error("Send deal error:", error);
       message.error(error.response?.data?.message || "Có lỗi xảy ra khi gửi báo giá");
+    },
+  });
+
+  // Clone mutation
+  const cloneMutation = useMutation({
+    mutationFn: ({ request_id }: { request_id: number }) => requestOrderApi.cloneRequest({ request_id }),
+    onSuccess: (data) => {
+      message.success(data.data?.message || "Nhân bản yêu cầu thành công");
+      fetchAllOrders();
+    },
+    onError: (error: any) => {
+      console.error("Clone error:", error);
+      message.error(error.response?.data?.message || "Có lỗi xảy ra khi nhân bản yêu cầu");
     },
   });
 
@@ -350,8 +364,8 @@ export default function ConsultantOrdersPage() {
               onClick={() => openCancelModal(record.order_request_id)}
               disabled={cancelMutation.isPending && cancelModal.orderId === record.order_request_id}
             >
-
             </Button>
+
           </Space>
 
         );
@@ -416,6 +430,15 @@ export default function ConsultantOrdersPage() {
       case "waiting":
         return (
           <Space size="small">
+
+            <Link
+              href={`/consultant/request-detail/${record.order_request_id}`}
+            >
+              <Button size="small" icon={<EyeOutlined />}>
+                Chi Tiết
+              </Button>
+            </Link>
+
             <Button
               size="small"
               style={{
@@ -432,13 +455,30 @@ export default function ConsultantOrdersPage() {
             >
 
             </Button>
-            <Link
-              href={`/consultant/request-detail/${record.order_request_id}`}
+            <Popconfirm
+              title={<span className="text-lg font-medium">Xác nhận nhân bản</span>}
+              description={`Bạn có chắc muốn nhân bản yêu cầu #${record.order_request_id}?`}
+              onConfirm={(e) => {
+                e?.stopPropagation();
+                cloneMutation.mutate({ request_id: record.order_request_id });
+              }}
+              onCancel={(e) => e?.stopPropagation()}
+              okText="Đồng ý"
+              cancelText="Hủy"
             >
-              <Button size="small" icon={<EyeOutlined />}>
-                Chi Tiết
+              <Button
+                size="small"
+                style={{
+                  color: "blue",
+                  border: "1px solid blue",
+                  backgroundColor: "transparent",
+                }}
+                icon={<CopyOutlined />}
+                onClick={(e) => e.stopPropagation()}
+                loading={cloneMutation.isPending && cloneMutation.variables?.request_id === record.order_request_id}
+              >
               </Button>
-            </Link>
+            </Popconfirm>
           </Space>
         );
       case "pending_order_creation":
@@ -583,7 +623,7 @@ export default function ConsultantOrdersPage() {
       key: "processing",
       label: (
         <span>
-          Đang xử lý
+          Chờ duyệt
           {processingOrders.length > 0 && (
             <Tag color="cyan" className="ml-2">
               {processingOrders.length}
