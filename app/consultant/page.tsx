@@ -725,7 +725,7 @@ function ConsultantForm() {
 
 
   // --- CALCULATION LOGIC ---
-  const handleCalculate = (changedValues: any, allValues: any) => {
+  const handleCalculate = (changedValues: any, allValues: any, calculatedPaperNeeded?: number) => {
     const { quantity, paper_code, delivery_date } = allValues;
 
     if ("final_price" in changedValues) return;
@@ -738,7 +738,8 @@ function ConsultantForm() {
       isWorkshopFull,
       daysUntilFree,
       delivery_date,
-      isBusy
+      isBusy,
+      calculatedPaperNeeded ?? paperEstimate?.sheets_with_waste
     );
 
     if (!orderId && "quantity" in changedValues && !delivery_date) {
@@ -952,7 +953,8 @@ function ConsultantForm() {
 
       const basicEstimate = calculateProductionTime(
         quantity, paper_code, paperTypes, isWorkshopFull,
-        daysUntilFree, values.delivery_date, isBusy
+        daysUntilFree, values.delivery_date, isBusy,
+        result.waste.sheetsWithWaste
       );
 
       return {
@@ -973,9 +975,12 @@ function ConsultantForm() {
     const result = calculateEstimateResult(values);
 
     if (result) {
+      setEstimate(result.estimate);
       setPaperEstimate(result.paperEstimate);
       setCostEstimate(result.costEstimate);
       form.setFieldValue("final_price", result.finalTotalCost);
+      // Optional: if handleCalculate does anything else, we keep it, but mostly we just need setEstimate
+      // handleCalculate(values, values, result.paperEstimate.sheets_with_waste);
     }
   }
 

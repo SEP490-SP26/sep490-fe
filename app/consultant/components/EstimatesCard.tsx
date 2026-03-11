@@ -122,8 +122,7 @@ export default function EstimatesCard({
     if (!estimate.isStockEnough) {
       return (
         <Alert
-          message="Thiếu nguyên vật liệu"
-          description="Kho không đủ giấy. Cần tạo phiếu Yêu Cầu Vật Tư sau khi tạo đơn."
+          title="Thiếu nguyên vật liệu "
           type="error"
           showIcon
           className="mb-4"
@@ -134,8 +133,7 @@ export default function EstimatesCard({
     if (estimate.caseType === 3) {
       return (
         <Alert
-          message="GẤP & QUÁ TẢI"
-          description={`Khách cần sớm ${estimate.daysEarly} ngày.Xưởng đang bận.Đã tính phí gấp cao.`}
+          title={`GẤP & QUÁ TẢI - Khách cần sớm ${estimate.daysEarly} ngày.Xưởng đang bận.Đã tính phí gấp cao.`}
           type="error"
           showIcon
           className="mb-4"

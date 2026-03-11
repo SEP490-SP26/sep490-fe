@@ -106,16 +106,17 @@ export const calculateProductionTime = (
   isWorkshopFull: boolean,
   daysUntilFree: number,
   deliveryDate: dayjs.Dayjs | null,
-  isBusy: boolean
+  isBusy: boolean,
+  calculatedPaperNeeded?: number
 ) => {
   // 1. Basic Cost
   const baseCost = quantity * 2500 + 3000000;
 
   // 2. Paper Needed
-  const paperNeeded = Math.ceil((quantity / 4) * 1.05);
+  const paperNeeded = calculatedPaperNeeded ?? Math.ceil((quantity / 4) * 1.05);
   const selectedPaper = paperTypes.find((p) => p.value === paperCode);
   const isStockEnough = selectedPaper
-    ? selectedPaper.stock >= paperNeeded
+    ? Number(selectedPaper.stock) >= Number(paperNeeded)
     : true;
 
   // 3. Time
