@@ -87,7 +87,7 @@ export default function RequestDetailPage() {
         const data = (response as any).data || response;
 
         if (data && data.status === 'PAID') {
-          message.success('Thanh toán thành công!');
+          // message.success('Thanh toán thành công!');
           router.push(`/request-detail/${requestId}`);
         }
       } catch (error) {
