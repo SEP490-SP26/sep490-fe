@@ -197,6 +197,7 @@ export const mapToOrderEstimationResult = (
     paper_code: additionalSpecs?.paper_code || costEstimate.cost.material_cost_details?.find((m: any) => m.material_name.includes("Giấy"))?.note || paperEstimate.paper_code || "",
     paper_name: additionalSpecs?.paper_name || "",
     wave_type: additionalSpecs?.wave_type || "",
+    previous_estimate_id: additionalSpecs?.previous_estimate_id || null,
 
     // Ink
     ink_cost: costEstimate.cost.ink_cost || 0,

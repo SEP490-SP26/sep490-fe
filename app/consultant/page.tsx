@@ -153,6 +153,7 @@ function ConsultantForm() {
   const [machineCapacity, setMachineCapacity] = useState<MachineCapacity | null>(null);
   const [freeMachines, setFreeMachines] = useState<FreeMachine[]>([]);
   const [savedEstimateId, setSavedEstimateId] = useState<number | null>(null);
+  const [previousEstimateId, setPreviousEstimateId] = useState<number | null>(null);
 
   // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -224,10 +225,11 @@ function ConsultantForm() {
       costEstimate: any;
       discountPercent: number;
       estimate_id?: number | null;
+      previous_estimate_id?: number | null;
     };
   }
   const [quoteTabs, setQuoteTabs] = useState<QuoteTab[]>([
-    { key: "1", label: "Báo giá 1", data: {}, calculations: { estimate: null, paperEstimate: null, costEstimate: null, discountPercent: 0 } },
+    { key: "1", label: "Báo giá 1", data: {}, calculations: { estimate: null, paperEstimate: null, costEstimate: null, discountPercent: 0, previous_estimate_id: null } },
   ]);
   const [activeTabKey, setActiveTabKey] = useState<string>("1");
 
@@ -274,6 +276,7 @@ function ConsultantForm() {
       costEstimate,
       discountPercent,
       estimate_id: savedEstimateId,
+      previous_estimate_id: previousEstimateId,
     };
 
     // Generate new key
@@ -340,6 +343,7 @@ function ConsultantForm() {
       costEstimate,
       discountPercent,
       estimate_id: savedEstimateId,
+      previous_estimate_id: previousEstimateId,
     };
 
     const updatedTabs = currentTabs.map((tab) => {
@@ -373,6 +377,7 @@ function ConsultantForm() {
         setCostEstimate(targetTab.calculations.costEstimate);
         setDiscountPercent(targetTab.calculations.discountPercent || 0);
         setSavedEstimateId(targetTab.calculations.estimate_id || null);
+        setPreviousEstimateId(targetTab.calculations.previous_estimate_id || null);
         form.setFieldValue("final_price", targetTab.calculations.costEstimate?.cost?.final_total_cost);
       } else {
         // Calculate immediately using nextValues
@@ -383,6 +388,7 @@ function ConsultantForm() {
           setCostEstimate(result.costEstimate);
           setDiscountPercent(0);
           setSavedEstimateId(null);
+          setPreviousEstimateId(targetTab.calculations?.previous_estimate_id || null);
           form.setFieldValue("final_price", result.finalTotalCost);
 
           // Optionally save back to tab if needed, but state handles UI
@@ -623,7 +629,8 @@ function ConsultantForm() {
                   paperEstimate: null,
                   costEstimate: null,
                   discountPercent: 0,
-                  estimate_id: est.estimate_id
+                  estimate_id: (orderData.process_status === 'Declined' || orderData.process_status === 'declined') ? null : est.estimate_id,
+                  previous_estimate_id: (orderData.process_status === 'Declined' || orderData.process_status === 'declined') ? est.estimate_id : null
                 }
               };
             });
@@ -1050,6 +1057,8 @@ function ConsultantForm() {
       paperEstimate,
       costEstimate,
       discountPercent,
+      estimate_id: savedEstimateId,
+      previous_estimate_id: previousEstimateId,
     };
 
     const currentFormValues = form.getFieldsValue();
@@ -1077,7 +1086,8 @@ function ConsultantForm() {
         label: tab.label,
         calculations: {
           ...tab.calculations,
-          estimate_id: tab.key === activeTabKey ? savedEstimateId : tab.calculations?.estimate_id
+          estimate_id: tab.key === activeTabKey ? savedEstimateId : tab.calculations?.estimate_id,
+          previous_estimate_id: tab.key === activeTabKey ? previousEstimateId : tab.calculations?.previous_estimate_id
         }
       };
     });
@@ -1241,6 +1251,7 @@ function ConsultantForm() {
                 bleed_mm: quote.bleed,
                 glue_tab_mm: quote.glue_tab,
                 is_one_side_box: quote.is_one_side_box,
+                previous_estimate_id: calculations.previous_estimate_id || null,
               }
             );
 
@@ -1329,6 +1340,7 @@ function ConsultantForm() {
               bleed_mm: form.getFieldValue("bleed"),
               glue_tab_mm: form.getFieldValue("glue_tab"),
               is_one_side_box: form.getFieldValue("is_one_side_box"),
+              previous_estimate_id: previousEstimateId || null,
             }
           );
 

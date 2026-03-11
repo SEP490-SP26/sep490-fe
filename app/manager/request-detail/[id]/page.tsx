@@ -5,7 +5,7 @@ import { materialsApi } from "@/apiRequests/materials";
 import { requestOrderApi } from "@/apiRequests/request";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
-import { VerifiedRequestReponse } from "@/lib/request.types";
+import { RequestDetailResponse } from "@/lib/request.types";
 import {
     CheckOutlined,
     DollarOutlined,
@@ -39,13 +39,28 @@ const { Text } = Typography;
 const { Panel } = Collapse;
 const { TextArea } = Input;
 
+const maskPhone = (phone?: string) => {
+    if (!phone) return "";
+    if (phone.length <= 6) return phone;
+    return phone.slice(0, 3) + "****" + phone.slice(-3);
+};
+
+const maskEmail = (email?: string) => {
+    if (!email) return "";
+    const parts = email.split('@');
+    if (parts.length !== 2) return email;
+    const [name, domain] = parts;
+    const visibleLength = name.length <= 3 ? 1 : 3;
+    return name.slice(0, visibleLength) + "***@" + domain;
+};
+
 export default function ManagerRequestDetailPage() {
     const params = useParams();
     const router = useRouter();
     const requestId = params.id as string;
 
     const [loading, setLoading] = useState(true);
-    const [orderDetail, setOrderDetail] = useState<VerifiedRequestReponse | null>(null);
+    const [orderDetail, setOrderDetail] = useState<RequestDetailResponse | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
     const [noteMode, setNoteMode] = useState(false);
@@ -256,13 +271,13 @@ export default function ManagerRequestDetailPage() {
                                     Hủy bỏ
                                 </Button>
                                 <Popconfirm
-                                    title={<span className="text-lg font-medium">Xác nhận thay đổi?</span>}
+                                    title={<span className="text-lg font-medium">Xác nhận yêu cầu chỉnh sửa ?</span>}
                                     onConfirm={() => handleApproval('Declined')}
                                     okText="Xác nhận"
                                     cancelText="Hủy"
                                 >
                                     <Button type="primary" block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
-                                        Xác nhận thay đổi
+                                        Xác nhận yêu cầu chỉnh sửa 
                                     </Button>
                                 </Popconfirm>
                             </>
@@ -303,8 +318,8 @@ export default function ManagerRequestDetailPage() {
                                 </h3>
                                 <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} className="text-sm" labelStyle={{ color: '#64748b' }}>
                                     <Descriptions.Item label="Họ tên"><Text strong className="text-slate-800">{orderDetail.customer_name}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Điện thoại"><Text strong className="text-slate-800">{orderDetail.customer_phone}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Email"><Text strong className="text-slate-800 truncate" style={{ maxWidth: 180 }} title={orderDetail.email}>{orderDetail.email}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Điện thoại"><Text strong className="text-slate-800">{maskPhone(orderDetail.customer_phone)}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Email"><Text strong className="text-slate-800 truncate" style={{ maxWidth: 180 }} title={maskEmail(orderDetail.email)}>{maskEmail(orderDetail.email)}</Text></Descriptions.Item>
                                     <Descriptions.Item label="Địa chỉ giao hàng" span={3}>
                                         <Text strong className="text-slate-800">{orderDetail.detail_address || <span className="font-normal italic text-slate-400">Chưa cập nhật</span>}</Text>
                                     </Descriptions.Item>
@@ -324,7 +339,7 @@ export default function ManagerRequestDetailPage() {
                                     <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm} mm</Text></Descriptions.Item>
 
                                     <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
-                                    <Descriptions.Item label="Giao hàng" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
+                                    <Descriptions.Item label="Dự kiến" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
 
 
 

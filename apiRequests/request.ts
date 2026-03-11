@@ -24,49 +24,7 @@ export interface DetailedEstimate {
   process_cost: ProcessCost[];
 }
 
-export interface VerifiedRequestReponse {
-  request_id: number;
-  customer_name: string;
-  customer_phone: string;
-  email: string;
-  request_date: string; // ISO Date
-  delevery_date: string; // ISO Date (Lưu ý typo 'delevery')
 
-  // Thông tin sản phẩm
-  product_name: string;
-  product_type: string; // VD: "HOP_MAU"
-  quantity: number;
-  process_status: 'Declined' | 'Waiting' | 'Verified' | string;
-  reason: string | null; // Lý do từ chối (nếu có)
-  note: string | null; // Ghi chú của quản lý
-  consultant_note: string | null; // Ghi chú của consultant
-
-  // File thiết kế (Dạng chuỗi ngăn cách bằng dấu phẩy)
-  design_file_path: string;
-  detail_address: string;
-  description: string;
-
-  // Thông số kỹ thuật chung
-  number_of_plates: number;
-  product_length_mm: number;
-  product_width_mm: number;
-  product_height_mm: number;
-
-  // Các trường technical có thể null khi chưa duyệt
-  production_processes: string | null;
-  coating_type: string | null;
-  paper_code: string | null;
-  paper_name: string | null;
-  wave_type: string | null;
-  glue_tab_mm: number | null;
-  bleed_mm: number | null;
-  is_one_side_box: boolean | null;
-  print_width_mm: number | null;
-  print_height_mm: number | null;
-
-  // Danh sách các bản dự toán đã thực hiện
-  cost_estimate: DetailedEstimate[];
-}
 
 export const requestOrderApi = {
   getList: (page: number = 1, pageSize: number = 5) =>
@@ -95,7 +53,7 @@ export const requestOrderApi = {
       '/api/Requests/reject', body
     ),
 
-  getRequestDetailbyConsultant: (request_id: string) => http.get<VerifiedRequestReponse>(`/api/Requests/full-data-by-request_id/${request_id}`),
+  getRequestDetailbyConsultant: (request_id: string) => http.get<RequestDetailResponse>(`/api/Requests/full-data-by-request_id/${request_id}`),
 
   createRequestOrderByConsultant: (body: CreateRequestBodyForConsultant) =>
     http.post<CommonResType>("/api/Requests/create-request-by-consultant", body),

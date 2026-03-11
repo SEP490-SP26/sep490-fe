@@ -3,7 +3,7 @@
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
-import { VerifiedRequestReponse } from "@/lib/request.types";
+import { RequestDetailResponse } from "@/lib/request.types";
 import {
     DollarOutlined,
     DownloadOutlined,
@@ -44,7 +44,7 @@ export default function ConsultantRequestDetailPage() {
     const requestId = params.id as string;
 
     const [loading, setLoading] = useState(true);
-    const [orderDetail, setOrderDetail] = useState<VerifiedRequestReponse | null>(null);
+    const [orderDetail, setOrderDetail] = useState<RequestDetailResponse | null>(null);
 
     const [sending, setSending] = useState(false);
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
