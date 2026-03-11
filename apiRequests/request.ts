@@ -1,5 +1,6 @@
 import http from "@/lib/httpAxios";
-import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, RejectDealRequest, RequestDetailResponse, UpdateRequestBody } from "../schemaValidations/common.schema";
+import { CommonResType, CreateRequestBody, CreateRequestBodyForConsultant, RejectDealRequest, UpdateRequestBody } from "../schemaValidations/common.schema";
+import { RequestDetailResponse } from "@/lib/request.types";
 
 interface CancelRequestBody {
   id: number;
