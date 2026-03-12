@@ -487,7 +487,7 @@ export default function ConsultantRequestDetailPage() {
                                 </h3>
                                 {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
                                     <div className={`grid gap-4 max-h-[500px] overflow-y-auto pr-1 ${orderDetail.cost_estimate.filter(x => x.is_active).length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                                        {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => {
+                                        {orderDetail.cost_estimate.filter(x => x.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((estimate, index) => {
                                             const hasNote = orderDetail.reason?.includes(`Báo giá ${index + 1}:`);
                                             return (
                                                 <div key={estimate.estimate_id} className={`p-4 rounded-xl border ${hasNote ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-slate-100'}`}>

@@ -482,15 +482,41 @@ export default function ManagerRequestDetailPage() {
                                 </h3>
                                 {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
                                     <div className={`grid gap-4 max-h-[500px] overflow-y-auto pr-1 ${orderDetail.cost_estimate.filter(x => x.is_active).length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                                        {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => (
+                                        {orderDetail.cost_estimate.filter(x => x.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((estimate, index) => {
+                                            const prevEstimate = estimate.previous_estimate_id 
+                                                ? orderDetail.cost_estimate.find((e: any) => e.estimate_id === estimate.previous_estimate_id) 
+                                                : null;
+
+                                            const renderDiff = (oldVal: any, newVal: any, formatFn?: any, defaultVal: string = "") => {
+                                                const formattedOld = formatFn ? formatFn(oldVal) : (oldVal || defaultVal);
+                                                const formattedNew = formatFn ? formatFn(newVal) : (newVal || defaultVal);
+                                                
+                                                if (prevEstimate && oldVal !== newVal) {
+                                                    return (
+                                                        <span className="flex items-center justify-end gap-1.5 flex-nowrap">
+                                                            <span className="line-through text-red-500 text-xs opacity-70 font-normal">{formattedOld}</span>
+                                                            <span className="font-semibold text-green-600 flex items-center gap-1">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                                {formattedNew}
+                                                            </span>
+                                                        </span>
+                                                    );
+                                                }
+                                                return <span>{formattedNew}</span>;
+                                            };
+
+                                            return (
                                             <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                                                 <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
                                                     <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
+                                                    {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{fontSize: '10px'}}>Đã được chỉnh sửa</Tag>}
                                                 </div>
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="text-slate-500 text-sm whitespace-nowrap">Loại giấy:</span>
                                                     <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? 'text-slate-400' : ''}`}>{estimate.paper_name || "Chưa xác định"}</span>
+                                                        <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? 'text-slate-400' : ''}`}>
+                                                            {renderDiff(prevEstimate?.paper_name, estimate.paper_name, null, "Chưa xác định")}
+                                                        </span>
                                                         {noteMode && (
                                                             <Popover
                                                                 content={
@@ -517,7 +543,9 @@ export default function ManagerRequestDetailPage() {
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="text-slate-500 text-sm whitespace-nowrap">Loại phủ:</span>
                                                     <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? ' text-slate-400' : ''}`}>{formatCoatingType(estimate.coating_type)}</span>
+                                                        <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? ' text-slate-400' : ''}`}>
+                                                            {renderDiff(prevEstimate?.coating_type, estimate.coating_type, formatCoatingType, "Chưa xác định")}
+                                                        </span>
                                                         {noteMode && (
                                                             <Popover
                                                                 content={
@@ -544,13 +572,17 @@ export default function ManagerRequestDetailPage() {
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="text-slate-500 text-sm whitespace-nowrap">Đặt cọc:</span>
                                                     <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-semibold text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>{formatCurrency(estimate.deposit_amount)}</span>
+                                                        <span className={`font-semibold text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
+                                                            {renderDiff(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
+                                                        </span>
                                                     </div>
                                                 </div>
                                                 <div className="flex justify-between items-center mb-3">
                                                     <span className="text-slate-500 text-sm font-medium whitespace-nowrap">Tổng chi phí:</span>
-                                                    <div className="flex  items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-bold text-lg text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>{formatCurrency(estimate.final_total_cost)}</span>
+                                                    <div className="flex items-center justify-end gap-x-2 gap-y-1">
+                                                        <span className={`font-bold text-lg text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
+                                                            {renderDiff(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
+                                                        </span>
                                                         {noteMode && (
                                                             <Popover
                                                                 content={
@@ -582,31 +614,41 @@ export default function ManagerRequestDetailPage() {
                                                                 {estimate.paper_cost > 0 && (
                                                                     <div className="flex justify-between items-center">
                                                                         <span className="text-slate-500 text-xs">Phí giấy</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.paper_cost)}</span>
+                                                                        <span className="text-slate-800 text-xs font-semibold">
+                                                                            {renderDiff(prevEstimate?.paper_cost, estimate.paper_cost, formatCurrency, "0")}
+                                                                        </span>
                                                                     </div>
                                                                 )}
                                                                 {estimate.ink_cost > 0 && (
                                                                     <div className="flex justify-between items-center">
                                                                         <span className="text-slate-500 text-xs">Phí mực</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.ink_cost)}</span>
+                                                                        <span className="text-slate-800 text-xs font-semibold">
+                                                                            {renderDiff(prevEstimate?.ink_cost, estimate.ink_cost, formatCurrency, "0")}
+                                                                        </span>
                                                                     </div>
                                                                 )}
                                                                 {estimate.coating_glue_cost > 0 && (
                                                                     <div className="flex justify-between items-center">
                                                                         <span className="text-slate-500 text-xs">Phí keo phủ</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.coating_glue_cost)}</span>
+                                                                        <span className="text-slate-800 text-xs font-semibold">
+                                                                            {renderDiff(prevEstimate?.coating_glue_cost, estimate.coating_glue_cost, formatCurrency, "0")}
+                                                                        </span>
                                                                     </div>
                                                                 )}
                                                                 {estimate.mounting_glue_cost > 0 && (
                                                                     <div className="flex justify-between items-center">
                                                                         <span className="text-slate-500 text-xs">Phí keo bồi</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.mounting_glue_cost)}</span>
+                                                                        <span className="text-slate-800 text-xs font-semibold">
+                                                                            {renderDiff(prevEstimate?.mounting_glue_cost, estimate.mounting_glue_cost, formatCurrency, "0")}
+                                                                        </span>
                                                                     </div>
                                                                 )}
                                                                 {estimate.lamination_cost > 0 && (
                                                                     <div className="flex justify-between items-center">
                                                                         <span className="text-slate-500 text-xs">Phí màng/keo cán</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.lamination_cost)}</span>
+                                                                        <span className="text-slate-800 text-xs font-semibold">
+                                                                            {renderDiff(prevEstimate?.lamination_cost, estimate.lamination_cost, formatCurrency, "0")}
+                                                                        </span>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -618,12 +660,17 @@ export default function ManagerRequestDetailPage() {
                                                     <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
                                                         <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
                                                             <div className="space-y-2 py-1">
-                                                                {estimate.process_cost.map(proc => (
-                                                                    <div key={proc.process_cost_id} className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">{formatCurrency(proc.cost)}</span>
-                                                                    </div>
-                                                                ))}
+                                                                {estimate.process_cost.map(proc => {
+                                                                    const prevProc = prevEstimate ? prevEstimate.process_cost?.find((p: any) => p.process_code === proc.process_code) : null;
+                                                                    return (
+                                                                        <div key={proc.process_cost_id} className="flex justify-between items-center">
+                                                                            <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
+                                                                            <span className="text-slate-800 text-xs font-semibold">
+                                                                                {renderDiff(prevProc?.cost, proc.cost, formatCurrency, "0")}
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                })}
                                                             </div>
                                                         </Panel>
                                                     </Collapse>
@@ -641,7 +688,7 @@ export default function ManagerRequestDetailPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 ) : (
                                     <div className="text-center py-6">

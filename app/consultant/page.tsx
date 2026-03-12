@@ -585,9 +585,9 @@ function ConsultantForm() {
           setManagerNote(orderData.reason || orderData.note || orderData.manager_note || null);
 
           // Find up to 2 active estimates from cost_estimate array
-          let activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active) : [];
+          let activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active).sort((a: any, b: any) => a.estimate_id - b.estimate_id) : [];
           if (activeEstimates.length === 0 && orderData.cost_estimate && orderData.cost_estimate.length > 0) {
-            activeEstimates = orderData.cost_estimate;
+            activeEstimates = [...orderData.cost_estimate].sort((a: any, b: any) => a.estimate_id - b.estimate_id);
           }
 
           if (activeEstimates.length > 0 && isNegotiateMode) {
