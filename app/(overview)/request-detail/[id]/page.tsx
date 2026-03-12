@@ -2,6 +2,9 @@
 
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
+import { paymentApi, PaymentResponse } from "@/apiRequests/payment";
+import { estimatesApi, QuoteOption } from "@/apiRequests/estimates";
+import { QRCodeCanvas } from "qrcode.react";
 import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
   AppstoreOutlined,
@@ -34,6 +37,7 @@ import {
   Collapse,
   Empty,
   message,
+  Modal,
   Skeleton,
   Steps,
   Tag,
@@ -88,7 +92,88 @@ export default function RequestDetailPage() {
   const [designFiles, setDesignFiles] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  const [quotes, setQuotes] = useState<QuoteOption[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<QuoteOption | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentResponse | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [loadingQR, setLoadingQR] = useState(false);
+
   const { Panel } = Collapse;
+
+  useEffect(() => {
+    const fetchQuotes = async () => {
+      if (!requestId) return;
+
+      try {
+        const response = await estimatesApi.emailPreview(Number(requestId));
+        const data: any = (response as any).data || response;
+
+        if (data && data.quotes) {
+          setQuotes(data.quotes);
+        }
+      } catch (error) {
+        console.error("Error fetching quotes:", error);
+      }
+    };
+
+    fetchQuotes();
+  }, [requestId]);
+
+  const handlePayClick = async (quote: QuoteOption) => {
+    setSelectedQuote(quote);
+    setIsModalVisible(true);
+    setLoadingQR(true);
+    setPaymentInfo(null);
+    try {
+      const res = await paymentApi.getPaymentQR(String(quote.order_request_id), quote.quote_id, quote.estimate_id);
+      const data = (res as any).data || res;
+      if (data) {
+        setPaymentInfo(data);
+      }
+    } catch (error) {
+      console.error("Error fetching payment QR:", error);
+      message.error("Lỗi khi lấy thông tin thanh toán");
+      setIsModalVisible(false);
+    } finally {
+      setLoadingQR(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!requestId || !selectedQuote) return;
+
+    const checkPaymentStatus = async () => {
+      try {
+        const response = await paymentApi.getStatusPayment(requestId, selectedQuote.quote_id, selectedQuote.estimate_id);
+        const data = (response as any).data || response;
+
+        if (data && data.status === 'PAID') {
+          router.push(`/request-detail/${requestId}`);
+          setIsModalVisible(false);
+        }
+      } catch (error) {
+        // console.error("Error checking payment status:", error);
+      }
+    };
+
+    const intervalId = setInterval(checkPaymentStatus, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [requestId, router, selectedQuote]);
+
+  const formatVND = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    }).format(amount).replace('₫', 'đ');
+  };
+
+  const ExpiryNote = () => (
+    <p className="mt-6 text-sm text-slate-500 italic leading-relaxed border-t border-slate-200 pt-4">
+      (*) Báo giá có hiệu lực đến <b>{paymentInfo?.expired_at ? dayjs(paymentInfo.expired_at).format("HH:mm DD/MM/YYYY") : "..."}</b>. Sau thời gian này, mọi thông tin về đơn giá và chi phí có thể thay đổi.
+      Mọi thao tác thanh toán sau thời gian này đều sẽ không được ghi nhận, mọi thắc mắc vui lòng liên hệ lại với chúng tôi để được hỗ trợ.
+    </p>
+  );
 
   // Fetch order detail từ API
   useEffect(() => {
@@ -349,164 +434,136 @@ export default function RequestDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Info Column */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Customer Info */}
-            <Card
-              title={<span className="text-base font-bold text-slate-800">Thông tin khách hàng</span>}
-              className="rounded-2xl shadow-sm border-gray-100"
-              bordered={false}
-              extra={<UserOutlined className="text-gray-400" />}
-            >
-              <div className="space-y-2">
-                <div>
-                  {/* <Text type="secondary" className="text-xs uppercase font-bold">Liên hệ</Text> */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2  border-b border-gray-200 pb-2">
-                    <div className="font-medium text-slate-800">Khách hàng: {requestDetail.customer_name}</div>
-                    <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                      Sđt: {requestDetail.customer_phone}
+            {quotes.length === 0 && (
+              <>
+                {/* Customer Info */}
+                <Card
+                  title={<span className="text-base font-bold text-slate-800">Thông tin khách hàng</span>}
+                  className="rounded-2xl shadow-sm border-gray-100"
+                  bordered={false}
+                  extra={<UserOutlined className="text-gray-400" />}
+                >
+                  <div className="space-y-2">
+                    <div>
+                      {/* <Text type="secondary" className="text-xs uppercase font-bold">Liên hệ</Text> */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2  border-b border-gray-200 pb-2">
+                        <div className="font-medium text-slate-800">Khách hàng: {requestDetail.customer_name}</div>
+                        <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
+                          Sđt: {requestDetail.customer_phone}
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
+                          Email: {requestDetail.customer_email}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                      Email: {requestDetail.customer_email}
+                    <div>
+                      {/* <Text type="secondary" className="text-xs uppercase font-bold">Địa chỉ giao hàng</Text> */}
+                      <div className="flex items-start gap-2 mt-1 text-slate-700">
+                        <EnvironmentOutlined className="mt-1 text-slate-400" />
+                        <span>{requestDetail.detail_address}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  {/* <Text type="secondary" className="text-xs uppercase font-bold">Địa chỉ giao hàng</Text> */}
-                  <div className="flex items-start gap-2 mt-1 text-slate-700">
-                    <EnvironmentOutlined className="mt-1 text-slate-400" />
-                    <span>{requestDetail.detail_address}</span>
+                </Card>
+
+                {/* GỘP P */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 mt-4">
+                  <div className="flex items-center gap-3 mb-2 border-b border-slate-100 pb-2">
+                    <h3 className="text-base font-semibold text-slate-800 m-0">Chi tiết sản phẩm & Thông số kỹ thuật</h3>
                   </div>
-                </div>
-              </div>
-            </Card>
 
-            {/* GỘP Product Details Card và Technical Specifications Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300 mt-4">
-              <div className="flex items-center gap-3 mb-2 border-b border-slate-100 pb-2">
-                <h3 className="text-base font-semibold text-slate-800 m-0">Chi tiết sản phẩm & Thông số kỹ thuật</h3>
-              </div>
-
-              <div className="space-y-4">
-                {/* Thông tin cơ bản sản phẩm - TIÊU ĐỀ VÀ THÔNG TIN CÙNG DÒNG */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100"> */}
-                  {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                  <div className="space-y-4">
+                    {/* Thông tin cơ bản sản phẩm - TIÊU ĐỀ VÀ THÔNG TIN CÙNG DÒNG */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100"> */}
+                      {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <ShoppingOutlined className="text-indigo-500 text-lg" />
                     </div> */}
-                  <div>
-                    {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Sản phẩm</Text> */}
-                    <div className="text-lg font-bold text-slate-800">SP: {requestDetail.product_name}</div>
-                  </div>
-                  {/* </div> */}
+                      <div>
+                        {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Sản phẩm</Text> */}
+                        <div className="text-lg font-bold text-slate-800">SP: {requestDetail.product_name}</div>
+                      </div>
+                      {/* </div> */}
 
-                  {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100"> */}
-                  {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                      {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100"> */}
+                      {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <TagOutlined className="text-green-500 text-lg" />
                     </div> */}
-                  <div>
-                    {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text> */}
-                    <div className="text-lg font-bold text-slate-800">SL: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
-                  </div>
-                  {/* </div> */}
+                      <div>
+                        {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text> */}
+                        <div className="text-lg font-bold text-slate-800">SL: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
+                      </div>
+                      {/* </div> */}
 
-                  {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
                     {/* <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
                       <CalendarOutlined className="text-cyan-500 text-lg" />
                     </div> */}
-                  <div>
-                    {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng</Text> */}
-                    <div className="text-lg font-bold text-slate-800">Giao hàng: {dayjs(requestDetail.delivery_date).format("DD/MM/YYYY")}</div>
-                  </div>
-                  {/* </div> */}
-                </div>
-
-                {/* Mô tả yêu cầu */}
-                <div>
-                  {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text> */}
-                  <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[50px]">
-                    {requestDetail.description || <span className="text-slate-400 italic">MÔ tả yêu cầu: Không có mô tả chi tiết</span>}
-                  </div>
-                </div>
-                {/* Thông số kỹ thuật - collapse*/}
-                <div className="bg-white rounded-lg border border-slate-100 ">
-                  <Collapse
-                    ghost
-                    expandIconPosition="end"
-                    size="small"
-                  >
-                    <Panel
-                      header={<Text className="text-slate-700 font-bold">Thông số kỹ thuật</Text>}
-                      key="1"
-                    >
-                      <div className="space-y-2 pt-2">
-                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                          <div className="flex items-center gap-2">
-                            <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
-                          </div>
-                          <Text className="text-slate-800 font-bold text-base">
-                            {requestDetail.product_length_mm} x {requestDetail.product_width_mm} x {requestDetail.product_height_mm}
-                          </Text>
-                        </div>
-
-
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                            <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
-                            <Text className="text-slate-800 font-bold text-base">{requestDetail.paper_name}</Text>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                            <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
-                            <Text className="text-slate-800 font-bold text-sm">{requestDetail.wave_type}</Text>
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                            <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
-                            <Text className="text-slate-800 font-bold text-sm">{requestDetail.coating_type}</Text>
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                            <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
-                            <Text className="text-slate-800 font-bold text-sm">{requestDetail.number_of_plates}</Text>
-                          </div>
-                        </div>
+                      <div>
+                        {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng</Text> */}
+                        <div className="text-lg font-bold text-slate-800">Giao hàng: {dayjs(requestDetail.delivery_date).format("DD/MM/YYYY")}</div>
                       </div>
-                    </Panel>
-                  </Collapse>
-                </div>
-              </div>
-            </div>
+                      {/* </div> */}
+                    </div>
 
-            {/* Cost Information */}
-            {/* {showPaymentInfo && (requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
-                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                    <CreditCardOutlined className="text-xl" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-800 m-0">Chi phí & Thanh toán</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {requestDetail.final_total_cost !== undefined && (
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                      <div className="text-slate-500 text-sm font-medium mb-1">Tổng chi phí dự kiến</div>
-                      <div className="text-2xl font-bold text-emerald-600">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(requestDetail.final_total_cost)}
+                    {/* Mô tả yêu cầu */}
+                    <div>
+                      {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text> */}
+                      <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[50px]">
+                        {requestDetail.description || <span className="text-slate-400 italic">MÔ tả yêu cầu: Không có mô tả chi tiết</span>}
                       </div>
                     </div>
-                  )}
+                    {/* Thông số kỹ thuật - collapse*/}
+                    <div className="bg-white rounded-lg border border-slate-100 ">
+                      <Collapse
+                        ghost
+                        expandIconPosition="end"
+                        size="small"
+                      >
+                        <Panel
+                          header={<Text className="text-slate-700 font-bold">Thông số kỹ thuật</Text>}
+                          key="1"
+                        >
+                          <div className="space-y-2 pt-2">
+                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
+                              </div>
+                              <Text className="text-slate-800 font-bold text-base">
+                                {requestDetail.product_length_mm} x {requestDetail.product_width_mm} x {requestDetail.product_height_mm}
+                              </Text>
+                            </div>
 
-                  {requestDetail.deposit_amount !== undefined && (
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                      <div className="text-slate-500 text-sm font-medium mb-1">Số tiền đặt cọc</div>
-                      <div className="text-2xl font-bold text-amber-600">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(requestDetail.deposit_amount)}
-                      </div>
+
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
+                                <Text className="text-slate-800 font-bold text-base">{requestDetail.paper_name}</Text>
+                              </div>
+                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
+                                <Text className="text-slate-800 font-bold text-sm">{requestDetail.wave_type}</Text>
+                              </div>
+
+                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
+                                <Text className="text-slate-800 font-bold text-sm">{requestDetail.coating_type}</Text>
+                              </div>
+
+                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
+                                <Text className="text-slate-800 font-bold text-sm">{requestDetail.number_of_plates}</Text>
+                              </div>
+                            </div>
+                          </div>
+                        </Panel>
+                      </Collapse>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            )} */}
+              </>
+            )}
 
             {/* Payment Information Card (if exists) */}
             {showPaymentInfo && requestDetail.payments && requestDetail.payments.length > 0 && (
@@ -537,13 +594,185 @@ export default function RequestDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Quotes Sections */}
+            {quotes.length > 0 && (
+              <div className="space-y-6">
+               
+                <div className="grid grid-cols-1 gap-8">
+                  {quotes.map((quote, index) => {
+                    const requestDateText = quote.request_date_text || dayjs(quote.order_request_date).format("DD/MM/YYYY");
+                    const deliveryText = quote.delivery_text || dayjs(quote.delivery_date).format("DD/MM/YYYY");
+                    const designTypeText = quote.design_type_text || (quote.is_send_design ? "Khách gửi file" : "Thuê thiết kế");
+                    const finalTotalValue = quote.final_total || 0;
+
+                    return (
+                      <div key={quote.quote_id} className="bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden flex flex-col mx-auto w-full">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-6">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="text-blue-200 text-xs font-bold tracking-widest uppercase">
+                                MES SYSTEM
+                              </div>
+                              <div className="text-white text-2xl font-extrabold mt-1">
+                                BÁO GIÁ {quotes.length > 1 ? index + 1 : ""}
+                              </div>
+                            </div>
+                            <div className="bg-white/15 text-white px-3 py-1.5 rounded text-sm font-bold">
+                              AM{quote.order_request_id.toString().padStart(6, '0')}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-8 flex-1 flex flex-col">
+                          <div className="mb-6">
+                            <p className="text-[15px] m-0">
+                              Chào <b>{quote.customer_name}</b>,
+                            </p>
+                            <p className="text-slate-500 text-sm mt-1 mb-0">
+                              Dưới đây là chi tiết báo giá cho yêu cầu in ấn của bạn:
+                            </p>
+                          </div>
+
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                              <div className="mb-6">
+                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
+                                  Thông tin đơn hàng
+                                </h3>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Ngày yêu cầu</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{requestDateText}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Người yêu cầu</span>
+                                    <span className="text-slate-800 font-semibold text-[13px] uppercase">{quote.customer_name}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Số điện thoại</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.customer_phone}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Email</span>
+                                    <span className="text-blue-600 font-semibold text-[13px] break-all">{quote.customer_email}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
+                                  Chi tiết sản phẩm
+                                </h3>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Sản phẩm</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.product_name}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Số lượng</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.quantity.toLocaleString('vi-VN')}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Loại giấy</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.paper_name || "---"}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Thiết kế</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{designTypeText}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2">
+                                    <span className="text-slate-500 text-[13px]">Giao dự kiến</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{deliveryText}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="mb-6">
+                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-orange-500 text-orange-600 tracking-wide">
+                                  Bảng kê chi phí
+                                </h3>
+                                <div className="rounded-lg p-2">
+                                  <div className="space-y-2 min-h-[154px]">
+                                    {!!quote.material_cost && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.material_cost)}</span>
+                                      </div>
+                                    )}
+                                    {!!quote.labor_cost && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.labor_cost)}</span>
+                                      </div>
+                                    )}
+                                    {!!quote.other_fees && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Chi phí khác</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.other_fees)}</span>
+                                      </div>
+                                    )}
+                                    {!!quote.rush_amount && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.rush_amount)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-green-500 text-green-600 tracking-wide">
+                                  Tổng thanh toán
+                                </h3>
+                                <div className="space-y-2">
+                                  <div className={`flex justify-between items-center py-2 ${!quote.discount_amount ? "border-b border-dashed border-slate-300" : ""}`}>
+                                    <span className="text-slate-500 text-[13px]">Tạm tính</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{formatVND(quote.subtotal || 0)}</span>
+                                  </div>
+                                  {!!quote.discount_amount && (
+                                    <div className="flex justify-between items-center py-2 border-b border-dashed border-slate-300">
+                                      <span className="text-slate-500 text-[13px]">Giảm giá ({quote.discount_percent || 0}%)</span>
+                                      <span className="text-red-500 font-semibold text-[13px]">- {formatVND(quote.discount_amount)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between items-center pt-3">
+                                    <span className="text-slate-800 font-bold text-[15px]">THÀNH TIỀN</span>
+                                    <span className="text-blue-700 font-extrabold text-lg">{formatVND(finalTotalValue)}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-red-500 text-[11px]">(Đã bao gồm VAT)</span>
+                                  </div>
+                                </div>
+
+                                <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-green-800 font-bold text-[13px]">Cần đặt cọc/Thanh toán:</span>
+                                    <span className="text-green-700 font-extrabold text-base">{formatVND(quote.deposit || 0)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar - Design Files */}
           <div className="lg:col-span-4 space-y-6">
             <DesignFileDisplay designFilePath={requestDetail.design_file_path} requestId={requestDetail.order_request_id} />
 
-            {showPaymentInfo && (requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
+            {quotes.length === 0 && showPaymentInfo && (requestDetail.final_total_cost !== undefined || requestDetail.deposit_amount !== undefined) && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-3 mb-2 border-b border-slate-100 pb-4">
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">

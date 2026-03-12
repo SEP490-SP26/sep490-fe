@@ -106,16 +106,17 @@ export const calculateProductionTime = (
   isWorkshopFull: boolean,
   daysUntilFree: number,
   deliveryDate: dayjs.Dayjs | null,
-  isBusy: boolean
+  isBusy: boolean,
+  calculatedPaperNeeded?: number
 ) => {
   // 1. Basic Cost
   const baseCost = quantity * 2500 + 3000000;
 
   // 2. Paper Needed
-  const paperNeeded = Math.ceil((quantity / 4) * 1.05);
+  const paperNeeded = calculatedPaperNeeded ?? Math.ceil((quantity / 4) * 1.05);
   const selectedPaper = paperTypes.find((p) => p.value === paperCode);
   const isStockEnough = selectedPaper
-    ? selectedPaper.stock >= paperNeeded
+    ? Number(selectedPaper.stock) >= Number(paperNeeded)
     : true;
 
   // 3. Time
@@ -196,6 +197,7 @@ export const mapToOrderEstimationResult = (
     paper_code: additionalSpecs?.paper_code || costEstimate.cost.material_cost_details?.find((m: any) => m.material_name.includes("Giấy"))?.note || paperEstimate.paper_code || "",
     paper_name: additionalSpecs?.paper_name || "",
     wave_type: additionalSpecs?.wave_type || "",
+    previous_estimate_id: additionalSpecs?.previous_estimate_id || null,
 
     // Ink
     ink_cost: costEstimate.cost.ink_cost || 0,

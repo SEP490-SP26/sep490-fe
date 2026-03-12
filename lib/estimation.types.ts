@@ -441,6 +441,7 @@ export interface DetailedProductionEstimation {
   paper_code: string;
   paper_name: string;
   wave_type: string;
+  previous_estimate_id: number | null;
 
   // --- Chi phí Mực in ---
   ink_cost: number;

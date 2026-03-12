@@ -58,13 +58,13 @@ const { Title, Text } = Typography;
 const hd = new Holidays("VN");
 
 const quantityOptions = [
-  { value: 500, label: "Gói 500" },
-  { value: 1000, label: "Từ 500 đến 1,000" },
-  { value: 2000, label: "Từ 1,000 đến 2,000" },
-  { value: 3000, label: "Từ 2,000 đến 3,000" },
-  { value: 5000, label: "Từ 3,000 đến 5,000" },
-  { value: 10000, label: "Từ 5,000 đến 10,000" },
-  { value: 20000, label: "Trên 10,000" },
+  { value: 500, label: "500" },
+  { value: 1000, label: "1.000" },
+  { value: 2000, label: "2.000" },
+  { value: 3000, label: "3.000" },
+  { value: 5000, label: "5.000" },
+  { value: 10000, label: "10.000" },
+  { value: 20000, label: "20.000" },
 ];
 
 const getQuantityLabel = (val: number) => {
@@ -183,8 +183,9 @@ export default function GuestOrderPage() {
   }, [productNameField, productsList, form]);
 
   useEffect(() => {
-    if (unitValue > 0 && quantityField && quantityField > 0) {
-      setEstimatedPrice(unitValue * quantityField);
+    const qty = Number(quantityField?.toString().replace(/\./g, ""));
+    if (unitValue > 0 && quantityField && qty > 0) {
+      setEstimatedPrice(unitValue * qty);
     } else {
       setEstimatedPrice(null);
     }
@@ -380,7 +381,7 @@ export default function GuestOrderPage() {
       delivery_date:
         values.desiredDate?.toISOString() || new Date().toISOString(),
       product_name: values.productName,
-      quantity: values.quantity || 1,
+      quantity: Number(values.quantity?.toString().replace(/\./g, "")) || 1,
       description: values.note || "",
       product_length_mm: values.length ? values.length : 0,
       product_width_mm: values.width ? values.width : 0,
@@ -674,8 +675,7 @@ export default function GuestOrderPage() {
                   >
                     {!isVerified && (
                       <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-orange-700 text-sm">
-                        Vui lòng xác thực email bằng OTP trước khi tiếp
-                        tục
+                        Vui lòng xác thực email bằng OTP trước khi tiếp tục
                       </div>
                     )}
                     <Title level={4} className="text-blue-700 mb-6">
@@ -684,7 +684,7 @@ export default function GuestOrderPage() {
                     </Title>
 
                     <Row gutter={16}>
-                      <Space>
+                      <Col xs={24} md={10}>
                         <Form.Item
                           name="productName"
                           label={
@@ -702,6 +702,7 @@ export default function GuestOrderPage() {
                               value: name,
                             }))}
                             placeholder="Chọn hoặc nhập tên sản phẩm"
+                            style={{ width: "100%" }}
                             filterOption={(inputValue, option) =>
                               (option?.value as string)
                                 .toUpperCase()
@@ -716,19 +717,61 @@ export default function GuestOrderPage() {
                             }}
                           />
                         </Form.Item>
+                      </Col>
 
+                      <Col xs={24} md={5}>
                         <Form.Item
                           name="quantity"
                           label={<span className={labelStyle}>Số lượng <span className="text-red-500">*</span></span>}
-                          rules={[{ required: true, message: "Chọn số lượng" }]}
+                          rules={[
+                            { required: true, message: "Chọn hoặc nhập số lượng" },
+                            () => ({
+                              validator(_, value) {
+                                if (!value) {
+                                  return Promise.resolve();
+                                }
+                                const num = Number(value.toString().replace(/\./g, ""));
+                                if (isNaN(num)) {
+                                  return Promise.reject(new Error("Vui lòng nhập số hợp lệ"));
+                                }
+                                if (num <= 0) {
+                                  return Promise.reject(new Error("Số lượng phải lớn hơn 0"));
+                                }
+                                if (num % 100 !== 0) {
+                                  return Promise.reject(new Error("Số lượng phải chia hết cho 100"));
+                                }
+                                return Promise.resolve();
+                              },
+                            }),
+                          ]}
                         >
-                          <Select
+                          <AutoComplete
+                            options={quantityOptions.map(opt => ({
+                              label: opt.label,
+                              value: opt.label,
+                            }))}
                             placeholder="Chọn số lượng"
-                            style={{ minWidth: 160 }}
-                            options={quantityOptions}
-                          />
+                            style={{ width: "100%" }}
+                            filterOption={(inputValue, option) => {
+                              const searchNum = inputValue.replace(/\./g, "");
+                              return (option?.label ?? "").toString().replace(/\./g, "").includes(searchNum);
+                            }}
+                            onChange={(value) => {
+                              const rawValue = value.toString().replace(/\D/g, "");
+                              if (rawValue !== "") {
+                                const numValue = Number(rawValue);
+                                form.setFieldsValue({ quantity: new Intl.NumberFormat('vi-VN').format(numValue) });
+                              } else {
+                                form.setFieldsValue({ quantity: "" });
+                              }
+                            }}
+                          >
+                            <Input className="text-right" />
+                          </AutoComplete>
                         </Form.Item>
+                      </Col>
 
+                      <Col xs={24} md={9}>
                         <Form.Item
                           name="desiredDate"
                           label={
@@ -749,7 +792,7 @@ export default function GuestOrderPage() {
                             allowClear
                           />
                         </Form.Item>
-                      </Space>
+                      </Col>
                     </Row>
                     <Row gutter={16} className="mt-4">
                       {/* Dimensions Group */}

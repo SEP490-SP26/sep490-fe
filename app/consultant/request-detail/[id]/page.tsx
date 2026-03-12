@@ -3,7 +3,7 @@
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
 import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
-import { VerifiedRequestReponse } from "@/lib/request.types";
+import { RequestDetailResponse } from "@/lib/request.types";
 import {
     DollarOutlined,
     DownloadOutlined,
@@ -44,7 +44,7 @@ export default function ConsultantRequestDetailPage() {
     const requestId = params.id as string;
 
     const [loading, setLoading] = useState(true);
-    const [orderDetail, setOrderDetail] = useState<VerifiedRequestReponse | null>(null);
+    const [orderDetail, setOrderDetail] = useState<RequestDetailResponse | null>(null);
 
     const [sending, setSending] = useState(false);
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
@@ -290,9 +290,18 @@ export default function ConsultantRequestDetailPage() {
                                     </h3>
 
                                     <Descriptions size="small" column={{ xs: 1, sm: 3, md: 4 }} className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm mb-4" labelStyle={{ color: '#64748b' }}>
+                                        <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm || 0} x {orderDetail.product_width_mm || 0} x {orderDetail.product_height_mm || 0} mm</Text></Descriptions.Item>
                                         <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
-                                        <Descriptions.Item label="Giao hàng" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
-                                        <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm} x {orderDetail.product_width_mm} x {orderDetail.product_height_mm} mm</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Dự kiến" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
+                                        {orderDetail.product_type && <Descriptions.Item label="Kiểu hộp" span={1}><Text strong className="text-slate-800">{orderDetail.product_type}</Text></Descriptions.Item>}
+                                        {orderDetail.paper_name && <Descriptions.Item label="Loại giấy" span={1}><Text strong className="text-slate-800">{orderDetail.paper_name}</Text></Descriptions.Item>}
+                                        {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && <Descriptions.Item label="Loại phủ" span={1}><Text strong className="text-slate-800">{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>}
+                                        {orderDetail.wave_type && orderDetail.wave_type !== "NONE" && <Descriptions.Item label="Kiểu sóng" span={1}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item>}
+                                        {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
+                                        {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>}
+                                        {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
+                                        {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
+                                        {orderDetail.print_width_mm > 0 && orderDetail.print_height_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_height_mm} mm</Text></Descriptions.Item>}
                                     </Descriptions>
 
                                     {orderDetail.description && (
@@ -478,7 +487,7 @@ export default function ConsultantRequestDetailPage() {
                                 </h3>
                                 {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
                                     <div className={`grid gap-4 max-h-[500px] overflow-y-auto pr-1 ${orderDetail.cost_estimate.filter(x => x.is_active).length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                                        {orderDetail.cost_estimate.filter(x => x.is_active).map((estimate, index) => {
+                                        {orderDetail.cost_estimate.filter(x => x.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((estimate, index) => {
                                             const hasNote = orderDetail.reason?.includes(`Báo giá ${index + 1}:`);
                                             return (
                                                 <div key={estimate.estimate_id} className={`p-4 rounded-xl border ${hasNote ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-slate-100'}`}>
@@ -501,6 +510,46 @@ export default function ConsultantRequestDetailPage() {
                                                         <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
                                                         <span className="font-bold text-lg text-accent-dark">{formatCurrency(estimate.final_total_cost)}</span>
                                                     </div>
+                                                    {/* Material Costs Block (if any exist) */}
+                                                    {(estimate.paper_cost > 0 || estimate.ink_cost > 0 || estimate.coating_glue_cost > 0 || estimate.mounting_glue_cost > 0 || estimate.lamination_cost > 0) && (
+                                                        <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg mb-2">
+                                                            <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí vật tư</span>} key="materials" className="p-0 border-0">
+                                                                <div className="space-y-2 py-1">
+                                                                    {estimate.paper_cost > 0 && (
+                                                                        <div className="flex justify-between items-center">
+                                                                            <span className="text-slate-500 text-xs">Phí giấy</span>
+                                                                            <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.paper_cost)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {estimate.ink_cost > 0 && (
+                                                                        <div className="flex justify-between items-center">
+                                                                            <span className="text-slate-500 text-xs">Phí mực</span>
+                                                                            <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.ink_cost)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {estimate.coating_glue_cost > 0 && (
+                                                                        <div className="flex justify-between items-center">
+                                                                            <span className="text-slate-500 text-xs">Phí keo phủ</span>
+                                                                            <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.coating_glue_cost)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {estimate.mounting_glue_cost > 0 && (
+                                                                        <div className="flex justify-between items-center">
+                                                                            <span className="text-slate-500 text-xs">Phí keo bồi</span>
+                                                                            <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.mounting_glue_cost)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {estimate.lamination_cost > 0 && (
+                                                                        <div className="flex justify-between items-center">
+                                                                            <span className="text-slate-500 text-xs">Phí màng/keo cán</span>
+                                                                            <span className="text-slate-800 text-xs font-semibold">{formatCurrency(estimate.lamination_cost)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </Panel>
+                                                        </Collapse>
+                                                    )}
+
                                                     {estimate.process_cost && estimate.process_cost.length > 0 && (
                                                         <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
                                                             <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
