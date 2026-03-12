@@ -12,7 +12,7 @@ type UserForm = {
   full_name: string;
   role_id: number;
   is_active: boolean;
-  new_password?: string;
+  user_password?: string;
 };
 
 type ApiUser = {
@@ -84,7 +84,7 @@ export default function AdminUpdatePage() {
           full_name: user.full_name ?? "",
           role_id: user.role_id,
           is_active: user.is_active,
-          new_password: "",
+          user_password: "",
         });
       })
       .catch(() => {
@@ -123,7 +123,7 @@ export default function AdminUpdatePage() {
       if (!res.ok) throw new Error();
 
       showPopup("success", "Cập nhật người dùng thành công");
-      setTimeout(() => router.back(), 1500);
+      setTimeout(() => router.back(), 2000);
     } catch {
       showPopup("error", "Cập nhật thất bại");
     } finally {
@@ -213,7 +213,16 @@ export default function AdminUpdatePage() {
               <option value={3}>Manager</option>
               <option value={4}>Warehouse</option>
               <option value={5}>User</option>
-              <option value={6}>Staff</option>
+              <option value={6}>Productions manager</option>
+              <option value={7}>Staff ralo</option>
+              <option value={8}>Staff cắt</option>
+              <option value={9}>Staff in</option>
+              <option value={10}>Staff phủ</option>
+              <option value={11}>Staff cán</option>
+              <option value={12}>Staff bồi</option>
+              <option value={13}>Staff bế</option>
+              <option value={14}>Staff dứt</option>
+              <option value={15}>Staff dán</option>
             </select>
           </div>
 
@@ -227,9 +236,9 @@ export default function AdminUpdatePage() {
             </label>
             <input
               type="password"
-              value={form.new_password}
+              value={form.user_password}
               onChange={(e) =>
-                setForm({ ...form, new_password: e.target.value })
+                setForm({ ...form, user_password: e.target.value })
               }
               className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="Nhập mật khẩu mới"

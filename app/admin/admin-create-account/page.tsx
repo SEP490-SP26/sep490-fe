@@ -12,7 +12,16 @@ const ROLE_OPTIONS = [
   { id: 3, label: "Manager" },
   { id: 4, label: "Warehouse" },
   { id: 5, label: "User" },
-  { id: 6, label: "Staff" },
+  { id: 6, label: "Productions manager" },
+  { id: 7, label: "Staff Ralo" },
+  { id: 8, label: "Staff Cắt" },
+  { id: 9, label: "Staff In" },
+  { id: 10, label: "Staff Phủ" },
+  { id: 11, label: "Staff Cán" },
+  { id: 12, label: "Staff Bồi" },
+  { id: 13, label: "Staff Bế" },
+  { id: 14, label: "Staff Dứt" },
+  { id: 15, label: "Staff Dán" },
 ];
 
 /* ======================
