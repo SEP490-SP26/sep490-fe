@@ -88,6 +88,27 @@ export const staffNavItems: NavItem[] = [
   },
 ];
 
+export const productionsManagerNavItems: NavItem[] = [
+  {
+    path: "/",
+    label: "Đơn đã lên lịch",
+    icon: FiCalendar,
+    basePath: "/productions-manager",
+  },
+  {
+    path: "/finish-production",
+    label: "Đơn đã hoàn thành sản xuất",
+    icon: FaSuitcase,
+    basePath: "/productions-manager",
+  },
+  {
+    path: "/",
+    label: "Đăng xuất",
+    icon: FiLogOut,
+    isLogout: true,
+  },
+];
+
 // Preset cho Warehouse
 export const warehouseNavItems: NavItem[] = [
   {

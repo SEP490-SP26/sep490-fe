@@ -29,8 +29,11 @@ import {
     Skeleton,
     Tag,
     Typography,
-    Upload
+    Upload,
+    Row,
+    Col
 } from "antd";
+import { estimatesApi, OrderRequestWithQuotes, QuoteOption } from "@/apiRequests/estimates";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -50,6 +53,10 @@ export default function ConsultantRequestDetailPage() {
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
     const [updateReason, setUpdateReason] = useState("");
     const [updateForm] = Form.useForm();
+
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewData, setPreviewData] = useState<OrderRequestWithQuotes | null>(null);
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
@@ -80,10 +87,34 @@ export default function ConsultantRequestDetailPage() {
 
     const handleSendQuote = async () => {
         if (!orderDetail) return;
+
+        // If not in preview modal, open preview first
+        if (!isPreviewModalOpen) {
+            setPreviewLoading(true);
+            try {
+                const response = await estimatesApi.emailPreview(Number(requestId));
+                const data = (response as any).data || response;
+                if (data && data.quotes && data.quotes.length > 0) {
+                    setPreviewData(data);
+                    setIsPreviewModalOpen(true);
+                } else {
+                    message.warning("Không tìm thấy thông tin báo giá để xem trước.");
+                }
+            } catch (error) {
+                console.error("Lỗi khi lấy thông tin xem trước:", error);
+                message.error("Không thể tải thông tin xem trước báo giá.");
+            } finally {
+                setPreviewLoading(false);
+            }
+            return;
+        }
+
+        // Processing send in modal
         setSending(true);
         try {
             await requestOrderApi.sendDeal({ request_id: orderDetail.request_id });
             message.success("Đã gửi báo giá cho khách hàng thành công!");
+            setIsPreviewModalOpen(false);
             await fetchOrderDetail(); // Refresh data to update status
         } catch (error) {
             console.error("Lỗi khi gửi báo giá:", error);
@@ -185,10 +216,10 @@ export default function ConsultantRequestDetailPage() {
                                 icon={<SendOutlined />}
                                 className="bg-blue-600 hover:bg-blue-500 rounded-lg"
                                 size="middle"
-                                loading={sending}
+                                loading={previewLoading}
                                 onClick={handleSendQuote}
                             >
-                                Gửi báo giá cho khách hàng
+                                Xem trước & Gửi báo giá
                             </Button>
                         )}
                         {orderDetail.process_status === 'Processing' && (
@@ -643,6 +674,196 @@ export default function ConsultantRequestDetailPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Quote Preview Modal */}
+                <Modal
+                    title={null}
+                    open={isPreviewModalOpen}
+                    onCancel={() => setIsPreviewModalOpen(false)}
+                    footer={null}
+                    width={previewData && previewData.quotes.length > 1 ? 1300 : 700}
+                    centered
+                    destroyOnClose
+                    className="quote-preview-modal"
+                    bodyStyle={{ padding: 0, backgroundColor: '#f8fafc' }}
+                >
+                    <div className="max-h-[90vh] overflow-y-auto p-4 md:p-8">
+                        <div className="mb-6 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-slate-800 m-0">Xem trước Báo giá</h2>
+                            <div className="flex gap-3">
+                                <Button onClick={() => setIsPreviewModalOpen(false)} className="rounded-lg">
+                                    Đóng
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    icon={<SendOutlined />}
+                                    className="bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg"
+                                    loading={sending}
+                                    onClick={handleSendQuote}
+                                >
+                                    Xác nhận và Gửi cho khách
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className={`grid grid-cols-1 ${previewData && previewData.quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-8 w-full`}>
+                            {previewData?.quotes.map((quote, index) => {
+                                const requestDateText = quote.request_date_text || (quote.order_request_date ? dayjs(quote.order_request_date).format("DD/MM/YYYY") : "---");
+                                const deliveryText = quote.delivery_text || (quote.delivery_date ? dayjs(quote.delivery_date).format("DD/MM/YYYY") : "---");
+                                const designTypeText = quote.design_type_text || (quote.is_send_design ? "Khách gửi file" : "Thuê thiết kế");
+                                const finalTotalValue = quote.final_total || 0;
+
+                                return (
+                                    <div key={quote.quote_id} className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col mx-auto w-full border border-slate-100">
+                                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <div className="text-blue-200 text-[10px] font-bold tracking-widest uppercase">
+                                                        MES SYSTEM - PREVIEW
+                                                    </div>
+                                                    <div className="text-white text-lg font-extrabold mt-0.5">
+                                                        BÁO GIÁ {previewData.quotes.length > 1 ? index + 1 : ""}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white/15 text-white px-2 py-1 rounded text-xs font-bold">
+                                                    AM{quote.order_request_id.toString().padStart(6, '0')}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 flex-1 flex flex-col">
+                                            <div className="mb-4">
+                                                <p className="text-sm m-0">
+                                                    Chào <b>{quote.customer_name}</b>,
+                                                </p>
+                                                <p className="text-slate-500 text-xs mt-1 mb-0">
+                                                    Dưới đây là chi tiết báo giá cho yêu cầu in ấn của bạn:
+                                                </p>
+                                            </div>
+
+                                            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                {/* Left Column: Info */}
+                                                <div>
+                                                    <div className="mb-4">
+                                                        <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-blue-500 text-blue-600 tracking-wide">
+                                                            Thông tin đơn hàng
+                                                        </h3>
+                                                        <div className="space-y-1">
+                                                            {[
+                                                                { label: "Ngày yêu cầu", value: requestDateText },
+                                                                { label: "Người yêu cầu", value: quote.customer_name, uppercase: true },
+                                                                { label: "Số điện thoại", value: quote.customer_phone },
+                                                                { label: "Email", value: quote.customer_email, blue: true }
+                                                            ].map((item, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center py-1 border-b border-slate-50">
+                                                                    <span className="text-slate-500 text-[11px]">{item.label}</span>
+                                                                    <span className={`text-slate-800 font-semibold text-[11px] ${item.uppercase ? 'uppercase' : ''} ${item.blue ? 'text-blue-600 break-all' : ''}`}>
+                                                                        {item.value}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-blue-500 text-blue-600 tracking-wide">
+                                                            Chi tiết sản phẩm
+                                                        </h3>
+                                                        <div className="space-y-1">
+                                                            {[
+                                                                { label: "Sản phẩm", value: quote.product_name },
+                                                                { label: "Số lượng", value: quote.quantity.toLocaleString('vi-VN') },
+                                                                { label: "Loại giấy", value: quote.paper_name || "---" },
+                                                                { label: "Thiết kế", value: designTypeText },
+                                                                { label: "Giao dự kiến", value: deliveryText }
+                                                            ].map((item, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center py-1 border-b border-slate-50">
+                                                                    <span className="text-slate-500 text-[11px]">{item.label}</span>
+                                                                    <span className="text-slate-800 font-semibold text-[11px]">{item.value}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Right Column: Costs */}
+                                                <div>
+                                                    <div className="mb-4">
+                                                        <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-orange-500 text-orange-600 tracking-wide">
+                                                            Bảng kê chi phí
+                                                        </h3>
+                                                        <div className="space-y-1 min-h-[110px]">
+                                                            {!!quote.material_cost && (
+                                                                <div className="flex justify-between items-center py-1">
+                                                                    <span className="text-slate-600 text-[11px]">Nguyên vật liệu</span>
+                                                                    <span className="text-slate-800 font-bold text-[11px]">{formatCurrency(quote.material_cost)}</span>
+                                                                </div>
+                                                            )}
+                                                            {!!quote.labor_cost && (
+                                                                <div className="flex justify-between items-center py-1">
+                                                                    <span className="text-slate-600 text-[11px]">Chi phí nhân công</span>
+                                                                    <span className="text-slate-800 font-bold text-[11px]">{formatCurrency(quote.labor_cost)}</span>
+                                                                </div>
+                                                            )}
+                                                            {!!quote.other_fees && (
+                                                                <div className="flex justify-between items-center py-1">
+                                                                    <span className="text-slate-600 text-[11px]">Chi phí khác</span>
+                                                                    <span className="text-slate-800 font-bold text-[11px]">{formatCurrency(quote.other_fees)}</span>
+                                                                </div>
+                                                            )}
+                                                            {!!quote.rush_amount && (
+                                                                <div className="flex justify-between items-center py-1">
+                                                                    <span className="text-slate-600 text-[11px]">Phụ thu giao gấp</span>
+                                                                    <span className="text-slate-800 font-bold text-[11px]">{formatCurrency(quote.rush_amount)}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-green-500 text-green-600 tracking-wide">
+                                                            Tổng thanh toán
+                                                        </h3>
+                                                        <div className="space-y-1">
+                                                            <div className={`flex justify-between items-center py-1 ${!quote.discount_amount ? "border-b border-dashed border-slate-200" : ""}`}>
+                                                                <span className="text-slate-500 text-[11px]">Tạm tính</span>
+                                                                <span className="text-slate-800 font-semibold text-[11px]">{formatCurrency(quote.subtotal || 0)}</span>
+                                                            </div>
+                                                            {!!quote.discount_amount && (
+                                                                <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-200">
+                                                                    <span className="text-slate-500 text-[11px]">Giảm giá ({quote.discount_percent || 0}%)</span>
+                                                                    <span className="text-red-500 font-semibold text-[11px]">- {formatCurrency(quote.discount_amount)}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex justify-between items-center pt-2">
+                                                                <span className="text-slate-800 font-bold text-[13px]">THÀNH TIỀN</span>
+                                                                <span className="text-blue-700 font-extrabold text-base">{formatCurrency(finalTotalValue)}</span>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-red-500 text-[9px]">(Đã bao gồm VAT)</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-green-800 font-bold text-[11px]">Cần đặt cọc/Thanh toán:</span>
+                                                                <span className="text-green-700 font-extrabold text-sm">{formatCurrency(quote.deposit || 0)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <p className="mt-8 text-[11px] text-slate-500 italic leading-relaxed border-t border-slate-200 pt-4">
+                            (*) Báo giá có hiệu lực trong vòng 24h kể từ khi gửi. Sau thời gian này, mọi thông tin về đơn giá và chi phí có thể thay đổi.
+                        </p>
+                    </div>
+                </Modal>
                 {/* Mobile Back Button */}
                 <div className="mt-8 flex justify-center lg:hidden">
                     <Button

@@ -585,9 +585,9 @@ function ConsultantForm() {
           setManagerNote(orderData.reason || orderData.note || orderData.manager_note || null);
 
           // Find up to 2 active estimates from cost_estimate array
-          let activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active).sort((a: any, b: any) => a.estimate_id - b.estimate_id) : [];
+          let activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active) : [];
           if (activeEstimates.length === 0 && orderData.cost_estimate && orderData.cost_estimate.length > 0) {
-            activeEstimates = [...orderData.cost_estimate].sort((a: any, b: any) => a.estimate_id - b.estimate_id);
+            activeEstimates = orderData.cost_estimate;
           }
 
           if (activeEstimates.length > 0 && isNegotiateMode) {
@@ -1282,14 +1282,14 @@ function ConsultantForm() {
           message.success("Đã gửi báo giá (Kiểm tra lại nếu không thấy mail)");
         }
       } else {
-         await requestOrderApi.submitEstimateForApproval({
-           request_id: parseInt(currentOrderId),
-           consultant_note: primaryQuote.consultant_note,
-         });
-       // await axios.put("https://localhost:7109/api/Requests/submit-estimate-for-approval",{
-      //    request_id: parseInt(currentOrderId),
-    //      consultant_note: primaryQuote.consultant_note,
-      //    });
+        await requestOrderApi.submitEstimateForApproval({
+          request_id: parseInt(currentOrderId),
+          consultant_note: primaryQuote.consultant_note,
+        });
+        // await axios.put("https://localhost:7109/api/Requests/submit-estimate-for-approval",{
+        //    request_id: parseInt(currentOrderId),
+        //      consultant_note: primaryQuote.consultant_note,
+        //    });
         message.success("Đã gửi yêu cầu duyệt giá cho Manager!");
       }
 
