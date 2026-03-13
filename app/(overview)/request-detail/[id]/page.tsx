@@ -168,6 +168,21 @@ export default function RequestDetailPage() {
     }).format(amount).replace('₫', 'đ');
   };
 
+  const maskPhone = (phone: string) => {
+    if (!phone) return "";
+    const p = phone.trim();
+    if (p.length < 6) return p;
+    return p.substring(0, 3) + "****" + p.substring(p.length - 3);
+  };
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [user, domain] = email.split("@");
+    if (!domain) return email;
+    if (user.length <= 2) return "*".repeat(user.length) + "@" + domain;
+    return user[0] + "****" + user[user.length - 1] + "@" + domain;
+  };
+
   const ExpiryNote = () => (
     <p className="mt-6 text-sm text-slate-500 italic leading-relaxed border-t border-slate-200 pt-4">
       (*) Báo giá có hiệu lực đến <b>{paymentInfo?.expired_at ? dayjs(paymentInfo.expired_at).format("HH:mm DD/MM/YYYY") : "..."}</b>. Sau thời gian này, mọi thông tin về đơn giá và chi phí có thể thay đổi.
@@ -449,10 +464,10 @@ export default function RequestDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2  border-b border-gray-200 pb-2">
                         <div className="font-medium text-slate-800">Khách hàng: {requestDetail.customer_name}</div>
                         <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                          Sđt: {requestDetail.customer_phone}
+                          Sđt: {maskPhone(requestDetail.customer_phone)}
                         </div>
                         <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                          Email: {requestDetail.customer_email}
+                          Email: {maskEmail(requestDetail.customer_email)}
                         </div>
                       </div>
                     </div>
@@ -651,11 +666,11 @@ export default function RequestDetailPage() {
                                   </div>
                                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
                                     <span className="text-slate-500 text-[13px]">Số điện thoại</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.customer_phone}</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{maskPhone(quote.customer_phone)}</span>
                                   </div>
                                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
                                     <span className="text-slate-500 text-[13px]">Email</span>
-                                    <span className="text-blue-600 font-semibold text-[13px] break-all">{quote.customer_email}</span>
+                                    <span className="text-blue-600 font-semibold text-[13px] break-all">{maskEmail(quote.customer_email)}</span>
                                   </div>
                                 </div>
                               </div>
@@ -750,7 +765,7 @@ export default function RequestDetailPage() {
 
                                 <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
                                   <div className="flex justify-between items-center">
-                                    <span className="text-green-800 font-bold text-[13px]">Cần đặt cọc/Thanh toán:</span>
+                                    <span className="text-green-800 font-bold text-[13px]">Đã Thanh toán:</span>
                                     <span className="text-green-700 font-extrabold text-base">{formatVND(quote.deposit || 0)}</span>
                                   </div>
                                 </div>
