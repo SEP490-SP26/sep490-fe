@@ -27,7 +27,8 @@ const ROLE_MAP: Record<number, string> = {
   3: "Manager",
   4: "Warehouse",
   5: "User",
-  6: "Staff",
+  6: "Productions manager",
+  7: "Staff"
 };
 
 const ROLE_COLOR: Record<string, string> = {
