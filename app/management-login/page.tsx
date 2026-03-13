@@ -135,10 +135,14 @@ export default function LoginPage() {
                     router.replace("/warehouse");
                     break;
                 case 5:
-                    router.replace("/staff");
+                    router.replace("/user");
+                    break;
+                case 6:
+                    router.replace("/productions-manager");
                     break;
                 default:
-                    router.replace("/home");
+                    router.replace("/");
+                    break;
             }
         } catch (err: any) {
             console.error("Login error:", err);
