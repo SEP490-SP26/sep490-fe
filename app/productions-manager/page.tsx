@@ -9,7 +9,7 @@ import {
 } from "@/utils/toastService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BiPackage } from "react-icons/bi";
 import {
   BsBook,
@@ -22,9 +22,11 @@ import {
 } from "react-icons/bs";
 import { FiZap } from "react-icons/fi";
 import { getSignalRConnection } from "@/lib/signalr";
+import { tasksApi } from "@/apiRequests/tasks";
 
 export default function ProdutionManager() {
   const queryClient = useQueryClient();
+    const bufferRef = useRef("");
 
   const {
     products,
@@ -35,7 +37,38 @@ export default function ProdutionManager() {
   } = useProduction();
 
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  /*==================ScanQR ======================= */
+  const callApi = async (token: string) => {
+    try {
+      const res = await tasksApi.finishTask({
+        token: token,
+      });
 
+      console.log("API success:", res.data);
+      showSuccessToast("Scan thành công");
+    } catch (error) {
+      console.error("API error:", error);
+    }
+  };
+
+  useEffect(() => {
+  const handleKey = (e: KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (!bufferRef.current) return;
+
+      callApi(bufferRef.current);
+      bufferRef.current = "";
+      return;
+    }
+
+    if (e.key.length === 1) {
+      bufferRef.current += e.key;
+    }
+  };
+
+  window.addEventListener("keydown", handleKey);
+  return () => window.removeEventListener("keydown", handleKey);
+}, []);
   /* ================== PAGINATION ================== */
 
   const ITEMS_PER_PAGE = 5;
@@ -95,28 +128,37 @@ export default function ProdutionManager() {
   /* ================== SIGNALR ================== */
 
   useEffect(() => {
-    let conn: any;
+  let conn: any;
 
-    const init = async () => {
-      conn = await getSignalRConnection();
+  const init = async () => {
+    conn = await getSignalRConnection();
 
-      conn.on("OrderUpdated", (data: any) => {
-        console.log("🔥 ORDER UPDATED RECEIVED:", data);
+    conn.on("OrderUpdated", (data: any) => {
+      console.log("🔥 ORDER UPDATED:", data);
 
-        queryClient.invalidateQueries({
-          queryKey: ["scheduledOrders"],
-        });
+      queryClient.invalidateQueries({
+        queryKey: ["scheduledOrders"],
       });
-    };
+    });
 
-    init();
+    conn.on("ProdUpdated", (data: any) => {
+      console.log("⚙️ PROD UPDATED:", data);
 
-    return () => {
-      if (conn) {
-        conn.off("OrderUpdated");
-      }
-    };
-  }, []);
+      queryClient.invalidateQueries({
+        queryKey: ["scheduledOrders"],
+      });
+    });
+  };
+
+  init();
+
+  return () => {
+    if (conn) {
+      conn.off("OrderUpdated");
+      conn.off("ProdUpdated");
+    }
+  };
+}, []);
 
   useEffect(() => {
     if (!scheduledOrder.length) return;
