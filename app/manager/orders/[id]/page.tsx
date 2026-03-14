@@ -456,14 +456,14 @@ export default function ProductionDetailPage() {
                         ? "bg-green-100 text-green-800"
                         : apiData.payment_status === "pending"
                           ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
+                          : "bg-green-100 text-black-800"
                         }`}
                     >
                       {apiData.payment_status === "paid"
                         ? "Đã thanh toán"
                         : apiData.payment_status === "pending"
                           ? "Chờ thanh toán"
-                          : "Chưa thanh toán"}
+                          : "Đã đặt cọc"}
                     </div>
                   </div>
                 </div>

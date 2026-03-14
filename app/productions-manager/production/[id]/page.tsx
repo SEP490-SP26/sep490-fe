@@ -470,10 +470,16 @@ export default function ProductionDetailPage() {
                         – {stage.machine}
                       </span>
                     </h3>
-                    <span
-                      className={`text-sm font-medium ${STATUS_MAP[stage.status].color}`}
+                      <span
+                      className={`text-sm font-medium ${
+                        production?.production_status === "Scheduled"
+                          ? "text-red-600"
+                          : STATUS_MAP[stage.status].color
+                      }`}
                     >
-                      {STATUS_MAP[stage.status].label}
+                      {production?.production_status === "Scheduled"
+                        ? "Chưa bắt đầu sản xuất"
+                        : STATUS_MAP[stage.status].label}
                     </span>
                   </div>
                   {isCollapsed ? <BsChevronDown /> : <BsChevronUp />}
