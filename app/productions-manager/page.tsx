@@ -23,6 +23,7 @@ import {
 import { FiZap } from "react-icons/fi";
 import { getSignalRConnection } from "@/lib/signalr";
 import { tasksApi } from "@/apiRequests/tasks";
+import Title from "antd/es/typography/Title";
 
 export default function ProdutionManager() {
   const queryClient = useQueryClient();
@@ -279,7 +280,7 @@ export default function ProdutionManager() {
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-semibold">Lập lịch Sản xuất</h1>
+      <Title level={2}>Lập lịch sản xuất</Title>
 
       {/* SEARCH BAR */}
 

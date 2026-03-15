@@ -90,6 +90,13 @@ export const staffNavItems: NavItem[] = [
 
 export const productionsManagerNavItems: NavItem[] = [
   {
+    path: "/schedule",
+    label: "Lịch sản xuất",
+    icon: FiCalendar,
+    basePath: "/productions-manager",
+    // exact: true,
+  },
+  {
     path: "/",
     label: "Đơn đã lên lịch",
     icon: FiCalendar,
@@ -171,6 +178,12 @@ export const managerNavItems: NavItem[] = [
   {
     path: "/requests-processing",
     label: "Yêu cầu cần được duyệt",
+    icon: FiList,
+    basePath: "/manager",
+  },
+  {
+    path: "/requests",
+    label: "Danh sách yêu cầu",
     icon: FiList,
     basePath: "/manager",
   },

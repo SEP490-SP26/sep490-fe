@@ -35,7 +35,7 @@ export default function ProductionsManagerLayout({
       {/* Content area (né sidebar) */}
       <div className="ml-72 flex min-h-screen flex-col">
         {/* Main */}
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-4">{children}</main>
 
         {/* Footer */}
         <Footer />

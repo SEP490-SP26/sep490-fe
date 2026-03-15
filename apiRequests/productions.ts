@@ -39,7 +39,7 @@ export const productionsApi = {
 
   getAllProcessTypes: () =>
     http.get<string[]>("/api/productions/get-all-process-type"),
-  getAllProduction: () => http.get("/api/productions/get-all-production"),
+  getAllProduction: () => http.get("/api/productions/get-all-production?page=1&pageSize=500"),
 
   getProdyctionByOrderId: (id: string) =>
     http.get(`/api/Productions/detail/${id}`),
