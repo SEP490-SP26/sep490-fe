@@ -31,7 +31,8 @@ import {
     Typography,
     Upload,
     Row,
-    Col
+    Col,
+    Space
 } from "antd";
 import { estimatesApi, OrderRequestWithQuotes, QuoteOption } from "@/apiRequests/estimates";
 import dayjs from "dayjs";
@@ -60,6 +61,9 @@ export default function ConsultantRequestDetailPage() {
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
+
+    const [customerMessage, setCustomerMessage] = useState("");
+    const [sendingMessage, setSendingMessage] = useState(false);
 
     // Fetch order detail from API
     const fetchOrderDetail = async () => {
@@ -123,6 +127,29 @@ export default function ConsultantRequestDetailPage() {
             setSending(false);
         }
     };
+
+    const handleSendMessageToCustomer = async () => {
+        if (!customerMessage.trim()) {
+            message.warning("Vui lòng nhập lời nhắn cho khách hàng.");
+            return;
+        }
+
+        setSendingMessage(true);
+        try {
+            await requestOrderApi.consultantMessageToCustomer({
+                request_id: Number(requestId),
+                message: customerMessage
+            });
+            message.success("Đã gửi lời nhắn cho khách hàng thành công!");
+            setCustomerMessage(""); // Clear message after success
+        } catch (error) {
+            console.error("Lỗi khi gửi lời nhắn:", error);
+            message.error("Không thể gửi lời nhắn. Vui lòng thử lại sau.");
+        } finally {
+            setSendingMessage(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -444,11 +471,8 @@ export default function ConsultantRequestDetailPage() {
                                                     const { file, onSuccess, onError } = options;
                                                     setUploadingContract(true);
                                                     try {
-                                                        const res = await uploadApi.uploadFile([file as File]);
-                                                        if (res && res[0] && res[0].url) {
-                                                            await requestOrderApi.updateRequest(orderDetail.request_id.toString(), {
-                                                                contract_file: res[0].url
-                                                            } as any);
+                                                        const res = await uploadApi.uploadContract(orderDetail.request_id, file as File);
+                                                        if (res && res.url) {
                                                             message.success("Tải hợp đồng thành công");
                                                             fetchOrderDetail();
                                                             if (onSuccess) onSuccess("ok");
@@ -669,6 +693,42 @@ export default function ConsultantRequestDetailPage() {
                                             </div>
                                         </Card>
                                     )}
+
+                                    {/* Lời nhắn cho khách hàng */}
+                                    {orderDetail.process_status === 'Verified' && (
+                                        <Card className=" rounded-2xl border border-emerald-100 shadow-sm border-t-4 border-t-emerald-400 bg-emerald-50/20">
+                                            <div >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                                                            <SendOutlined className="text-emerald-500" />
+                                                            Lời nhắn cho khách hàng
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="gap-2">
+                                                    <Space direction="vertical" className="w-full"  >
+                                                    <Input.TextArea
+                                                        rows={2}
+                                                        placeholder="Nhập lời nhắn hoặc ghi chú gửi cho khách hàng..."
+                                                        value={customerMessage}
+                                                        onChange={(e) => setCustomerMessage(e.target.value)}
+                                                        className="rounded-xl border-emerald-100 focus:border-emerald-300 focus:ring-emerald-200"
+                                                    />
+                                                    <Button
+                                                        type="primary"
+                                                        icon={<SendOutlined />}
+                                                        onClick={handleSendMessageToCustomer}
+                                                        loading={sendingMessage}
+                                                        className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-lg w-full h-10 font-semibold"
+                                                    >
+                                                        Gửi lời nhắn
+                                                    </Button>
+                                                    </Space>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -732,15 +792,6 @@ export default function ConsultantRequestDetailPage() {
                                         </div>
 
                                         <div className="p-6 flex-1 flex flex-col">
-                                            <div className="mb-4">
-                                                <p className="text-sm m-0">
-                                                    Chào <b>{quote.customer_name}</b>,
-                                                </p>
-                                                <p className="text-slate-500 text-xs mt-1 mb-0">
-                                                    Dưới đây là chi tiết báo giá cho yêu cầu in ấn của bạn:
-                                                </p>
-                                            </div>
-
                                             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
                                                 {/* Left Column: Info */}
                                                 <div>
@@ -859,9 +910,7 @@ export default function ConsultantRequestDetailPage() {
                             })}
                         </div>
 
-                        <p className="mt-8 text-[11px] text-slate-500 italic leading-relaxed border-t border-slate-200 pt-4">
-                            (*) Báo giá có hiệu lực trong vòng 24h kể từ khi gửi. Sau thời gian này, mọi thông tin về đơn giá và chi phí có thể thay đổi.
-                        </p>
+
                     </div>
                 </Modal>
                 {/* Mobile Back Button */}

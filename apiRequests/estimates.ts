@@ -198,4 +198,12 @@ export const estimatesApi = {
     getAllDeal: (requestId: number) => http.get<RequestQuotationList>(`/api/Estimates/all-deal-by-${requestId}`),
 
     emailPreview: (requestId: number) => http.get<OrderRequestWithQuotes>(`/api/Estimates/email-preview/${requestId}`),
+
+    uploadContract: (body: { requestId: number, estimate_id: number, file: File }) => http.post<void>(`/api/Estimates/upload-contract`, body,
+    // {
+    //     headers: {
+    //         "Content-Type": "multipart/form-data",
+    //     },
+    // }
+    ),
 };

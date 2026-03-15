@@ -21,6 +21,16 @@ export const uploadApi = {
         );
     },
 
+    uploadContract: async (orderRequestId: number, file: File): Promise<UploadResponse> => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return http.post<UploadResponse>(
+            `/api/Uploads/upload-contract/${orderRequestId}`,
+            formData
+        );
+    },
+
     deleteFile: async (request_id: number): Promise<void> => {
         return http.delete<void>(`/api/Uploads/delete-design-file/${request_id}`);
     },

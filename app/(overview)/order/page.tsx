@@ -433,7 +433,7 @@ export default function GuestOrderPage() {
           <Result
             status="success"
             title="Gửi yêu cầu thành công!"
-            subTitle="Nhân viên tư vấn sẽ liên hệ lại với bạn sớm."
+            subTitle="Cảm ơn bạn đã gửi yêu cầu. Nhân viên tư vấn sẽ liên hệ lại với bạn sớm nhất."
             extra={[
               <Button
                 type="primary"
@@ -724,50 +724,17 @@ export default function GuestOrderPage() {
                           name="quantity"
                           label={<span className={labelStyle}>Số lượng <span className="text-red-500">*</span></span>}
                           rules={[
-                            { required: true, message: "Chọn hoặc nhập số lượng" },
-                            () => ({
-                              validator(_, value) {
-                                if (!value) {
-                                  return Promise.resolve();
-                                }
-                                const num = Number(value.toString().replace(/\./g, ""));
-                                if (isNaN(num)) {
-                                  return Promise.reject(new Error("Vui lòng nhập số hợp lệ"));
-                                }
-                                if (num <= 0) {
-                                  return Promise.reject(new Error("Số lượng phải lớn hơn 0"));
-                                }
-                                if (num % 100 !== 0) {
-                                  return Promise.reject(new Error("Số lượng phải chia hết cho 100"));
-                                }
-                                return Promise.resolve();
-                              },
-                            }),
+                            { required: true, message: "Vui lòng chọn số lượng" },
                           ]}
                         >
-                          <AutoComplete
-                            options={quantityOptions.map(opt => ({
-                              label: opt.label,
-                              value: opt.label,
-                            }))}
+                          <Select
+                            options={quantityOptions}
                             placeholder="Chọn số lượng"
                             style={{ width: "100%" }}
-                            filterOption={(inputValue, option) => {
-                              const searchNum = inputValue.replace(/\./g, "");
-                              return (option?.label ?? "").toString().replace(/\./g, "").includes(searchNum);
-                            }}
                             onChange={(value) => {
-                              const rawValue = value.toString().replace(/\D/g, "");
-                              if (rawValue !== "") {
-                                const numValue = Number(rawValue);
-                                form.setFieldsValue({ quantity: new Intl.NumberFormat('vi-VN').format(numValue) });
-                              } else {
-                                form.setFieldsValue({ quantity: "" });
-                              }
+                              form.setFieldsValue({ quantity: value });
                             }}
-                          >
-                            <Input className="text-right" />
-                          </AutoComplete>
+                          />
                         </Form.Item>
                       </Col>
 
@@ -1102,9 +1069,20 @@ export default function GuestOrderPage() {
                 </div>
               </div>
 
-              <div className="text-center text-xs text-gray-500 italic mt-4">
-                * Vui lòng kiểm tra kỹ thông tin trước khi gửi. Nhân viên sẽ liên hệ với bạn trong thời gian sớm nhất.
-              </div>
+                  {estimatedPrice !== null && estimatedPrice > 0 && (
+                    <div className="col-span-1 md:col-span-2 pt-2 mt-2 border-t border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 font-semibold">Giá chỉ từ (ước tính):</span>
+                        <span className="text-orange-600 font-bold text-xl">
+                          {formatVietnameseNumber(estimatedPrice)} VNĐ
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-center text-xs text-gray-500 italic mt-4 col-span-1 md:col-span-2">
+                    * Vui lòng kiểm tra kỹ thông tin trước khi gửi. Nhân viên sẽ liên hệ với bạn trong thời gian sớm nhất.
+                  </div>
 
             </div>
           )}

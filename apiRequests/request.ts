@@ -67,4 +67,7 @@ export const requestOrderApi = {
 
   cloneRequest: (body: { request_id: number }) =>
     http.post<CommonResType>('/api/Requests/clone-request', body),
+  
+  consultantMessageToCustomer: (body: { request_id: number, message: string }) =>
+    http.put<CommonResType>('/api/Requests/consultant-message-to-customer', body),
 };
