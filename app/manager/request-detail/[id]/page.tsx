@@ -244,6 +244,7 @@ export default function ManagerRequestDetailPage() {
         switch (status) {
             case 'Waiting': return 'Chờ Khách hàng xác nhận';
             case 'Processing': return 'Đang xử lý';
+            case 'Verified': return 'Đã duyệt';
             case 'Declined': return 'Đơn mới';
             case 'Accepted': return 'Đã xác nhận';
             case 'Rejected': return 'Đã hủy';
@@ -265,41 +266,43 @@ export default function ManagerRequestDetailPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        {noteMode ? (
-                            <>
-                                <Button onClick={() => setNoteMode(false)} block className="rounded-lg text-sm font-medium h-auto py-2">
-                                    Hủy bỏ
-                                </Button>
-                                <Popconfirm
-                                    title={<span className="text-lg font-medium">Xác nhận yêu cầu chỉnh sửa ?</span>}
-                                    onConfirm={() => handleApproval('Declined')}
-                                    okText="Xác nhận"
-                                    cancelText="Hủy"
-                                >
-                                    <Button type="primary" block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
-                                        Xác nhận yêu cầu chỉnh sửa
+                        {orderDetail.process_status === 'Processing' && (
+                            noteMode ? (
+                                <>
+                                    <Button onClick={() => setNoteMode(false)} block className="rounded-lg text-sm font-medium h-auto py-2">
+                                        Hủy bỏ
                                     </Button>
-                                </Popconfirm>
-                            </>
-                        ) : (
-                            <>
-                                <Button icon={<EditOutlined />} onClick={() => setNoteMode(true)} danger block className="rounded-lg text-sm font-medium h-auto py-2">
-                                    Yêu cầu chỉnh sửa
-                                </Button>
-                                <Popconfirm
-                                    title={<span className="text-lg font-medium">Duyệt yêu cầu?</span>}
-                                    onConfirm={() => handleApproval('Verified')}
-                                    icon={<CheckOutlined style={{ color: "#1890ff", width: "30px", height: "30px", display: "flex", justifyContent: "center", alignItems: "center" }} />}
-                                    okText="Duyệt"
-                                    cancelText="Hủy"
-                                    okButtonProps={{ className: "bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" }}
-                                    cancelButtonProps={{ className: "bg-slate-800 hover:bg-slate-700 text-sm font-medium h-auto py-2 shadow-none border-0" }}
-                                >
-                                    <Button icon={<CheckOutlined />} block className="rounded-lg bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" loading={actionLoading}>
-                                        Duyệt yêu cầu
+                                    <Popconfirm
+                                        title={<span className="text-lg font-medium">Xác nhận yêu cầu chỉnh sửa ?</span>}
+                                        onConfirm={() => handleApproval('Declined')}
+                                        okText="Xác nhận"
+                                        cancelText="Hủy"
+                                    >
+                                        <Button type="primary" block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                            Xác nhận yêu cầu chỉnh sửa
+                                        </Button>
+                                    </Popconfirm>
+                                </>
+                            ) : (
+                                <>
+                                    <Button icon={<EditOutlined />} onClick={() => setNoteMode(true)} danger block className="rounded-lg text-sm font-medium h-auto py-2">
+                                        Yêu cầu chỉnh sửa
                                     </Button>
-                                </Popconfirm>
-                            </>
+                                    <Popconfirm
+                                        title={<span className="text-lg font-medium">Duyệt yêu cầu?</span>}
+                                        onConfirm={() => handleApproval('Verified')}
+                                        icon={<CheckOutlined style={{ color: "#1890ff", width: "30px", height: "30px", display: "flex", justifyContent: "center", alignItems: "center" }} />}
+                                        okText="Duyệt"
+                                        cancelText="Hủy"
+                                        okButtonProps={{ className: "bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" }}
+                                        cancelButtonProps={{ className: "bg-slate-800 hover:bg-slate-700 text-sm font-medium h-auto py-2 shadow-none border-0" }}
+                                    >
+                                        <Button icon={<CheckOutlined />} block className="rounded-lg bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" loading={actionLoading}>
+                                            Duyệt yêu cầu
+                                        </Button>
+                                    </Popconfirm>
+                                </>
+                            )
                         )}
                     </div>
                 </div>
@@ -343,7 +346,7 @@ export default function ManagerRequestDetailPage() {
                                         {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && <Descriptions.Item label="Loại phủ" span={1}><Text strong className="text-slate-800">{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>}
                                         {orderDetail.wave_type && orderDetail.wave_type !== "NONE" && <Descriptions.Item label="Kiểu sóng" span={1}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item>}
                                         {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
-                                        {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>}
+                                        {/* {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>} */}
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_height_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_height_mm} mm</Text></Descriptions.Item>}
@@ -480,219 +483,363 @@ export default function ManagerRequestDetailPage() {
                                     <DollarOutlined />
                                     Thông tin báo giá
                                 </h3>
-                                {orderDetail.cost_estimate && orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
-                                    <div className={`grid gap-4 max-h-[500px] overflow-y-auto pr-1 ${orderDetail.cost_estimate.filter(x => x.is_active).length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                                        {orderDetail.cost_estimate.filter(x => x.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((estimate, index) => {
-                                            const prevEstimate = estimate.previous_estimate_id 
-                                                ? orderDetail.cost_estimate.find((e: any) => e.estimate_id === estimate.previous_estimate_id) 
-                                                : null;
+                                {orderDetail.cost_estimate && (
+                                    <div className="space-y-6">
+                                        {/* Active Estimates */}
+                                        {orderDetail.cost_estimate.filter(x => x.is_active).length > 0 ? (
+                                            <div className={`grid gap-4 max-h-[500px] overflow-y-auto pr-1 ${orderDetail.cost_estimate.filter(x => x.is_active).length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                                {orderDetail.cost_estimate.filter(x => x.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((estimate, index) => {
+                                                    const prevEstimate = estimate.previous_estimate_id
+                                                        ? orderDetail.cost_estimate.find((e: any) => e.estimate_id === estimate.previous_estimate_id)
+                                                        : null;
 
-                                            const renderDiff = (oldVal: any, newVal: any, formatFn?: any, defaultVal: string = "") => {
-                                                const formattedOld = formatFn ? formatFn(oldVal) : (oldVal || defaultVal);
-                                                const formattedNew = formatFn ? formatFn(newVal) : (newVal || defaultVal);
-                                                
-                                                if (prevEstimate && oldVal !== newVal) {
+                                                    const renderDiff = (oldVal: any, newVal: any, formatFn?: any, defaultVal: string = "") => {
+                                                        const formattedOld = formatFn ? formatFn(oldVal) : (oldVal || defaultVal);
+                                                        const formattedNew = formatFn ? formatFn(newVal) : (newVal || defaultVal);
+
+                                                        if (prevEstimate && oldVal !== newVal) {
+                                                            return (
+                                                                <span className="flex items-center justify-end gap-1.5 flex-nowrap">
+                                                                    <span className="line-through text-red-500 text-xs opacity-70 font-normal">{formattedOld}</span>
+                                                                    <span className="font-semibold text-green-600 flex items-center gap-1">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                                        {formattedNew}
+                                                                    </span>
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return <span>{formattedNew}</span>;
+                                                    };
+
                                                     return (
-                                                        <span className="flex items-center justify-end gap-1.5 flex-nowrap">
-                                                            <span className="line-through text-red-500 text-xs opacity-70 font-normal">{formattedOld}</span>
-                                                            <span className="font-semibold text-green-600 flex items-center gap-1">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                                                {formattedNew}
-                                                            </span>
-                                                        </span>
-                                                    );
-                                                }
-                                                return <span>{formattedNew}</span>;
-                                            };
-
-                                            return (
-                                            <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
-                                                    <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
-                                                    {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{fontSize: '10px'}}>Đã được chỉnh sửa</Tag>}
-                                                </div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-sm whitespace-nowrap">Loại giấy:</span>
-                                                    <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? 'text-slate-400' : ''}`}>
-                                                            {renderDiff(prevEstimate?.paper_name, estimate.paper_name, null, "Chưa xác định")}
-                                                        </span>
-                                                        {noteMode && (
-                                                            <Popover
-                                                                content={
-                                                                    <TextArea
-                                                                        rows={3}
-                                                                        placeholder="Ghi chú thay đổi..."
-                                                                        className="w-64 text-xs font-normal"
-                                                                        value={estimateNotes[index]?.paper_name || ''}
-                                                                        onChange={(e) => handleNoteChange(index, 'paper_name', e.target.value)}
-                                                                    />
-                                                                }
-                                                                title={<span className="text-xs">Chỉnh sửa loại giấy</span>}
-                                                                trigger="click"
-                                                            >
-                                                                <Button
-                                                                    size="small"
-                                                                    type={estimateNotes[index]?.paper_name ? "primary" : "default"}
-                                                                    icon={<EditOutlined />}
-                                                                />
-                                                            </Popover>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-sm whitespace-nowrap">Loại phủ:</span>
-                                                    <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? ' text-slate-400' : ''}`}>
-                                                            {renderDiff(prevEstimate?.coating_type, estimate.coating_type, formatCoatingType, "Chưa xác định")}
-                                                        </span>
-                                                        {noteMode && (
-                                                            <Popover
-                                                                content={
-                                                                    <TextArea
-                                                                        rows={3}
-                                                                        placeholder="Ghi chú thay đổi..."
-                                                                        className="w-64 text-xs font-normal"
-                                                                        value={estimateNotes[index]?.coating_type || ''}
-                                                                        onChange={(e) => handleNoteChange(index, 'coating_type', e.target.value)}
-                                                                    />
-                                                                }
-                                                                title={<span className="text-xs">Chỉnh sửa loại phủ</span>}
-                                                                trigger="click"
-                                                            >
-                                                                <Button
-                                                                    size="small"
-                                                                    type={estimateNotes[index]?.coating_type ? "primary" : "default"}
-                                                                    icon={<EditOutlined />}
-                                                                />
-                                                            </Popover>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-slate-500 text-sm whitespace-nowrap">Đặt cọc:</span>
-                                                    <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-semibold text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
-                                                            {renderDiff(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-slate-500 text-sm font-medium whitespace-nowrap">Tổng chi phí:</span>
-                                                    <div className="flex items-center justify-end gap-x-2 gap-y-1">
-                                                        <span className={`font-bold text-lg text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
-                                                            {renderDiff(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
-                                                        </span>
-                                                        {noteMode && (
-                                                            <Popover
-                                                                content={
-                                                                    <TextArea
-                                                                        rows={3}
-                                                                        placeholder="Ghi chú thay đổi..."
-                                                                        className="w-64 text-xs font-normal"
-                                                                        value={estimateNotes[index]?.final_total_cost || ''}
-                                                                        onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value ? String(e.target.value) : '')}
-                                                                    />
-                                                                }
-                                                                title={<span className="text-xs">Chỉnh sửa tổng chi phí</span>}
-                                                                trigger="click"
-                                                            >
-                                                                <Button
-                                                                    size="small"
-                                                                    type={estimateNotes[index]?.final_total_cost ? "primary" : "default"}
-                                                                    icon={<EditOutlined />}
-                                                                />
-                                                            </Popover>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {/* Material Costs Block (if any exist) */}
-                                                {(estimate.paper_cost > 0 || estimate.ink_cost > 0 || estimate.coating_glue_cost > 0 || estimate.mounting_glue_cost > 0 || estimate.lamination_cost > 0) && (
-                                                    <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg mb-2">
-                                                        <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí vật tư</span>} key="materials" className="p-0 border-0">
-                                                            <div className="space-y-2 py-1">
-                                                                {estimate.paper_cost > 0 && (
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">Phí giấy</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">
-                                                                            {renderDiff(prevEstimate?.paper_cost, estimate.paper_cost, formatCurrency, "0")}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                                {estimate.ink_cost > 0 && (
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">Phí mực</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">
-                                                                            {renderDiff(prevEstimate?.ink_cost, estimate.ink_cost, formatCurrency, "0")}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                                {estimate.coating_glue_cost > 0 && (
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">Phí keo phủ</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">
-                                                                            {renderDiff(prevEstimate?.coating_glue_cost, estimate.coating_glue_cost, formatCurrency, "0")}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                                {estimate.mounting_glue_cost > 0 && (
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">Phí keo bồi</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">
-                                                                            {renderDiff(prevEstimate?.mounting_glue_cost, estimate.mounting_glue_cost, formatCurrency, "0")}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                                {estimate.lamination_cost > 0 && (
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-500 text-xs">Phí màng/keo cán</span>
-                                                                        <span className="text-slate-800 text-xs font-semibold">
-                                                                            {renderDiff(prevEstimate?.lamination_cost, estimate.lamination_cost, formatCurrency, "0")}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
+                                                        <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                                            <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
+                                                                <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
+                                                                {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{ fontSize: '10px' }}>Đã được chỉnh sửa</Tag>}
                                                             </div>
-                                                        </Panel>
-                                                    </Collapse>
-                                                )}
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="text-slate-500 text-sm whitespace-nowrap">Loại giấy:</span>
+                                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                                                                    <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? 'text-slate-400' : ''}`}>
+                                                                        {renderDiff(prevEstimate?.paper_name, estimate.paper_name, null, "Chưa xác định")}
+                                                                    </span>
+                                                                    {noteMode && (
+                                                                        <Popover
+                                                                            content={
+                                                                                <TextArea
+                                                                                    rows={3}
+                                                                                    placeholder="Ghi chú thay đổi..."
+                                                                                    className="w-64 text-xs font-normal"
+                                                                                    value={estimateNotes[index]?.paper_name || ''}
+                                                                                    onChange={(e) => handleNoteChange(index, 'paper_name', e.target.value)}
+                                                                                />
+                                                                            }
+                                                                            title={<span className="text-xs">Chỉnh sửa loại giấy</span>}
+                                                                            trigger="click"
+                                                                        >
+                                                                            <Button
+                                                                                size="small"
+                                                                                type={estimateNotes[index]?.paper_name ? "primary" : "default"}
+                                                                                icon={<EditOutlined />}
+                                                                            />
+                                                                        </Popover>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="text-slate-500 text-sm whitespace-nowrap">Loại phủ:</span>
+                                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                                                                    <span className={`font-medium text-slate-800 text-sm text-right ${noteMode ? ' text-slate-400' : ''}`}>
+                                                                        {renderDiff(prevEstimate?.coating_type, estimate.coating_type, formatCoatingType, "Chưa xác định")}
+                                                                    </span>
+                                                                    {noteMode && (
+                                                                        <Popover
+                                                                            content={
+                                                                                <TextArea
+                                                                                    rows={3}
+                                                                                    placeholder="Ghi chú thay đổi..."
+                                                                                    className="w-64 text-xs font-normal"
+                                                                                    value={estimateNotes[index]?.coating_type || ''}
+                                                                                    onChange={(e) => handleNoteChange(index, 'coating_type', e.target.value)}
+                                                                                />
+                                                                            }
+                                                                            title={<span className="text-xs">Chỉnh sửa loại phủ</span>}
+                                                                            trigger="click"
+                                                                        >
+                                                                            <Button
+                                                                                size="small"
+                                                                                type={estimateNotes[index]?.coating_type ? "primary" : "default"}
+                                                                                icon={<EditOutlined />}
+                                                                            />
+                                                                        </Popover>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="text-slate-500 text-sm whitespace-nowrap">Đặt cọc:</span>
+                                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                                                                    <span className={`font-semibold text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
+                                                                        {renderDiff(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mb-3">
+                                                                <span className="text-slate-500 text-sm font-medium whitespace-nowrap">Tổng chi phí:</span>
+                                                                <div className="flex items-center justify-end gap-x-2 gap-y-1">
+                                                                    <span className={`font-bold text-lg text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
+                                                                        {renderDiff(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
+                                                                    </span>
+                                                                    {noteMode && (
+                                                                        <Popover
+                                                                            content={
+                                                                                <TextArea
+                                                                                    rows={3}
+                                                                                    placeholder="Ghi chú thay đổi..."
+                                                                                    className="w-64 text-xs font-normal"
+                                                                                    value={estimateNotes[index]?.final_total_cost || ''}
+                                                                                    onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value ? String(e.target.value) : '')}
+                                                                                />
+                                                                            }
+                                                                            title={<span className="text-xs">Chỉnh sửa tổng chi phí</span>}
+                                                                            trigger="click"
+                                                                        >
+                                                                            <Button
+                                                                                size="small"
+                                                                                type={estimateNotes[index]?.final_total_cost ? "primary" : "default"}
+                                                                                icon={<EditOutlined />}
+                                                                            />
+                                                                        </Popover>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {/* Material Costs Block (if any exist) */}
+                                                            {(estimate.paper_cost > 0 || estimate.ink_cost > 0 || estimate.coating_glue_cost > 0 || estimate.mounting_glue_cost > 0 || estimate.lamination_cost > 0) && (
+                                                                <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg mb-2">
+                                                                    <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí vật tư</span>} key="materials" className="p-0 border-0">
+                                                                        <div className="space-y-2 py-1">
+                                                                            {estimate.paper_cost > 0 && (
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="text-slate-500 text-xs">Phí giấy</span>
+                                                                                    <span className="text-slate-800 text-xs font-semibold">
+                                                                                        {renderDiff(prevEstimate?.paper_cost, estimate.paper_cost, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                            {estimate.ink_cost > 0 && (
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="text-slate-500 text-xs">Phí mực</span>
+                                                                                    <span className="text-slate-800 text-xs font-semibold">
+                                                                                        {renderDiff(prevEstimate?.ink_cost, estimate.ink_cost, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                            {estimate.coating_glue_cost > 0 && (
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="text-slate-500 text-xs">Phí keo phủ</span>
+                                                                                    <span className="text-slate-800 text-xs font-semibold">
+                                                                                        {renderDiff(prevEstimate?.coating_glue_cost, estimate.coating_glue_cost, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                            {estimate.mounting_glue_cost > 0 && (
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="text-slate-500 text-xs">Phí keo bồi</span>
+                                                                                    <span className="text-slate-800 text-xs font-semibold">
+                                                                                        {renderDiff(prevEstimate?.mounting_glue_cost, estimate.mounting_glue_cost, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                            {estimate.lamination_cost > 0 && (
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className="text-slate-500 text-xs">Phí màng/keo cán</span>
+                                                                                    <span className="text-slate-800 text-xs font-semibold">
+                                                                                        {renderDiff(prevEstimate?.lamination_cost, estimate.lamination_cost, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </Panel>
+                                                                </Collapse>
+                                                            )}
 
-                                                {estimate.process_cost && estimate.process_cost.length > 0 && (
-                                                    <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
-                                                        <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
-                                                            <div className="space-y-2 py-1">
-                                                                {estimate.process_cost.map(proc => {
-                                                                    const prevProc = prevEstimate ? prevEstimate.process_cost?.find((p: any) => p.process_code === proc.process_code) : null;
+                                                            {estimate.process_cost && estimate.process_cost.length > 0 && (
+                                                                <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg">
+                                                                    <Panel header={<span className="text-xs font-medium text-slate-600">Chi tiết phí sản xuất</span>} key="1" className="p-0 border-0">
+                                                                        <div className="space-y-2 py-1">
+                                                                            {estimate.process_cost.map(proc => {
+                                                                                const prevProc = prevEstimate ? prevEstimate.process_cost?.find((p: any) => p.process_code === proc.process_code) : null;
+                                                                                return (
+                                                                                    <div key={proc.process_cost_id} className="flex justify-between items-center">
+                                                                                        <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
+                                                                                        <span className="text-slate-800 text-xs font-semibold">
+                                                                                            {renderDiff(prevProc?.cost, proc.cost, formatCurrency, "0")}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )
+                                                                            })}
+                                                                        </div>
+                                                                    </Panel>
+                                                                </Collapse>
+                                                            )}
+                                                            {noteMode && (
+                                                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                                                    <span className="text-slate-500 text-sm mb-2 block font-medium">Ghi chú thêm:</span>
+                                                                    <TextArea
+                                                                        rows={2}
+                                                                        placeholder="Nhập ghi chú thêm cho báo giá này..."
+                                                                        value={estimateNotes[index]?.general_note || ''}
+                                                                        onChange={(e) => handleNoteChange(index, 'general_note', e.target.value)}
+                                                                        className="text-sm rounded-lg"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6">
+                                                <Text className="text-slate-400 text-sm italic">Chưa có báo giá hiện tại</Text>
+                                            </div>
+                                        )}
+
+                                        {/* Inactive Estimates History */}
+                                        {orderDetail.cost_estimate.filter(x => !x.is_active).length > 0 && (
+                                            <div className="mt-4">
+                                                <Collapse
+                                                    ghost
+                                                    className="bg-slate-50 rounded-xl border border-dashed border-slate-300"
+                                                    expandIconPosition="end"
+                                                >
+                                                    <Panel
+                                                        header={
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-slate-600 font-bold uppercase text-xs tracking-wider">Lịch sử thay đổi báo giá</span>
+                                                                <Tag color="default" className="m-0 rounded-full border-0 text-[10px]">
+                                                                    {orderDetail.cost_estimate.filter(x => !x.is_active).length} bản cũ
+                                                                </Tag>
+                                                            </div>
+                                                        }
+                                                        key="history"
+                                                    >
+                                                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                                                            {orderDetail.cost_estimate
+                                                                .filter(x => !x.is_active)
+                                                                .sort((a, b) => b.estimate_id - a.estimate_id) // Show newest inactive first
+                                                                .map((estimate, idx) => {
+                                                                    const prevEstimate = estimate.previous_estimate_id
+                                                                        ? orderDetail.cost_estimate.find((e: any) => e.estimate_id === estimate.previous_estimate_id)
+                                                                        : null;
+
+                                                                    const renderDiffHistory = (oldVal: any, newVal: any, formatFn?: any, defaultVal: string = "") => {
+                                                                        const formattedOld = formatFn ? formatFn(oldVal) : (oldVal || defaultVal);
+                                                                        const formattedNew = formatFn ? formatFn(newVal) : (newVal || defaultVal);
+
+                                                                        if (prevEstimate && oldVal !== newVal) {
+                                                                            return (
+                                                                                <span className="flex items-center justify-end gap-1.5 flex-nowrap">
+                                                                                    <span className="line-through text-red-500 text-[10px] opacity-70 font-normal">{formattedOld}</span>
+                                                                                    <span className="font-semibold text-green-600 flex items-center gap-1 text-[11px]">
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                                                        {formattedNew}
+                                                                                    </span>
+                                                                                </span>
+                                                                            );
+                                                                        }
+                                                                        return <span>{formattedNew}</span>;
+                                                                    };
+
                                                                     return (
-                                                                        <div key={proc.process_cost_id} className="flex justify-between items-center">
-                                                                            <span className="text-slate-500 text-xs">{formatProcess(proc.process_code)}</span>
-                                                                            <span className="text-slate-800 text-xs font-semibold">
-                                                                                {renderDiff(prevProc?.cost, proc.cost, formatCurrency, "0")}
-                                                                            </span>
+                                                                        <div key={estimate.estimate_id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                                                            <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+                                                                                <Tag className="m-0 border-0 bg-slate-100 text-slate-500 text-[10px] font-medium px-2 rounded">Phiên bản #{estimate.estimate_id}</Tag>
+                                                                                {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{ fontSize: '9px' }}>Đã được chỉnh sửa</Tag>}
+                                                                            </div>
+
+                                                                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-3">
+                                                                                <div className="flex justify-between items-center text-[11px]">
+                                                                                    <span className="text-slate-400">Giấy:</span>
+                                                                                    <span className="text-slate-700 font-medium text-right">
+                                                                                        {renderDiffHistory(prevEstimate?.paper_name, estimate.paper_name, null, "N/A")}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center text-[11px]">
+                                                                                    <span className="text-slate-400">Phủ:</span>
+                                                                                    <span className="text-slate-700 font-medium text-right">
+                                                                                        {renderDiffHistory(prevEstimate?.coating_type, estimate.coating_type, formatCoatingType, "N/A")}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center text-[11px]">
+                                                                                    <span className="text-slate-400">Đặt cọc:</span>
+                                                                                    <span className="text-slate-700 font-semibold text-right">
+                                                                                        {renderDiffHistory(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center text-[11px]">
+                                                                                    <span className="text-slate-400 font-medium">Tổng phí:</span>
+                                                                                    <span className="text-accent-dark font-bold text-right">
+                                                                                        {renderDiffHistory(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="space-y-2">
+                                                                                {/* Material Breakdown for History */}
+                                                                                {(estimate.paper_cost > 0 || estimate.ink_cost > 0 || estimate.coating_glue_cost > 0 || estimate.mounting_glue_cost > 0 || estimate.lamination_cost > 0) && (
+                                                                                    <Collapse ghost size="small" expandIconPosition="end" className="bg-slate-50/50 border border-slate-100 rounded-lg">
+                                                                                        <Panel header={<span className="text-[10px] font-medium text-slate-500 uppercase tracking-tight">Chi tiết vật tư</span>} key="mats" className="p-0 border-0">
+                                                                                            <div className="space-y-1.5 py-1 px-1">
+                                                                                                {estimate.paper_cost > 0 && (
+                                                                                                    <div className="flex justify-between items-center text-[10px]">
+                                                                                                        <span className="text-slate-400">Phí giấy</span>
+                                                                                                        <span className="text-slate-600 font-medium">
+                                                                                                            {renderDiffHistory(prevEstimate?.paper_cost, estimate.paper_cost, formatCurrency, "0")}
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                {estimate.ink_cost > 0 && (
+                                                                                                    <div className="flex justify-between items-center text-[10px]">
+                                                                                                        <span className="text-slate-400">Phí mực</span>
+                                                                                                        <span className="text-slate-600 font-medium">
+                                                                                                            {renderDiffHistory(prevEstimate?.ink_cost, estimate.ink_cost, formatCurrency, "0")}
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                {/* ... other material costs ... */}
+                                                                                            </div>
+                                                                                        </Panel>
+                                                                                    </Collapse>
+                                                                                )}
+
+                                                                                {/* Process Breakdown for History */}
+                                                                                {estimate.process_cost && estimate.process_cost.length > 0 && (
+                                                                                    <Collapse ghost size="small" expandIconPosition="end" className="bg-slate-50/50 border border-slate-100 rounded-lg">
+                                                                                        <Panel header={<span className="text-[10px] font-medium text-slate-500 uppercase tracking-tight">Chi tiết sản xuất</span>} key="procs" className="p-0 border-0">
+                                                                                            <div className="space-y-1.5 py-1 px-1">
+                                                                                                {estimate.process_cost.map(proc => {
+                                                                                                    const prevProc = prevEstimate ? prevEstimate.process_cost?.find((p: any) => p.process_code === proc.process_code) : null;
+                                                                                                    return (
+                                                                                                        <div key={proc.process_cost_id} className="flex justify-between items-center text-[10px]">
+                                                                                                            <span className="text-slate-400">{formatProcess(proc.process_code)}</span>
+                                                                                                            <span className="text-slate-600 font-medium">
+                                                                                                                {renderDiffHistory(prevProc?.cost, proc.cost, formatCurrency, "0")}
+                                                                                                            </span>
+                                                                                                        </div>
+                                                                                                    )
+                                                                                                })}
+                                                                                            </div>
+                                                                                        </Panel>
+                                                                                    </Collapse>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                     )
                                                                 })}
-                                                            </div>
-                                                        </Panel>
-                                                    </Collapse>
-                                                )}
-                                                {noteMode && (
-                                                    <div className="mt-3 pt-3 border-t border-slate-200">
-                                                        <span className="text-slate-500 text-sm mb-2 block font-medium">Ghi chú thêm:</span>
-                                                        <TextArea
-                                                            rows={2}
-                                                            placeholder="Nhập ghi chú thêm cho báo giá này..."
-                                                            value={estimateNotes[index]?.general_note || ''}
-                                                            onChange={(e) => handleNoteChange(index, 'general_note', e.target.value)}
-                                                            className="text-sm rounded-lg"
-                                                        />
-                                                    </div>
-                                                )}
+                                                        </div>
+                                                    </Panel>
+                                                </Collapse>
                                             </div>
-                                        )})}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-6">
-                                        <Text className="text-slate-400 text-sm italic">Chưa có báo giá nào</Text>
+                                        )}
                                     </div>
                                 )}
                             </Card>
