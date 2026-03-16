@@ -684,7 +684,7 @@ export default function GuestOrderPage() {
                     </Title>
 
                     <Row gutter={16}>
-                      <Col xs={24} md={10}>
+                      <Col xs={24} md={14}>
                         <Form.Item
                           name="productName"
                           label={
@@ -719,7 +719,7 @@ export default function GuestOrderPage() {
                         </Form.Item>
                       </Col>
 
-                      <Col xs={24} md={5}>
+                      <Col xs={24} md={10}>
                         <Form.Item
                           name="quantity"
                           label={<span className={labelStyle}>Số lượng <span className="text-red-500">*</span></span>}
@@ -737,33 +737,10 @@ export default function GuestOrderPage() {
                           />
                         </Form.Item>
                       </Col>
-
-                      <Col xs={24} md={9}>
-                        <Form.Item
-                          name="desiredDate"
-                          label={
-                            <span className={labelStyle}>
-                              Thời gian nhận hàng <span className="text-red-500">*</span>
-                            </span>
-                          }
-                          rules={[{ required: true, message: "Chọn ngày" }]}
-                        >
-                          <DatePicker
-                            value={selectedDate}
-                            onChange={handleDateChange}
-                            disabledDate={disabledDate}
-                            format="DD/MM/YYYY"
-                            placeholder="Chọn ngày giao hàng"
-                            style={{ width: "100%" }}
-                            className="w-full"
-                            allowClear
-                          />
-                        </Form.Item>
-                      </Col>
                     </Row>
                     <Row gutter={16} className="mt-4">
                       {/* Dimensions Group */}
-                      <Col xs={24} md={12}>
+                      <Col xs={24} md={14}>
                         <div className={`${labelStyle} mb-2`}>Kích thước (Dài x Rộng x Cao) (mm)</div>
                         <Row gutter={8}>
                           <Col span={8}>
@@ -782,6 +759,29 @@ export default function GuestOrderPage() {
                             </Form.Item>
                           </Col>
                         </Row>
+                      </Col>
+
+                      <Col xs={24} md={10}>
+                        <Form.Item
+                          name="desiredDate"
+                          label={
+                            <span className={labelStyle}>
+                              Thời gian dự kiến <span className="text-red-500">*</span>
+                            </span>
+                          }
+                          rules={[{ required: true, message: "Chọn ngày" }]}
+                        >
+                          <DatePicker
+                            value={selectedDate}
+                            onChange={handleDateChange}
+                            disabledDate={disabledDate}
+                            format="DD/MM/YYYY"
+                            placeholder="Chọn ngày giao hàng"
+                            style={{ width: "100%" }}
+                            className="w-full"
+                            allowClear
+                          />
+                        </Form.Item>
                       </Col>
 
 
