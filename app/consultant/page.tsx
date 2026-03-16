@@ -154,6 +154,7 @@ function ConsultantForm() {
   const [freeMachines, setFreeMachines] = useState<FreeMachine[]>([]);
   const [savedEstimateId, setSavedEstimateId] = useState<number | null>(null);
   const [previousEstimateId, setPreviousEstimateId] = useState<number | null>(null);
+  const lastCalculatedSpecsRef = useRef<string>("");
 
   // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -378,7 +379,11 @@ function ConsultantForm() {
         setDiscountPercent(targetTab.calculations.discountPercent || 0);
         setSavedEstimateId(targetTab.calculations.estimate_id || null);
         setPreviousEstimateId(targetTab.calculations.previous_estimate_id || null);
-        form.setFieldValue("final_price", targetTab.calculations.costEstimate?.cost?.final_total_cost);
+        
+        // Only set final_price if form doesn't have it already (manually edited)
+        if (!nextValues.final_price) {
+          form.setFieldValue("final_price", targetTab.calculations.costEstimate?.cost?.final_total_cost);
+        }
       } else {
         // Calculate immediately using nextValues
         const result = calculateEstimateResult(nextValues);
@@ -400,6 +405,9 @@ function ConsultantForm() {
           setSavedEstimateId(null);
         }
       }
+
+      // Sync specs ref for the new tab
+      lastCalculatedSpecsRef.current = getSpecsSignature(nextValues);
 
       // Trigger logic to update detailed states (like selectedProductTypeCode) based on new values
       const pType = nextValues.product_type;
@@ -584,15 +592,24 @@ function ConsultantForm() {
           setOrderStatus(orderData.process_status || null);
           setManagerNote(orderData.reason || orderData.note || orderData.manager_note || null);
 
-          // Find up to 2 active estimates from cost_estimate array
-          let activeEstimates = orderData.cost_estimate ? orderData.cost_estimate.filter((e: any) => e.is_active) : [];
-          if (activeEstimates.length === 0 && orderData.cost_estimate && orderData.cost_estimate.length > 0) {
-            activeEstimates = orderData.cost_estimate;
+          // Pick top 2 LATEST active estimates (or historical if none active), 
+          // then sort ASC for stable labeling (Manager-style)
+          let baseEstimates = orderData.cost_estimate 
+            ? orderData.cost_estimate.filter((e: any) => e.is_active)
+            : [];
+          
+          if (baseEstimates.length === 0 && orderData.cost_estimate?.length > 0) {
+            baseEstimates = orderData.cost_estimate;
           }
 
-          if (activeEstimates.length > 0 && isNegotiateMode) {
+          const estimatesToLoad = [...baseEstimates]
+            .sort((a: any, b: any) => b.estimate_id - a.estimate_id) // Latest first
+            .slice(0, 2) // Take top 2
+            .sort((a: any, b: any) => a.estimate_id - b.estimate_id); // ASC for display (Báo giá 1 < Báo giá 2)
+
+          if (estimatesToLoad.length > 0 && isNegotiateMode) {
             // We have previous quotes to load
-            const newTabs: QuoteTab[] = activeEstimates.slice(0, 2).map((est: any, index: number) => {
+            const newTabs: QuoteTab[] = estimatesToLoad.map((est: any, index: number) => {
               const tabData = {
                 customer_name: orderData.customer_name,
                 customer_phone: orderData.customer_phone,
@@ -640,6 +657,11 @@ function ConsultantForm() {
             // Set active to first tab
             setActiveTabKey("1");
             form.setFieldsValue(newTabs[0].data);
+            setSavedEstimateId(newTabs[0].calculations?.estimate_id || null);
+            setPreviousEstimateId(newTabs[0].calculations?.previous_estimate_id || null);
+
+            // Initialize specs ref for the first tab
+            lastCalculatedSpecsRef.current = getSpecsSignature(newTabs[0].data);
 
             if (orderData.design_file_path) {
               setDesignFilePath(orderData.design_file_path);
@@ -977,6 +999,25 @@ function ConsultantForm() {
     }
   }
 
+  const getSpecsSignature = (values: any) => {
+    return JSON.stringify({
+      paper_code: values.paper_code || "",
+      quantity: Number(values.quantity) || 0,
+      length: Number(values.length) || 0,
+      width: Number(values.width) || 0,
+      height: Number(values.height) || 0,
+      product_type: values.product_type || "",
+      production_processes: Array.isArray(values.production_processes) 
+        ? [...values.production_processes].sort().join(",") 
+        : (values.production_processes || ""),
+      coating_type: values.coating_type || "NONE",
+      wave_type: values.wave_type || "NONE",
+      is_one_side_box: !!values.is_one_side_box,
+      glue_tab: Number(values.glue_tab) || 0,
+      bleed: Number(values.bleed) || 0,
+    });
+  };
+
   function calculateEstimates() {
     const values = form.getFieldsValue();
     const result = calculateEstimateResult(values);
@@ -985,9 +1026,15 @@ function ConsultantForm() {
       setEstimate(result.estimate);
       setPaperEstimate(result.paperEstimate);
       setCostEstimate(result.costEstimate);
-      form.setFieldValue("final_price", result.finalTotalCost);
-      // Optional: if handleCalculate does anything else, we keep it, but mostly we just need setEstimate
-      // handleCalculate(values, values, result.paperEstimate.sheets_with_waste);
+      
+      // Only update final_price if specs have changed or it's currently empty
+      const specsSignature = getSpecsSignature(values);
+
+      const currentPrice = form.getFieldValue("final_price");
+      if (!currentPrice || specsSignature !== lastCalculatedSpecsRef.current) {
+        form.setFieldValue("final_price", result.finalTotalCost);
+        lastCalculatedSpecsRef.current = specsSignature;
+      }
     }
   }
 
@@ -1071,8 +1118,8 @@ function ConsultantForm() {
     const allQuotes = quoteTabs.map((tab) => {
       if (tab.key === activeTabKey) {
         return {
-          ...tab.data, // Form values (which is 'values' arg)
-          ...values, // Ensure we have latest form values
+          ...tab.data,
+          ...values,
           ...sharedValues,
           key: tab.key,
           label: tab.label,
@@ -1086,8 +1133,8 @@ function ConsultantForm() {
         label: tab.label,
         calculations: {
           ...tab.calculations,
-          estimate_id: tab.key === activeTabKey ? savedEstimateId : tab.calculations?.estimate_id,
-          previous_estimate_id: tab.key === activeTabKey ? previousEstimateId : tab.calculations?.previous_estimate_id
+          estimate_id: tab.calculations?.estimate_id || null,
+          previous_estimate_id: tab.calculations?.previous_estimate_id || null
         }
       };
     });
@@ -1245,20 +1292,19 @@ function ConsultantForm() {
               quoteDiscountPercent,
               discountAmt,
               {
-                paper_name: quote.paper_name || paperTypes.find((p) => p.code === quote.paper_code)?.name || "",
+                paper_name: paperTypes.find((p) => p.code === quote.paper_code)?.name || quote.paper_name || "",
                 wave_type: quote.wave_type,
                 production_processes: Array.isArray(quote.production_processes) ? quote.production_processes.join(",") : quote.production_processes,
                 bleed_mm: quote.bleed,
                 glue_tab_mm: quote.glue_tab,
                 is_one_side_box: quote.is_one_side_box,
                 previous_estimate_id: calculations.previous_estimate_id || null,
+                final_total_cost: quote.final_price
               }
             );
 
-            const calculatedTotal = Math.round(originalPrice);
-            if (quote.final_price !== undefined && quote.final_price !== null && quote.final_price !== calculatedTotal) {
-              estimationResult.final_total_cost = quote.final_price;
-            }
+            // 3.2.1 Handle specific cost values from calculation if needed (optional)
+            // Note: mapToOrderEstimationResult now respects additionalSpecs.final_total_cost
 
             // Only save if it has valid data
             await estimatesApi.costSave(estimationResult);
@@ -1334,20 +1380,16 @@ function ConsultantForm() {
             currentTabDiscountPercent,
             discountAmount,
             {
-              paper_name: form.getFieldValue("paper_name") || paperTypes.find((p) => p.code === form.getFieldValue("paper_code"))?.name || "",
+              paper_name: paperTypes.find((p) => p.code === form.getFieldValue("paper_code"))?.name || form.getFieldValue("paper_name") || "",
               wave_type: form.getFieldValue("wave_type"),
               production_processes: Array.isArray(form.getFieldValue("production_processes")) ? form.getFieldValue("production_processes").join(",") : form.getFieldValue("production_processes"),
               bleed_mm: form.getFieldValue("bleed"),
               glue_tab_mm: form.getFieldValue("glue_tab"),
               is_one_side_box: form.getFieldValue("is_one_side_box"),
               previous_estimate_id: previousEstimateId || null,
+              final_total_cost: finalPrice
             }
           );
-
-          const calculatedTotal = Math.round(originalPrice);
-          if (finalPrice !== undefined && finalPrice !== null && finalPrice !== calculatedTotal) {
-            estimationResult.final_total_cost = finalPrice;
-          }
 
           const res = await estimatesApi.costSave(estimationResult);
 

@@ -58,13 +58,13 @@ const { Title, Text } = Typography;
 const hd = new Holidays("VN");
 
 const quantityOptions = [
-  { value: 500, label: "500" },
-  { value: 1000, label: "1.000" },
-  { value: 2000, label: "2.000" },
-  { value: 3000, label: "3.000" },
-  { value: 5000, label: "5.000" },
-  { value: 10000, label: "10.000" },
-  { value: 20000, label: "20.000" },
+  { value: 500, label: "Gói 500" },
+  { value: 1000, label: "Từ 500 đến 1.000" },
+  { value: 2000, label: "Từ 1.000 đến 2.000" },
+  { value: 3000, label: "Từ 2.000 đến 3.000" },
+  { value: 5000, label: "Từ 3.000 đến 5.000" },
+  { value: 10000, label: "Từ 5.000 đến 10.000" },
+  { value: 20000, label: "Từ 10.000 đến 20.000" },
 ];
 
 const getQuantityLabel = (val: number) => {

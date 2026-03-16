@@ -515,7 +515,7 @@ export default function ManagerRequestDetailPage() {
                                                         <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                                                             <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
                                                                 <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
-                                                                {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{ fontSize: '10px' }}>Đã được chỉnh sửa</Tag>}
+                                                                {/* {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{ fontSize: '10px' }}>Đã được chỉnh sửa</Tag>} */}
                                                             </div>
                                                             <div className="flex justify-between items-center mb-2">
                                                                 <span className="text-slate-500 text-sm whitespace-nowrap">Loại giấy:</span>
@@ -753,7 +753,7 @@ export default function ManagerRequestDetailPage() {
                                                                         <div key={estimate.estimate_id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                                                                             <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
                                                                                 <Tag className="m-0 border-0 bg-slate-100 text-slate-500 text-[10px] font-medium px-2 rounded">Phiên bản #{estimate.estimate_id}</Tag>
-                                                                                {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{ fontSize: '9px' }}>Đã được chỉnh sửa</Tag>}
+                                                                                {/* {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{ fontSize: '9px' }}>Đã được chỉnh sửa</Tag>} */}
                                                                             </div>
 
                                                                             <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-3">

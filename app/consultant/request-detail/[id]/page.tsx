@@ -116,8 +116,17 @@ export default function ConsultantRequestDetailPage() {
         // Processing send in modal
         setSending(true);
         try {
+            // Integrate message sending if present
+            if (customerMessage.trim()) {
+                await requestOrderApi.consultantMessageToCustomer({
+                    request_id: Number(requestId),
+                    message: customerMessage
+                });
+            }
+
             await requestOrderApi.sendDeal({ request_id: orderDetail.request_id });
             message.success("Đã gửi báo giá cho khách hàng thành công!");
+            setCustomerMessage(""); // Clear message after success
             setIsPreviewModalOpen(false);
             await fetchOrderDetail(); // Refresh data to update status
         } catch (error) {

@@ -235,7 +235,7 @@ export const mapToOrderEstimationResult = (
     subtotal: costEstimate.cost.subtotal || 0,
     discount_percent: discountPercent !== undefined ? discountPercent : (costEstimate.cost.discount_percent || 0),
     discount_amount: discountAmount !== undefined ? discountAmount : (costEstimate.cost.discount_amount || 0),
-    final_total_cost: costEstimate.cost.final_total_cost || 0,
+    final_total_cost: additionalSpecs?.final_total_cost ?? (costEstimate.cost.final_total_cost || 0),
     cost_note: additionalSpecs?.cost_note || "",
 
     // Time
