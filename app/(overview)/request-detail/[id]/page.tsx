@@ -156,7 +156,7 @@ export default function RequestDetailPage() {
       }
     };
 
-    const intervalId = setInterval(checkPaymentStatus, 2000);
+    const intervalId = setInterval(checkPaymentStatus, 5000);
 
     return () => clearInterval(intervalId);
   }, [requestId, router, selectedQuote]);
@@ -613,7 +613,7 @@ export default function RequestDetailPage() {
             {/* Quotes Sections */}
             {quotes.length > 0 && (
               <div className="space-y-6">
-               
+
                 <div className="grid grid-cols-1 gap-8">
                   {quotes.map((quote, index) => {
                     const requestDateText = quote.request_date_text || dayjs(quote.order_request_date).format("DD/MM/YYYY");

@@ -7,6 +7,9 @@ import { uploadApi } from "@/apiRequests/uploads";
 import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
   CreditCardOutlined,
+  DownloadOutlined,
+  FileTextOutlined,
+  InfoCircleOutlined,
   QrcodeOutlined,
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
@@ -32,8 +35,23 @@ export default function RequestDetailPage() {
   const [quotes, setQuotes] = useState<QuoteOption[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<QuoteOption | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<PaymentResponse | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [loadingQR, setLoadingQR] = useState(false);
+  const [fullRequestDetail, setFullRequestDetail] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchFullDetail = async () => {
+      if (!requestId) return;
+      try {
+        const res = await requestOrderApi.getDetail(requestId);
+        setFullRequestDetail(res?.data || res);
+      } catch (error) {
+        console.error("Error fetching full request detail:", error);
+      }
+    };
+    fetchFullDetail();
+  }, [requestId]);
 
   useEffect(() => {
     const fetchQuotes = async () => {
@@ -58,13 +76,20 @@ export default function RequestDetailPage() {
     fetchQuotes();
   }, [requestId]);
 
-  const handlePayClick = async (quote: QuoteOption) => {
+  const handlePayClick = (quote: QuoteOption) => {
     setSelectedQuote(quote);
-    setIsModalVisible(true);
+    setIsConfirmModalVisible(true);
+  };
+
+  const proceedToPayment = async () => {
+    if (!selectedQuote) return;
+
+    setIsConfirmModalVisible(false);
+    setIsPaymentModalVisible(true);
     setLoadingQR(true);
     setPaymentInfo(null);
     try {
-      const res = await paymentApi.getPaymentQR(String(quote.order_request_id), quote.quote_id, quote.estimate_id);
+      const res = await paymentApi.getPaymentQR(String(selectedQuote.order_request_id), selectedQuote.quote_id, selectedQuote.estimate_id);
       const data = (res as any).data || res;
       if (data) {
         setPaymentInfo(data);
@@ -72,7 +97,7 @@ export default function RequestDetailPage() {
     } catch (error) {
       console.error("Error fetching payment QR:", error);
       message.error("Lỗi khi lấy thông tin thanh toán");
-      setIsModalVisible(false);
+      setIsPaymentModalVisible(false);
     } finally {
       setLoadingQR(false);
     }
@@ -297,13 +322,6 @@ export default function RequestDetailPage() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
-                  {/* <Button
-                    danger
-                    onClick={() => router.push(`/reject-deal/${requestId}`)}
-                    className="h-10 px-8 rounded-lg font-medium w-full sm:w-auto mt-2 sm:mt-0"
-                  >
-                    Từ chối báo giá này
-                  </Button> */}
                   <Button
                     type="primary"
                     className="h-10 px-8 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 w-full sm:w-auto mt-2 sm:mt-0"
@@ -320,7 +338,6 @@ export default function RequestDetailPage() {
 
       <div className="mt-2 pt-2 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
         <button
-
           onClick={() => router.push(`/reject-deal/${requestId}`)}
           className="h-10 px-8 rounded-lg font-medium w-full sm:w-auto mt-2 sm:mt-0 bg-red-500 text-white hover:bg-red-600 hover:text-white"
         >
@@ -328,10 +345,83 @@ export default function RequestDetailPage() {
         </button>
       </div>
 
+      {/* Confirmation Modal */}
+      <Modal
+        title={<div className="text-lg font-bold text-slate-800">Xác nhận hợp đồng & thanh toán</div>}
+        open={isConfirmModalVisible}
+        onCancel={() => setIsConfirmModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsConfirmModalVisible(false)} className="rounded-lg">
+            Hủy
+          </Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            onClick={proceedToPayment} 
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 border-none"
+          >
+            Xác nhận & Thanh toán
+          </Button>
+        ]}
+        width={600}
+        centered
+      >
+        <div className="py-4">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6">
+            <h4 className="text-blue-800 font-bold mb-2 flex items-center gap-2">
+              <InfoCircleOutlined className="text-blue-500" />
+              Điều khoản hợp đồng
+            </h4>
+            <p className="text-blue-700 text-sm m-0">
+              Vui lòng xem kỹ file hợp đồng và các thông tin báo giá trước khi tiến hành thanh toán đặt cọc.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
+                  <FileTextOutlined className="text-blue-600" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-800">File Hợp đồng</div>
+                  <div className="text-xs text-slate-500">
+                    {fullRequestDetail?.contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
+                  </div>
+                </div>
+              </div>
+              {fullRequestDetail?.contract_file ? (
+                <Button 
+                  type="primary" 
+                  ghost 
+                  icon={<DownloadOutlined />}
+                  onClick={() => window.open(fullRequestDetail.contract_file, '_blank')}
+                  className="rounded-lg"
+                >
+                  Xem hợp đồng
+                </Button>
+              ) : (
+                <span className="text-slate-400 italic text-sm">Chưa có file</span>
+              )}
+            </div>
+
+            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <div className="flex justify-between items-center">
+                <span className="text-amber-800 font-medium">Số tiền cần thanh toán:</span>
+                <span className="text-amber-700 font-extrabold text-lg">
+                  {selectedQuote ? formatVND(selectedQuote.deposit) : "0 đ"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Payment QR Modal */}
       <Modal
         title={null}
-        open={isModalVisible}
-        onCancel={() => { setIsModalVisible(false); setPaymentInfo(null); }}
+        open={isPaymentModalVisible}
+        onCancel={() => { setIsPaymentModalVisible(false); setPaymentInfo(null); }}
         footer={null}
         width={500}
         centered
