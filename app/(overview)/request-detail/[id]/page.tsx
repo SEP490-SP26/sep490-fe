@@ -49,6 +49,7 @@ import {
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -446,6 +447,16 @@ export default function RequestDetailPage() {
               className="px-4 py-2"
             />
           </Card>
+
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3 mt-4 shadow-sm">
+            <InfoCircleOutlined className="mt-0.5 text-blue-500 text-lg flex-shrink-0" />
+            <div>
+              <p className="font-bold text-blue-800 mb-1">Cảm ơn quý khách đã tin tưởng và sử dụng dịch vụ của chúng tôi!</p>
+              <p className="text-sm m-0 text-slate-700">
+                Để theo dõi tiến độ chi tiết và xem các cập nhật mới nhất của đơn hàng, vui lòng truy cập mục <Link href="/look-up" className="font-semibold underline text-blue-600 hover:text-blue-800">Tra cứu đơn hàng</Link>.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

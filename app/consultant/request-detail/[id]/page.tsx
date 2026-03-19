@@ -882,6 +882,18 @@ export default function ConsultantRequestDetailPage() {
                             </div>
                         </div>
 
+                        {customerMessage.trim() && (
+                            <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                                <h3 className="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-2">
+                                    <SendOutlined />
+                                    Lời nhắn cho khách hàng
+                                </h3>
+                                <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                                    {customerMessage}
+                                </div>
+                            </div>
+                        )}
+
                         <div className={`grid grid-cols-1 ${previewData && previewData.quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-8 w-full`}>
                             {previewData?.quotes.map((quote, index) => {
                                 const requestDateText = quote.request_date_text || (quote.order_request_date ? dayjs(quote.order_request_date).format("DD/MM/YYYY") : "---");
@@ -951,6 +963,25 @@ export default function ConsultantRequestDetailPage() {
                                                             ))}
                                                         </div>
                                                     </div>
+
+                                                    {quote.contract_file_path && (
+                                                        <div className="mt-4">
+                                                            <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-indigo-500 text-indigo-600 tracking-wide">
+                                                                Hợp đồng
+                                                            </h3>
+                                                            <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                                                                <span className="text-slate-500 text-[11px]">Tệp đính kèm</span>
+                                                                <Button
+                                                                    type="link"
+                                                                    size="small"
+                                                                    className="p-0 h-auto text-[11px] font-semibold text-indigo-600"
+                                                                    onClick={() => window.open(quote.contract_file_path, "_blank")}
+                                                                >
+                                                                    Xem hợp đồng
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Right Column: Costs */}
