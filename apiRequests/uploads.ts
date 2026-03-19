@@ -21,14 +21,13 @@ export const uploadApi = {
         );
     },
 
-    uploadContract: async (orderRequestId: number, file: File): Promise<UploadResponse> => {
+    uploadContract: async (data: { requestId: number, estimate_id: number, file: File }) => {
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("request_id", data.requestId.toString());
+        formData.append("estimate_id", data.estimate_id.toString());
+        formData.append("file", data.file);
 
-        return http.post<UploadResponse>(
-            `/api/Uploads/upload-contract/${orderRequestId}`,
-            formData
-        );
+        return http.post<void>(`/api/Estimates/upload-contract`, formData);
     },
 
     deleteFile: async (request_id: number): Promise<void> => {

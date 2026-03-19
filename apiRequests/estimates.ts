@@ -105,6 +105,8 @@ export interface QuoteOption {
   quote_id: number;
   estimate_id: number;
   order_request_id: number;
+  contract_file_path: string;
+  contract_uploaded_at: string;
 
   // Thông tin khách hàng & Địa chỉ
   customer_name: string;

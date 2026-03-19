@@ -11,6 +11,7 @@ import {
   FileTextOutlined,
   InfoCircleOutlined,
   QrcodeOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
 import {
@@ -18,6 +19,8 @@ import {
   message,
   Skeleton,
   Modal,
+  Upload,
+  Popconfirm,
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -354,14 +357,23 @@ export default function RequestDetailPage() {
           <Button key="cancel" onClick={() => setIsConfirmModalVisible(false)} className="rounded-lg">
             Hủy
           </Button>,
-          <Button 
-            key="submit" 
-            type="primary" 
-            onClick={proceedToPayment} 
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 border-none"
+          <Popconfirm
+            title="Xác nhận thanh toán"
+            description="Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc báo giá còn lại sẽ bị hủy. Bạn có chắc chắn muốn thanh toán?"
+            onConfirm={proceedToPayment}
+            onCancel={() => setIsConfirmModalVisible(false)}
+            okText="Xác nhận"
+            cancelText="Hủy"
           >
-            Xác nhận & Thanh toán
-          </Button>
+            <Button
+              key="submit"
+              type="primary"
+              className="rounded-lg bg-emerald-600 hover:bg-emerald-500 border-none"
+            >
+              Xác nhận & Thanh toán
+            </Button>
+          </Popconfirm>
+
         ]}
         width={600}
         centered
@@ -378,31 +390,64 @@ export default function RequestDetailPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
-                  <FileTextOutlined className="text-blue-600" />
-                </div>
-                <div>
-                  <div className="font-bold text-slate-800">File Hợp đồng</div>
-                  <div className="text-xs text-slate-500">
-                    {fullRequestDetail?.contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
+                    <FileTextOutlined className="text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-800">File Hợp đồng</div>
+                    <div className="text-xs text-slate-500">
+                      {selectedQuote?.contract_file_path || fullRequestDetail?.contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
+                    </div>
                   </div>
                 </div>
+                {selectedQuote?.contract_file_path || fullRequestDetail?.contract_file ? (
+                  <div className="flex gap-2">
+                    <Button
+                      type="primary"
+                      ghost
+                      icon={<DownloadOutlined />}
+                      onClick={() => window.open(selectedQuote?.contract_file_path || fullRequestDetail?.contract_file, '_blank')}
+                      className="rounded-lg"
+                    >
+                      Tải / Xem hợp đồng
+                    </Button>
+                    <Upload
+                      showUploadList={false}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      customRequest={async (options) => {
+                        const { file, onSuccess, onError } = options;
+                        const hide = message.loading("Đang tải hợp đồng lên...", 0);
+                        try {
+                          await uploadApi.uploadContract({
+                            requestId: Number(requestId),
+                            estimate_id: selectedQuote?.estimate_id || 0,
+                            file: file as File
+                          });
+                          message.success("Tải bản hợp đồng đã ký thành công!");
+                          if (onSuccess) onSuccess("ok");
+                        } catch (error) {
+                          message.error("Tải hợp đồng thất bại");
+                          if (onError) onError(error as any);
+                        } finally {
+                          hide();
+                        }
+                      }}
+                    >
+                      <Button icon={<UploadOutlined />} className="rounded-lg">
+                        Gửi lại bản đã ký
+                      </Button>
+                    </Upload>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 italic text-sm">Chưa có file</span>
+                )}
               </div>
-              {fullRequestDetail?.contract_file ? (
-                <Button 
-                  type="primary" 
-                  ghost 
-                  icon={<DownloadOutlined />}
-                  onClick={() => window.open(fullRequestDetail.contract_file, '_blank')}
-                  className="rounded-lg"
-                >
-                  Xem hợp đồng
-                </Button>
-              ) : (
-                <span className="text-slate-400 italic text-sm">Chưa có file</span>
-              )}
+              <p className="text-xs text-red-500 italic m-0 px-1">
+                * Lưu ý: Sau 3 ngày phải ký hợp đồng nếu không đơn hàng sẽ bị hoãn. Quý khách có thể gửi hợp đồng trong phần Tra cứu đơn hàng. Khi đã thanh toán xem như đã đồng ý với các điều khoản trong hợp đồng.
+              </p>
             </div>
 
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">

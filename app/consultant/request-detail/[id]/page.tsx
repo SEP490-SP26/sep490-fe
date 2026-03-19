@@ -32,7 +32,8 @@ import {
     Upload,
     Row,
     Col,
-    Space
+    Space,
+    Select
 } from "antd";
 import { estimatesApi, OrderRequestWithQuotes, QuoteOption } from "@/apiRequests/estimates";
 import dayjs from "dayjs";
@@ -61,6 +62,9 @@ export default function ConsultantRequestDetailPage() {
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
+    const [isUploadContractModalOpen, setIsUploadContractModalOpen] = useState(false);
+    const [selectedUploadEstimateId, setSelectedUploadEstimateId] = useState<number | undefined>(undefined);
+    const [tempContractFile, setTempContractFile] = useState<File | null>(null);
 
     const [customerMessage, setCustomerMessage] = useState("");
     const [sendingMessage, setSendingMessage] = useState(false);
@@ -156,6 +160,31 @@ export default function ConsultantRequestDetailPage() {
             message.error("Không thể gửi lời nhắn. Vui lòng thử lại sau.");
         } finally {
             setSendingMessage(false);
+        }
+    };
+
+    const handleUploadContract = async () => {
+        if (!selectedUploadEstimateId || !tempContractFile || !orderDetail) {
+            message.warning("Vui lòng chọn báo giá!");
+            return;
+        }
+
+        setUploadingContract(true);
+        try {
+            await uploadApi.uploadContract({
+                requestId: orderDetail.request_id,
+                estimate_id: selectedUploadEstimateId,
+                file: tempContractFile
+            });
+            message.success("Tải hợp đồng thành công");
+            setIsUploadContractModalOpen(false);
+            setTempContractFile(null);
+            setSelectedUploadEstimateId(undefined);
+            fetchOrderDetail();
+        } catch (error) {
+            message.error("Tải hợp đồng thất bại");
+        } finally {
+            setUploadingContract(false);
         }
     };
 
@@ -322,6 +351,59 @@ export default function ConsultantRequestDetailPage() {
                                 </Form.Item>
                             </Form>
                         </Modal>
+
+                        {/* Upload Contract Select Estimate Modal */}
+                        <Modal
+                            title={
+                                <div className="flex items-center gap-2">
+                                    <FileTextOutlined className="text-blue-600" />
+                                    <span>Chọn báo giá cho hợp đồng</span>
+                                </div>
+                            }
+                            open={isUploadContractModalOpen}
+                            onCancel={() => {
+                                setIsUploadContractModalOpen(false);
+                                setTempContractFile(null);
+                            }}
+                            footer={[
+                                <Button key="cancel" onClick={() => {
+                                    setIsUploadContractModalOpen(false);
+                                    setTempContractFile(null);
+                                }}>
+                                    Hủy
+                                </Button>,
+                                <Button
+                                    key="submit"
+                                    type="primary"
+                                    className="bg-blue-600 hover:bg-blue-500"
+                                    loading={uploadingContract}
+                                    onClick={handleUploadContract}
+                                    disabled={!selectedUploadEstimateId}
+                                >
+                                    Tải lên
+                                </Button>
+                            ]}
+                        >
+                            <div className="py-2">
+                                <p className="mb-2 text-sm text-slate-600">Vui lòng chọn báo giá tương ứng cho hợp đồng này:</p>
+                                <Select
+                                    className="w-full"
+                                    placeholder="Chọn báo giá"
+                                    value={selectedUploadEstimateId}
+                                    onChange={(value) => setSelectedUploadEstimateId(value)}
+                                    options={orderDetail?.cost_estimate?.filter(e => e.is_active).map((est, index) => ({
+                                        value: est.estimate_id,
+                                        label: `Báo giá #${index + 1} - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(est.final_total_cost)}`
+                                    })) || []}
+                                />
+                                {tempContractFile && (
+                                    <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2 text-sm">
+                                        <FileTextOutlined className="text-blue-500" />
+                                        <span className="truncate">{tempContractFile.name}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </Modal>
                     </div>
                 </div>
 
@@ -476,25 +558,19 @@ export default function ConsultantRequestDetailPage() {
                                         ) : (
                                             <Upload
                                                 showUploadList={false}
-                                                customRequest={async (options) => {
-                                                    const { file, onSuccess, onError } = options;
-                                                    setUploadingContract(true);
-                                                    try {
-                                                        const res = await uploadApi.uploadContract(orderDetail.request_id, file as File);
-                                                        if (res && res.url) {
-                                                            message.success("Tải hợp đồng thành công");
-                                                            fetchOrderDetail();
-                                                            if (onSuccess) onSuccess("ok");
-                                                        }
-                                                    } catch (error) {
-                                                        message.error("Tải hợp đồng thất bại");
-                                                        if (onError) onError(error as any);
-                                                    } finally {
-                                                        setUploadingContract(false);
+                                                beforeUpload={(file) => {
+                                                    const activeEstimates = orderDetail?.cost_estimate?.filter(e => e.is_active) || [];
+                                                    if (activeEstimates.length === 1) {
+                                                        setSelectedUploadEstimateId(activeEstimates[0].estimate_id);
+                                                    } else {
+                                                        setSelectedUploadEstimateId(undefined);
                                                     }
+                                                    setTempContractFile(file);
+                                                    setIsUploadContractModalOpen(true);
+                                                    return false; // Prevent auto upload
                                                 }}
                                             >
-                                                <Button size="small" icon={<UploadOutlined />} loading={uploadingContract}>
+                                                <Button size="small" icon={<UploadOutlined />}>
                                                     Tải lên
                                                 </Button>
                                             </Upload>
@@ -574,6 +650,37 @@ export default function ConsultantRequestDetailPage() {
                                                         <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
                                                         <span className="font-bold text-lg text-accent-dark">{formatCurrency(estimate.final_total_cost)}</span>
                                                     </div>
+
+                                                    {/* Hợp đồng của báo giá */}
+                                                    {(estimate.contract_file_path || estimate.contract_uploaded_at) && (
+                                                        <div className="mt-3 pt-3 border-t border-slate-200">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <FileTextOutlined className="text-blue-500" />
+                                                                <span className="text-sm font-medium text-slate-800">Hợp đồng đính kèm</span>
+                                                            </div>
+                                                            {estimate.contract_file_path && (
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <span className="text-slate-500 text-xs">File hợp đồng:</span>
+                                                                    <Button
+                                                                        type="link"
+                                                                        size="small"
+                                                                        className="p-0 h-auto text-xs font-semibold"
+                                                                        onClick={() => window.open(estimate.contract_file_path, "_blank")}
+                                                                    >
+                                                                        Xem file
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                            {estimate.contract_uploaded_at && (
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-slate-500 text-xs">Ngày tải lên:</span>
+                                                                    <span className="text-slate-800 text-xs font-medium">
+                                                                        {dayjs(estimate.contract_uploaded_at).format("DD/MM/YYYY HH:mm")}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     {/* Material Costs Block (if any exist) */}
                                                     {(estimate.paper_cost > 0 || estimate.ink_cost > 0 || estimate.coating_glue_cost > 0 || estimate.mounting_glue_cost > 0 || estimate.lamination_cost > 0) && (
                                                         <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg mb-2">
@@ -717,14 +824,14 @@ export default function ConsultantRequestDetailPage() {
                                                 </div>
                                                 <div className="gap-2">
                                                     <Space direction="vertical" className="w-full"  >
-                                                    <Input.TextArea
-                                                        rows={2}
-                                                        placeholder="Nhập lời nhắn hoặc ghi chú gửi cho khách hàng..."
-                                                        value={customerMessage}
-                                                        onChange={(e) => setCustomerMessage(e.target.value)}
-                                                        className="rounded-xl border-emerald-100 focus:border-emerald-300 focus:ring-emerald-200"
-                                                    />
-                                                    <Button
+                                                        <Input.TextArea
+                                                            rows={2}
+                                                            placeholder="Nhập lời nhắn hoặc ghi chú gửi cho khách hàng..."
+                                                            value={customerMessage}
+                                                            onChange={(e) => setCustomerMessage(e.target.value)}
+                                                            className="rounded-xl border-emerald-100 focus:border-emerald-300 focus:ring-emerald-200"
+                                                        />
+                                                        {/* <Button
                                                         type="primary"
                                                         icon={<SendOutlined />}
                                                         onClick={handleSendMessageToCustomer}
@@ -732,7 +839,7 @@ export default function ConsultantRequestDetailPage() {
                                                         className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-lg w-full h-10 font-semibold"
                                                     >
                                                         Gửi lời nhắn
-                                                    </Button>
+                                                    </Button> */}
                                                     </Space>
                                                 </div>
                                             </div>

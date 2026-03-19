@@ -19,6 +19,7 @@ import {
   CreditCardOutlined,
   DeleteOutlined,
   DeploymentUnitOutlined,
+  DownloadOutlined,
   EnvironmentOutlined,
   FileTextOutlined,
   FormatPainterOutlined,
@@ -26,6 +27,7 @@ import {
   InfoCircleOutlined,
   ShoppingOutlined,
   SyncOutlined,
+  UploadOutlined,
   UserOutlined
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
@@ -773,6 +775,68 @@ export default function RequestDetailPage() {
                             </div>
                           </div>
 
+                          <div className="mt-8 pt-6 border-t border-slate-100">
+                            <h3 className="text-sm font-bold uppercase mb-4 text-blue-600 tracking-wide">Hợp đồng</h3>
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
+                                    <FileTextOutlined className="text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-slate-800">File Hợp đồng</div>
+                                    <div className="text-xs text-slate-500">
+                                      {quote.contract_file_path || (requestDetail as any).contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
+                                    </div>
+                                  </div>
+                                </div>
+                                {quote.contract_file_path || (requestDetail as any).contract_file ? (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="primary"
+                                      ghost
+                                      icon={<DownloadOutlined />}
+                                      onClick={() => window.open(quote.contract_file_path || (requestDetail as any).contract_file, '_blank')}
+                                      className="rounded-lg"
+                                    >
+                                      Tải / Xem hợp đồng
+                                    </Button>
+                                    <Upload
+                                      showUploadList={false}
+                                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                      customRequest={async (options) => {
+                                        const { file, onSuccess, onError } = options;
+                                        const hide = message.loading("Đang tải hợp đồng lên...", 0);
+                                        try {
+                                          await uploadApi.uploadContract({
+                                            requestId: Number(requestId),
+                                            estimate_id: quote.estimate_id,
+                                            file: file as File
+                                          });
+                                          message.success("Tải bản hợp đồng đã ký thành công!");
+                                          if (onSuccess) onSuccess("ok");
+                                          setTimeout(() => {
+                                            window.location.reload();
+                                          }, 1000);
+                                        } catch (error) {
+                                          message.error("Tải hợp đồng thất bại");
+                                          if (onError) onError(error as any);
+                                        } finally {
+                                          hide();
+                                        }
+                                      }}
+                                    >
+                                      <Button icon={<UploadOutlined />} className="rounded-lg" type="default">
+                                        Gửi lại bản đã ký
+                                      </Button>
+                                    </Upload>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 italic text-sm">Chưa có file</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
 
                         </div>
                       </div>

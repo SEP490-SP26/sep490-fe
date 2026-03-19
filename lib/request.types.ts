@@ -10,6 +10,8 @@ export interface DetailedEstimate {
   final_total_cost: number;
   deposit_amount: number;
   is_active: boolean;
+  contract_file_path: string;
+  contract_uploaded_at: string;
 
   // Vật tư & Quy trình
   paper_code: string;
