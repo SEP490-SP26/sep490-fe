@@ -101,7 +101,7 @@ export default function ConsultantOrdersPage() {
     }) => {
       if (evt.action === "created") {
         fetchAllOrders();
-        message.info(`🆕 Đơn hàng mới #${evt.request_id} vừa được tạo`);
+        message.info(` Đơn hàng mới #${evt.request_id} vừa được tạo`);
       }
       else if(evt.action === "manager_verified")
       {

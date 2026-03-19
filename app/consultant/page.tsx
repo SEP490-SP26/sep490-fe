@@ -46,6 +46,7 @@ import {
   Modal,
   Alert,
   Checkbox,
+  Spin,
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -90,8 +91,8 @@ function ConsultantForm() {
   const orderId = searchParams.get("orderId");
   const modeParam = searchParams.get("mode");
   const [loading, setLoading] = useState(false);
-
   const [isSavingCost, setIsSavingCost] = useState(false);
+  const [isFetchingOrder, setIsFetchingOrder] = useState(!!orderId);
 
   const existingOrder = orderId
     ? orders.find((o) => o.order_id === orderId)
@@ -394,7 +395,9 @@ function ConsultantForm() {
           setDiscountPercent(0);
           setSavedEstimateId(null);
           setPreviousEstimateId(targetTab.calculations?.previous_estimate_id || null);
-          form.setFieldValue("final_price", result.finalTotalCost);
+          if (!nextValues.final_price) {
+            form.setFieldValue("final_price", result.finalTotalCost);
+          }
 
           // Optionally save back to tab if needed, but state handles UI
         } else {
@@ -582,7 +585,11 @@ function ConsultantForm() {
   // --- AUTO FILL DATA ---
   useEffect(() => {
     const fetchOrderDetails = async () => {
-      if (!orderId) return;
+      if (!orderId) {
+        setIsFetchingOrder(false);
+        return;
+      }
+      setIsFetchingOrder(true);
 
       try {
         const response: any = await requestOrderApi.getRequestDetailbyConsultant(orderId);
@@ -749,6 +756,8 @@ function ConsultantForm() {
         }
       } catch (error) {
         console.error("Error fetching order details:", error);
+      } finally {
+        setIsFetchingOrder(false);
       }
     };
 
@@ -1467,9 +1476,13 @@ function ConsultantForm() {
     !(existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified" ||
       existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing");
 
+  const isPageLoading = loadingPaperTypes || loadingProductTypes || loadingFormTypes || loadingProcessTypes || configLoading || isFetchingOrder || loading;
+
   return (
-    <div className="p-4 bg-gradient-to-br from-primary-dark to-primary-light min-h-screen">
-      <div className="max-w-7xl mx-auto">
+    <>
+      <Spin spinning={isPageLoading} fullscreen tip="Đang xử lý dữ liệu..." />
+      <div className="p-4 bg-gradient-to-br from-primary-dark to-primary-light min-h-screen">
+        <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="mb-4 flex justify-between items-center bg-white p-3 rounded shadow-sm">
           <div>
@@ -2019,6 +2032,7 @@ function ConsultantForm() {
 
       </div>
     </div>
+    </>
   );
 }
 

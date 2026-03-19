@@ -91,7 +91,7 @@ export default function ManagerOrdersPage() {
       }) => {
         if (evt.action === "created") {
           fetchAllOrders();
-          message.info(`🆕 Đơn hàng mới #${evt.request_id} vừa được tạo`);
+          message.info(`Đơn hàng mới #${evt.request_id} vừa được tạo`);
         } else {
           fetchAllOrders();
         }
