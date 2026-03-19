@@ -665,9 +665,11 @@ function ConsultantForm() {
 
             if (orderData.design_file_path) {
               setDesignFilePath(orderData.design_file_path);
-            }
-            if (orderData.is_send_design !== undefined) {
-              setIsSendDesign(orderData.is_send_design);
+              if (orderData.is_send_design !== undefined) {
+                setIsSendDesign(orderData.is_send_design);
+              }
+            } else {
+              setIsSendDesign(false);
             }
 
 
@@ -728,9 +730,11 @@ function ConsultantForm() {
 
             if (orderData.design_file_path) {
               setDesignFilePath(orderData.design_file_path);
-            }
-            if (orderData.is_send_design !== undefined) {
-              setIsSendDesign(orderData.is_send_design);
+              if (orderData.is_send_design !== undefined) {
+                setIsSendDesign(orderData.is_send_design);
+              }
+            } else {
+              setIsSendDesign(false);
             }
 
             const values = form.getFieldsValue();
@@ -1512,6 +1516,7 @@ function ConsultantForm() {
         <Form
           form={form}
           layout="vertical"
+          disabled={loading}
           onFinish={onFinish}
           onValuesChange={handleFormValuesChange}
           initialValues={{

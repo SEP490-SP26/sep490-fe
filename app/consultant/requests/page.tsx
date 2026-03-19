@@ -457,7 +457,7 @@ export default function ConsultantOrdersPage() {
               okText="Gửi"
               cancelText="Hủy"
             >
-              <Button
+              {/* <Button
                 type="primary"
                 size="small"
                 icon={<MailOutlined />}
@@ -466,7 +466,7 @@ export default function ConsultantOrdersPage() {
                 loading={sendDealMutation.isPending && sendDealMutation.variables?.request_id === record.order_request_id}
               >
                 Gửi báo giá
-              </Button>
+              </Button> */}
             </Popconfirm>
             <Link
               href={`/consultant/request-detail/${record.order_request_id}`}

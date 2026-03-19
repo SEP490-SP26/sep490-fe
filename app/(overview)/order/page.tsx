@@ -1081,7 +1081,7 @@ export default function GuestOrderPage() {
                   )}
 
                   <div className="text-center text-xs text-gray-500 italic mt-4 col-span-1 md:col-span-2">
-                    * Vui lòng kiểm tra kỹ thông tin trước khi gửi. Nhân viên sẽ liên hệ với bạn trong thời gian sớm nhất.
+                    * Vui lòng kiểm tra kỹ thông tin trước khi gửi. Tư vấn viên sẽ liên hệ với bạn trong thời gian sớm nhất.
                   </div>
 
             </div>

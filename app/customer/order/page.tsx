@@ -149,7 +149,7 @@ export default function CustomerOrderPage() {
           <Result
             status='success'
             title='Đặt Hàng Thành Công!'
-            subTitle='Chúng tôi đã nhận được thông tin. Nhân viên tư vấn sẽ liên hệ lại.'
+            subTitle='Chúng tôi đã nhận được thông tin. Tư vấn viên sẽ liên hệ lại.'
             extra={[
               <Button
                 type='primary'
