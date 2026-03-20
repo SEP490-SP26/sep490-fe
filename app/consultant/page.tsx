@@ -573,6 +573,9 @@ function ConsultantForm() {
           setSelectedProductTypeCode(selectedType.code);
           setselectProductTypeId(selectedType.product_type_id);
         }
+
+        // Update anchor to reflect the synced state
+        lastCalculatedSpecsRef.current = getSpecsSignature(form.getFieldsValue());
       }
     }
   };
@@ -806,33 +809,45 @@ function ConsultantForm() {
   useEffect(() => {
     if (productTempalte && productTempalte.length > 0) {
       const profile = productTempalte[0];
-      const currentValues = form.getFieldsValue(true); // Get current form values including hidden
+      const currentValues = form.getFieldsValue(true);
 
       const newValues = {
-        // Only set paper_code if NOT already set OR if paper_name is empty (meaning no custom paper)
+        // Only set if not already present in form
         paper_code: (currentValues.paper_code || currentValues.paper_name) ? currentValues.paper_code : profile.paper_code,
-
-        // Only set dimensions if NOT already set
         length: currentValues.length ? currentValues.length : profile.product_length_mm,
         width: currentValues.width ? currentValues.width : profile.product_width_mm,
         height: currentValues.height ? currentValues.height : profile.product_height_mm,
-        number_of_plates: profile.number_of_plates,
-        coating_type: profile.coating_type,
-        wave_type: profile.wave_type,
-        glue_tab: profile.glue_tab_mm,
-        is_one_side_box: profile.is_one_side_box,
-        print_width: profile.print_width_mm,
-        print_height: profile.print_height_mm,
-        production_processes: profile.production_processes ? profile.production_processes.split(",") : [],
-        bleed: profile.bleed_mm,
+
+        // Use current if it exists, else follow profile
+        number_of_plates: currentValues.number_of_plates !== undefined ? currentValues.number_of_plates : profile.number_of_plates,
+        coating_type: (currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : profile.coating_type,
+        wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : profile.wave_type,
+        glue_tab: currentValues.glue_tab !== undefined ? currentValues.glue_tab : profile.glue_tab_mm,
+        is_one_side_box: currentValues.is_one_side_box !== undefined ? currentValues.is_one_side_box : profile.is_one_side_box,
+        
+        // Dimensions that might be specific
+        print_width: currentValues.print_width || profile.print_width_mm,
+        print_height: currentValues.print_height || profile.print_height_mm,
+        bleed: currentValues.bleed !== undefined ? currentValues.bleed : profile.bleed_mm,
+
+        // Processes: only if current is empty or array of length 0
+        production_processes: (Array.isArray(currentValues.production_processes) && currentValues.production_processes.length > 0) 
+          ? currentValues.production_processes 
+          : (profile.production_processes ? profile.production_processes.split(",") : []),
+        
         default_quantity: profile.default_quantity,
-        // quantity: profile.default_quantity,
         ...(selectedProductTypeCode === "HOP_MAU" && {
-          glueTab: profile.glue_tab_mm,
-          isOneSideBox: profile.is_one_side_box,
+          glueTab: currentValues.glueTab !== undefined ? currentValues.glueTab : profile.glue_tab_mm,
+          isOneSideBox: currentValues.isOneSideBox !== undefined ? currentValues.isOneSideBox : profile.is_one_side_box,
         }),
       };
+
       form.setFieldsValue(newValues);
+
+      // CRITICAL: Update the anchor ref immediately after setting values
+      // This prevents calculateEstimates from thinking these are user-initiated changes
+      lastCalculatedSpecsRef.current = getSpecsSignature({ ...currentValues, ...newValues });
+
       setTimeout(() => calculateEstimates(), 500);
     }
   }, [productTempalte, form, selectedProductTypeCode]);

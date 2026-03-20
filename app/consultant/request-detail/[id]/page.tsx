@@ -391,7 +391,7 @@ export default function ConsultantRequestDetailPage() {
                                     placeholder="Chọn báo giá"
                                     value={selectedUploadEstimateId}
                                     onChange={(value) => setSelectedUploadEstimateId(value)}
-                                    options={orderDetail?.cost_estimate?.filter(e => e.is_active).map((est, index) => ({
+                                    options={orderDetail?.cost_estimate?.filter(e => e.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((est, index) => ({
                                         value: est.estimate_id,
                                         label: `Báo giá #${index + 1} - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(est.final_total_cost)}`
                                     })) || []}
@@ -895,7 +895,7 @@ export default function ConsultantRequestDetailPage() {
                         )}
 
                         <div className={`grid grid-cols-1 ${previewData && previewData.quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-8 w-full`}>
-                            {previewData?.quotes.map((quote, index) => {
+                            {(previewData?.quotes || []).sort((a, b) => a.estimate_id - b.estimate_id).map((quote, index) => {
                                 const requestDateText = quote.request_date_text || (quote.order_request_date ? dayjs(quote.order_request_date).format("DD/MM/YYYY") : "---");
                                 const deliveryText = quote.delivery_text || (quote.delivery_date ? dayjs(quote.delivery_date).format("DD/MM/YYYY") : "---");
                                 const designTypeText = quote.design_type_text || (quote.is_send_design ? "Khách gửi file" : "Thuê thiết kế");
@@ -910,7 +910,7 @@ export default function ConsultantRequestDetailPage() {
                                                         MES SYSTEM - PREVIEW
                                                     </div>
                                                     <div className="text-white text-lg font-extrabold mt-0.5">
-                                                        BÁO GIÁ {previewData.quotes.length > 1 ? index + 1 : ""}
+                                                        BÁO GIÁ {previewData?.quotes && previewData.quotes.length > 1 ? index + 1 : ""}
                                                     </div>
                                                 </div>
                                                 <div className="bg-white/15 text-white px-2 py-1 rounded text-xs font-bold">
