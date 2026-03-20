@@ -84,8 +84,8 @@ function RejectDealContent() {
         phone,
         otp
       }
-      //await requestOrderApi.rejectDeal(bodyResquest);
-      await axios.post("https://localhost:7109/api/Requests/reject", bodyResquest);
+      await requestOrderApi.rejectDeal(bodyResquest);
+      //await axios.post("https://localhost:7109/api/Requests/reject", bodyResquest);
       message.success("Đã từ chối đơn hàng thành công");
       setIsSuccess(true);
       // router.push("/");

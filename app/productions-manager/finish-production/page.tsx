@@ -216,7 +216,7 @@ const FinishProduction: React.FC = () => {
           bordered
           onRow={(record) => ({
             onClick: () => {
-              router.push(`/staff/production/${record.order_id}`);
+              router.push(`/productions-manager/production/${record.order_id}`);
             },
             style: {
               cursor: "pointer",
