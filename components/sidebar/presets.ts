@@ -14,6 +14,7 @@ import {
 import { LuLayoutDashboard } from "react-icons/lu";
 import { FaSuitcase, FaUserPlus, FaWarehouse } from "react-icons/fa";
 import { NavItem } from "./Sidebar";
+import { TbTruckDelivery } from "react-icons/tb";
 
 // Preset cho Consultant
 export const consultantNavItems: NavItem[] = [
@@ -27,6 +28,12 @@ export const consultantNavItems: NavItem[] = [
     path: "/requests",
     label: "Danh sách yêu cầu",
     icon: FiList,
+    basePath: "/consultant",
+  },
+  {
+    path: "/delivery",
+    label: "Vận chuyển",
+    icon: TbTruckDelivery ,
     basePath: "/consultant",
   },
   // {
@@ -52,12 +59,12 @@ export const adminNavItems: NavItem[] = [
     basePath: "/admin",
     // exact: true,
   },
-  {
-    path: "/admin-create-account",
-    label: "Tạo mới tài khoản",
-    icon: FaUserPlus,
-    basePath: "/admin",
-  },
+  // {
+  //   path: "/admin-create-account",
+  //   label: "Tạo mới tài khoản",
+  //   icon: FaUserPlus,
+  //   basePath: "/admin",
+  // },
   {
     path: "/",
     label: "Đăng xuất",
