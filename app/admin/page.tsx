@@ -159,16 +159,16 @@ export default function AdminUserPage() {
     formData.append("file", file);
 
     try {
-      // const res = await fetch("https://amms-juaa.onrender.com/api/User/upload-users", {
-      //   method: "POST",
-      //   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      //   body: formData,
-      // });
-      const res = await fetch("https://localhost:7109/api/User/upload-users", {
+      const res = await fetch("https://amms-juaa.onrender.com/api/User/upload-users", {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: formData,
       });
+      // const res = await fetch("https://localhost:7109/api/User/upload-users", {
+      //   method: "POST",
+      //   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      //   body: formData,
+      // });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData?.detail || `Lỗi ${res.status}`);
