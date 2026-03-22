@@ -1,7 +1,5 @@
 "use client";
 
-import { orderApi } from "@/apiRequests/order";
-import { Order } from "@/schemaValidations/common.schema"; // thay đúng type
 import {
   EyeOutlined,
   LoadingOutlined,
@@ -26,17 +24,49 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 const { Title } = Typography;
 
+const API_URL = "https://amms-juaa.onrender.com/api/Requests/paged";
+
+interface OrderRequest {
+  order_request_id: number;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  delivery_date: string | null;
+  product_name: string | null;
+  quantity: number | null;
+  description: string | null;
+  design_file_path: string | null;
+  detail_address: string;
+  number_of_plates: number;
+  coating_type: string | null;
+  process_status: string | null;
+  order_request_date: string | null;
+  final_cost: number | null;
+  deposit_amount: number | null;
+}
+
+interface ApiResponse {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  data: OrderRequest[];
+}
+
 export default function DeliveryPage() {
-  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<OrderRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await orderApi.getList(1, 500);
-      if (response?.data && Array.isArray(response.data)) {
-        setAllOrders(response.data);
+      const response = await fetch(`${API_URL}?page=1&pageSize=500`, {
+        headers: { accept: "*/*" },
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const json: ApiResponse = await response.json();
+      if (json?.data && Array.isArray(json.data)) {
+        setAllOrders(json.data);
       }
     } catch (error) {
       console.error(error);
@@ -53,12 +83,12 @@ export default function DeliveryPage() {
   const deliveryOrders = useMemo(() => {
     const search = searchText.toLowerCase().trim();
     return allOrders
-      .filter((o) => o.status?.toLowerCase() === "delivery")
+      .filter((o) => o.process_status?.toLowerCase() === "delivery")
       .filter((o) => {
         if (!search) return true;
         if (o.customer_name?.toLowerCase().includes(search)) return true;
         if (o.product_name?.toLowerCase().includes(search)) return true;
-        if (o.code?.toLowerCase().includes(search)) return true;
+        if (String(o.order_request_id).includes(search)) return true;
         if (o.delivery_date) {
           if (dayjs(o.delivery_date).format("DD/MM/YYYY").includes(search))
             return true;
@@ -68,35 +98,43 @@ export default function DeliveryPage() {
   }, [allOrders, searchText]);
 
   const today = dayjs();
-  const totalQty = deliveryOrders.reduce((sum, o) => sum + (o.quantity ?? 0), 0);
+  const totalQty = deliveryOrders.reduce(
+    (sum, o) => sum + (o.quantity ?? 0),
+    0
+  );
   const overdueCount = deliveryOrders.filter((o) =>
-    o.delivery_date ? dayjs(o.delivery_date).isBefore(today) : false
+    o.delivery_date ? dayjs(o.delivery_date).isBefore(today, "day") : false
   ).length;
-  const uniqueCustomers = new Set(deliveryOrders.map((o) => o.customer_name)).size;
+  const uniqueCustomers = new Set(
+    deliveryOrders.map((o) => o.customer_name)
+  ).size;
 
   const columns = [
     {
       title: "Mã Đơn",
-      dataIndex: "code",
-      key: "code",
-      width: 130,
-      render: (code: string) => (
-        <span className="font-mono text-gray-500 text-xs">{code}</span>
+      dataIndex: "order_request_id",
+      key: "order_request_id",
+      width: 100,
+      render: (id: number) => (
+        <span className="font-mono text-gray-400 text-xs">#{id}</span>
       ),
     },
     {
       title: "Khách Hàng",
       dataIndex: "customer_name",
       key: "customer_name",
-      render: (text: string) => (
-        <span className="font-medium text-gray-900">{text}</span>
+      render: (text: string, record: OrderRequest) => (
+        <div>
+          <div className="font-medium text-gray-900">{text}</div>
+          <div className="text-xs text-gray-400">{record.customer_phone}</div>
+        </div>
       ),
     },
     {
       title: "Sản Phẩm",
       dataIndex: "product_name",
       key: "product_name",
-      render: (text: string) => (
+      render: (text: string | null) => (
         <span className="font-medium">{text || "—"}</span>
       ),
     },
@@ -105,44 +143,81 @@ export default function DeliveryPage() {
       dataIndex: "quantity",
       key: "quantity",
       align: "right" as const,
-      render: (val: number) => (
-        <b className="text-blue-600">{val?.toLocaleString()} SP</b>
-      ),
+      render: (val: number | null) =>
+        val != null ? (
+          <b className="text-blue-600">{val.toLocaleString("vi-VN")} SP</b>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
     },
     {
       title: "Ngày Giao",
       dataIndex: "delivery_date",
       key: "delivery_date",
-      align: "right" as const,
-      render: (date: string) => {
+      align: "center" as const,
+      render: (date: string | null) => {
         if (!date) return <span className="text-gray-400">—</span>;
-        const isOverdue = dayjs(date).isBefore(today);
+        const isOverdue = dayjs(date).isBefore(today, "day");
         return (
-          <span className={isOverdue ? "text-red-500 font-medium" : "text-gray-700"}>
-            {isOverdue && (
-              <WarningOutlined className="mr-1 text-red-400" />
-            )}
+          <span
+            className={
+              isOverdue ? "text-red-500 font-medium" : "text-gray-700"
+            }
+          >
+            {isOverdue && <WarningOutlined className="mr-1 text-red-400" />}
             {dayjs(date).format("DD/MM/YYYY")}
           </span>
         );
       },
     },
     {
+      title: "Địa Chỉ",
+      dataIndex: "detail_address",
+      key: "detail_address",
+      ellipsis: true,
+      render: (text: string) => (
+        <span className="text-gray-500 text-xs">{text || "—"}</span>
+      ),
+    },
+    {
       title: "Trạng Thái",
-      key: "status",
+      key: "process_status",
       align: "center" as const,
       render: () => <Tag color="processing">Đang giao</Tag>,
     },
     {
       key: "action",
       align: "center" as const,
-      render: (_: any, record: Order) => (
-        <Link href={`/order/${record.order_id}`}>
+      render: (_: unknown, record: OrderRequest) => (
+        <Link href={`/order/${record.order_request_id}`}>
           <Button size="small" icon={<EyeOutlined />}>
             Chi tiết
           </Button>
         </Link>
       ),
+    },
+  ];
+
+  const stats = [
+    {
+      label: "Tổng đơn đang giao",
+      value: deliveryOrders.length,
+      color: "text-blue-600",
+    },
+    {
+      label: "Tổng số lượng",
+      value: totalQty.toLocaleString("vi-VN") + " SP",
+      color: "text-blue-600",
+    },
+    {
+      label: "Khách hàng",
+      value: uniqueCustomers,
+      color: "text-gray-900",
+    },
+    {
+      label: "Quá hạn giao",
+      value: overdueCount,
+      color: overdueCount > 0 ? "text-red-500" : "text-gray-900",
     },
   ];
 
@@ -154,7 +229,7 @@ export default function DeliveryPage() {
           <Title level={2} style={{ margin: 0 }}>
             Theo Dõi Vận Chuyển
           </Title>
-          <p className="text-gray-500">
+          <p className="text-gray-500 mt-1">
             Danh sách đơn hàng đang trong trạng thái giao hàng
           </p>
         </div>
@@ -164,6 +239,7 @@ export default function DeliveryPage() {
             prefix={<SearchOutlined />}
             onChange={(e) => setSearchText(e.target.value)}
             size="large"
+            allowClear
             suffix={
               <Button
                 type="text"
@@ -176,33 +252,17 @@ export default function DeliveryPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        {[
-          {
-            label: "Tổng đơn đang giao",
-            value: deliveryOrders.length,
-            color: "text-blue-600",
-          },
-          {
-            label: "Tổng số lượng",
-            value: totalQty.toLocaleString("vi-VN") + " SP",
-            color: "text-blue-600",
-          },
-          {
-            label: "Khách hàng",
-            value: uniqueCustomers,
-            color: "text-gray-900",
-          },
-          {
-            label: "Quá hạn giao",
-            value: overdueCount,
-            color: overdueCount > 0 ? "text-red-500" : "text-gray-900",
-          },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm"
+          >
             <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
-            <p className={`text-2xl font-medium ${stat.color}`}>{stat.value}</p>
+            <p className={`text-2xl font-medium ${stat.color}`}>
+              {stat.value}
+            </p>
           </div>
         ))}
       </div>
@@ -213,16 +273,24 @@ export default function DeliveryPage() {
           <Table
             columns={columns}
             dataSource={deliveryOrders}
-            rowKey="order_id"
+            rowKey="order_request_id"
             bordered
             size="middle"
             pagination={{
               pageSize: 10,
               showTotal: (total) => `Tổng ${total} đơn`,
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50"],
             }}
             locale={{
               emptyText: (
-                <Empty description="Không có đơn hàng đang giao" />
+                <Empty
+                  description={
+                    loading
+                      ? "Đang tải..."
+                      : 'Không có đơn hàng nào có trạng thái "Delivery"'
+                  }
+                />
               ),
             }}
           />
