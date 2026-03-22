@@ -367,6 +367,38 @@ export default function ProductSpecsSection({
             name="production_processes"
             label="Gia Công"
             className="mb-1"
+            normalize={(value) => {
+              if (!Array.isArray(value)) return value;
+              let updatedValues = [...value] as string[];
+
+              // Nếu chọn Dán, bắt buộc phải có Bế
+              if (updatedValues.includes("DAN") && !updatedValues.includes("BE")) {
+                updatedValues.push("BE");
+              }
+
+              // Nếu chọn Bế, bắt buộc phải có Dứt (Dứt ẩn nên tự thêm)
+              if (updatedValues.includes("BE") && !updatedValues.includes("DUT")) {
+                updatedValues.push("DUT");
+              }
+
+              // Nếu không Bế, thì không Dứt, không Dán
+              if (!updatedValues.includes("BE")) {
+                updatedValues = updatedValues.filter((v) => v !== "DAN" && v !== "DUT");
+              }
+
+              // Sắp xếp đúng theo trình tự gia công chuẩn
+              const STANDARD_ORDER = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DOT", "DUT", "DAN"];
+              updatedValues.sort((a, b) => {
+                const idxA = STANDARD_ORDER.indexOf(a);
+                const idxB = STANDARD_ORDER.indexOf(b);
+                if (idxA === -1 && idxB === -1) return 0;
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+              });
+
+              return updatedValues;
+            }}
           >
             <Checkbox.Group
               className="w-full"
@@ -381,6 +413,12 @@ export default function ProductSpecsSection({
                 if (!checkedValues.includes("BOI")) {
                   form.setFieldValue("wave_type", "");
                 }
+                
+                // Trigger form re-calculation manually if needed because some hidden constraints updated
+                // We use setTimeout to ensure form has updated with normalized value
+                setTimeout(() => {
+                  handleFormValuesChange({ production_processes: form.getFieldValue("production_processes") }, form.getFieldsValue());
+                }, 0);
               }}
             >
               <div className="grid grid-cols-4 xl:grid-cols-6 gap-y-1">
