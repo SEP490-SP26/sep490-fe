@@ -46,6 +46,7 @@ export default function CustomerHistoryPage() {
   const [sendingOtp, setSendingOtp] = useState(false)
 
   // State cho kết quả
+  const [customerName, setCustomerName] = useState('')
   const [myOrders, setMyOrders] = useState<OrderSummary[]>([])
   const [myRequests, setMyRequests] = useState<RequestSummary[]>([])
   const [paginationOrder, setPaginationOrder] = useState({ page: 1, pageSize: 5, hasNext: false })
@@ -104,6 +105,12 @@ export default function CustomerHistoryPage() {
       if (type === 'all') {
         sessionStorage.setItem('verified_phone', phone)
         sessionStorage.setItem('verified_otp', otp)
+        
+        // Lấy tên khách hàng từ kết quả đầu tiên (nếu có)
+        const name = response.requests.data?.[0]?.customer_name || ''
+        setCustomerName(name)
+        sessionStorage.setItem('lookup_customer_name', name)
+        
         setStep('result')
       }
 
@@ -170,6 +177,9 @@ export default function CustomerHistoryPage() {
     if (savedPhone && savedOtp && savedOrders && savedRequests) {
       setPhoneNumber(savedPhone)
       setOtpCode(savedOtp)
+      const savedName = sessionStorage.getItem('lookup_customer_name')
+      if (savedName) setCustomerName(savedName)
+      
       try {
         setMyOrders(JSON.parse(savedOrders))
         setMyRequests(JSON.parse(savedRequests))
@@ -212,12 +222,14 @@ export default function CustomerHistoryPage() {
   const handleReset = () => {
     setPhoneNumber('')
     setOtpCode('')
+    setCustomerName('')
     setMyOrders([])
     setMyRequests([])
     setStep('phone')
     setSearchTerm('')
     sessionStorage.removeItem('verified_phone')
     sessionStorage.removeItem('verified_otp')
+    sessionStorage.removeItem('lookup_customer_name')
     sessionStorage.removeItem('lookup_orders')
     sessionStorage.removeItem('lookup_requests')
     sessionStorage.removeItem('lookup_pagination_order')
@@ -250,6 +262,16 @@ export default function CustomerHistoryPage() {
       default:
         return <Tag>{status}</Tag>
     }
+  }
+
+  // --- UTILS ---
+  const maskPhoneNumber = (phone: string) => {
+    if (!phone) return ''
+    if (phone.length < 7) return phone
+    const visibleStart = 3
+    const visibleEnd = 3
+    const maskedPart = '*'.repeat(phone.length - visibleStart - visibleEnd)
+    return phone.substring(0, visibleStart) + maskedPart + phone.substring(phone.length - visibleEnd)
   }
 
   // --- FILTER DATA ---
@@ -431,9 +453,14 @@ export default function CustomerHistoryPage() {
 
         {/* Header */}
         <div className="text-center mb-4">
-          <Title level={2} style={{ color: '#EEBC21', textTransform: 'uppercase' }}>
+          <Title level={2} style={{ color: '#EEBC21', textTransform: 'uppercase', marginBottom: '8px' }}>
             Tra Cứu Đơn Hàng
           </Title>
+          <div className="mb-6">
+            <Text className="text-slate-500 font-medium italic">
+              Giải pháp in ấn toàn diện - Nâng tầm giá trị thương hiệu
+            </Text>
+          </div>
         </div>
 
 
@@ -541,9 +568,22 @@ export default function CustomerHistoryPage() {
           <div className="animate-fade-in">
             <Card className="shadow-lg rounded-xl border-t-4 border-blue-500">
               <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-2">
-                  <Title level={4} className="!mb-0">Kết quả tra cứu</Title>
-                  <Text type="secondary">Số điện thoại: {phoneNumber}</Text>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                  <div className="flex items-center gap-2">
+                    <Title level={4} className="!mb-0 text-gray-800">Kết quả tra cứu</Title>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {customerName && (
+                      <div className="flex items-center gap-1.5">
+                        <Text type="secondary" className="text-sm">Khách hàng:</Text>
+                        <Text strong className="text-blue-700">{customerName}</Text>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <Text type="secondary" className="text-sm">Số điện thoại:</Text>
+                      <Text strong className="tracking-wider">{maskPhoneNumber(phoneNumber)}</Text>
+                    </div>
+                  </div>
                 </div>
                 <Button icon={<ReloadOutlined />} onClick={handleReset}>
                   Tra cứu số khác

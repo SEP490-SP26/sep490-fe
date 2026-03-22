@@ -426,9 +426,12 @@ export default function RequestDetailPage() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 ">
-                <Title level={2} className="!mb-0 !text-slate-800 tracking-tight">
+                <Title level={2} className="!mb-1 !text-slate-800 tracking-tight">
                   Yêu cầu #{requestDetail.order_request_id}
                 </Title>
+                <Text className="text-slate-500 font-medium italic">
+                  Giải pháp in ấn toàn diện - Nâng tầm giá trị thương hiệu
+                </Text>
               </div>
               {/* <div className="flex items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-1.5"><CalendarOutlined /> {dayjs(requestDetail.order_request_date).format("DD/MM/YYYY HH:mm")}</span>
@@ -453,6 +456,9 @@ export default function RequestDetailPage() {
             <div>
               <p className="font-bold text-blue-800 mb-1">Cảm ơn quý khách đã tin tưởng và sử dụng dịch vụ của chúng tôi!</p>
               <p className="text-sm m-0 text-slate-700">
+                Trong vòng 24h tới, nhân viên tư vấn sẽ liên hệ trực tiếp với bạn qua số điện thoại hoặc email đã cung cấp để trao đổi chi tiết về yêu cầu này.
+              </p>
+              <p className="text-sm m-0 text-slate-700 mt-2">
                 Để theo dõi tiến độ chi tiết và xem các cập nhật mới nhất của đơn hàng, vui lòng truy cập mục <Link href="/look-up" className="font-semibold underline text-blue-600 hover:text-blue-800">Tra cứu đơn hàng</Link>.
               </p>
             </div>
@@ -471,26 +477,36 @@ export default function RequestDetailPage() {
                   bordered={false}
                   extra={<UserOutlined className="text-gray-400" />}
                 >
-                  <div className="space-y-2">
-                    <div>
-                      {/* <Text type="secondary" className="text-xs uppercase font-bold">Liên hệ</Text> */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2  border-b border-gray-200 pb-2">
-                        <div className="font-medium text-slate-800">Khách hàng: {requestDetail.customer_name}</div>
-                        <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                          Sđt: {maskPhone(requestDetail.customer_phone)}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-gray-100 pb-4">
+                      {requestDetail.customer_name && (
+                        <div className="flex flex-col">
+                          <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider mb-1">Khách hàng</Text>
+                          <div className="font-bold text-slate-800">{requestDetail.customer_name}</div>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 transition-colors">
-                          Email: {maskEmail(requestDetail.customer_email)}
+                      )}
+                      {requestDetail.customer_phone && (
+                        <div className="flex flex-col">
+                          <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider mb-1">Số điện thoại</Text>
+                          <div className="text-slate-600 font-medium">{maskPhone(requestDetail.customer_phone)}</div>
+                        </div>
+                      )}
+                      {requestDetail.customer_email && (
+                        <div className="flex flex-col">
+                          <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider mb-1">Email</Text>
+                          <div className="text-slate-600 font-medium">{maskEmail(requestDetail.customer_email)}</div>
+                        </div>
+                      )}
+                    </div>
+                    {requestDetail.detail_address && (
+                      <div>
+                        <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider mb-1 block">Địa chỉ giao hàng</Text>
+                        <div className="flex items-start gap-2 text-slate-700 font-medium">
+                          <EnvironmentOutlined className="mt-1 text-slate-400" />
+                          <span>{requestDetail.detail_address}</span>
                         </div>
                       </div>
-                    </div>
-                    <div>
-                      {/* <Text type="secondary" className="text-xs uppercase font-bold">Địa chỉ giao hàng</Text> */}
-                      <div className="flex items-start gap-2 mt-1 text-slate-700">
-                        <EnvironmentOutlined className="mt-1 text-slate-400" />
-                        <span>{requestDetail.detail_address}</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </Card>
 
@@ -535,12 +551,14 @@ export default function RequestDetailPage() {
                     </div>
 
                     {/* Mô tả yêu cầu */}
-                    <div>
-                      {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text> */}
-                      <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[50px]">
-                        {requestDetail.description || <span className="text-slate-400 italic">MÔ tả yêu cầu: Không có mô tả chi tiết</span>}
+                    {requestDetail.description && (
+                      <div>
+                        {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">Mô tả yêu cầu</Text> */}
+                        <div className="mt-1 p-4 bg-white border border-slate-200 rounded-xl text-slate-600 leading-relaxed min-h-[50px]">
+                          {requestDetail.description}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     {/* Thông số kỹ thuật - collapse*/}
                     <div className="bg-white rounded-lg border border-slate-100 ">
                       <Collapse
@@ -553,36 +571,44 @@ export default function RequestDetailPage() {
                           key="1"
                         >
                           <div className="space-y-2 pt-2">
-                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <div className="flex items-center gap-2">
-                                <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
-                              </div>
-                              <Text className="text-slate-800 font-bold text-base">
-                                {requestDetail.product_length_mm} x {requestDetail.product_width_mm} x {requestDetail.product_height_mm}
-                              </Text>
-                            </div>
-
-
-
-                            <div className="grid grid-cols-2 gap-3">
+                            {(requestDetail.product_length_mm || requestDetail.product_width_mm || requestDetail.product_height_mm) && (
                               <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
-                                <Text className="text-slate-800 font-bold text-base">{requestDetail.paper_name}</Text>
+                                <div className="flex items-center gap-2">
+                                  <Text className="text-slate-500 text-sm font-medium">Kích thước (mm):</Text>
+                                </div>
+                                <Text className="text-slate-800 font-bold text-base">
+                                  {requestDetail.product_length_mm || 0} x {requestDetail.product_width_mm || 0} x {requestDetail.product_height_mm || 0}
+                                </Text>
                               </div>
-                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
-                                <Text className="text-slate-800 font-bold text-sm">{requestDetail.wave_type}</Text>
-                              </div>
+                            )}
 
-                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
-                                <Text className="text-slate-800 font-bold text-sm">{requestDetail.coating_type}</Text>
-                              </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {requestDetail.paper_name && (
+                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                  <Text className="text-slate-500 text-sm font-medium">Loại giấy:</Text>
+                                  <Text className="text-slate-800 font-bold text-base">{requestDetail.paper_name}</Text>
+                                </div>
+                              )}
+                              {requestDetail.wave_type && (
+                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                  <Text className="text-slate-500 text-sm font-medium">Kiểu sóng:</Text>
+                                  <Text className="text-slate-800 font-bold text-sm">{requestDetail.wave_type}</Text>
+                                </div>
+                              )}
 
-                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
-                                <Text className="text-slate-800 font-bold text-sm">{requestDetail.number_of_plates}</Text>
-                              </div>
+                              {requestDetail.coating_type && (
+                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                  <Text className="text-slate-500 text-sm font-medium">Loại phủ:</Text>
+                                  <Text className="text-slate-800 font-bold text-sm">{getCoatingType(requestDetail.coating_type)}</Text>
+                                </div>
+                              )}
+
+                              {requestDetail.number_of_plates !== undefined && requestDetail.number_of_plates !== null && (
+                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                  <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
+                                  <Text className="text-slate-800 font-bold text-sm">{requestDetail.number_of_plates}</Text>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </Panel>
@@ -701,18 +727,22 @@ export default function RequestDetailPage() {
                                     <span className="text-slate-500 text-[13px]">Số lượng</span>
                                     <span className="text-slate-800 font-semibold text-[13px]">{quote.quantity.toLocaleString('vi-VN')}</span>
                                   </div>
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Loại giấy</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.paper_name || "---"}</span>
-                                  </div>
+                                  {quote.paper_name && (
+                                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                      <span className="text-slate-500 text-[13px]">Loại giấy</span>
+                                      <span className="text-slate-800 font-semibold text-[13px]">{quote.paper_name}</span>
+                                    </div>
+                                  )}
                                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
                                     <span className="text-slate-500 text-[13px]">Thiết kế</span>
                                     <span className="text-slate-800 font-semibold text-[13px]">{designTypeText}</span>
                                   </div>
-                                  <div className="flex justify-between items-center py-2">
-                                    <span className="text-slate-500 text-[13px]">Giao dự kiến</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{deliveryText}</span>
-                                  </div>
+                                  {deliveryText && (
+                                    <div className="flex justify-between items-center py-2">
+                                      <span className="text-slate-500 text-[13px]">Giao dự kiến</span>
+                                      <span className="text-slate-800 font-semibold text-[13px]">{deliveryText}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -723,30 +753,33 @@ export default function RequestDetailPage() {
                                   Bảng kê chi phí
                                 </h3>
                                 <div className="rounded-lg p-2">
-                                  <div className="space-y-2 min-h-[154px]">
-                                    {!!quote.material_cost && (
+                                  <div className="space-y-2 min-h-[40px]">
+                                    {!!quote.material_cost && quote.material_cost > 0 && (
                                       <div className="flex justify-between items-center py-1.5">
                                         <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
                                         <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.material_cost)}</span>
                                       </div>
                                     )}
-                                    {!!quote.labor_cost && (
+                                    {!!quote.labor_cost && quote.labor_cost > 0 && (
                                       <div className="flex justify-between items-center py-1.5">
                                         <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
                                         <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.labor_cost)}</span>
                                       </div>
                                     )}
-                                    {!!quote.other_fees && (
+                                    {!!quote.other_fees && quote.other_fees > 0 && (
                                       <div className="flex justify-between items-center py-1.5">
                                         <span className="text-slate-600 text-[13px]">Chi phí khác</span>
                                         <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.other_fees)}</span>
                                       </div>
                                     )}
-                                    {!!quote.rush_amount && (
+                                    {!!quote.rush_amount && quote.rush_amount > 0 && (
                                       <div className="flex justify-between items-center py-1.5">
                                         <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
                                         <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.rush_amount)}</span>
                                       </div>
+                                    )}
+                                    {(!quote.material_cost && !quote.labor_cost && !quote.other_fees && !quote.rush_amount) && (
+                                      <div className="text-slate-400 text-[13px] italic py-2">Liên hệ để biết thêm chi tiết</div>
                                     )}
                                   </div>
                                 </div>
@@ -776,32 +809,34 @@ export default function RequestDetailPage() {
                                   </div>
                                 </div>
 
-                                <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-green-800 font-bold text-[13px]">Đã Thanh toán:</span>
-                                    <span className="text-green-700 font-extrabold text-base">{formatVND(quote.deposit || 0)}</span>
-                                  </div>
-                                </div>
+                                  {quote.deposit && quote.deposit > 0 ? (
+                                    <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-green-800 font-bold text-[13px]">Đã Thanh toán:</span>
+                                        <span className="text-green-700 font-extrabold text-base">{formatVND(quote.deposit || 0)}</span>
+                                      </div>
+                                    </div>
+                                  ) : null}
                               </div>
                             </div>
                           </div>
 
-                          <div className="mt-8 pt-6 border-t border-slate-100">
-                            <h3 className="text-sm font-bold uppercase mb-4 text-blue-600 tracking-wide">Hợp đồng</h3>
-                            <div className="flex flex-col gap-2">
-                              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
-                                    <FileTextOutlined className="text-blue-600" />
-                                  </div>
-                                  <div>
-                                    <div className="font-bold text-slate-800">File Hợp đồng</div>
-                                    <div className="text-xs text-slate-500">
-                                      {quote.contract_file_path || (requestDetail as any).contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
+                          {(quote.contract_file_path || (requestDetail as any).contract_file) ? (
+                            <div className="mt-8 pt-6 border-t border-slate-100">
+                              <h3 className="text-sm font-bold uppercase mb-4 text-blue-600 tracking-wide">Hợp đồng</h3>
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
+                                      <FileTextOutlined className="text-blue-600" />
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-slate-800">File Hợp đồng</div>
+                                      <div className="text-xs text-slate-500">
+                                        Sẵn sàng để xem
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                                {quote.contract_file_path || (requestDetail as any).contract_file ? (
                                   <div className="flex gap-2">
                                     <Button
                                       type="primary"
@@ -842,13 +877,10 @@ export default function RequestDetailPage() {
                                       </Button>
                                     </Upload>
                                   </div>
-                                ) : (
-                                  <span className="text-slate-400 italic text-sm">Chưa có file</span>
-                                )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-
+                          ) : null}
                         </div>
                       </div>
                     );

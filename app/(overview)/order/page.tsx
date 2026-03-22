@@ -452,7 +452,7 @@ export default function GuestOrderPage() {
                 Đặt đơn khác
               </Button>,
               <Link href="/look-up" key="lock-up">
-                <Button size="large">Tra cứu đơn hàng</Button>
+                <Button size="large">Tra cứu</Button>
               </Link>,
             ]}
           />
@@ -478,10 +478,15 @@ export default function GuestOrderPage() {
           <div className="text-center mb-4">
             <Title
               level={2}
-              style={{ color: "#FFBF00", textTransform: "uppercase" }}
+              style={{ color: "#FFBF00", textTransform: "uppercase", marginBottom: "8px" }}
             >
               Đặt In Nhanh
             </Title>
+            <div className="mb-6">
+              <Text className="text-slate-100 font-medium italic opacity-85">
+                Giải pháp in ấn toàn diện - Nâng tầm giá trị thương hiệu
+              </Text>
+            </div>
             <Text type="secondary" style={{ color: "#ffffff" }}>
               Điền thông tin để nhận báo giá từ đội ngũ tư vấn
             </Text>
@@ -1069,20 +1074,20 @@ export default function GuestOrderPage() {
                 </div>
               </div>
 
-                  {estimatedPrice !== null && estimatedPrice > 0 && (
-                    <div className="col-span-1 md:col-span-2 pt-2 mt-2 border-t border-gray-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600 font-semibold">Giá chỉ từ (ước tính):</span>
-                        <span className="text-orange-600 font-bold text-xl">
-                          {formatVietnameseNumber(estimatedPrice)} VNĐ
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="text-center text-xs text-gray-500 italic mt-4 col-span-1 md:col-span-2">
-                    * Vui lòng kiểm tra kỹ thông tin trước khi gửi. Tư vấn viên sẽ liên hệ với bạn trong thời gian sớm nhất.
+              {estimatedPrice !== null && estimatedPrice > 0 && (
+                <div className="col-span-1 md:col-span-2 pt-2 mt-2 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 font-semibold">Giá chỉ từ (ước tính):</span>
+                    <span className="text-orange-600 font-bold text-xl">
+                      {formatVietnameseNumber(estimatedPrice)} VNĐ
+                    </span>
                   </div>
+                </div>
+              )}
+
+              <div className="text-center text-xs text-gray-500 italic mt-4 col-span-1 md:col-span-2">
+                * Vui lòng kiểm tra kỹ thông tin trước khi gửi. Tư vấn viên sẽ liên hệ với bạn trong thời gian sớm nhất.
+              </div>
 
             </div>
           )}
