@@ -93,8 +93,8 @@ export default function LoginPage() {
             // Tạo payload đúng format backend mong đợi
             // Giả sử backend mong đợi cả 2 field username và email (một trong hai có thể null)
             const payload = {
-                username: loginMethod === "username" ? data.username : undefined,
-                email: loginMethod === "email" ? data.email : undefined,
+                username: loginMethod === "username" ? data.username : "string",
+                email: loginMethod === "email" ? data.email : "string",
                 password: data.password,
             };
 
