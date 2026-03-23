@@ -2044,7 +2044,7 @@ function ConsultantForm() {
                 {submitValues[0]?.consultant_note && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm mt-3">
                     <div className="font-bold text-yellow-800 mb-1 uppercase border-b border-yellow-200 pb-1">
-                      Lời nhắn / Ghi chú cho Khách hàng
+                       Ghi chú 
                     </div>
                     <div className="text-yellow-900 whitespace-pre-wrap mt-2">
                       {submitValues[0].consultant_note}

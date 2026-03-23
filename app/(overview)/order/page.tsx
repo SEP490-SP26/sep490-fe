@@ -433,7 +433,7 @@ export default function GuestOrderPage() {
           <Result
             status="success"
             title="Gửi yêu cầu thành công!"
-            subTitle="Cảm ơn bạn đã gửi yêu cầu. Nhân viên tư vấn sẽ liên hệ lại với bạn sớm nhất."
+            subTitle="Cảm ơn bạn đã gửi yêu cầu.Trong vòng 24h tới, nhân viên tư vấn sẽ liên hệ trực tiếp với bạn qua số điện thoại hoặc email đã cung cấp để trao đổi chi tiết về yêu cầu này."
             extra={[
               <Button
                 type="primary"

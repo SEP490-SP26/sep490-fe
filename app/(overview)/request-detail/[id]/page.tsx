@@ -343,7 +343,7 @@ export default function RequestDetailPage() {
     const steps = [
       { title: "Chờ xử lý" },
       { title: "Đang xử lý" },
-      { title: " chờ xác nhận" },
+      { title: "Chờ xác nhận" },
       { title: "Đã xác nhận" },
     ];
 
@@ -455,9 +455,6 @@ export default function RequestDetailPage() {
             <InfoCircleOutlined className="mt-0.5 text-blue-500 text-lg flex-shrink-0" />
             <div>
               <p className="font-bold text-blue-800 mb-1">Cảm ơn quý khách đã tin tưởng và sử dụng dịch vụ của chúng tôi!</p>
-              <p className="text-sm m-0 text-slate-700">
-                Trong vòng 24h tới, nhân viên tư vấn sẽ liên hệ trực tiếp với bạn qua số điện thoại hoặc email đã cung cấp để trao đổi chi tiết về yêu cầu này.
-              </p>
               <p className="text-sm m-0 text-slate-700 mt-2">
                 Để theo dõi tiến độ chi tiết và xem các cập nhật mới nhất của đơn hàng, vui lòng truy cập mục <Link href="/look-up" className="font-semibold underline text-blue-600 hover:text-blue-800">Tra cứu đơn hàng</Link>.
               </p>
