@@ -21,23 +21,7 @@ export interface MaterialRates {
 }
 
 // 3. Quy tắc bù hao (Waste Rules)
-export interface WasteRules {
-  printing: {
-    by_product_type: Record<string, number>;
-    per_plate: number; // Bù hao trên mỗi bản kẽm khi lên máy
-    default: number;
-  };
-  dieCutting: Record<string, number>; // Bù hao công đoạn bế
-  mounting: Record<string, number>;   // Bù hao công đoạn bồi
-  coating: {
-    keo_nuoc: number;
-    keo_dau_lt_10000: number;
-    keo_dau_ge_10000: number;
-  };
-  lamination: Record<string, number>; // Bù hao cán màng
-  gluing: Record<string, number>;     // Bù hao dán hộp
-}
-
+// Moved to line 106
 // 4. Giá bản kẽm theo khổ (Plate Prices)
 export interface PlatePriceItem {
   key: string;

@@ -929,7 +929,6 @@ function ConsultantForm() {
 
       const result = calculateAll(inputs, {
         systemParameters: {
-          overhead_percent: systemParameters?.overhead_percent || 10,
           default_production_days: systemParameters?.default_production_days || 5,
           vat_percent: systemParameters?.vat_percent || 10,
           rush_threshold_days: systemParameters?.rush_threshold_days || 1,
