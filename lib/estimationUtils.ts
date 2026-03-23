@@ -273,7 +273,17 @@ export const calculatePlateCost = (
     const printHeightCm = printHeightMm / 10;
     
     // Sort plate items by area to find the smallest fitting plate
-    const plateItems = config?.platePrices?.items ? [...config.platePrices.items].sort((a, b) => 
+    let rawItems = config?.platePrices?.items || [];
+    if (rawItems.length === 0 && config?.platePrices) {
+        rawItems = [
+            ...(config.platePrices.small || []),
+            ...(config.platePrices.medium || []),
+            ...(config.platePrices.large || []),
+            ...(config.platePrices.xlarge || [])
+        ];
+    }
+    
+    const plateItems = rawItems.length > 0 ? [...rawItems].sort((a, b) => 
         (a.width_cm * a.height_cm) - (b.width_cm * b.height_cm)
     ) : [];
 

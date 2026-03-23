@@ -164,11 +164,11 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       });
     }
 
-    // 8.5 Tính chi phí kẽm
+    // 8.5 Tính chi phí kẽm (không phải là công đoạn, mà là chi phí phụ trợ tính theo khổ giấy)
     const plateCostResult = calculatePlateCost(
       number_of_plates, 
-      printSize.print_width_mm, 
-      printSize.print_height_mm, 
+      sheet_width_mm, 
+      sheet_height_mm, 
       config
     );
     
