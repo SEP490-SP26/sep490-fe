@@ -243,7 +243,7 @@ export default function ManagerRequestDetailPage() {
     const getStatusText = (status: string) => {
         switch (status) {
             case 'Waiting': return 'Chờ Khách hàng xác nhận';
-            case 'Processing': return 'Đang xử lý';
+            case 'Processing': return 'Đang chờ duyệt';
             case 'Verified': return 'Đã duyệt';
             case 'Declined': return 'Đơn mới';
             case 'Accepted': return 'Đã xác nhận';

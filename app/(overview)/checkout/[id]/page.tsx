@@ -42,6 +42,8 @@ export default function RequestDetailPage() {
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [loadingQR, setLoadingQR] = useState(false);
   const [fullRequestDetail, setFullRequestDetail] = useState<any>(null);
+  const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
+  const [hasUploadedContract, setHasUploadedContract] = useState(false);
 
   useEffect(() => {
     const fetchFullDetail = async () => {
@@ -81,6 +83,8 @@ export default function RequestDetailPage() {
 
   const handlePayClick = (quote: QuoteOption) => {
     setSelectedQuote(quote);
+    setHasDownloadedContract(false);
+    setHasUploadedContract(false);
     setIsConfirmModalVisible(true);
   };
 
@@ -358,17 +362,20 @@ export default function RequestDetailPage() {
             Hủy
           </Button>,
           <Popconfirm
+            key="submit-pop"
             title="Xác nhận thanh toán"
             description="Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc báo giá còn lại sẽ bị hủy. Bạn có chắc chắn muốn thanh toán?"
             onConfirm={proceedToPayment}
             onCancel={() => setIsConfirmModalVisible(false)}
             okText="Xác nhận"
             cancelText="Hủy"
+            disabled={!hasUploadedContract}
           >
             <Button
               key="submit"
               type="primary"
-              className="rounded-lg bg-emerald-600 hover:bg-emerald-500 border-none"
+              disabled={!hasUploadedContract}
+              className={`rounded-lg ${!hasUploadedContract ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
             >
               Xác nhận & Thanh toán
             </Button>
@@ -406,17 +413,21 @@ export default function RequestDetailPage() {
                 {selectedQuote?.contract_file_path || fullRequestDetail?.contract_file ? (
                   <div className="flex gap-2">
                     <Button
-                      type="primary"
-                      ghost
+                      type={hasDownloadedContract ? "default" : "primary"}
+                      ghost={!hasDownloadedContract}
                       icon={<DownloadOutlined />}
-                      onClick={() => window.open(selectedQuote?.contract_file_path || fullRequestDetail?.contract_file, '_blank')}
-                      className="rounded-lg"
+                      onClick={() => {
+                        window.open(selectedQuote?.contract_file_path || fullRequestDetail?.contract_file, '_blank');
+                        setHasDownloadedContract(true);
+                      }}
+                      className={`rounded-lg ${hasDownloadedContract ? 'border-emerald-500 text-emerald-600' : ''}`}
                     >
-                      Tải / Xem hợp đồng
+                      {hasDownloadedContract ? "Đã tải hợp đồng" : "Tải / Xem hợp đồng"}
                     </Button>
                     <Upload
                       showUploadList={false}
                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      disabled={!hasDownloadedContract}
                       customRequest={async (options) => {
                         const { file, onSuccess, onError } = options;
                         const hide = message.loading("Đang tải hợp đồng lên...", 0);
@@ -427,6 +438,7 @@ export default function RequestDetailPage() {
                             file: file as File
                           });
                           message.success("Tải bản hợp đồng đã ký thành công!");
+                          setHasUploadedContract(true);
                           if (onSuccess) onSuccess("ok");
                         } catch (error) {
                           message.error("Tải hợp đồng thất bại");
@@ -436,8 +448,13 @@ export default function RequestDetailPage() {
                         }
                       }}
                     >
-                      <Button icon={<UploadOutlined />} className="rounded-lg">
-                        Gửi lại bản đã ký
+                      <Button 
+                        icon={<UploadOutlined />} 
+                        className={`rounded-lg ${hasUploadedContract ? 'border-emerald-500 text-emerald-600' : ''}`}
+                        disabled={!hasDownloadedContract}
+                        type={hasUploadedContract ? "default" : (hasDownloadedContract ? "primary" : "default")}
+                      >
+                        {hasUploadedContract ? "Đã gửi hợp đồng" : "Gửi lại bản đã ký"}
                       </Button>
                     </Upload>
                   </div>
@@ -446,7 +463,7 @@ export default function RequestDetailPage() {
                 )}
               </div>
               <p className="text-xs text-red-500 italic m-0 px-1">
-                * Lưu ý: Sau 3 ngày phải ký hợp đồng nếu không đơn hàng sẽ bị hoãn. Quý khách có thể gửi hợp đồng trong phần Tra cứu đơn hàng. Khi đã thanh toán xem như đã đồng ý với các điều khoản trong hợp đồng.
+                * Lưu ý: Quý khách cần tải hợp đồng xuống, ký và tải lên bản đã ký để có thể tiến hành thanh toán. Khi đã thanh toán xem như đã đồng ý với các điều khoản trong hợp đồng.
               </p>
             </div>
 

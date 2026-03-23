@@ -343,7 +343,7 @@ export default function RequestDetailPage() {
     const steps = [
       { title: "Chờ xử lý" },
       { title: "Đang xử lý" },
-      { title: "Chờ thanh toán" },
+      { title: " chờ xác nhận" },
       { title: "Đã xác nhận" },
     ];
 
