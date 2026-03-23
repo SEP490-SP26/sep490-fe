@@ -199,7 +199,18 @@ export default function RequestDetailPage() {
                   <p className="text-[15px] m-0">
                     Chào <b>{quote.customer_name}</b>,
                   </p>
-                  <p className="text-slate-500 text-sm mt-1 mb-0">
+                  {fullRequestDetail?.consultant_note && (
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
+                      <div className="flex items-center gap-2 mb-2 text-blue-800 font-bold text-sm uppercase tracking-wide">
+                        <InfoCircleOutlined className="text-blue-500 font-bold" />
+                        Lời nhắn từ tư vấn viên
+                      </div>
+                      <div className="text-slate-700 text-sm m-0 leading-relaxed italic bg-white/50 p-3 rounded-lg border border-blue-100">
+                        "{fullRequestDetail.consultant_note}"
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-slate-500 text-sm mt-4 mb-0">
                     Dưới đây là chi tiết báo giá cho yêu cầu in ấn của bạn:
                   </p>
                 </div>
@@ -426,7 +437,15 @@ export default function RequestDetailPage() {
                     </Button>
                     <Upload
                       showUploadList={false}
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      accept=".pdf"
+                      beforeUpload={(file) => {
+                        const isPdf = file.type === 'application/pdf';
+                        if (!isPdf) {
+                          message.error(`${file.name} không phải là file PDF`);
+                          return Upload.LIST_IGNORE;
+                        }
+                        return true;
+                      }}
                       disabled={!hasDownloadedContract}
                       customRequest={async (options) => {
                         const { file, onSuccess, onError } = options;

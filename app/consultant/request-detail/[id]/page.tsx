@@ -63,8 +63,7 @@ export default function ConsultantRequestDetailPage() {
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
     const [isUploadContractModalOpen, setIsUploadContractModalOpen] = useState(false);
-    const [selectedUploadEstimateId, setSelectedUploadEstimateId] = useState<number | undefined>(undefined);
-    const [tempContractFiles, setTempContractFiles] = useState<File[]>([]);
+    const [tempContractFilesWithEstimates, setTempContractFilesWithEstimates] = useState<{ file: File; estimateId?: number }[]>([]);
 
     const [customerMessage, setCustomerMessage] = useState("");
     const [sendingMessage, setSendingMessage] = useState(false);
@@ -164,24 +163,31 @@ export default function ConsultantRequestDetailPage() {
     };
 
     const handleUploadContract = async () => {
-        if (!selectedUploadEstimateId || tempContractFiles.length === 0 || !orderDetail) {
-            message.warning("Vui lòng chọn báo giá và file!");
+        if (tempContractFilesWithEstimates.length === 0 || !orderDetail) {
+            message.warning("Vui lòng chọn file!");
+            return;
+        }
+
+        const missingEstimate = tempContractFilesWithEstimates.some(item => !item.estimateId);
+        if (missingEstimate) {
+            message.warning("Vui lòng chọn báo giá cho tất cả các file!");
             return;
         }
 
         setUploadingContract(true);
         try {
-            for (const file of tempContractFiles) {
-                await uploadApi.uploadContract({
-                    requestId: orderDetail.request_id,
-                    estimate_id: selectedUploadEstimateId,
-                    file: file
-                });
+            for (const item of tempContractFilesWithEstimates) {
+                if (item.estimateId) {
+                    await uploadApi.uploadContract({
+                        requestId: orderDetail.request_id,
+                        estimate_id: item.estimateId,
+                        file: item.file
+                    });
+                }
             }
             message.success("Tải hợp đồng thành công");
             setIsUploadContractModalOpen(false);
-            setTempContractFiles([]);
-            setSelectedUploadEstimateId(undefined);
+            setTempContractFilesWithEstimates([]);
             fetchOrderDetail();
         } catch (error) {
             message.error("Tải hợp đồng thất bại");
@@ -359,18 +365,18 @@ export default function ConsultantRequestDetailPage() {
                             title={
                                 <div className="flex items-center gap-2">
                                     <FileTextOutlined className="text-blue-600" />
-                                    <span>Chọn báo giá cho hợp đồng</span>
+                                    <span>Chọn báo giá cho (các) hợp đồng</span>
                                 </div>
                             }
                             open={isUploadContractModalOpen}
                             onCancel={() => {
                                 setIsUploadContractModalOpen(false);
-                                setTempContractFiles([]);
+                                setTempContractFilesWithEstimates([]);
                             }}
                             footer={[
                                 <Button key="cancel" onClick={() => {
                                     setIsUploadContractModalOpen(false);
-                                    setTempContractFiles([]);
+                                    setTempContractFilesWithEstimates([]);
                                 }}>
                                     Hủy
                                 </Button>,
@@ -380,34 +386,41 @@ export default function ConsultantRequestDetailPage() {
                                     className="bg-blue-600 hover:bg-blue-500"
                                     loading={uploadingContract}
                                     onClick={handleUploadContract}
-                                    disabled={!selectedUploadEstimateId}
+                                    disabled={tempContractFilesWithEstimates.length === 0}
                                 >
-                                    Tải lên
+                                    Tải lên ({tempContractFilesWithEstimates.length})
                                 </Button>
                             ]}
+                            width={600}
                         >
                             <div className="py-2">
-                                <p className="mb-2 text-sm text-slate-600">Vui lòng chọn báo giá tương ứng cho hợp đồng này:</p>
-                                <Select
-                                    className="w-full"
-                                    placeholder="Chọn báo giá"
-                                    value={selectedUploadEstimateId}
-                                    onChange={(value) => setSelectedUploadEstimateId(value)}
-                                    options={orderDetail?.cost_estimate?.filter(e => e.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((est, index) => ({
-                                        value: est.estimate_id,
-                                        label: `Báo giá #${index + 1} - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(est.final_total_cost)}`
-                                    })) || []}
-                                />
-                                {tempContractFiles.length > 0 && (
-                                    <div className="mt-4 space-y-2">
-                                        {tempContractFiles.map((file, index) => (
-                                            <div key={index} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2 text-sm">
+                                <p className="mb-4 text-sm text-slate-600 font-medium italic">
+                                    Vui lòng chọn báo giá tương ứng cho từng file hợp đồng bên dưới:
+                                </p>
+                                <div className="space-y-4">
+                                    {tempContractFilesWithEstimates.map((item, index) => (
+                                        <div key={index} className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                            <div className="flex items-center gap-2 mb-3">
                                                 <FileTextOutlined className="text-blue-500" />
-                                                <span className="truncate">{file.name}</span>
+                                                <span className="font-semibold text-slate-700 truncate">{item.file.name}</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                            <Select
+                                                className="w-full"
+                                                placeholder="Chọn báo giá cho file này"
+                                                value={item.estimateId}
+                                                onChange={(value) => {
+                                                    const newList = [...tempContractFilesWithEstimates];
+                                                    newList[index].estimateId = value;
+                                                    setTempContractFilesWithEstimates(newList);
+                                                }}
+                                                options={orderDetail?.cost_estimate?.filter(e => e.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((est, idx) => ({
+                                                    value: est.estimate_id,
+                                                    label: `Báo giá #${idx + 1} - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(est.final_total_cost)}`
+                                                })) || []}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </Modal>
                     </div>
@@ -565,15 +578,32 @@ export default function ConsultantRequestDetailPage() {
                                             <Upload
                                                 multiple
                                                 showUploadList={false}
+                                                accept=".pdf"
                                                 beforeUpload={(file, fileList) => {
+                                                    const isPdf = file.type === 'application/pdf';
+                                                    if (!isPdf) {
+                                                        message.error(`${file.name} không phải là file PDF`);
+                                                        return Upload.LIST_IGNORE;
+                                                    }
                                                     if (fileList.indexOf(file) === 0) {
-                                                        const activeEstimates = orderDetail?.cost_estimate?.filter(e => e.is_active) || [];
-                                                        if (activeEstimates.length === 1) {
-                                                            setSelectedUploadEstimateId(activeEstimates[0].estimate_id);
-                                                        } else {
-                                                            setSelectedUploadEstimateId(undefined);
-                                                        }
-                                                        setTempContractFiles(fileList as File[]);
+                                                        const activeEstimates = orderDetail?.cost_estimate?.filter(e => e.is_active).sort((a, b) => a.estimate_id - b.estimate_id) || [];
+                                                        
+                                                        const newFilesWithEstimates = fileList.map((f, index) => {
+                                                            // Auto-assign if there matches are obvious or just leave undefined
+                                                            let estimateId = undefined;
+                                                            if (activeEstimates.length === 1) {
+                                                                estimateId = activeEstimates[0].estimate_id;
+                                                            } else if (activeEstimates.length > index) {
+                                                                // If multiple files and multiple quotes, maybe try to match by index as a guess
+                                                                // but better leave for user to choose if not sure.
+                                                                // For now, if there's only 1 active quote total, assign it.
+                                                                // Otherwise let user select.
+                                                            }
+                                                            
+                                                            return { file: f as File, estimateId };
+                                                        });
+
+                                                        setTempContractFilesWithEstimates(newFilesWithEstimates);
                                                         setIsUploadContractModalOpen(true);
                                                     }
                                                     return false; // Prevent auto upload

@@ -844,35 +844,6 @@ export default function RequestDetailPage() {
                                     >
                                       Tải / Xem hợp đồng
                                     </Button>
-                                    <Upload
-                                      showUploadList={false}
-                                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                      customRequest={async (options) => {
-                                        const { file, onSuccess, onError } = options;
-                                        const hide = message.loading("Đang tải hợp đồng lên...", 0);
-                                        try {
-                                          await uploadApi.uploadContract({
-                                            requestId: Number(requestId),
-                                            estimate_id: quote.estimate_id,
-                                            file: file as File
-                                          });
-                                          message.success("Tải bản hợp đồng đã ký thành công!");
-                                          if (onSuccess) onSuccess("ok");
-                                          setTimeout(() => {
-                                            window.location.reload();
-                                          }, 1000);
-                                        } catch (error) {
-                                          message.error("Tải hợp đồng thất bại");
-                                          if (onError) onError(error as any);
-                                        } finally {
-                                          hide();
-                                        }
-                                      }}
-                                    >
-                                      <Button icon={<UploadOutlined />} className="rounded-lg" type="default">
-                                        Gửi lại bản đã ký
-                                      </Button>
-                                    </Upload>
                                   </div>
                                 </div>
                               </div>
