@@ -64,7 +64,7 @@ export default function ConsultantRequestDetailPage() {
     const [uploadingContract, setUploadingContract] = useState(false);
     const [isUploadContractModalOpen, setIsUploadContractModalOpen] = useState(false);
     const [selectedUploadEstimateId, setSelectedUploadEstimateId] = useState<number | undefined>(undefined);
-    const [tempContractFile, setTempContractFile] = useState<File | null>(null);
+    const [tempContractFiles, setTempContractFiles] = useState<File[]>([]);
 
     const [customerMessage, setCustomerMessage] = useState("");
     const [sendingMessage, setSendingMessage] = useState(false);
@@ -164,21 +164,23 @@ export default function ConsultantRequestDetailPage() {
     };
 
     const handleUploadContract = async () => {
-        if (!selectedUploadEstimateId || !tempContractFile || !orderDetail) {
-            message.warning("Vui lòng chọn báo giá!");
+        if (!selectedUploadEstimateId || tempContractFiles.length === 0 || !orderDetail) {
+            message.warning("Vui lòng chọn báo giá và file!");
             return;
         }
 
         setUploadingContract(true);
         try {
-            await uploadApi.uploadContract({
-                requestId: orderDetail.request_id,
-                estimate_id: selectedUploadEstimateId,
-                file: tempContractFile
-            });
+            for (const file of tempContractFiles) {
+                await uploadApi.uploadContract({
+                    requestId: orderDetail.request_id,
+                    estimate_id: selectedUploadEstimateId,
+                    file: file
+                });
+            }
             message.success("Tải hợp đồng thành công");
             setIsUploadContractModalOpen(false);
-            setTempContractFile(null);
+            setTempContractFiles([]);
             setSelectedUploadEstimateId(undefined);
             fetchOrderDetail();
         } catch (error) {
@@ -251,7 +253,7 @@ export default function ConsultantRequestDetailPage() {
     const getStatusText = (status: string) => {
         switch (status) {
             case 'Waiting': return 'Chờ Khách hàng xác nhận';
-            case 'Processing': return 'Đang xử lý';
+            case 'Processing': return 'Đang chờ duyệt';
             case 'Declined': return 'Đơn mới';
             case 'Pending': return 'Đơn mới';
             case 'Accepted': return 'Đã xác nhận';
@@ -363,12 +365,12 @@ export default function ConsultantRequestDetailPage() {
                             open={isUploadContractModalOpen}
                             onCancel={() => {
                                 setIsUploadContractModalOpen(false);
-                                setTempContractFile(null);
+                                setTempContractFiles([]);
                             }}
                             footer={[
                                 <Button key="cancel" onClick={() => {
                                     setIsUploadContractModalOpen(false);
-                                    setTempContractFile(null);
+                                    setTempContractFiles([]);
                                 }}>
                                     Hủy
                                 </Button>,
@@ -396,10 +398,14 @@ export default function ConsultantRequestDetailPage() {
                                         label: `Báo giá #${index + 1} - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(est.final_total_cost)}`
                                     })) || []}
                                 />
-                                {tempContractFile && (
-                                    <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2 text-sm">
-                                        <FileTextOutlined className="text-blue-500" />
-                                        <span className="truncate">{tempContractFile.name}</span>
+                                {tempContractFiles.length > 0 && (
+                                    <div className="mt-4 space-y-2">
+                                        {tempContractFiles.map((file, index) => (
+                                            <div key={index} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2 text-sm">
+                                                <FileTextOutlined className="text-blue-500" />
+                                                <span className="truncate">{file.name}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -557,16 +563,19 @@ export default function ConsultantRequestDetailPage() {
                                             </Button>
                                         ) : (
                                             <Upload
+                                                multiple
                                                 showUploadList={false}
-                                                beforeUpload={(file) => {
-                                                    const activeEstimates = orderDetail?.cost_estimate?.filter(e => e.is_active) || [];
-                                                    if (activeEstimates.length === 1) {
-                                                        setSelectedUploadEstimateId(activeEstimates[0].estimate_id);
-                                                    } else {
-                                                        setSelectedUploadEstimateId(undefined);
+                                                beforeUpload={(file, fileList) => {
+                                                    if (fileList.indexOf(file) === 0) {
+                                                        const activeEstimates = orderDetail?.cost_estimate?.filter(e => e.is_active) || [];
+                                                        if (activeEstimates.length === 1) {
+                                                            setSelectedUploadEstimateId(activeEstimates[0].estimate_id);
+                                                        } else {
+                                                            setSelectedUploadEstimateId(undefined);
+                                                        }
+                                                        setTempContractFiles(fileList as File[]);
+                                                        setIsUploadContractModalOpen(true);
                                                     }
-                                                    setTempContractFile(file);
-                                                    setIsUploadContractModalOpen(true);
                                                     return false; // Prevent auto upload
                                                 }}
                                             >
