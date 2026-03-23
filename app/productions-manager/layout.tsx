@@ -24,6 +24,7 @@ export default function ProductionsManagerLayout({
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar
+        className="bg-emerald-900 text-white"
         userInfo={{
           name: "Quản lý sản xuất",
           role: "Quản lý",

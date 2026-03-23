@@ -24,6 +24,7 @@ export default function LayoutWarehouse({
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar
+        className="bg-amber-900 text-white"
         userInfo={{
           name: "Nhân viên vật tư",
           role: "Quản lý NVL",

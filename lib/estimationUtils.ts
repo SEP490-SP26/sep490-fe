@@ -261,6 +261,74 @@ export const calculateInkCost = (
     };
 };
 
+export const calculatePlateCost = (
+    numberOfPlates: number,
+    printWidthMm: number,
+    printHeightMm: number,
+    config?: Partial<EstimationConfig>
+): { cost: number; pricePerPlate: number; sizeText: string } => {
+    if (!numberOfPlates || numberOfPlates <= 0) return { cost: 0, pricePerPlate: 0, sizeText: '' };
+
+    const printWidthCm = printWidthMm / 10;
+    const printHeightCm = printHeightMm / 10;
+    
+    // Sort plate items by area to find the smallest fitting plate
+    const plateItems = config?.platePrices?.items ? [...config.platePrices.items].sort((a, b) => 
+        (a.width_cm * a.height_cm) - (b.width_cm * b.height_cm)
+    ) : [];
+
+    let selectedPlate = null;
+
+    if (plateItems.length > 0) {
+        for (const plate of plateItems) {
+            // Check if print fits in plate (allow rotation)
+            const fitsNormal = printWidthCm <= plate.width_cm && printHeightCm <= plate.height_cm;
+            const fitsRotated = printHeightCm <= plate.width_cm && printWidthCm <= plate.height_cm;
+            
+            if (fitsNormal || fitsRotated) {
+                selectedPlate = plate;
+                break;
+            }
+        }
+        
+        // If no plate is large enough, fallback to the largest available
+        if (!selectedPlate) {
+            selectedPlate = plateItems[plateItems.length - 1];
+        }
+    } else {
+        // Fallback hardcoded logic based on user's new pricing if API config is empty
+        const plates = [
+            { width: 37, height: 45, price: 40000, label: '37 x 45 cm' },
+            { width: 40, height: 51, price: 45000, label: '40 x 51 cm' },
+            { width: 45, height: 55, price: 55000, label: '45 x 55 cm' },
+            { width: 55, height: 65, price: 75000, label: '55 x 65 cm' },
+            { width: 60.5, height: 74.5, price: 90000, label: '60.5 x 74.5 cm' },
+            { width: 79, height: 60, price: 95000, label: '79 x 60 cm' },
+            { width: 79, height: 103, price: 160000, label: '79 x 103 cm' },
+            { width: 80, height: 103, price: 165000, label: '80 x 103 cm' },
+            { width: 114, height: 145, price: 320000, label: '114 x 145 cm' },
+            { width: 132, height: 163, price: 450000, label: '132 x 163 cm' }
+        ].sort((a, b) => (a.width * a.height) - (b.width * b.height));
+
+        for (const plate of plates) {
+            const fitsNormal = printWidthCm <= plate.width && printHeightCm <= plate.height;
+            const fitsRotated = printHeightCm <= plate.width && printWidthCm <= plate.height;
+            if (fitsNormal || fitsRotated) {
+                selectedPlate = { price_per_plate: plate.price, size_text: plate.label };
+                break;
+            }
+        }
+        if (!selectedPlate) selectedPlate = { price_per_plate: plates[plates.length - 1].price, size_text: plates[plates.length - 1].label };
+    }
+
+    const pricePerPlate = selectedPlate.price_per_plate;
+    return {
+        cost: pricePerPlate * numberOfPlates,
+        pricePerPlate,
+        sizeText: selectedPlate.size_text
+    };
+};
+
 export const calculateCoatingGlueCost = (
     hasPhu: boolean,
     coatingType: 'KEO_NUOC' | 'KEO_DAU',

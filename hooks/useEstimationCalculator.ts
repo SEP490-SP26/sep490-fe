@@ -15,6 +15,7 @@ import {
   calculateOverheadCost,
   calculateProductionDays,
   calculateRushFee,
+  calculatePlateCost,
   roundToThousands
 } from '@/lib/estimationUtils';
 import { EstimationConfig, EstimationInputs, EstimationResult, UseEstimationCalculator } from '@/lib/estimation.types';
@@ -160,6 +161,26 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
             });
           }
         }
+      });
+    }
+
+    // 8.5 Tính chi phí kẽm
+    const plateCostResult = calculatePlateCost(
+      number_of_plates, 
+      printSize.print_width_mm, 
+      printSize.print_height_mm, 
+      config
+    );
+    
+    if (plateCostResult.cost > 0) {
+      totalProcessCost += plateCostResult.cost;
+      processDetails.push({
+        process: 'KEM',
+        unit_price: plateCostResult.pricePerPlate,
+        quantity: number_of_plates,
+        unit: 'bản',
+        total_cost: plateCostResult.cost,
+        note: `Khổ kẽm: ${plateCostResult.sizeText}`
       });
     }
 

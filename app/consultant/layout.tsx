@@ -16,6 +16,7 @@ export default function LayoutManager({
       {/* Sidebar */}
 
       <Sidebar
+        className="bg-purple-900 text-white"
         userInfo={{
           name: "Tư vấn viên A",
           role: "Công ty in ấn",

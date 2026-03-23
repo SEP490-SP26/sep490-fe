@@ -1,5 +1,5 @@
 
-// 1. Giá vật tư (VND/kg)
+// 1. Đơn giá vật tư (VND/kg)
 export interface MaterialPrices {
   ink_price_per_kg: number;
   coating_glue_keo_nuoc_per_kg: number;
@@ -8,7 +8,7 @@ export interface MaterialPrices {
   lamination_per_kg: number;
 }
 
-// 2. Định mức vật tư (Tỷ lệ tiêu hao)
+// 2. Định mức tiêu hao (Rate per m2)
 export interface MaterialRates {
   ink_rate_gach_noi_dia: number;
   ink_rate_gach_xk_don_gian: number;
@@ -20,17 +20,50 @@ export interface MaterialRates {
   lamination_rate_12mic: number;
 }
 
+// 3. Quy tắc bù hao (Waste Rules)
+export interface WasteRules {
+  printing: {
+    by_product_type: Record<string, number>;
+    per_plate: number; // Bù hao trên mỗi bản kẽm khi lên máy
+    default: number;
+  };
+  dieCutting: Record<string, number>; // Bù hao công đoạn bế
+  mounting: Record<string, number>;   // Bù hao công đoạn bồi
+  coating: {
+    keo_nuoc: number;
+    keo_dau_lt_10000: number;
+    keo_dau_ge_10000: number;
+  };
+  lamination: Record<string, number>; // Bù hao cán màng
+  gluing: Record<string, number>;     // Bù hao dán hộp
+}
 
+// 4. Giá bản kẽm theo khổ (Plate Prices)
+export interface PlatePriceItem {
+  key: string;
+  category: 'small' | 'medium' | 'large' | 'xlarge' | string;
+  category_text: string;
+  size_text: string;
+  width_cm: number;
+  height_cm: number;
+  price_per_plate: number;
+}
 
-// 4. Tham số hệ thống & Phí vận hành
+export interface PlatePriceConfig {
+  items: PlatePriceItem[];
+  small: PlatePriceItem[];
+  medium: PlatePriceItem[];
+  large: PlatePriceItem[];
+  xlarge: PlatePriceItem[];
+}
+
+// 5. Tham số hệ thống
 export interface SystemParameters {
-  overhead_percent: number;
   default_production_days: number;
   rush_threshold_days: number;
   vat_percent: number;
   rush_percent_by_days_early: Record<string, number>;
 }
-
 
 // 6. Root Interface
 export interface EstimationConfig {
@@ -38,10 +71,17 @@ export interface EstimationConfig {
   materialRates: MaterialRates;
   wasteRules: WasteRules;
   systemParameters: SystemParameters;
-  processCosts: ProcessCosts;
+  processCosts: {
+    by_process: Record<string, {
+      unit_price: number;
+      unit: string;
+      note: string;
+    }>;
+  };
   design: {
     default_design_cost: number;
   };
+  platePrices: PlatePriceConfig;
 }
 
 // Cấu trúc dữ liệu cơ bản
@@ -392,6 +432,7 @@ export interface UseEstimationConfig {
   processCosts: ProcessCosts | null;
   designConfig: DesignConfig | null;
   systemParameters: SystemParameters | null; // Added systemParameters
+  platePrices: PlatePriceConfig | null;
   materials: Material[];
   machines: Machine[];
   loading: boolean;

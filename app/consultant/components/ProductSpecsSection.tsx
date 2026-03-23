@@ -387,7 +387,7 @@ export default function ProductSpecsSection({
               }
 
               // Sắp xếp đúng theo trình tự gia công chuẩn
-              const STANDARD_ORDER = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DOT", "DUT", "DAN"];
+              const STANDARD_ORDER = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"];
               updatedValues.sort((a, b) => {
                 const idxA = STANDARD_ORDER.indexOf(a);
                 const idxB = STANDARD_ORDER.indexOf(b);
@@ -427,7 +427,7 @@ export default function ProductSpecsSection({
                 ) : (
                   <>
                     {processTypes
-                      .filter((pt) => ["IN", "DUT", "DOT", "CAT"].includes(pt))
+                      .filter((pt) => ["IN", "DUT", "CAT"].includes(pt))
                       .map((pt) => (
                         <Checkbox
                           value={pt}

@@ -64,6 +64,7 @@ export default function ManagerRequestDetailPage() {
     const [actionLoading, setActionLoading] = useState(false);
 
     const [noteMode, setNoteMode] = useState(false);
+    const [managerNote, setManagerNote] = useState("");
     const [estimateNotes, setEstimateNotes] = useState<Record<number, {
         paper_name?: string;
         paper_code?: string;
@@ -132,7 +133,9 @@ export default function ManagerRequestDetailPage() {
         if (!requestId) return;
 
         let finalNote = "";
-        if (status === 'Declined') {
+        if (status === 'Verified') {
+            finalNote = managerNote.trim();
+        } else if (status === 'Declined') {
             const notesArray: string[] = [];
             Object.keys(estimateNotes).forEach((key) => {
                 const index = parseInt(key);
@@ -352,14 +355,14 @@ export default function ManagerRequestDetailPage() {
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_height_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_height_mm} mm</Text></Descriptions.Item>}
                                     </Descriptions>
 
-                                    {/* {orderDetail.description && (
+                                    {orderDetail.description && (
                                         <div className="mt-4">
                                             <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Mô tả yêu cầu</Text>
                                             <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
                                                 {orderDetail.description}
                                             </div>
                                         </div>
-                                    )} */}
+                                    )}
                                 </div>
                             </Card>
                         </div>
@@ -847,7 +850,7 @@ export default function ManagerRequestDetailPage() {
                         <div className="lg:col-span-1">
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
+                                    {/* <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
                                         <div>
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-3">
@@ -861,7 +864,7 @@ export default function ManagerRequestDetailPage() {
                                                 {orderDetail.description || "Không có mô tả"}
                                             </div>
                                         </div>
-                                    </Card>
+                                    </Card> */}
 
                                     {orderDetail.consultant_note && (
                                         <Card className="mt-4 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
@@ -876,6 +879,46 @@ export default function ManagerRequestDetailPage() {
                                                 </div>
                                                 <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
                                                     {orderDetail.consultant_note}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+
+                                    {orderDetail.process_status === 'Processing' && (
+                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
+                                                            <EditOutlined className="text-green-500" />
+                                                            Lời nhắn cho tư vấn viên
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <TextArea
+                                                    rows={2}
+                                                    placeholder="Nhập ghi chú cho tư vấn viên khi duyệt yêu cầu..."
+                                                    className="w-full text-sm rounded-lg border-green-200 focus:border-green-400 focus:ring-green-400"
+                                                    value={managerNote}
+                                                    onChange={(e) => setManagerNote(e.target.value)}
+                                                />
+                                            </div>
+                                        </Card>
+                                    )}
+
+                                    {orderDetail.process_status !== 'Processing' && orderDetail.note && (
+                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
+                                                            <FileTextOutlined className="text-green-500" />
+                                                            Ghi chú của Manager
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-green-200 rounded-lg p-3 whitespace-pre-wrap">
+                                                    {orderDetail.note}
                                                 </div>
                                             </div>
                                         </Card>

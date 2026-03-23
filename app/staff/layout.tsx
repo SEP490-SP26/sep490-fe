@@ -24,6 +24,7 @@ export default function StaffLayout({
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar
+        className="bg-orange-900 text-white"
         userInfo={{
           name: "Nhân viên",
           role: "Nhân viên sản xuất",

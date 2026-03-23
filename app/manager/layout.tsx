@@ -71,6 +71,7 @@ export default function LayoutManager({
       </aside> */}
 
       <Sidebar
+        className="bg-blue-900 text-white"
         userInfo={{
           name: "Quản Lý",
           role: "Công ty in ấn",

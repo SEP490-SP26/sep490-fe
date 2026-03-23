@@ -123,76 +123,85 @@ export default function Sidebar({
 
   return (
     <div
-      className={`fixed left-0 top-0 h-full ${width} bg-white border-r border-gray-200 shadow-sm ${className}`}
+      className={`fixed left-0 top-0 h-full ${width} border-r border-white/10 shadow-sm flex flex-col ${className || "bg-slate-900"}`}
     >
       {/* Header */}
       {headerContent || (
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+        <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <div>
             <h1
-              className={`text-${primaryColor} font-heading text-xl font-semibold`}
+              className="text-white font-heading text-xl font-semibold"
             >
               {userInfo?.name}
             </h1>
-            <p className="text-secondary text-sm mt-1">{userInfo?.role}</p>
+            <p className="text-gray-300 text-sm mt-1">{userInfo?.role}</p>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors relative text-gray-600">
+          <button className="p-2 hover:bg-white/10 rounded-full transition-colors relative text-gray-300">
             <BellOutlined className="text-xl" />
           </button>
         </div>
       )}
 
       {/* Navigation */}
-      <nav className="px-4 py-6">
+      <nav className="px-4 py-6 flex-1 overflow-y-auto">
         {navItems.map((item) => {
-          const Icon = item.icon;
           const isLogout =
             item.isLogout || item.label.toLowerCase().includes("đăng xuất");
+            
+          if (isLogout) return null;
+
+          const Icon = item.icon;
           const isActive = activeItem === item.label;
 
           // Xây dựng href
           let href = item.path;
-          if (item.basePath && !isLogout) {
+          if (item.basePath) {
             href = `${item.basePath}${item.path}`;
           }
 
           return (
             <div key={item.label}>
-              {isLogout ? (
-                <button
-                  onClick={() => handleLogout(item)}
-                  className="flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition-all duration-200 w-full text-left text-accent hover:bg-accent/10 hover:text-accent mt-8 border-t border-gray-100 pt-4"
+              <Link
+                href={href}
+                className={`flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition-all duration-200 ${isActive
+                  ? "bg-white/20 text-white shadow-lg border-l-4 border-white font-semibold"
+                  : "text-gray-300 hover:bg-white/10 hover:text-white"
+                  }`}
+                onClick={() => handleItemClick(item)}
+              >
+                <Icon
+                  className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-400"}`}
+                />
+                <span
+                  className={`font-medium ${isActive ? "text-white" : ""}`}
                 >
-                  <Icon className="w-5 h-5 text-accent" />
-                  <span className="font-medium text-accent">{item.label}</span>
-                </button>
-              ) : (
-                <Link
-                  href={href}
-                  className={`flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition-all duration-200 ${isActive
-                    ? `bg-${primaryColor}/10 text-${primaryColor} shadow-lg shadow-${accentColor}/20 border-l-4 border-${accentColor} font-semibold`
-                    : "text-gray-700 hover:bg-primary/5 hover:text-primary"
-                    }`}
-                  onClick={() => handleItemClick(item)}
-                >
-                  <Icon
-                    className={`w-5 h-5 ${isActive ? `text-${primaryColor}` : ""
-                      }`}
-                  />
-                  <span
-                    className={`font-medium ${isActive ? `text-${primaryColor}` : ""
-                      }`}
-                  >
-                    {item.label}
-                  </span>
-                </Link>
-              )}
+                  {item.label}
+                </span>
+              </Link>
             </div>
           );
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer / Logout */}
+      {(() => {
+        const logoutItem = navItems.find((item) => item.isLogout || item.label.toLowerCase().includes("đăng xuất"));
+        if (!logoutItem) return null;
+
+        const Icon = logoutItem.icon;
+        return (
+          <div className="p-4 border-t border-white/10 mt-auto">
+            <button
+              onClick={() => handleLogout(logoutItem)}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 w-full text-left text-gray-300 hover:bg-red-500/10 hover:text-red-400"
+            >
+              <Icon className="w-5 h-5 text-red-400" />
+              <span className="font-medium text-red-400">{logoutItem.label}</span>
+            </button>
+          </div>
+        );
+      })()}
+      
       {footerContent}
     </div>
   );

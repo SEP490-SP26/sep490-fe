@@ -24,6 +24,7 @@ export default function LayoutAdmin({
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar
+        className="bg-indigo-900 text-white"
         userInfo={{
           name: "Admin",
           role: "Quản trị viên",

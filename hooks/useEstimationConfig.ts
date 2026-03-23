@@ -1,8 +1,6 @@
-// Hook lấy và quản lý config
 import { useState, useEffect, useCallback } from 'react';
-import { UseEstimationConfig, WasteRules, ProcessCosts, DesignConfig, Material, Machine, EstimationConfig } from '@/lib/estimation.types';
+import { UseEstimationConfig, WasteRules, ProcessCosts, DesignConfig, Material, Machine, EstimationConfig, PlatePriceConfig } from '@/lib/estimation.types';
 import { estimatesApi } from '@/apiRequests/estimates';
-import { processCostRulesApi } from '@/apiRequests/processCostRules';
 import { materialsApi } from '@/apiRequests/materials';
 import { machineApi } from '@/apiRequests/machine';
 
@@ -10,7 +8,8 @@ export const useEstimationConfig = (): UseEstimationConfig => {
     const [wasteRules, setWasteRules] = useState<WasteRules | null>(null);
     const [processCosts, setProcessCosts] = useState<ProcessCosts | null>(null);
     const [designConfig, setDesignConfig] = useState<DesignConfig | null>(null);
-    const [systemParameters, setSystemParameters] = useState<any | null>(null); // State for systemParameters
+    const [systemParameters, setSystemParameters] = useState<any | null>(null);
+    const [platePrices, setPlatePrices] = useState<PlatePriceConfig | null>(null);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [machines, setMachines] = useState<Machine[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -22,9 +21,8 @@ export const useEstimationConfig = (): UseEstimationConfig => {
             setError(null);
 
             // Gọi API để lấy config
-            const [baseConfigRes, processCostsRes, materialsRes, machinesRes] = await Promise.all([
+            const [baseConfigRes, materialsRes, machinesRes] = await Promise.all([
                 estimatesApi.getBaseConfig(),
-                processCostRulesApi.getAll(),
                 materialsApi.getAll(),
                 machineApi.getAllMachine()
             ]);
@@ -75,31 +73,24 @@ export const useEstimationConfig = (): UseEstimationConfig => {
             }
 
             // Xử lý Process Costs
-            // processCostRulesApi.getAll() trả về mảng rules hoặc map. 
-            // Type definition nói là ProcessCosts[] (mảng các map?) hoặc mảng rules.
-            // Ta sẽ convert về Map ProcessCosts
             let costsMap: ProcessCosts = {};
-
-            // Checking validation for processCostsRes
-            const rulesData = processCostsRes as any;
-
-            if (Array.isArray(rulesData)) {
-                rulesData.forEach((rule: any) => {
-                    if (rule.process_code) {
-                        costsMap[rule.process_code] = {
-                            unit_price: rule.unit_price,
-                            unit: rule.unit,
-                            note: rule.note,
-                            process_code: rule.process_code,
-                            process_name: rule.process_name
-                        };
-                    }
+            if (baseConfig?.processCosts?.by_process) {
+                const byProcess = baseConfig.processCosts.by_process;
+                Object.keys(byProcess).forEach(code => {
+                    costsMap[code] = {
+                        process_code: code,
+                        process_name: code,
+                        unit_price: byProcess[code].unit_price,
+                        unit: byProcess[code].unit,
+                        note: byProcess[code].note || ''
+                    };
                 });
-            } else if (typeof rulesData === 'object' && rulesData !== null) {
-                costsMap = rulesData;
             }
-
             setProcessCosts(costsMap);
+
+            if (baseConfig?.platePrices) {
+                setPlatePrices(baseConfig.platePrices);
+            }
 
             // Materials & Machines
             // materialsRes (any[] or object with data property?)
@@ -158,6 +149,7 @@ export const useEstimationConfig = (): UseEstimationConfig => {
                 }
             });
             setSystemParameters(null);
+            setPlatePrices(null);
             setMaterials([]);
             setMachines([]);
             setError(error.message || 'Failed to load configuration');
@@ -181,7 +173,8 @@ export const useEstimationConfig = (): UseEstimationConfig => {
         wasteRules,
         processCosts,
         designConfig,
-        systemParameters, // Return systemParameters
+        systemParameters,
+        platePrices,
         materials,
         machines,
         loading,

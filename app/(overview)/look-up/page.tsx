@@ -457,9 +457,9 @@ export default function CustomerHistoryPage() {
             Tra Cứu Đơn Hàng
           </Title>
           <div className="mb-6">
-            <Text className="text-slate-500 font-medium italic">
+            <h3 className="text-white font-medium italic">
               Giải pháp in ấn toàn diện - Nâng tầm giá trị thương hiệu
-            </Text>
+            </h3>
           </div>
         </div>
 
