@@ -95,6 +95,7 @@ export interface RequestDetailResponse {
   print_height_mm: number;
 
   // Danh sách các phương án báo giá đi kèm
+  preliminary_estimated_price?: number;
   cost_estimate: DetailedEstimate[];
 }
 
@@ -120,6 +121,7 @@ export interface RequestSummary {
   request_date?: string; // Một số record có trường này
   product_name: string;
   quantity: number;
+  preliminary_estimated_price?: number;
   status: 'Waiting' | 'Pending' | 'Accepted' | 'Cancel' | string;
 }
 

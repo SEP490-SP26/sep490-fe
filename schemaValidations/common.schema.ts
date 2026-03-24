@@ -67,6 +67,7 @@ export interface CreateRequestBody {
   product_width_mm?: number;
   product_height_mm?: number;
   paper_name?: string;
+  preliminary_estimated_price?: number;
 }
 
 export interface RejectDealRequest {

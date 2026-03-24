@@ -83,6 +83,7 @@ interface OrderDetail {
   payments?: any[]; // Using any[] or OrderPayment[] if imported
   final_total_cost?: number;
   deposit_amount?: number;
+  preliminary_estimated_price?: number;
 }
 
 export default function RequestDetailPage() {
@@ -234,6 +235,7 @@ export default function RequestDetailPage() {
             payments: orderData.payments || [],
             final_total_cost: orderData.final_total_cost,
             deposit_amount: orderData.deposit_amount,
+            preliminary_estimated_price: (orderData as any).preliminary_estimated_price,
           });
         }
       } catch (error) {
@@ -534,6 +536,11 @@ export default function RequestDetailPage() {
                         {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text> */}
                         <div className="text-lg font-bold text-slate-800">SL: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
                       </div>
+                      {requestDetail.preliminary_estimated_price && (
+                        <div>
+                          <div className="text-lg font-bold text-orange-600">Giá dự kiến: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(requestDetail.preliminary_estimated_price).replace('₫', 'đ')}</div>
+                        </div>
+                      )}
                       {/* </div> */}
 
                       {/* <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">

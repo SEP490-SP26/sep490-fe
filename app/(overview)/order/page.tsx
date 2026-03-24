@@ -394,7 +394,8 @@ export default function GuestOrderPage() {
       district: "",
       detail_address:
         selectedAddress?.formattedAddress || values.shippingAddress || "",
-      is_send_design: designOption === 1
+      is_send_design: designOption === 1,
+      preliminary_estimated_price: estimatedPrice || 0
     };
 
     setFormDataToSubmit(requestBody);
@@ -1074,12 +1075,12 @@ export default function GuestOrderPage() {
                 </div>
               </div>
 
-              {estimatedPrice !== null && estimatedPrice > 0 && (
+              {formDataToSubmit.preliminary_estimated_price !== null && formDataToSubmit.preliminary_estimated_price > 0 && (
                 <div className="col-span-1 md:col-span-2 pt-2 mt-2 border-t border-gray-200">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 font-semibold">Giá chỉ từ (ước tính):</span>
                     <span className="text-orange-600 font-bold text-xl">
-                      {formatVietnameseNumber(estimatedPrice)} VNĐ
+                      {formatVietnameseNumber(formDataToSubmit.preliminary_estimated_price)} VNĐ
                     </span>
                   </div>
                 </div>
