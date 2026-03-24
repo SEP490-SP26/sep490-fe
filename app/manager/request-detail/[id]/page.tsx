@@ -158,6 +158,10 @@ export default function ManagerRequestDetailPage() {
                 }
             });
 
+            if (managerNote.trim()) {
+                notesArray.push(`Lời nhắn chung: ${managerNote.trim()}`);
+            }
+
             if (notesArray.length === 0) {
                 message.error("Vui lòng nhập ít nhất một thay đổi hoặc ghi chú trước khi xác nhận.");
                 return;
@@ -873,7 +877,7 @@ export default function ManagerRequestDetailPage() {
                                                     <div className="flex items-center gap-3">
                                                         <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 flex items-center gap-2 m-0">
                                                             <FileTextOutlined className="text-blue-500" />
-                                                            Ghi chú của Consultant
+                                                            Ghi chú của tư vấn viên
                                                         </h3>
                                                     </div>
                                                 </div>

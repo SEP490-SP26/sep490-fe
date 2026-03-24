@@ -882,6 +882,25 @@ export default function ConsultantRequestDetailPage() {
                                         </Card>
                                     )}
 
+                                    {/* Lời nhắn từ Quản lý */}
+                                    {orderDetail.note && (
+                                        <Card className="mt-6 border-green-200 bg-green-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 mb-4 flex items-center gap-2">
+                                                            <FileTextOutlined className="text-green-500" />
+                                                            Lời nhắn từ Quản lý
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-green-200 rounded-lg p-3 whitespace-pre-wrap">
+                                                    {orderDetail.note}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+
                                     {/* Lời nhắn cho khách hàng */}
                                     {orderDetail.process_status === 'Verified' && (
                                         <Card className=" rounded-2xl border border-emerald-100 shadow-sm border-t-4 border-t-emerald-400 bg-emerald-50/20">
