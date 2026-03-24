@@ -70,24 +70,24 @@ export default function ManagerRequestsProcessingPage() {
     }, []);
     //===============Signalr================
     useEffect(() => {
-    let mounted = true;
+        let mounted = true;
 
-    const setup = async () => {
-        const conn = await getSignalRConnection();
-        conn.invoke("JoinRequestsAll").catch(console.error);
-        conn.on("request.noteChanged", () => {
-            console.log("SignalR event -> refetch orders");
-            if (mounted) fetchAllOrders();
-        });
-    };
+        const setup = async () => {
+            const conn = await getSignalRConnection();
+            conn.invoke("JoinRequestsAll").catch(console.error);
+            conn.on("request.noteChanged", () => {
+                console.log("SignalR event -> refetch orders");
+                if (mounted) fetchAllOrders();
+            });
+        };
 
-    setup();
+        setup();
 
-    return () => {
-        mounted = false;
-        getSignalRConnection().then((conn) => conn.off("request.notedchanged"));
-    };
-}, []);
+        return () => {
+            mounted = false;
+            getSignalRConnection().then((conn) => conn.off("request.notedchanged"));
+        };
+    }, []);
 
     // Sorting function
     const sortOrders = useMemo(
@@ -235,9 +235,6 @@ export default function ManagerRequestsProcessingPage() {
             render: (text: string, record: OrderRequest) => (
                 <div>
                     <div className="font-medium text-gray-900">{text}</div>
-                    {record.customer_phone && (
-                        <div className="text-xs text-gray-500">{record.customer_phone}</div>
-                    )}
                 </div>
             ),
         },

@@ -1,5 +1,6 @@
 "use client";
 import { consultantNavItems } from "@/components/sidebar/presets";
+import RoleHeader from "@/components/Header/RoleHeader";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -11,24 +12,26 @@ export default function LayoutManager({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+
+  const userInfo = {
+    name: "Tư vấn viên",
+    role: "Consultant",
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    router.push("/management-login");
+  };
   return (
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
 
       <Sidebar
         className="bg-purple-900 text-white"
-        userInfo={{
-          name: "Tư vấn viên A",
-          role: "Công ty in ấn",
-        }}
         navItems={[...consultantNavItems]}
-        onLogout={() => {
-          // Xử lý logout
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-          router.push("/management-login");
-        }}
+        onLogout={handleLogout}
         onItemClick={(item) => {
           // Xử lý khi click vào item
           console.log("Item clicked:", item.label);
@@ -36,9 +39,17 @@ export default function LayoutManager({
       />
 
       {/* Main content */}
-      <main className="ml-72 min-h-screen ">
-        {/* Content */}
-        <div className="bg-gradient-to-br from-primary-dark to-primary-light ">{children}</div>
+      <div className="ml-72 flex flex-col min-h-screen">
+        <RoleHeader
+          userInfo={userInfo}
+          onLogout={handleLogout}
+        />
+        <main className="flex-1">
+          {/* Content */}
+          <div className=" min-h-full">
+            {children}
+          </div>
+        </main>
 
         {/* Footer main */}
         <footer className=" p-4 border-t border-gray-100">
@@ -62,7 +73,7 @@ export default function LayoutManager({
             </div>
           </div>
         </footer>
-      </main>
+      </div>
     </div>
   );
 }

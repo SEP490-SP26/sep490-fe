@@ -88,6 +88,7 @@ export default function GuestOrderPage() {
   const { customer, isLoggedIn } = useCustomer();
   const [form] = Form.useForm();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successResponse, setSuccessResponse] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const searchParams = useSearchParams();
 
@@ -407,9 +408,10 @@ export default function GuestOrderPage() {
 
     setIsSubmitting(true);
     try {
-      await requestOrderApi.createRequestOrderByCustomer(formDataToSubmit);
+      const res = await requestOrderApi.createRequestOrderByCustomer(formDataToSubmit);
       //await axios.post("https://localhost:7109/api/Requests",formDataToSubmit);
       message.success("Gửi yêu cầu thành công!");
+      setSuccessResponse(res);
       setIsSuccess(true);
       setIsReviewModalOpen(false);
     } catch (error: any) {
@@ -434,7 +436,17 @@ export default function GuestOrderPage() {
           <Result
             status="success"
             title="Gửi yêu cầu thành công!"
-            subTitle="Cảm ơn bạn đã gửi yêu cầu.Trong vòng 24h tới, nhân viên tư vấn sẽ liên hệ trực tiếp với bạn qua số điện thoại hoặc email đã cung cấp để trao đổi chi tiết về yêu cầu này."
+            subTitle={
+              successResponse?.assigned_consultant_user?.full_name ? (
+                <span>
+                  Tư vấn viên <span className="font-bold">{successResponse.assigned_consultant_user.full_name}</span> sẽ liên hệ với bạn trong 24h tới, xin vui lòng chú ý điện thoại.
+                  <br />
+                  Xin cảm ơn quý khách đã tin tưởng và gửi yêu cầu!
+                </span>
+              ) : (
+                "Cảm ơn bạn đã gửi yêu cầu. Trong vòng 24h tới, nhân viên tư vấn sẽ liên hệ trực tiếp với bạn qua số điện thoại hoặc email đã cung cấp để trao đổi chi tiết về yêu cầu này."
+              )
+            }
             extra={[
               <Button
                 type="primary"
@@ -442,6 +454,7 @@ export default function GuestOrderPage() {
                 key="back"
                 onClick={() => {
                   setIsSuccess(false);
+                  setSuccessResponse(null);
                   form.resetFields();
                   setIsVerified(false);
                   setIsOtpSent(false);

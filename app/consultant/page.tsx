@@ -1495,7 +1495,7 @@ function ConsultantForm() {
   return (
     <>
       <Spin spinning={isPageLoading} fullscreen tip="Đang xử lý dữ liệu..." />
-      <div className="p-4 bg-gradient-to-br from-primary-dark to-primary-light min-h-screen">
+      <div className="p-4  min-h-screen">
         <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="mb-4 flex justify-between items-center bg-white p-3 rounded shadow-sm">

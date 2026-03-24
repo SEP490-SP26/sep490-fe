@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import { IconType } from "react-icons";
 import { BellOutlined } from "@ant-design/icons";
@@ -125,29 +126,30 @@ export default function Sidebar({
     <div
       className={`fixed left-0 top-0 h-full ${width} border-r border-white/10 shadow-sm flex flex-col ${className || "bg-slate-900"}`}
     >
-      {/* Header */}
-      {headerContent || (
-        <div className="p-6 border-b border-white/10 flex justify-between items-center">
-          <div>
-            <h1
-              className="text-white font-heading text-xl font-semibold"
-            >
-              {userInfo?.name}
-            </h1>
-            <p className="text-gray-300 text-sm mt-1">{userInfo?.role}</p>
+      {/* Logo */}
+      <div className="p-6 pb-2">
+        <Link href="/" className="flex items-center gap-3 group transition-all duration-300">
+          <div className="relative w-12 h-12 overflow-hidden rounded-xl bg-white/10 p-2 flex items-center justify-center group-hover:bg-white/20 transition-colors border border-white/5 shadow-inner">
+            <Image
+              src="/assets/images/icon.ico"
+              alt="Logo"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
           </div>
-          <button className="p-2 hover:bg-white/10 rounded-full transition-colors relative text-gray-300">
-            <BellOutlined className="text-xl" />
-          </button>
-        </div>
-      )}
+        </Link>
+      </div>
+
+      {/* Header removed as it is now in RoleHeader */}
+      {headerContent}
 
       {/* Navigation */}
       <nav className="px-4 py-6 flex-1 overflow-y-auto">
         {navItems.map((item) => {
           const isLogout =
             item.isLogout || item.label.toLowerCase().includes("đăng xuất");
-            
+
           if (isLogout) return null;
 
           const Icon = item.icon;
@@ -201,7 +203,7 @@ export default function Sidebar({
           </div>
         );
       })()}
-      
+
       {footerContent}
     </div>
   );

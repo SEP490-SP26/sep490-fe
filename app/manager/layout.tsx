@@ -2,6 +2,7 @@
 import Footer from "@/components/Footer/Footer";
 import { managerNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
+import RoleHeader from "@/components/Header/RoleHeader";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { BiCalendarCheck, BiLogOut, BiPackage } from "react-icons/bi";
@@ -13,6 +14,18 @@ export default function LayoutManager({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+
+  const userInfo = {
+    name: "Quản lý",
+    role: "Manager",
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    router.push("/management-login");
+  };
   const navItems = [
     {
       path: "/manager",
@@ -72,18 +85,8 @@ export default function LayoutManager({
 
       <Sidebar
         className="bg-blue-900 text-white"
-        userInfo={{
-          name: "Quản Lý",
-          role: "Công ty in ấn",
-        }}
         navItems={[...managerNavItems]}
-        onLogout={() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          document.cookie =
-            "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-          router.push("/management-login");
-        }}
+        onLogout={handleLogout}
         onItemClick={(item) => {
           // Xử lý khi click vào item
           console.log("Item clicked:", item.label);
@@ -92,6 +95,10 @@ export default function LayoutManager({
 
       {/* Content wrapper (bù khoảng sidebar fixed) */}
       <div className="ml-72 min-h-screen flex flex-col">
+        <RoleHeader
+          userInfo={userInfo}
+          onLogout={handleLogout}
+        />
         {/* Main content */}
         <main className="flex-1 p-6">
           {children}

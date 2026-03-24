@@ -1,63 +1,49 @@
-import Link from 'next/link';
-import React from 'react'
-import { BiCalendar, BiPackage } from 'react-icons/bi';
-import { FaShoppingCart, FaWarehouse } from 'react-icons/fa';
-import { LuLayoutDashboard } from 'react-icons/lu';
+"use client";
 
-export default function layoutManager({ children }: { children: React.ReactNode }) {
-     const navItems = [
-    {
-      path: "/",
-      label: "Dashboard",
-      icon: LuLayoutDashboard,
-    },
-    { path: "/orders", label: "Đơn hàng", icon: FaShoppingCart },
-    { path: "/purchase", label: "Mua hàng", icon: BiPackage },
-    // {
-    //   path: "/procurement",
-    //   label: "QL và theo dõi NVL",
-    //   icon: Calendar,
-    // },
-    {
-      path: "/production",
-      label: "Sản xuất",
-      icon: BiCalendar,
-    },
-  ];
+import Footer from "@/components/Footer/Footer";
+import RoleHeader from "@/components/Header/RoleHeader";
+import Sidebar from "@/components/sidebar/Sidebar";
+import { productionsManagerNavItems } from "@/components/sidebar/presets";
+import { useRouter } from "next/navigation";
+import React from "react";
+
+export default function InventoryLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+
+  const userInfo = {
+    name: "Quản lý kho",
+    role: "Inventory Manager",
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    router.push("/management-login");
+  };
+
   return (
-     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
-        <div className="p-6">
-          <h1 className="text-blue-600">
-            Quản lý Sản xuất
-          </h1>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar
+        className="bg-indigo-900 text-white"
+        navItems={productionsManagerNavItems}
+        onLogout={handleLogout}
+      />
 
-        <nav className="px-4">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = false; // You can implement active state logic here
-
-            return (
-              <Link href={"/manager" + item.path}
-                key={item.path}
-                className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
-
-      {/* Main content */}
-      <main className="ml-64 p-8">{children}</main>
+      <div className="ml-72 flex min-h-screen flex-col">
+        <RoleHeader
+          userInfo={userInfo}
+          onLogout={handleLogout}
+        />
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+        <Footer />
+      </div>
     </div>
-  )
+  );
 }

@@ -64,7 +64,7 @@ export default function ConsultantOrdersPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   // Fetch ALL orders with single API call
-  const fetchAllOrders = useCallback (async () => {
+  const fetchAllOrders = useCallback(async () => {
     setLoading(true);
     try {
       //const {data: response} = await axios.get("https://localhost:7109/api/Requests/paged?page=1&pageSize=500");
@@ -79,58 +79,57 @@ export default function ConsultantOrdersPage() {
     } finally {
       setLoading(false);
     }
-  },[])
+  }, [])
 
   useEffect(() => {
     fetchAllOrders();
   }, [fetchAllOrders]);
 
   //===signalr======
- useEffect(() => {
-  let conn: Awaited<ReturnType<typeof getSignalRConnection>>;
+  useEffect(() => {
+    let conn: Awaited<ReturnType<typeof getSignalRConnection>>;
 
-  getSignalRConnection().then((c) => {
-    conn = c;
-    conn.invoke("JoinRequestsAll").catch(console.error);
+    getSignalRConnection().then((c) => {
+      conn = c;
+      conn.invoke("JoinRequestsAll").catch(console.error);
 
-    conn.on("request.changed", (evt: {
-      request_id: number;
-      old_status: string | null;
-      new_status: string;
-      action: string;
-    }) => {
-      if (evt.action === "created") {
-        fetchAllOrders();
-        message.info(` Đơn hàng mới #${evt.request_id} vừa được tạo`);
-      }
-      else if(evt.action === "manager_verified")
-      {
-        fetchAllOrders();
-        setAllOrders((prev) =>
-          prev.map((o) =>
-            o.order_request_id === evt.request_id
-              ? { ...o, process_status: evt.new_status }
-              : o
-          )
-        ); 
-      }
-      else{
-        setAllOrders((prev) =>
-          prev.map((o) =>
-            o.order_request_id === evt.request_id
-              ? { ...o, process_status: evt.new_status }
-              : o
-          )
-        );
-      }
+      conn.on("request.changed", (evt: {
+        request_id: number;
+        old_status: string | null;
+        new_status: string;
+        action: string;
+      }) => {
+        if (evt.action === "created") {
+          fetchAllOrders();
+          message.info(` Đơn hàng mới #${evt.request_id} vừa được tạo`);
+        }
+        else if (evt.action === "manager_verified") {
+          fetchAllOrders();
+          setAllOrders((prev) =>
+            prev.map((o) =>
+              o.order_request_id === evt.request_id
+                ? { ...o, process_status: evt.new_status }
+                : o
+            )
+          );
+        }
+        else {
+          setAllOrders((prev) =>
+            prev.map((o) =>
+              o.order_request_id === evt.request_id
+                ? { ...o, process_status: evt.new_status }
+                : o
+            )
+          );
+        }
+      });
     });
-  });
 
-  return () => {
-    conn?.off("request.changed");
-    conn?.invoke("LeaveRequestsAll").catch(() => {});
-  };
-}, [fetchAllOrders]);
+    return () => {
+      conn?.off("request.changed");
+      conn?.invoke("LeaveRequestsAll").catch(() => { });
+    };
+  }, [fetchAllOrders]);
 
   // Cancel mutation
   const cancelMutation = useMutation({
@@ -572,12 +571,6 @@ export default function ConsultantOrdersPage() {
       render: (text: string, record: OrderRequest) => (
         <div>
           <div className="font-medium text-gray-900">{text}</div>
-          {record.customer_phone && (
-            <div className="text-xs text-gray-500">{record.customer_phone}</div>
-          )}
-          {record.customer_email && (
-            <div className="text-xs text-gray-400">{record.customer_email}</div>
-          )}
         </div>
       ),
     },

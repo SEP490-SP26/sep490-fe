@@ -3,6 +3,7 @@
 import Footer from "@/components/Footer/Footer";
 import { staffNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
+import RoleHeader from "@/components/Header/RoleHeader";
 import { useRouter } from "next/navigation";
 import React from "react";
 
@@ -12,6 +13,11 @@ export default function StaffLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+
+  const userInfo = {
+    name: "Nhân viên",
+    role: "Staff",
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -25,16 +31,16 @@ export default function StaffLayout({
       {/* Sidebar */}
       <Sidebar
         className="bg-orange-900 text-white"
-        userInfo={{
-          name: "Nhân viên",
-          role: "Nhân viên sản xuất",
-        }}
         navItems={staffNavItems}
         onLogout={handleLogout}
       />
 
       {/* Content area (né sidebar) */}
       <div className="ml-72 flex min-h-screen flex-col">
+        <RoleHeader
+          userInfo={userInfo}
+          onLogout={handleLogout}
+        />
         {/* Main */}
         <main className="flex-1 p-8">{children}</main>
 

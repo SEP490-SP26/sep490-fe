@@ -460,6 +460,14 @@ export default function RequestDetailPage() {
               <p className="text-sm m-0 text-slate-700 mt-2">
                 Để theo dõi tiến độ chi tiết và xem các cập nhật mới nhất của đơn hàng, vui lòng truy cập mục <Link href="/look-up" className="font-semibold underline text-blue-600 hover:text-blue-800">Tra cứu đơn hàng</Link>.
               </p>
+              {requestDetail.process_status?.toUpperCase() === "PENDING" && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 shadow-sm animate-pulse-subtle">
+                  <ClockCircleFilled className="text-amber-500 mt-0.5" />
+                  <p className="text-sm text-amber-800 m-0">
+                    <span className="font-bold">Lưu ý:</span> Yêu cầu của bạn có hiệu lực trong vòng <span className="font-bold underline">24h</span>. Nếu sau khoảng thời gian này tư vấn viên chưa liên hệ bạn, xin vui lòng tạo yêu cầu mới hoặc liên hệ trực tiếp với công ty qua số điện thoại <a href="tel:0987654321" className="font-bold text-amber-900 hover:underline">0987 654 321</a> để được hỗ trợ nhanh nhất.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
