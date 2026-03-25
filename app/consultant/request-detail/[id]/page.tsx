@@ -175,7 +175,7 @@ export default function ConsultantRequestDetailPage() {
             for (let i = 0; i < tempContractFiles.length; i++) {
                 const file = tempContractFiles[i];
                 const estimateId = selectedUploadEstimateIds[i];
-                await uploadApi.uploadContract({
+                await estimatesApi.uploadConsultantContract({
                     requestId: orderDetail.request_id,
                     estimate_id: estimateId,
                     file: file
@@ -724,20 +724,33 @@ export default function ConsultantRequestDetailPage() {
                                                     </div>
 
                                                     {/* Hợp đồng của báo giá */}
-                                                    {(estimate.contract_file_path || estimate.contract_uploaded_at) && (
+                                                    {(estimate.consultant_contract_path || estimate.customer_signed_contract_path) && (
                                                         <div className="mt-3 pt-3 border-t border-slate-200">
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <FileTextOutlined className="text-blue-500" />
                                                                 <span className="text-sm font-medium text-slate-800">Hợp đồng đính kèm</span>
                                                             </div>
-                                                            {estimate.contract_file_path && (
+                                                            {estimate.customer_signed_contract_path && (
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <span className="text-slate-500 text-xs">Hợp đồng đã ký:</span>
+                                                                    <Button
+                                                                        type="link"
+                                                                        size="small"
+                                                                        className="p-0 h-auto text-xs font-semibold text-green-600"
+                                                                        onClick={() => window.open(estimate.customer_signed_contract_path, "_blank")}
+                                                                    >
+                                                                        Xem bản cứng
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                            {estimate.consultant_contract_path && !estimate.customer_signed_contract_path && (
                                                                 <div className="flex justify-between items-center mb-1">
                                                                     <span className="text-slate-500 text-xs">File hợp đồng:</span>
                                                                     <Button
                                                                         type="link"
                                                                         size="small"
                                                                         className="p-0 h-auto text-xs font-semibold"
-                                                                        onClick={() => window.open(estimate.contract_file_path, "_blank")}
+                                                                        onClick={() => window.open(estimate.consultant_contract_path, "_blank")}
                                                                     >
                                                                         Xem file
                                                                     </Button>

@@ -374,12 +374,19 @@ export default function RequestDetailPage() {
           </Button>,
           <Popconfirm
             key="submit-pop"
-            title="Xác nhận thanh toán"
-            description="Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc báo giá còn lại sẽ bị hủy. Bạn có chắc chắn muốn thanh toán?"
+            title={<span className="font-bold text-slate-800">Xác nhận thanh toán</span>}
+            description={<div className="max-w-[300px] text-slate-600">Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc báo giá còn lại sẽ bị hủy. Bạn có chắc chắn muốn thanh toán?</div>}
             onConfirm={proceedToPayment}
             onCancel={() => setIsConfirmModalVisible(false)}
             okText="Xác nhận"
             cancelText="Hủy"
+            icon={<InfoCircleOutlined style={{ color: '#faad14' }} />}
+            okButtonProps={{
+              className: 'bg-emerald-600 hover:bg-emerald-500 border-none rounded-lg font-medium'
+            }}
+            cancelButtonProps={{
+              className: 'rounded-lg'
+            }}
             disabled={!hasUploadedContract}
           >
             <Button
@@ -451,7 +458,7 @@ export default function RequestDetailPage() {
                         const { file, onSuccess, onError } = options;
                         const hide = message.loading("Đang tải hợp đồng lên...", 0);
                         try {
-                          await uploadApi.uploadContract({
+                          await estimatesApi.uploadCustomerSingleContract({
                             requestId: Number(requestId),
                             estimate_id: selectedQuote?.estimate_id || 0,
                             file: file as File

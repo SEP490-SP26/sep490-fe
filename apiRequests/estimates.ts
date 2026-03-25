@@ -201,7 +201,7 @@ export const estimatesApi = {
 
     emailPreview: (requestId: number) => http.get<OrderRequestWithQuotes>(`/api/Estimates/email-preview/${requestId}`),
 
-    uploadContract: (body: { requestId: number, estimate_id: number, file: File }) => http.post<void>(`/api/Estimates/upload-contract`, body,
+    uploadConsultantContract: (body: { requestId: number, estimate_id: number, file: File }) => http.post<void>(`/api/Estimates/upload-consultant-contract`, body,
         // {
         //     headers: {
         //         "Content-Type": "multipart/form-data",
@@ -209,7 +209,7 @@ export const estimatesApi = {
         // }
     ),
 
-    uploadCoupleContract: (body: { requestId: number, file: File[] }) => http.post<void>(`/api/Estimates/upload-couple-contract`, body,
+    uploadCustomerSingleContract: (body: { requestId: number, estimate_id: number, file: File }) => http.post<void>(`/api/Estimates/upload-customer-single-contract`, body,
         // {
         //     headers: {
         //         "Content-Type": "multipart/form-data",

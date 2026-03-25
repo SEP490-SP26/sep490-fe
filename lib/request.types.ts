@@ -10,8 +10,9 @@ export interface DetailedEstimate {
   final_total_cost: number;
   deposit_amount: number;
   is_active: boolean;
-  contract_file_path: string;
   contract_uploaded_at: string;
+  consultant_contract_path: string;
+  customer_signed_contract_path: string;
 
   // Vật tư & Quy trình
   paper_code: string;
@@ -64,11 +65,11 @@ export interface RequestDetailResponse {
   consultant_note: string;
   quote_expires_at: string;
   verified_at: string;
-  
+
   // Trạng thái & Lý do
   process_status: 'Rejected' | 'Declined' | string;
   reason: string; // VD: "Từ chối deal do quá hạn 24h"
-  
+
   // Thông tin sản phẩm & Quy cách
   product_name: string;
   product_type: string;
@@ -77,6 +78,8 @@ export interface RequestDetailResponse {
   design_file_path: string; // URL Cloudinary
   detail_address: string;
   note: string;
+  consultant_contract_path: string;
+  customer_signed_contract_path: string;
 
   // Thông số kỹ thuật chung
   number_of_plates: number;

@@ -84,6 +84,8 @@ interface OrderDetail {
   final_total_cost?: number;
   deposit_amount?: number;
   preliminary_estimated_price?: number;
+  consultant_contract_path?: string;
+  customer_signed_contract_path?: string;
 }
 
 export default function RequestDetailPage() {
@@ -236,6 +238,8 @@ export default function RequestDetailPage() {
             final_total_cost: orderData.final_total_cost,
             deposit_amount: orderData.deposit_amount,
             preliminary_estimated_price: (orderData as any).preliminary_estimated_price,
+            consultant_contract_path: orderData.consultant_contract_path,
+            customer_signed_contract_path: orderData.customer_signed_contract_path,
           });
         }
       } catch (error) {
@@ -833,34 +837,53 @@ export default function RequestDetailPage() {
                             </div>
                           </div>
 
-                          {(quote.contract_file_path || (requestDetail as any).contract_file) ? (
+                          {(requestDetail.customer_signed_contract_path || requestDetail.consultant_contract_path || quote.contract_file_path) ? (
                             <div className="mt-8 pt-6 border-t border-slate-100">
                               <h3 className="text-sm font-bold uppercase mb-4 text-blue-600 tracking-wide">Hợp đồng</h3>
                               <div className="flex flex-col gap-2">
-                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
-                                      <FileTextOutlined className="text-blue-600" />
-                                    </div>
-                                    <div>
-                                      <div className="font-bold text-slate-800">File Hợp đồng</div>
-                                      <div className="text-xs text-slate-500">
-                                        Sẵn sàng để xem
+                                {requestDetail.customer_signed_contract_path ? (
+                                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-green-200 shadow-md">
+                                        <FileTextOutlined className="text-green-600" />
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-slate-800">Hợp đồng đã ký</div>
+                                        <div className="text-xs text-slate-500">Hợp đồng đã được ký và xác nhận</div>
                                       </div>
                                     </div>
-                                  </div>
-                                  <div className="flex gap-2">
                                     <Button
                                       type="primary"
                                       ghost
                                       icon={<DownloadOutlined />}
-                                      onClick={() => window.open(quote.contract_file_path || (requestDetail as any).contract_file, '_blank')}
+                                      onClick={() => window.open(requestDetail.customer_signed_contract_path, '_blank')}
+                                      className="rounded-lg border-green-600 text-green-600 hover:text-green-700 hover:border-green-700 hover:bg-green-50"
+                                    >
+                                      Xem hợp đồng ký
+                                    </Button>
+                                  </div>
+                                ) : (requestDetail.consultant_contract_path || quote.contract_file_path) ? (
+                                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
+                                        <FileTextOutlined className="text-blue-600" />
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-slate-800">File Hợp đồng</div>
+                                        <div className="text-xs text-slate-500">Sẵn sàng để xem</div>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      type="primary"
+                                      ghost
+                                      icon={<DownloadOutlined />}
+                                      onClick={() => window.open(requestDetail.consultant_contract_path || quote.contract_file_path, '_blank')}
                                       className="rounded-lg"
                                     >
                                       Tải / Xem hợp đồng
                                     </Button>
                                   </div>
-                                </div>
+                                ) : null}
                               </div>
                             </div>
                           ) : null}
