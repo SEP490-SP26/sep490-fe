@@ -30,7 +30,7 @@ const { Title } = Typography;
    Types
 ======================= */
 
-type ProductionStatus = "Finished" | "InProcessing" | "Scheduled";
+type ProductionStatus = "Finished" | "InProcessing" | "Scheduled" | "Payment";
 
 interface ProductionOrder {
   order_id: number;
@@ -61,6 +61,7 @@ const statusConfig: Record<
   Finished: { label: "Sẵn sàng giao", color: "green" },
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
+  Payment: { label: "Chờ thanh toán", color: "purple" },
 };
 
 /* =======================
@@ -102,9 +103,11 @@ const FinishProduction: React.FC = () => {
      Filter FINISHED only
   ======================= */
 
-  const filteredData = useMemo(() => {
+    const filteredData = useMemo(() => {
     return data
-      .filter((o) => o.production_status === "Finished")
+      .filter((o) =>
+        o.production_status === "Finished" || o.production_status === "Payment"
+      )
       .filter((o) =>
         customerKeyword
           ? o.customer_name
@@ -161,22 +164,33 @@ const FinishProduction: React.FC = () => {
     ),
   },
   {
-    title: "Thao tác",
-    key: "action",
-    align: "center",
-    render: (_, record) => (
-      <Button
-        type="primary"
-        onClick={(e) => {
-          e.stopPropagation(); // chặn click row
-          handleTransfer(record.order_id);
-        }}
-      >
-        Bàn giao cho đơn vị vận chuyển
-      </Button>
-    ),
-  },
-];
+      title: "Thao tác",
+      key: "action",
+      align: "center",
+      render: (_, record) => {
+        const isPayment = record.production_status === "Payment";
+        return (
+          <Button
+            type="primary"
+            disabled={!isPayment}
+            title={
+              !isPayment
+                ? "Chờ tư vấn viên liên hệ khách trước khi bàn giao"
+                : undefined
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTransfer(record.order_id);
+            }}
+          >
+            {isPayment
+              ? "Bàn giao cho đơn vị vận chuyển"
+              : "Chờ tư vấn viên liên hệ khách"}
+          </Button>
+        );
+      },
+    },
+  ];
 
   const handleTransfer = async (orderId: number) => {
     try {
@@ -216,7 +230,7 @@ const FinishProduction: React.FC = () => {
       <Title level={4} style={{ marginBottom: 20 }}>
         Đơn sẵn sàng giao
       </Title>
-
+ 
       {/* Filters */}
       <Space
         style={{
@@ -234,13 +248,13 @@ const FinishProduction: React.FC = () => {
           style={{ width: 240 }}
           onChange={(e) => setCustomerKeyword(e.target.value)}
         />
-
+ 
         <DatePicker.RangePicker
           format="DD/MM/YYYY"
           placeholder={["Từ ngày", "Đến ngày"]}
         />
       </Space>
-
+ 
       {/* Table */}
       <Spin spinning={loading}>
         <Table
