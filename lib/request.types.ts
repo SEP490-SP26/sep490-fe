@@ -57,6 +57,7 @@ export interface DetailedEstimate {
 
 export interface RequestDetailResponse {
   request_id: number;
+  order_id: number;
   customer_name: string;
   customer_phone: string;
   email: string;
