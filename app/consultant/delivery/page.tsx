@@ -24,36 +24,32 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 const { Title } = Typography;
 
-const API_URL = "https://amms-juaa.onrender.com/api/Requests/paged";
+const API_URL = "https://amms-juaa.onrender.com/api/Orders/paged";
 
-interface OrderRequest {
-  order_request_id: number;
+interface Order {
+  order_id: string;
+  code: string;
   customer_name: string;
-  customer_phone: string;
-  customer_email: string;
-  delivery_date: string | null;
   product_name: string | null;
-  quantity: number | null;
-  description: string | null;
-  design_file_path: string | null;
-  detail_address: string;
-  number_of_plates: number;
-  coating_type: string | null;
-  process_status: string | null;
-  order_request_date: string | null;
-  final_cost: number | null;
-  deposit_amount: number | null;
+  product_id: string | null;
+  quantity: number;
+  created_at: string;
+  delivery_date: string | null;
+  status: string;
+  can_fulfill: boolean;
+  missing_materials: unknown;
+  layout_confirmed: boolean;
 }
 
 interface ApiResponse {
   page: number;
   pageSize: number;
   hasNext: boolean;
-  data: OrderRequest[];
+  data: Order[];
 }
 
 export default function DeliveryPage() {
-  const [allOrders, setAllOrders] = useState<OrderRequest[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
 
@@ -63,7 +59,8 @@ export default function DeliveryPage() {
       const response = await fetch(`${API_URL}?page=1&pageSize=500`, {
         headers: { accept: "*/*" },
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
       const json: ApiResponse = await response.json();
       if (json?.data && Array.isArray(json.data)) {
         setAllOrders(json.data);
@@ -80,17 +77,20 @@ export default function DeliveryPage() {
     fetchOrders();
   }, [fetchOrders]);
 
-  const deliveryOrders = useMemo(() => {
+  const finishedOrders = useMemo(() => {
     const search = searchText.toLowerCase().trim();
     return allOrders
-      .filter((o) => o.process_status?.toLowerCase() === "delivery")
+      .filter((o) => o.status === "Finished")
       .filter((o) => {
         if (!search) return true;
         if (o.customer_name?.toLowerCase().includes(search)) return true;
         if (o.product_name?.toLowerCase().includes(search)) return true;
-        if (String(o.order_request_id).includes(search)) return true;
-        if (o.delivery_date) {
-          if (dayjs(o.delivery_date).format("DD/MM/YYYY").includes(search))
+        if (o.code?.toLowerCase().includes(search)) return true;
+        if (String(o.order_id).includes(search)) return true;
+        if (o.delivery_date && o.delivery_date !== "") {
+          if (
+            dayjs(o.delivery_date).format("DD/MM/YYYY").includes(search)
+          )
             return true;
         }
         return false;
@@ -98,36 +98,31 @@ export default function DeliveryPage() {
   }, [allOrders, searchText]);
 
   const today = dayjs();
-  const totalQty = deliveryOrders.reduce(
-    (sum, o) => sum + (o.quantity ?? 0),
-    0
-  );
-  const overdueCount = deliveryOrders.filter((o) =>
-    o.delivery_date ? dayjs(o.delivery_date).isBefore(today, "day") : false
+  const totalQty = finishedOrders.reduce((sum, o) => sum + (o.quantity ?? 0), 0);
+  const overdueCount = finishedOrders.filter((o) =>
+    o.delivery_date && o.delivery_date !== ""
+      ? dayjs(o.delivery_date).isBefore(today, "day")
+      : false
   ).length;
-  const uniqueCustomers = new Set(
-    deliveryOrders.map((o) => o.customer_name)
-  ).size;
+  const uniqueCustomers = new Set(finishedOrders.map((o) => o.customer_name))
+    .size;
 
   const columns = [
     {
       title: "Mã Đơn",
-      dataIndex: "order_request_id",
-      key: "order_request_id",
-      width: 100,
-      render: (id: number) => (
-        <span className="font-mono text-gray-400 text-xs">#{id}</span>
+      dataIndex: "code",
+      key: "code",
+      width: 150,
+      render: (code: string) => (
+        <span className="font-mono text-gray-500 text-xs">{code}</span>
       ),
     },
     {
       title: "Khách Hàng",
       dataIndex: "customer_name",
       key: "customer_name",
-      render: (text: string, record: OrderRequest) => (
-        <div>
-          <div className="font-medium text-gray-900">{text}</div>
-          <div className="text-xs text-gray-400">{record.customer_phone}</div>
-        </div>
+      render: (text: string) => (
+        <div className="font-medium text-gray-900">{text}</div>
       ),
     },
     {
@@ -143,9 +138,23 @@ export default function DeliveryPage() {
       dataIndex: "quantity",
       key: "quantity",
       align: "right" as const,
-      render: (val: number | null) =>
+      render: (val: number) =>
         val != null ? (
           <b className="text-blue-600">{val.toLocaleString("vi-VN")} SP</b>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+    },
+    {
+      title: "Ngày Tạo",
+      dataIndex: "created_at",
+      key: "created_at",
+      align: "center" as const,
+      render: (date: string) =>
+        date ? (
+          <span className="text-gray-600 text-sm">
+            {dayjs(date).format("DD/MM/YYYY")}
+          </span>
         ) : (
           <span className="text-gray-400">—</span>
         ),
@@ -156,7 +165,8 @@ export default function DeliveryPage() {
       key: "delivery_date",
       align: "center" as const,
       render: (date: string | null) => {
-        if (!date) return <span className="text-gray-400">—</span>;
+        if (!date || date === "")
+          return <span className="text-gray-400">—</span>;
         const isOverdue = dayjs(date).isBefore(today, "day");
         return (
           <span
@@ -164,32 +174,25 @@ export default function DeliveryPage() {
               isOverdue ? "text-red-500 font-medium" : "text-gray-700"
             }
           >
-            {isOverdue && <WarningOutlined className="mr-1 text-red-400" />}
+            {isOverdue && (
+              <WarningOutlined className="mr-1 text-red-400" />
+            )}
             {dayjs(date).format("DD/MM/YYYY")}
           </span>
         );
       },
     },
     {
-      title: "Địa Chỉ",
-      dataIndex: "detail_address",
-      key: "detail_address",
-      ellipsis: true,
-      render: (text: string) => (
-        <span className="text-gray-500 text-xs">{text || "—"}</span>
-      ),
-    },
-    {
       title: "Trạng Thái",
-      key: "process_status",
+      key: "status",
       align: "center" as const,
-      render: () => <Tag color="processing">Đang giao</Tag>,
+      render: () => <Tag color="success">Hoàn thành</Tag>,
     },
     {
       key: "action",
       align: "center" as const,
-      render: (_: unknown, record: OrderRequest) => (
-        <Link href={`/order/${record.order_request_id}`}>
+      render: (_: unknown, record: Order) => (
+        <Link href={`/consultant/delivery/detail/${record.order_id}`}>
           <Button size="small" icon={<EyeOutlined />}>
             Chi tiết
           </Button>
@@ -200,9 +203,9 @@ export default function DeliveryPage() {
 
   const stats = [
     {
-      label: "Tổng đơn đang giao",
-      value: deliveryOrders.length,
-      color: "text-blue-600",
+      label: "Tổng đơn hoàn thành",
+      value: finishedOrders.length,
+      color: "text-green-600",
     },
     {
       label: "Tổng số lượng",
@@ -215,7 +218,7 @@ export default function DeliveryPage() {
       color: "text-gray-900",
     },
     {
-      label: "Quá hạn giao",
+      label: "Giao quá hạn",
       value: overdueCount,
       color: overdueCount > 0 ? "text-red-500" : "text-gray-900",
     },
@@ -230,7 +233,7 @@ export default function DeliveryPage() {
             Theo Dõi Vận Chuyển
           </Title>
           <p className="text-gray-500 mt-1">
-            Danh sách đơn hàng đang trong trạng thái giao hàng
+            Danh sách đơn hàng đã hoàn thành
           </p>
         </div>
         <div className="w-1/3">
@@ -272,8 +275,8 @@ export default function DeliveryPage() {
         <Spin spinning={loading} indicator={<LoadingOutlined />}>
           <Table
             columns={columns}
-            dataSource={deliveryOrders}
-            rowKey="order_request_id"
+            dataSource={finishedOrders}
+            rowKey="order_id"
             bordered
             size="middle"
             pagination={{
@@ -288,7 +291,7 @@ export default function DeliveryPage() {
                   description={
                     loading
                       ? "Đang tải..."
-                      : 'Không có đơn hàng nào có trạng thái "Delivery"'
+                      : 'Không có đơn hàng nào có trạng thái "Finished"'
                   }
                 />
               ),
