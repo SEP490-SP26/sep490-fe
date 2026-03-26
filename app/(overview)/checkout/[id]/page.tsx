@@ -458,7 +458,7 @@ export default function RequestDetailPage() {
                         const { file, onSuccess, onError } = options;
                         const hide = message.loading("Đang tải hợp đồng lên...", 0);
                         try {
-                          await estimatesApi.uploadCustomerSingleContract({
+                          await estimatesApi.uploadCustomerSignedContract({
                             request_id: Number(requestId),
                             estimate_id: selectedQuote?.estimate_id || 0,
                             file: file as File

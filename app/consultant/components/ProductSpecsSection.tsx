@@ -368,22 +368,16 @@ export default function ProductSpecsSection({
             label="Gia Công"
             className="mb-1"
             normalize={(value) => {
-              if (!Array.isArray(value)) return value;
+              if (!Array.isArray(value)) return ["RALO", "BE", "DUT"];
               let updatedValues = [...value] as string[];
 
-              // Nếu chọn Dán, bắt buộc phải có Bế
-              if (updatedValues.includes("DAN") && !updatedValues.includes("BE")) {
-                updatedValues.push("BE");
-              }
+              // NẾU LUÔN LUÔN BẮT BUỘC RALO VÀ BẾ
+              if (!updatedValues.includes("RALO")) updatedValues.push("RALO");
+              if (!updatedValues.includes("BE")) updatedValues.push("BE");
 
-              // Nếu chọn Bế, bắt buộc phải có Dứt (Dứt ẩn nên tự thêm)
-              if (updatedValues.includes("BE") && !updatedValues.includes("DUT")) {
+              // Bế luôn có nên Dứt cũng luôn có
+              if (!updatedValues.includes("DUT")) {
                 updatedValues.push("DUT");
-              }
-
-              // Nếu không Bế, thì không Dứt, không Dán
-              if (!updatedValues.includes("BE")) {
-                updatedValues = updatedValues.filter((v) => v !== "DAN" && v !== "DUT");
               }
 
               // Sắp xếp đúng theo trình tự gia công chuẩn
@@ -427,7 +421,7 @@ export default function ProductSpecsSection({
                 ) : (
                   <>
                     {processTypes
-                      .filter((pt) => ["IN", "DUT", "CAT"].includes(pt))
+                      .filter((pt) => ["IN", "DUT", "CAT", "RALO", "BE"].includes(pt))
                       .map((pt) => (
                         <Checkbox
                           value={pt}
@@ -436,7 +430,7 @@ export default function ProductSpecsSection({
                         />
                       ))}
                     {processTypes
-                      .filter((pt) => !["IN", "DUT", "DOT", "CAT"].includes(pt))
+                      .filter((pt) => !["IN", "DUT", "DOT", "CAT", "RALO", "BE"].includes(pt))
                       .map((pt) => (
                         <Checkbox
                           value={pt}

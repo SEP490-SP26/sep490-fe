@@ -96,6 +96,13 @@ export default function ConsultantRequestDetailPage() {
     const handleSendQuote = async () => {
         if (!orderDetail) return;
 
+        // Validate contract before sending
+        const hasContract = orderDetail.cost_estimate?.some(e => e.is_active && (e.consultant_contract_path || e.customer_signed_contract_path)) || (orderDetail as any).contract_file;
+        if (!hasContract) {
+            message.warning("Vui lòng tải lên hợp đồng trước khi gửi báo giá cho khách hàng!");
+            return;
+        }
+
         // If not in preview modal, open preview first
         if (!isPreviewModalOpen) {
             setPreviewLoading(true);
@@ -616,7 +623,7 @@ export default function ConsultantRequestDetailPage() {
                                             </svg>
                                             <div>
                                                 <div className="font-medium text-sm">Hợp đồng</div>
-                                                <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div>
+                                                {/* <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div> */}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">

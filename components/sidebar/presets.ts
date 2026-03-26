@@ -35,7 +35,7 @@ export const designerNavItems: NavItem[] = [
 // Preset cho Consultant
 export const consultantNavItems: NavItem[] = [
   {
-    path: "",
+    path: "/",
     label: "Tạo đơn hàng",
     icon: FiShoppingCart,
     basePath: "/consultant",

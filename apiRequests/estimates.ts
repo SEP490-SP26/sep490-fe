@@ -209,11 +209,11 @@ export const estimatesApi = {
         return http.post<void>(`/api/Estimates/upload-consultant-contract`, formData);
     },
 
-    uploadCustomerSingleContract: (body: { request_id: number, estimate_id: number, file: File }) => {
+    uploadCustomerSignedContract: (body: { request_id: number, estimate_id: number, file: File }) => {
         const formData = new FormData();
         formData.append("request_id", body.request_id.toString());
         formData.append("estimate_id", body.estimate_id.toString());
         formData.append("file", body.file);
-        return http.post<void>(`/api/Estimates/upload-customer-single-contract`, formData);
+        return http.post<void>(`/api/Estimates/upload-customer-signed-contract`, formData);
     },
 };

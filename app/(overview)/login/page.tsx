@@ -129,7 +129,7 @@ export default function LoginPage() {
           router.replace("/admin");
           break;
         case 2:
-          router.replace("/consultant");
+          router.replace("/consultant/requests");
           break;
         case 3:
           router.replace("/manager");
@@ -234,7 +234,7 @@ export default function LoginPage() {
           router.replace("/admin");
           break;
         case 2:
-          router.replace("/consultant");
+          router.replace("/consultant/requests");
           break;
         case 3:
           router.replace("/manager");
