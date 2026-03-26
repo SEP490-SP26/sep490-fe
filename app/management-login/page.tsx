@@ -111,6 +111,7 @@ export default function LoginPage() {
             setCookie("token", jwt, {
                 path: "/",
                 sameSite: "lax",
+                maxAge: 120 * 60,
             });
 
             //  Lưu auth context
@@ -214,6 +215,7 @@ export default function LoginPage() {
             setCookie("token", token, {
                 path: "/",
                 sameSite: "lax",
+                maxAge: 120 * 60,
             });
 
             // Lưu auth context

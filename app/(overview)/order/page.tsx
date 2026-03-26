@@ -793,7 +793,12 @@ export default function GuestOrderPage() {
                           <DatePicker
                             value={selectedDate}
                             onChange={handleDateChange}
-                            disabledDate={disabledDate}
+                            disabledDate={(current) => {
+                              if (current && current.isBefore(dayjs().add(7, "day"), "day")) {
+                                return true;
+                              }
+                              return disabledDate(current);
+                            }}
                             format="DD/MM/YYYY"
                             placeholder="Chọn ngày giao hàng"
                             style={{ width: "100%" }}

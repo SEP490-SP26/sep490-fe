@@ -83,8 +83,8 @@ export default function RequestDetailPage() {
 
   const handlePayClick = (quote: QuoteOption) => {
     setSelectedQuote(quote);
-    setHasDownloadedContract(false);
-    setHasUploadedContract(false);
+    setHasDownloadedContract(!!quote.customer_signed_contract_path);
+    setHasUploadedContract(!!quote.customer_signed_contract_path);
     setIsConfirmModalVisible(true);
   };
 
@@ -424,18 +424,18 @@ export default function RequestDetailPage() {
                   <div>
                     <div className="font-bold text-slate-800">File Hợp đồng</div>
                     <div className="text-xs text-slate-500">
-                      {selectedQuote?.contract_file_path || fullRequestDetail?.contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
+                      {selectedQuote?.consultant_contract_path || selectedQuote?.customer_signed_contract_path || fullRequestDetail?.contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
                     </div>
                   </div>
                 </div>
-                {selectedQuote?.contract_file_path || fullRequestDetail?.contract_file ? (
+                {selectedQuote?.consultant_contract_path || selectedQuote?.customer_signed_contract_path || fullRequestDetail?.contract_file ? (
                   <div className="flex gap-2">
                     <Button
                       type={hasDownloadedContract ? "default" : "primary"}
                       ghost={!hasDownloadedContract}
                       icon={<DownloadOutlined />}
                       onClick={() => {
-                        window.open(selectedQuote?.contract_file_path || fullRequestDetail?.contract_file, '_blank');
+                        window.open(selectedQuote?.customer_signed_contract_path || selectedQuote?.consultant_contract_path || fullRequestDetail?.contract_file, '_blank');
                         setHasDownloadedContract(true);
                       }}
                       className={`rounded-lg ${hasDownloadedContract ? 'border-emerald-500 text-emerald-600' : ''}`}
@@ -459,7 +459,7 @@ export default function RequestDetailPage() {
                         const hide = message.loading("Đang tải hợp đồng lên...", 0);
                         try {
                           await estimatesApi.uploadCustomerSingleContract({
-                            requestId: Number(requestId),
+                            request_id: Number(requestId),
                             estimate_id: selectedQuote?.estimate_id || 0,
                             file: file as File
                           });
