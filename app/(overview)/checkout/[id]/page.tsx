@@ -44,6 +44,7 @@ export default function RequestDetailPage() {
   const [fullRequestDetail, setFullRequestDetail] = useState<any>(null);
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [hasUploadedContract, setHasUploadedContract] = useState(false);
+  const [isPopconfirmOpen, setIsPopconfirmOpen] = useState(false);
 
   useEffect(() => {
     const fetchFullDetail = async () => {
@@ -92,6 +93,7 @@ export default function RequestDetailPage() {
     if (!selectedQuote) return;
 
     setIsConfirmModalVisible(false);
+    setIsPopconfirmOpen(false);
     setIsPaymentModalVisible(true);
     setLoadingQR(true);
     setPaymentInfo(null);
@@ -107,6 +109,7 @@ export default function RequestDetailPage() {
       setIsPaymentModalVisible(false);
     } finally {
       setLoadingQR(false);
+      setIsPopconfirmOpen(false);
     }
   };
 
@@ -377,7 +380,15 @@ export default function RequestDetailPage() {
             title={<span className="font-bold text-slate-800">Xác nhận thanh toán</span>}
             description={<div className="max-w-[300px] text-slate-600">Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc báo giá còn lại sẽ bị hủy. Bạn có chắc chắn muốn thanh toán?</div>}
             onConfirm={proceedToPayment}
-            onCancel={() => setIsConfirmModalVisible(false)}
+            onCancel={() => {
+              setIsPopconfirmOpen(false);
+            }}
+            open={isPopconfirmOpen}
+            onOpenChange={(open) => {
+              if (hasUploadedContract) {
+                setIsPopconfirmOpen(open);
+              }
+            }}
             okText="Xác nhận"
             cancelText="Hủy"
             icon={<InfoCircleOutlined style={{ color: '#faad14' }} />}
@@ -584,6 +595,14 @@ export default function RequestDetailPage() {
           )
         )}
       </Modal>
+
+      {/* Popconfirm Backdrop Overlay */}
+      {isPopconfirmOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[1010] transition-opacity duration-300"
+          onClick={() => setIsPopconfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

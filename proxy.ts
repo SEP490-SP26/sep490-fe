@@ -24,7 +24,8 @@ const MANAGEMENT_ROUTES = [
   '/warehouse',
   '/productions-manager',
   '/materials-manager',
-  '/inventory'
+  '/inventory',
+  '/designer'
 ]
 
 const ROLE_DASHBOARDS: Record<number, string> = {
@@ -33,7 +34,9 @@ const ROLE_DASHBOARDS: Record<number, string> = {
   3: '/manager',
   4: '/warehouse',
   5: '/staff',
-  6: '/productions-manager'
+  6: '/productions-manager',
+  16: '/designer',
+  17: '/materials-manager'
 }
 
 

@@ -27,6 +27,29 @@ import { useEffect, useState } from "react";
 
 const { Text } = Typography;
 
+// Helper function to mask customer name
+const maskName = (name: string) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 1) {
+    if (name.length <= 2) return name;
+    return name.substring(0, 2) + "***";
+  }
+  // Keep first and last name, mask the middle
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1];
+  return `${firstName} *** ${lastName}`;
+};
+
+// Helper function to mask phone number
+const maskPhone = (phone: string) => {
+  if (!phone) return "";
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length < 6) return phone;
+  // Keep first 3 and last 3 digits
+  return cleaned.substring(0, 3) + "***" + cleaned.substring(cleaned.length - 3);
+};
+
 export default function DesignerRequestDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -148,8 +171,8 @@ export default function DesignerRequestDetailPage() {
               <UserOutlined /> Thông tin khách hàng
             </h3>
             <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
-              <Descriptions.Item label="Họ tên"><Text strong>{orderDetail.customer_name}</Text></Descriptions.Item>
-              <Descriptions.Item label="Điện thoại"><Text strong>{orderDetail.customer_phone}</Text></Descriptions.Item>
+              <Descriptions.Item label="Họ tên"><Text strong>{maskName(orderDetail.customer_name)}</Text></Descriptions.Item>
+              <Descriptions.Item label="Điện thoại"><Text strong>{maskPhone(orderDetail.customer_phone)}</Text></Descriptions.Item>
               <Descriptions.Item label="Email"><Text strong>{orderDetail.email}</Text></Descriptions.Item>
             </Descriptions>
           </div>
