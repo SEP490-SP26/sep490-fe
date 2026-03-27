@@ -1,13 +1,17 @@
 "use client";
 
 import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
   EyeOutlined,
   LoadingOutlined,
   ReloadOutlined,
   SearchOutlined,
+  TruckOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import {
+  Badge,
   Button,
   Card,
   Empty,
@@ -15,6 +19,7 @@ import {
   message,
   Spin,
   Table,
+  Tabs,
   Tag,
   Typography,
 } from "antd";
@@ -48,10 +53,68 @@ interface ApiResponse {
   data: Order[];
 }
 
+// Map each tab to the corresponding API status value(s)
+const TAB_STATUS_MAP: Record<string, string[]> = {
+  finished: ["Finished"],
+  pending_payment: ["PendingPayment", "Pending Payment", "WaitingPayment"],
+  delivery: ["Shipping", "InShipping", "InDelivery", "Delivering"],
+  completed: ["Delivered", "Received", "Done", "Completed"],
+};
+
+type TabKey = keyof typeof TAB_STATUS_MAP;
+
+const TAB_CONFIG: {
+  key: TabKey;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  tagColor: string;
+  tagLabel: string;
+  emptyText: string;
+}[] = [
+  {
+    key: "finished",
+    label: "Đã sản xuất xong",
+    icon: <CheckCircleOutlined />,
+    color: "text-green-600",
+    tagColor: "success",
+    tagLabel: "Hoàn thành SX",
+    emptyText: 'Không có đơn nào ở trạng thái "Đã sản xuất xong"',
+  },
+  {
+    key: "pending_payment",
+    label: "Chờ thanh toán",
+    icon: <ClockCircleOutlined />,
+    color: "text-yellow-600",
+    tagColor: "warning",
+    tagLabel: "Chờ thanh toán",
+    emptyText: 'Không có đơn nào ở trạng thái "Chờ thanh toán"',
+  },
+  {
+    key: "delivery",
+    label: "Đang vận chuyển",
+    icon: <TruckOutlined />,
+    color: "text-blue-600",
+    tagColor: "processing",
+    tagLabel: "Đang vận chuyển",
+    emptyText: 'Không có đơn nào ở trạng thái "Đang vận chuyển"',
+  },
+  {
+    key: "completed",
+    label: "Đã nhận hàng",
+    icon: <CheckCircleOutlined />,
+    color: "text-purple-600",
+    tagColor: "purple",
+    tagLabel: "Đã nhận hàng",
+    emptyText: 'Không có đơn nào ở trạng thái "Đã nhận hàng"',
+  },
+];
+
 export default function DeliveryPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [activeTab, setActiveTab] = useState<TabKey>("finished");
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -77,37 +140,56 @@ export default function DeliveryPage() {
     fetchOrders();
   }, [fetchOrders]);
 
-  const finishedOrders = useMemo(() => {
-    const search = searchText.toLowerCase().trim();
-    return allOrders
-      .filter((o) => o.status === "Finished")
-      .filter((o) => {
-        if (!search) return true;
-        if (o.customer_name?.toLowerCase().includes(search)) return true;
-        if (o.product_name?.toLowerCase().includes(search)) return true;
-        if (o.code?.toLowerCase().includes(search)) return true;
-        if (String(o.order_id).includes(search)) return true;
-        if (o.delivery_date && o.delivery_date !== "") {
-          if (
-            dayjs(o.delivery_date).format("DD/MM/YYYY").includes(search)
-          )
-            return true;
-        }
-        return false;
-      });
-  }, [allOrders, searchText]);
-
   const today = dayjs();
-  const totalQty = finishedOrders.reduce((sum, o) => sum + (o.quantity ?? 0), 0);
-  const overdueCount = finishedOrders.filter((o) =>
+
+  // Filter orders by tab status + search text
+  const getOrdersForTab = useCallback(
+    (tabKey: TabKey) => {
+      const statuses = TAB_STATUS_MAP[tabKey].map((s) => s.toLowerCase());
+      const search = searchText.toLowerCase().trim();
+
+      return allOrders
+        .filter((o) => statuses.includes(o.status?.toLowerCase() ?? ""))
+        .filter((o) => {
+          if (!search) return true;
+          if (o.customer_name?.toLowerCase().includes(search)) return true;
+          if (o.product_name?.toLowerCase().includes(search)) return true;
+          if (o.code?.toLowerCase().includes(search)) return true;
+          if (String(o.order_id).includes(search)) return true;
+          if (o.delivery_date && o.delivery_date !== "") {
+            if (
+              dayjs(o.delivery_date).format("DD/MM/YYYY").includes(search)
+            )
+              return true;
+          }
+          return false;
+        });
+    },
+    [allOrders, searchText]
+  );
+
+  const currentOrders = useMemo(
+    () => getOrdersForTab(activeTab),
+    [getOrdersForTab, activeTab]
+  );
+
+  // Stats for current tab
+  const totalQty = currentOrders.reduce(
+    (sum, o) => sum + (o.quantity ?? 0),
+    0
+  );
+  const overdueCount = currentOrders.filter((o) =>
     o.delivery_date && o.delivery_date !== ""
       ? dayjs(o.delivery_date).isBefore(today, "day")
       : false
   ).length;
-  const uniqueCustomers = new Set(finishedOrders.map((o) => o.customer_name))
-    .size;
+  const uniqueCustomers = new Set(
+    currentOrders.map((o) => o.customer_name)
+  ).size;
 
-  const columns = [
+  const tabConfig = TAB_CONFIG.find((t) => t.key === activeTab)!;
+
+  const getColumns = (cfg: (typeof TAB_CONFIG)[number]) => [
     {
       title: "Mã Đơn",
       dataIndex: "code",
@@ -174,9 +256,7 @@ export default function DeliveryPage() {
               isOverdue ? "text-red-500 font-medium" : "text-gray-700"
             }
           >
-            {isOverdue && (
-              <WarningOutlined className="mr-1 text-red-400" />
-            )}
+            {isOverdue && <WarningOutlined className="mr-1 text-red-400" />}
             {dayjs(date).format("DD/MM/YYYY")}
           </span>
         );
@@ -186,7 +266,9 @@ export default function DeliveryPage() {
       title: "Trạng Thái",
       key: "status",
       align: "center" as const,
-      render: () => <Tag color="success">Hoàn thành</Tag>,
+      render: () => (
+        <Tag color={cfg.tagColor as string}>{cfg.tagLabel}</Tag>
+      ),
     },
     {
       key: "action",
@@ -203,9 +285,9 @@ export default function DeliveryPage() {
 
   const stats = [
     {
-      label: "Tổng đơn hoàn thành",
-      value: finishedOrders.length,
-      color: "text-green-600",
+      label: "Tổng đơn",
+      value: currentOrders.length,
+      color: tabConfig.color,
     },
     {
       label: "Tổng số lượng",
@@ -224,6 +306,26 @@ export default function DeliveryPage() {
     },
   ];
 
+  const tabItems = TAB_CONFIG.map((cfg) => {
+    const count = getOrdersForTab(cfg.key).length;
+    return {
+      key: cfg.key,
+      label: (
+        <span className="flex items-center gap-2">
+          {cfg.icon}
+          {cfg.label}
+          {count > 0 && (
+            <Badge
+              count={count}
+              size="small"
+              style={{ backgroundColor: "#6b7280" }}
+            />
+          )}
+        </span>
+      ),
+    };
+  });
+
   return (
     <div className="p-6 min-h-screen bg-gray-50">
       {/* Header */}
@@ -232,9 +334,7 @@ export default function DeliveryPage() {
           <Title level={2} style={{ margin: 0 }}>
             Theo Dõi Vận Chuyển
           </Title>
-          <p className="text-gray-500 mt-1">
-            Danh sách đơn hàng đã hoàn thành
-          </p>
+          <p className="text-gray-500 mt-1">Quản lý đơn hàng theo trạng thái</p>
         </div>
         <div className="w-1/3">
           <Input
@@ -255,6 +355,19 @@ export default function DeliveryPage() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <Card className="shadow-sm border-none mb-4">
+        <Tabs
+          activeKey={activeTab}
+          onChange={(key) => {
+            setActiveTab(key as TabKey);
+            setSearchText("");
+          }}
+          items={tabItems}
+          size="large"
+        />
+      </Card>
+
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {stats.map((stat) => (
@@ -274,8 +387,8 @@ export default function DeliveryPage() {
       <Card className="shadow-sm border-none">
         <Spin spinning={loading} indicator={<LoadingOutlined />}>
           <Table
-            columns={columns}
-            dataSource={finishedOrders}
+            columns={getColumns(tabConfig)}
+            dataSource={currentOrders}
             rowKey="order_id"
             bordered
             size="middle"
@@ -289,9 +402,7 @@ export default function DeliveryPage() {
               emptyText: (
                 <Empty
                   description={
-                    loading
-                      ? "Đang tải..."
-                      : 'Không có đơn hàng nào có trạng thái "Finished"'
+                    loading ? "Đang tải..." : tabConfig.emptyText
                   }
                 />
               ),

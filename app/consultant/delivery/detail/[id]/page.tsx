@@ -277,27 +277,6 @@ export default function OrderDetailPage() {
           <Divider type="vertical" />
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm text-gray-400">{order.code}</span>
-            <StatusBadge value={order.status} map={statusMap} />
-            <StatusBadge value={order.payment_status} map={paymentMap} />
-            {order.layout_confirmed && (
-              <Tooltip title="Layout đã xác nhận">
-                <span
-                  style={{
-                    background: "#dcfce7",
-                    color: "#16a34a",
-                    padding: "3px 10px",
-                    borderRadius: 20,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <CheckCircleOutlined /> Layout OK
-                </span>
-              </Tooltip>
-            )}
           </div>
         </div>
         <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
@@ -312,9 +291,6 @@ export default function OrderDetailPage() {
         </h1>
         <p className="text-gray-400 text-sm mt-0.5">
           Tạo lúc {fmtDate(order.order_date)}
-          {order.approver_name && (
-            <> &nbsp;·&nbsp; Duyệt bởi <strong>{order.approver_name}</strong></>
-          )}
         </p>
       </div>
 
@@ -487,11 +463,6 @@ export default function OrderDetailPage() {
                   >
                     Xem file gốc
                   </a>
-                  {order.layout_confirmed && (
-                    <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
-                      <CheckCircleOutlined /> Layout đã được xác nhận
-                    </span>
-                  )}
                 </div>
               </div>
             </Section>
