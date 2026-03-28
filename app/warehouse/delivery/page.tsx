@@ -11,15 +11,15 @@ import {
   Spin,
   Typography,
   Button,
-  message
+  message,
+  Tabs,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
-import { productionsApi } from "@/apiRequests/productions";
-import { useRouter } from "next/navigation";
 
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { productionsApi } from "@/apiRequests/productions";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -30,24 +30,34 @@ const { Title } = Typography;
    Types
 ======================= */
 
-type ProductionStatus = "Finished" | "InProcessing" | "Scheduled" | "Payment";
+type ProductionStatus =
+  | "Finished"
+  | "InProcessing"
+  | "Scheduled"
+  | "PendingPaid"
+  | "Paid"
+  | "LayoutPending";
 
-interface ProductionOrder {
-  order_id: number;
+interface OrderItem {
+  order_id: string;
   code: string;
   customer_name: string;
-  product_name: string;
+  product_name: string | null;
+  product_id: string | null;
   quantity: number;
+  created_at: string;
   delivery_date: string;
-  current_stage: string | null;
-  production_status: ProductionStatus;
+  status: ProductionStatus;
+  can_fulfill: boolean;
+  missing_materials: unknown;
+  layout_confirmed: boolean;
 }
 
-interface ProductionResponse {
+interface PagedOrderResponse {
   page: number;
   pageSize: number;
   hasNext: boolean;
-  data: ProductionOrder[];
+  data: OrderItem[];
 }
 
 /* =======================
@@ -55,24 +65,35 @@ interface ProductionResponse {
 ======================= */
 
 const statusConfig: Record<
-  ProductionStatus,
+  string,
   { label: string; color: string }
 > = {
   Finished: { label: "Sẵn sàng giao", color: "green" },
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
-  Payment: { label: "Chờ thanh toán", color: "purple" },
+  PendingPaid: { label: "Chờ thanh toán", color: "purple" },
+  Paid: { label: "Đã thanh toán", color: "cyan" },
+  LayoutPending: { label: "Chờ duyệt layout", color: "gold" },
 };
+
+const DISPLAY_STATUSES: ProductionStatus[] = ["Finished", "PendingPaid", "Paid"];
+
+const TAB_ITEMS = [
+  { key: "all", label: "Tất cả" },
+  { key: "Finished", label: "Sẵn sàng giao" },
+  { key: "PendingPaid", label: "Chờ thanh toán" },
+  { key: "Paid", label: "Đã thanh toán" },
+];
 
 /* =======================
    Component
 ======================= */
 
 const FinishProduction: React.FC = () => {
-  const router = useRouter();
 
-  const [data, setData] = useState<ProductionOrder[]>([]);
+  const [data, setData] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
 
   const [customerKeyword, setCustomerKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] =
@@ -82,31 +103,39 @@ const FinishProduction: React.FC = () => {
      Fetch API
   ======================= */
 
-      const fetchProductions = async () => {
-      try {
-        setLoading(true);
-        const res: ProductionResponse =
-          await productionsApi.getAllProduction();
-        setData(res.data || []);
-      } catch (err) {
-        console.error("Fetch production error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        "https://amms-juaa.onrender.com/api/Orders/paged?page=1&pageSize=500"
+      );
+      if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+      const json: PagedOrderResponse = await res.json();
+      // Keep only orders with the statuses we care about
+      const filtered = (json.data || []).filter((o) =>
+        DISPLAY_STATUSES.includes(o.status)
+      );
+      setData(filtered);
+    } catch (err) {
+      console.error("Fetch orders error:", err);
+      message.error("Không thể tải danh sách đơn hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchProductions();
+    fetchOrders();
   }, []);
 
   /* =======================
-     Filter FINISHED only
+     Filter data
   ======================= */
 
-    const filteredData = useMemo(() => {
+  const filteredData = useMemo(() => {
     return data
       .filter((o) =>
-        o.production_status === "Finished" || o.production_status === "Payment"
+        activeTab === "all" ? true : o.status === activeTab
       )
       .filter((o) =>
         customerKeyword
@@ -117,97 +146,129 @@ const FinishProduction: React.FC = () => {
       )
       .filter((o) => {
         if (!deliveryRange?.[0] || !deliveryRange?.[1]) return true;
+        if (!o.delivery_date) return false;
         const d = dayjs(o.delivery_date);
         return (
           d.isSameOrAfter(deliveryRange[0], "day") &&
           d.isSameOrBefore(deliveryRange[1], "day")
         );
       });
-  }, [data, customerKeyword, deliveryRange]);
+  }, [data, activeTab, customerKeyword, deliveryRange]);
+
+  /* =======================
+     Tab counts
+  ======================= */
+
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: data.length };
+    for (const s of DISPLAY_STATUSES) {
+      counts[s] = data.filter((o) => o.status === s).length;
+    }
+    return counts;
+  }, [data]);
+
+  /* =======================
+     Transfer handler
+  ======================= */
+
+  const handleTransfer = async (orderId: string) => {
+    try {
+      // Replace with actual shipping transfer API call
+      await productionsApi.transferToShipping(Number(orderId));
+      setData((prev) =>
+        prev.filter((item) => item.order_id !== orderId)
+      );
+      message.success("Đã bàn giao cho đơn vị vận chuyển");
+    } catch (err) {
+      console.error(err);
+      message.error("Bàn giao thất bại");
+    }
+  };
 
   /* =======================
      Columns
   ======================= */
 
-  const columns: ColumnsType<ProductionOrder> = [
-  {
-    title: "Mã đơn",
-    dataIndex: "code",
-    width: 120,
-    render: (v) => <strong>{v}</strong>,
-  },
-  {
-    title: "Khách hàng",
-    dataIndex: "customer_name",
-  },
-  {
-    title: "Sản phẩm",
-    dataIndex: "product_name",
-  },
-  {
-    title: "Số lượng",
-    dataIndex: "quantity",
-    align: "right",
-  },
-  {
-    title: "Ngày hoàn thành",
-    dataIndex: "delivery_date",
-    render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
-  },
-  {
-    title: "Trạng thái",
-    dataIndex: "production_status",
-    render: (status: ProductionStatus) => (
-      <Tag color={statusConfig[status].color}>
-        {statusConfig[status].label}
-      </Tag>
-    ),
-  },
-  {
+  const columns: ColumnsType<OrderItem> = [
+    {
+      title: "Mã đơn",
+      dataIndex: "code",
+      width: 140,
+      render: (v) => <strong>{v}</strong>,
+    },
+    {
+      title: "Khách hàng",
+      dataIndex: "customer_name",
+    },
+    {
+      title: "Sản phẩm",
+      dataIndex: "product_name",
+      render: (v) => v ?? <span style={{ color: "#aaa" }}>—</span>,
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "quantity",
+      align: "right",
+    },
+    {
+      title: "Ngày hoàn thành",
+      dataIndex: "delivery_date",
+      render: (v: string) =>
+        v ? dayjs(v).format("DD/MM/YYYY") : <span style={{ color: "#aaa" }}>—</span>,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      render: (status: string) => {
+        const cfg = statusConfig[status];
+        return cfg ? (
+          <Tag color={cfg.color}>{cfg.label}</Tag>
+        ) : (
+          <Tag>{status}</Tag>
+        );
+      },
+    },
+    {
       title: "Thao tác",
       key: "action",
       align: "center",
       render: (_, record) => {
-        const isPayment = record.production_status === "Payment";
+        const status = record.status;
+
+        let text = "";
+        let disabled = true;
+
+        if (status === "Finished") {
+          text = "Chờ tư vấn viên liên hệ với khách hàng";
+          disabled = true;
+        } else if (status === "PendingPaid") {
+          text = "Chờ khách hàng thanh toán để vận chuyển";
+          disabled = true;
+        } else if (status === "Paid") {
+          text = "Bàn giao cho đơn vị vận chuyển";
+          disabled = false;
+        } else {
+          text = "Không khả dụng";
+          disabled = true;
+        }
+
         return (
           <Button
             type="primary"
-            disabled={!isPayment}
-            title={
-              !isPayment
-                ? "Chờ tư vấn viên liên hệ khách trước khi bàn giao"
-                : undefined
-            }
+            disabled={disabled}
             onClick={(e) => {
               e.stopPropagation();
-              handleTransfer(record.order_id);
+              if (!disabled) {
+                handleTransfer(record.order_id);
+              }
             }}
           >
-            {isPayment
-              ? "Bàn giao cho đơn vị vận chuyển"
-              : "Chờ tư vấn viên liên hệ khách"}
+            {text}
           </Button>
         );
       },
     },
   ];
-
-  const handleTransfer = async (orderId: number) => {
-    try {
-    // gọi API bàn giao
-      await productionsApi.transferToShipping(orderId);
-      setData((prev) =>
-      prev.map((item) =>
-        item.order_id === orderId
-          ? { ...item, production_status: "Scheduled" }
-          : item
-      ));
-      message.success("Đã bàn giao cho đơn vị vận chuyển");
-    }catch (err) {
-      console.error(err);
-      message.error("Bàn giao thất bại");
-    }
-  };
 
   /* =======================
      Render
@@ -227,10 +288,31 @@ const FinishProduction: React.FC = () => {
       }}
     >
       {/* Header */}
-      <Title level={4} style={{ marginBottom: 20 }}>
+      <Title level={4} style={{ marginBottom: 16 }}>
         Đơn sẵn sàng giao
       </Title>
- 
+
+      {/* Tabs by status */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        style={{ marginBottom: 16 }}
+        items={TAB_ITEMS.map((tab) => ({
+          key: tab.key,
+          label: (
+            <span>
+              {tab.label}
+              <Tag
+                style={{ marginLeft: 6, fontSize: 11 }}
+                color={tab.key === "all" ? "default" : statusConfig[tab.key]?.color}
+              >
+                {tabCounts[tab.key] ?? 0}
+              </Tag>
+            </span>
+          ),
+        }))}
+      />
+
       {/* Filters */}
       <Space
         style={{
@@ -248,25 +330,23 @@ const FinishProduction: React.FC = () => {
           style={{ width: 240 }}
           onChange={(e) => setCustomerKeyword(e.target.value)}
         />
- 
+
         <DatePicker.RangePicker
           format="DD/MM/YYYY"
           placeholder={["Từ ngày", "Đến ngày"]}
+          onChange={(dates) => setDeliveryRange(dates as any)}
         />
       </Space>
- 
+
       {/* Table */}
       <Spin spinning={loading}>
         <Table
           rowKey="order_id"
           columns={columns}
           dataSource={filteredData}
-          pagination={{ pageSize: 5 }}
+          pagination={{ pageSize: 10 }}
           bordered
-          onRow={(record) => ({
-            onClick: () => {
-              router.push(`/warehouse/production/${record.order_id}`);
-            },
+          onRow={() => ({          
             style: {
               cursor: "pointer",
             },

@@ -19,6 +19,8 @@ import { Button, Divider, Image, Spin, Tag, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
+import { Modal } from "antd";
 
 const API_BASE = "https://amms-juaa.onrender.com/api/Orders/detail";
 
@@ -202,6 +204,7 @@ function CostRow({
 }
 
 export default function OrderDetailPage() {
+  const [openViewer, setOpenViewer] = useState(false);
   const params = useParams();
   const router = useRouter();
   const orderId = params?.id as string;
@@ -257,7 +260,9 @@ export default function OrderDetailPage() {
     order.final_total_cost > 0
       ? Math.round((order.deposit_amount / order.final_total_cost) * 100)
       : 0;
-
+const docs = order?.contract_file
+  ? [{ uri: order.contract_file }]
+  : [];
   return (
     <div className="min-h-screen bg-[#f5f7fa] pb-12">
       {/* Top header bar */}
@@ -529,35 +534,7 @@ export default function OrderDetailPage() {
             </div>
           </Section>
 
-          {/* Quote fields summary */}
-          {order.quote_fields && (
-            <Section
-              title="Thông Tin Báo Giá"
-              icon={<BankOutlined />}
-              accent="#0891b2"
-            >
-              <InfoRow
-                icon={<CalendarOutlined />}
-                label="Ngày yêu cầu"
-                value={order.quote_fields.request_date}
-              />
-              <InfoRow
-                icon={<FileTextOutlined />}
-                label="Loại giấy"
-                value={order.quote_fields.paper_name}
-              />
-              <InfoRow
-                icon={<FileTextOutlined />}
-                label="Tráng phủ"
-                value={order.quote_fields.coating_type}
-              />
-              <InfoRow
-                icon={<PrinterOutlined />}
-                label="Quy trình"
-                value={order.quote_fields.production_process}
-              />
-            </Section>
-          )}
+          
 
           {/* Contract */}
           {order.contract_file && (
@@ -566,14 +543,13 @@ export default function OrderDetailPage() {
               icon={<FileTextOutlined />}
               accent="#6366f1"
             >
-              <a
-                href={order.contract_file}
-                target="_blank"
-                rel="noreferrer"
-                className="text-indigo-500 text-sm underline"
+              <Button
+                type="link"
+                className="text-indigo-500 text-sm"
+                onClick={() => setOpenViewer(true)}
               >
                 Xem hợp đồng
-              </a>
+              </Button>
             </Section>
           )}
 
@@ -626,6 +602,21 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+      <Modal
+        open={openViewer}
+        onCancel={() => setOpenViewer(false)}
+        footer={null}
+        width="90%"
+        style={{ top: 20 }}
+      >
+        <div style={{ height: "80vh" }}>
+          <DocViewer
+            documents={docs}
+            pluginRenderers={DocViewerRenderers}
+            style={{ height: "100%" }}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
