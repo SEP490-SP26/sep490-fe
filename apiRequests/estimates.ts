@@ -105,8 +105,8 @@ export interface QuoteOption {
     quote_id: number;
     estimate_id: number;
     order_request_id: number;
-    contract_file_path: string;
-    contract_uploaded_at: string;
+    customer_signed_contract_path: string;
+    consultant_contract_path: string;
 
     // Thông tin khách hàng & Địa chỉ
     customer_name: string;
@@ -201,19 +201,19 @@ export const estimatesApi = {
 
     emailPreview: (requestId: number) => http.get<OrderRequestWithQuotes>(`/api/Estimates/email-preview/${requestId}`),
 
-    uploadConsultantContract: (body: { requestId: number, estimate_id: number, file: File }) => http.post<void>(`/api/Estimates/upload-consultant-contract`, body,
-        // {
-        //     headers: {
-        //         "Content-Type": "multipart/form-data",
-        //     },
-        // }
-    ),
+    uploadConsultantContract: (body: { request_id: number, estimate_id: number, file: File }) => {
+        const formData = new FormData();
+        formData.append("request_id", body.request_id.toString());
+        formData.append("estimate_id", body.estimate_id.toString());
+        formData.append("file", body.file);
+        return http.post<void>(`/api/Estimates/upload-consultant-contract`, formData);
+    },
 
-    uploadCustomerSingleContract: (body: { requestId: number, estimate_id: number, file: File }) => http.post<void>(`/api/Estimates/upload-customer-single-contract`, body,
-        // {
-        //     headers: {
-        //         "Content-Type": "multipart/form-data",
-        //     },
-        // }
-    ),
+    uploadCustomerSignedContract: (body: { request_id: number, estimate_id: number, file: File }) => {
+        const formData = new FormData();
+        formData.append("request_id", body.request_id.toString());
+        formData.append("estimate_id", body.estimate_id.toString());
+        formData.append("file", body.file);
+        return http.post<void>(`/api/Estimates/upload-customer-signed-contract`, formData);
+    },
 };

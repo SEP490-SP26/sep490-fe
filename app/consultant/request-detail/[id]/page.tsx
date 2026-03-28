@@ -96,6 +96,13 @@ export default function ConsultantRequestDetailPage() {
     const handleSendQuote = async () => {
         if (!orderDetail) return;
 
+        // Validate contract before sending
+        const hasContract = orderDetail.cost_estimate?.some(e => e.is_active && (e.consultant_contract_path || e.customer_signed_contract_path)) || (orderDetail as any).contract_file;
+        if (!hasContract) {
+            message.warning("Vui lòng tải lên hợp đồng trước khi gửi báo giá cho khách hàng!");
+            return;
+        }
+
         // If not in preview modal, open preview first
         if (!isPreviewModalOpen) {
             setPreviewLoading(true);
@@ -176,7 +183,7 @@ export default function ConsultantRequestDetailPage() {
                 const file = tempContractFiles[i];
                 const estimateId = selectedUploadEstimateIds[i];
                 await estimatesApi.uploadConsultantContract({
-                    requestId: orderDetail.request_id,
+                    request_id: Number(requestId),
                     estimate_id: estimateId,
                     file: file
                 });
@@ -396,16 +403,10 @@ export default function ConsultantRequestDetailPage() {
 
                                 <Upload
                                     multiple
-                                    accept=".pdf"
                                     showUploadList={false}
                                     beforeUpload={(file, fileList) => {
-                                        const isPdf = file.type === 'application/pdf';
-                                        if (!isPdf) {
-                                            message.error(`${file.name} không phải file PDF`);
-                                            return Upload.LIST_IGNORE;
-                                        }
                                         if (fileList.indexOf(file) === 0) {
-                                            const pendingFiles = fileList.filter(f => f.type === 'application/pdf') as File[];
+                                            const pendingFiles = fileList as File[];
                                             setTempContractFiles(prev => {
                                                 const newFiles = [...prev, ...pendingFiles];
 
@@ -622,7 +623,7 @@ export default function ConsultantRequestDetailPage() {
                                             </svg>
                                             <div>
                                                 <div className="font-medium text-sm">Hợp đồng</div>
-                                                <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div>
+                                                {/* <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div> */}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -1068,7 +1069,7 @@ export default function ConsultantRequestDetailPage() {
                                                         </div>
                                                     </div>
 
-                                                    {quote.contract_file_path && (
+                                                    {(quote.consultant_contract_path || quote.customer_signed_contract_path) && (
                                                         <div className="mt-4">
                                                             <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-indigo-500 text-indigo-600 tracking-wide">
                                                                 Hợp đồng
@@ -1079,7 +1080,7 @@ export default function ConsultantRequestDetailPage() {
                                                                     type="link"
                                                                     size="small"
                                                                     className="p-0 h-auto text-[11px] font-semibold text-indigo-600"
-                                                                    onClick={() => window.open(quote.contract_file_path, "_blank")}
+                                                                    onClick={() => window.open(quote.customer_signed_contract_path || quote.consultant_contract_path, "_blank")}
                                                                 >
                                                                     Xem hợp đồng
                                                                 </Button>

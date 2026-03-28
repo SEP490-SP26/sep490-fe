@@ -16,10 +16,26 @@ import { FaSuitcase, FaUserPlus, FaWarehouse } from "react-icons/fa";
 import { NavItem } from "./Sidebar";
 import { TbTruckDelivery } from "react-icons/tb";
 
+// Preset cho Designer
+export const designerNavItems: NavItem[] = [
+  {
+    path: "/requests",
+    label: "Yêu cầu đã duyệt",
+    icon: FiList,
+    basePath: "/designer",
+  },
+  {
+    path: "/",
+    label: "Đăng xuất",
+    icon: FiLogOut,
+    isLogout: true,
+  },
+];
+
 // Preset cho Consultant
 export const consultantNavItems: NavItem[] = [
   {
-    path: "",
+    path: "/",
     label: "Tạo đơn hàng",
     icon: FiShoppingCart,
     basePath: "/consultant",

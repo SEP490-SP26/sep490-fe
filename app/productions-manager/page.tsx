@@ -7,7 +7,8 @@ import {
   showInfoToast,
   showSuccessToast,
 } from "@/utils/toastService";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useIsFetching, useIsMutating } from "@tanstack/react-query";
+import LoadingOverlay from "@/components/common/LoadingOverlay";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { BiPackage } from "react-icons/bi";
@@ -28,6 +29,11 @@ import Title from "antd/es/typography/Title";
 export default function ProdutionManager() {
   const queryClient = useQueryClient();
     const bufferRef = useRef("");
+  const isFetching = useIsFetching();
+  const isMutating = useIsMutating();
+  const [isManualLoading, setIsManualLoading] = useState(false);
+
+  const isLoading = isFetching > 0 || isMutating > 0 || isManualLoading;
 
   const {
     products,
@@ -40,6 +46,7 @@ export default function ProdutionManager() {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   /*==================ScanQR ======================= */
   const callApi = async (token: string) => {
+    setIsManualLoading(true);
     try {
       const res = await tasksApi.finishTask({
         token: token,
@@ -49,6 +56,8 @@ export default function ProdutionManager() {
       showSuccessToast("Scan thành công");
     } catch (error) {
       console.error("API error:", error);
+    } finally {
+      setIsManualLoading(false);
     }
   };
 
@@ -84,7 +93,7 @@ export default function ProdutionManager() {
 
   /* ================== SORT ================== */
 
-  const [sortType, setSortType] = useState<"delivery" | "progress">("delivery");
+  const [sortType, setSortType] = useState<"delivery" | "progress" | "newest">("newest");
 
   /* ================== STAGES ================== */
 
@@ -195,6 +204,9 @@ export default function ProdutionManager() {
   const scheduledList = filteredOrders
     .filter((o: any) => o.production_status === "Scheduled")
     .sort((a: any, b: any) => {
+      if (sortType === "newest") {
+        return b.order_id - a.order_id;
+      }
       if (sortType === "delivery") {
         return (
           new Date(a.delivery_date).getTime() -
@@ -208,6 +220,9 @@ export default function ProdutionManager() {
   const processingList = filteredOrders
     .filter((o: any) => o.production_status === "InProcessing")
     .sort((a: any, b: any) => {
+      if (sortType === "newest") {
+        return b.order_id - a.order_id;
+      }
       if (sortType === "delivery") {
         return (
           new Date(a.delivery_date).getTime() -
@@ -314,6 +329,7 @@ export default function ProdutionManager() {
             onChange={(e) => setSortType(e.target.value as any)}
             className="block border rounded-lg px-3 py-2 text-sm"
           >
+            <option value="newest">Mới nhất</option>
             <option value="delivery">Ngày giao</option>
             <option value="progress">Tiến độ</option>
           </select>
@@ -556,6 +572,8 @@ export default function ProdutionManager() {
         </div>
 
       </div>
+
+      <LoadingOverlay isLoading={isLoading} />
     </div>
   );
 }

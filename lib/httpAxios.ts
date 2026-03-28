@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { redirect } from "next/navigation";
-// import { getCookie, deleteCookie } from 'cookies-next'
+import { getCookie, deleteCookie } from 'cookies-next'
 import envConfig from "./config";
 
 type CustomOptions = Omit<RequestInit, "method"> & {
@@ -160,6 +160,7 @@ const request = async <Response>(
           if (typeof window !== "undefined") {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            deleteCookie("token");
             window.location.href = "/login";
           }
         }

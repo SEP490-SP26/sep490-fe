@@ -313,6 +313,7 @@ export interface NearestDeliveryResponse {
 
 export interface OrderRequest {
   order_request_id: number;
+  order_id?: number;
   customer_name: string;
   customer_phone: string;
   customer_email: string;

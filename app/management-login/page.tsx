@@ -111,6 +111,7 @@ export default function LoginPage() {
             setCookie("token", jwt, {
                 path: "/",
                 sameSite: "lax",
+                maxAge: 120 * 60,
             });
 
             //  Lưu auth context
@@ -126,7 +127,7 @@ export default function LoginPage() {
                     router.replace("/admin");
                     break;
                 case 2:
-                    router.replace("/consultant");
+                    router.replace("/consultant/requests");
                     break;
                 case 3:
                     router.replace("/manager");
@@ -214,6 +215,7 @@ export default function LoginPage() {
             setCookie("token", token, {
                 path: "/",
                 sameSite: "lax",
+                maxAge: 120 * 60,
             });
 
             // Lưu auth context
@@ -230,7 +232,7 @@ export default function LoginPage() {
                     router.replace("/admin");
                     break;
                 case 2:
-                    router.replace("/consultant");
+                    router.replace("/consultant/requests");
                     break;
                 case 3:
                     router.replace("/manager");

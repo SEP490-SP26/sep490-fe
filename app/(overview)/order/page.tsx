@@ -439,7 +439,7 @@ export default function GuestOrderPage() {
             subTitle={
               successResponse?.assigned_consultant_user?.full_name ? (
                 <span>
-                  Tư vấn viên <span className="font-bold">{successResponse.assigned_consultant_user.full_name}</span> sẽ liên hệ với bạn trong 24h tới, xin vui lòng chú ý điện thoại.
+                  <span className="font-bold">{successResponse.assigned_consultant_user.full_name}</span> sẽ liên hệ với bạn trong 24h tới, xin vui lòng chú ý điện thoại.
                   <br />
                   Xin cảm ơn quý khách đã tin tưởng và gửi yêu cầu!
                 </span>
@@ -496,11 +496,7 @@ export default function GuestOrderPage() {
             >
               Đặt In Nhanh
             </Title>
-            <div className="mb-6">
-              <Text className="text-slate-100 font-medium italic opacity-85">
-                Giải pháp in ấn toàn diện - Nâng tầm giá trị thương hiệu
-              </Text>
-            </div>
+
             <Text type="secondary" style={{ color: "#ffffff" }}>
               Điền thông tin để nhận báo giá từ đội ngũ tư vấn
             </Text>
@@ -793,7 +789,12 @@ export default function GuestOrderPage() {
                           <DatePicker
                             value={selectedDate}
                             onChange={handleDateChange}
-                            disabledDate={disabledDate}
+                            disabledDate={(current) => {
+                              if (current && current.isBefore(dayjs().add(7, "day"), "day")) {
+                                return true;
+                              }
+                              return disabledDate(current);
+                            }}
                             format="DD/MM/YYYY"
                             placeholder="Chọn ngày giao hàng"
                             style={{ width: "100%" }}

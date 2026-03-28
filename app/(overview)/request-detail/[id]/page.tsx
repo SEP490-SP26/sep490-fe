@@ -837,7 +837,7 @@ export default function RequestDetailPage() {
                             </div>
                           </div>
 
-                          {(requestDetail.customer_signed_contract_path || requestDetail.consultant_contract_path || quote.contract_file_path) ? (
+                          {(requestDetail.customer_signed_contract_path || requestDetail.consultant_contract_path || quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
                             <div className="mt-8 pt-6 border-t border-slate-100">
                               <h3 className="text-sm font-bold uppercase mb-4 text-blue-600 tracking-wide">Hợp đồng</h3>
                               <div className="flex flex-col gap-2">
@@ -862,7 +862,7 @@ export default function RequestDetailPage() {
                                       Xem hợp đồng ký
                                     </Button>
                                   </div>
-                                ) : (requestDetail.consultant_contract_path || quote.contract_file_path) ? (
+                                ) : (requestDetail.consultant_contract_path || quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
                                   <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
                                     <div className="flex items-center gap-3">
                                       <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
@@ -877,7 +877,7 @@ export default function RequestDetailPage() {
                                       type="primary"
                                       ghost
                                       icon={<DownloadOutlined />}
-                                      onClick={() => window.open(requestDetail.consultant_contract_path || quote.contract_file_path, '_blank')}
+                                      onClick={() => window.open(requestDetail.consultant_contract_path || quote.customer_signed_contract_path || quote.consultant_contract_path || '', '_blank')}
                                       className="rounded-lg"
                                     >
                                       Tải / Xem hợp đồng

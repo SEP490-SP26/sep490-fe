@@ -44,6 +44,7 @@ export default function RequestDetailPage() {
   const [fullRequestDetail, setFullRequestDetail] = useState<any>(null);
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [hasUploadedContract, setHasUploadedContract] = useState(false);
+  const [isPopconfirmOpen, setIsPopconfirmOpen] = useState(false);
 
   useEffect(() => {
     const fetchFullDetail = async () => {
@@ -83,8 +84,8 @@ export default function RequestDetailPage() {
 
   const handlePayClick = (quote: QuoteOption) => {
     setSelectedQuote(quote);
-    setHasDownloadedContract(false);
-    setHasUploadedContract(false);
+    setHasDownloadedContract(!!quote.customer_signed_contract_path);
+    setHasUploadedContract(!!quote.customer_signed_contract_path);
     setIsConfirmModalVisible(true);
   };
 
@@ -92,6 +93,7 @@ export default function RequestDetailPage() {
     if (!selectedQuote) return;
 
     setIsConfirmModalVisible(false);
+    setIsPopconfirmOpen(false);
     setIsPaymentModalVisible(true);
     setLoadingQR(true);
     setPaymentInfo(null);
@@ -107,6 +109,7 @@ export default function RequestDetailPage() {
       setIsPaymentModalVisible(false);
     } finally {
       setLoadingQR(false);
+      setIsPopconfirmOpen(false);
     }
   };
 
@@ -377,7 +380,15 @@ export default function RequestDetailPage() {
             title={<span className="font-bold text-slate-800">Xác nhận thanh toán</span>}
             description={<div className="max-w-[300px] text-slate-600">Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc báo giá còn lại sẽ bị hủy. Bạn có chắc chắn muốn thanh toán?</div>}
             onConfirm={proceedToPayment}
-            onCancel={() => setIsConfirmModalVisible(false)}
+            onCancel={() => {
+              setIsPopconfirmOpen(false);
+            }}
+            open={isPopconfirmOpen}
+            onOpenChange={(open) => {
+              if (hasUploadedContract) {
+                setIsPopconfirmOpen(open);
+              }
+            }}
             okText="Xác nhận"
             cancelText="Hủy"
             icon={<InfoCircleOutlined style={{ color: '#faad14' }} />}
@@ -424,18 +435,18 @@ export default function RequestDetailPage() {
                   <div>
                     <div className="font-bold text-slate-800">File Hợp đồng</div>
                     <div className="text-xs text-slate-500">
-                      {selectedQuote?.contract_file_path || fullRequestDetail?.contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
+                      {selectedQuote?.consultant_contract_path || selectedQuote?.customer_signed_contract_path || fullRequestDetail?.contract_file ? "Sẵn sàng để xem" : "Đang chờ cập nhật"}
                     </div>
                   </div>
                 </div>
-                {selectedQuote?.contract_file_path || fullRequestDetail?.contract_file ? (
+                {selectedQuote?.consultant_contract_path || selectedQuote?.customer_signed_contract_path || fullRequestDetail?.contract_file ? (
                   <div className="flex gap-2">
                     <Button
                       type={hasDownloadedContract ? "default" : "primary"}
                       ghost={!hasDownloadedContract}
                       icon={<DownloadOutlined />}
                       onClick={() => {
-                        window.open(selectedQuote?.contract_file_path || fullRequestDetail?.contract_file, '_blank');
+                        window.open(selectedQuote?.customer_signed_contract_path || selectedQuote?.consultant_contract_path || fullRequestDetail?.contract_file, '_blank');
                         setHasDownloadedContract(true);
                       }}
                       className={`rounded-lg ${hasDownloadedContract ? 'border-emerald-500 text-emerald-600' : ''}`}
@@ -458,8 +469,8 @@ export default function RequestDetailPage() {
                         const { file, onSuccess, onError } = options;
                         const hide = message.loading("Đang tải hợp đồng lên...", 0);
                         try {
-                          await estimatesApi.uploadCustomerSingleContract({
-                            requestId: Number(requestId),
+                          await estimatesApi.uploadCustomerSignedContract({
+                            request_id: Number(requestId),
                             estimate_id: selectedQuote?.estimate_id || 0,
                             file: file as File
                           });
@@ -584,6 +595,14 @@ export default function RequestDetailPage() {
           )
         )}
       </Modal>
+
+      {/* Popconfirm Backdrop Overlay */}
+      {isPopconfirmOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[1010] transition-opacity duration-300"
+          onClick={() => setIsPopconfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

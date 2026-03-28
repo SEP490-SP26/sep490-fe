@@ -70,4 +70,7 @@ export const requestOrderApi = {
   
   consultantMessageToCustomer: (body: { request_id: number, message: string }) =>
     http.put<CommonResType>('/api/Requests/consultant-message-to-customer', body),
+
+  designerConfirmLayout: (body: { request_id: number }) =>
+    http.put<CommonResType>('/api/Requests/designer-confirm-layout', body),
 };
