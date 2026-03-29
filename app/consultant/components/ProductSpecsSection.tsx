@@ -54,6 +54,25 @@ export default function ProductSpecsSection({
   highlightFields = {},
   isDeclined = false,
 }: ProductSpecsSectionProps) {
+  const currentProductTypeId = Form.useWatch("product_type", form);
+  const currentPaperCode = Form.useWatch("paper_code", form);
+
+  const selectedProductType = productTypes?.find((pt) => pt.product_type_id === currentProductTypeId);
+  const selectedPaper = paperTypes?.find((paper) => paper.code === currentPaperCode);
+
+  let showPaperWarning = false;
+  let paperWarningMsg = "";
+
+  if (selectedProductType && selectedProductType.name && selectedPaper && selectedPaper.material_class) {
+    const validClasses = selectedPaper.material_class.split(",").map((s: string) => s.trim().toLowerCase());
+    const productNameLower = selectedProductType.name.trim().toLowerCase();
+    
+    if (validClasses.length > 0 && !validClasses.includes(productNameLower)) {
+      showPaperWarning = true;
+      paperWarningMsg = `Cảnh báo: Loại giấy bạn chọn có thể không phù hợp với loại sản phẩm ${selectedProductType.name}.`;
+    }
+  }
+
   useEffect(() => {
     if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
       const filteredFormTypes = formTypes.filter((ft) => {
@@ -148,6 +167,11 @@ export default function ProductSpecsSection({
                   disabled={isDeclined && !highlightFields['paper_code']}
                 />
               </Form.Item>
+              {showPaperWarning && (
+                <div className="text-yellow-600 text-[12px] mt-1 leading-[1.2]">
+                  {paperWarningMsg}
+                </div>
+              )}
             </div>
           </Tooltip>
         </Col>
@@ -426,8 +450,13 @@ export default function ProductSpecsSection({
                         <Checkbox
                           value={pt}
                           key={pt}
-                          style={{ display: "none" }}
-                        />
+                          disabled
+                          className="!flex items-center m-0"
+                        >
+                          <span className="text-[13px] leading-tight">
+                            {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
+                          </span>
+                        </Checkbox>
                       ))}
                     {processTypes
                       .filter((pt) => !["IN", "DUT", "DOT", "CAT", "RALO", "BE"].includes(pt))

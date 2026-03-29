@@ -253,7 +253,7 @@ export const mapToOrderEstimationResult = (
     bleed_mm: additionalSpecs?.bleed_mm || 0,
     glue_tab_mm: additionalSpecs?.glue_tab_mm || 0,
     is_one_side_box: additionalSpecs?.is_one_side_box || false,
-    print_height_mm: additionalSpecs?.print_height_mm || (paperEstimate as any).print_height_mm || 0,
+    print_length_mm: additionalSpecs?.print_length_mm || (paperEstimate as any).print_length_mm || 0,
     print_width_mm: additionalSpecs?.print_width_mm || (paperEstimate as any).print_width_mm || 0,
 
     process_costs: mappedProcessCosts,

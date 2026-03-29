@@ -13,7 +13,8 @@ import {
     SendOutlined,
     ShoppingOutlined,
     UploadOutlined,
-    UserOutlined
+    UserOutlined,
+    PrinterOutlined
 } from "@ant-design/icons";
 import {
     Button,
@@ -62,18 +63,16 @@ export default function ConsultantRequestDetailPage() {
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
-    const [isUploadContractModalOpen, setIsUploadContractModalOpen] = useState(false);
-    const [selectedUploadEstimateIds, setSelectedUploadEstimateIds] = useState<Record<number, number>>({});
-    const [tempContractFiles, setTempContractFiles] = useState<File[]>([]);
 
     const [customerMessage, setCustomerMessage] = useState("");
     const [sendingMessage, setSendingMessage] = useState(false);
+    const [uploadingPrint, setUploadingPrint] = useState(false);
 
     // Fetch order detail from API
-    const fetchOrderDetail = async () => {
+    const fetchOrderDetail = async (showLoading: boolean = true) => {
         if (!requestId) return;
 
-        setLoading(true);
+        if (showLoading) setLoading(true);
         try {
             const response = await requestOrderApi.getRequestDetailbyConsultant(requestId);
             const orderData = response?.data || response;
@@ -85,7 +84,7 @@ export default function ConsultantRequestDetailPage() {
             console.error("Error fetching order detail:", error);
             message.error("Không thể tải thông tin đơn hàng");
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
@@ -167,36 +166,6 @@ export default function ConsultantRequestDetailPage() {
             message.error("Không thể gửi lời nhắn. Vui lòng thử lại sau.");
         } finally {
             setSendingMessage(false);
-        }
-    };
-
-    const handleUploadContract = async () => {
-        const missingEstimate = tempContractFiles.some((_, index) => !selectedUploadEstimateIds[index]);
-        if (tempContractFiles.length === 0 || missingEstimate || !orderDetail) {
-            message.warning("Vui lòng chọn báo giá cho tất cả các file!");
-            return;
-        }
-
-        setUploadingContract(true);
-        try {
-            for (let i = 0; i < tempContractFiles.length; i++) {
-                const file = tempContractFiles[i];
-                const estimateId = selectedUploadEstimateIds[i];
-                await estimatesApi.uploadConsultantContract({
-                    request_id: Number(requestId),
-                    estimate_id: estimateId,
-                    file: file
-                });
-            }
-            message.success("Tải hợp đồng thành công");
-            setIsUploadContractModalOpen(false);
-            setTempContractFiles([]);
-            setSelectedUploadEstimateIds({});
-            fetchOrderDetail();
-        } catch (error) {
-            message.error("Tải hợp đồng thất bại");
-        } finally {
-            setUploadingContract(false);
         }
     };
 
@@ -364,125 +333,6 @@ export default function ConsultantRequestDetailPage() {
                             </Form>
                         </Modal>
 
-                        {/* Upload Contract Select Estimate Modal */}
-                        <Modal
-                            title={
-                                <div className="flex items-center gap-2">
-                                    <FileTextOutlined className="text-blue-600" />
-                                    <span>Chọn báo giá cho hợp đồng</span>
-                                </div>
-                            }
-                            open={isUploadContractModalOpen}
-                            onCancel={() => {
-                                setIsUploadContractModalOpen(false);
-                                setTempContractFiles([]);
-                                setSelectedUploadEstimateIds({});
-                            }}
-                            footer={[
-                                <Button key="cancel" onClick={() => {
-                                    setIsUploadContractModalOpen(false);
-                                    setTempContractFiles([]);
-                                    setSelectedUploadEstimateIds({});
-                                }}>
-                                    Hủy
-                                </Button>,
-                                <Button
-                                    key="submit"
-                                    type="primary"
-                                    className="bg-blue-600 hover:bg-blue-500"
-                                    loading={uploadingContract}
-                                    onClick={handleUploadContract}
-                                    disabled={tempContractFiles.length === 0 || tempContractFiles.some((_, idx) => !selectedUploadEstimateIds[idx])}
-                                >
-                                    Tải lên
-                                </Button>
-                            ]}
-                        >
-                            <div className="py-2">
-                                <p className="mb-3 text-sm text-slate-600">Vui lòng chọn hợp đồng và báo giá tương ứng (bạn có thể tải thêm file):</p>
-
-                                <Upload
-                                    multiple
-                                    showUploadList={false}
-                                    beforeUpload={(file, fileList) => {
-                                        if (fileList.indexOf(file) === 0) {
-                                            const pendingFiles = fileList as File[];
-                                            setTempContractFiles(prev => {
-                                                const newFiles = [...prev, ...pendingFiles];
-
-                                                const activeEstimates = orderDetail?.cost_estimate?.filter(e => e.is_active) || [];
-                                                setSelectedUploadEstimateIds(prevIds => {
-                                                    const newIds = { ...prevIds };
-                                                    for (let i = prev.length; i < newFiles.length; i++) {
-                                                        const estimateIndex = i % activeEstimates.length;
-                                                        if (activeEstimates[estimateIndex]) {
-                                                            newIds[i] = activeEstimates[estimateIndex].estimate_id;
-                                                        }
-                                                    }
-                                                    return newIds;
-                                                });
-
-                                                return newFiles;
-                                            });
-                                        }
-                                        return false;
-                                    }}
-                                >
-                                    <Button type="dashed" icon={<UploadOutlined />} className="w-full mb-4">
-                                        Thêm file hợp đồng
-                                    </Button>
-                                </Upload>
-
-                                {tempContractFiles.length > 0 && (
-                                    <div className="mt-4 space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                                        {tempContractFiles.map((file, index) => (
-                                            <div key={index} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-2 relative">
-
-                                                <div className="flex items-center gap-2 text-sm font-medium pr-12">
-                                                    <FileTextOutlined className="text-blue-500" />
-                                                    <span className="truncate" title={file.name}>{file.name}</span>
-                                                </div>
-                                                <Select
-                                                    className="w-full"
-                                                    placeholder="Chọn báo giá tương ứng"
-                                                    value={selectedUploadEstimateIds[index]}
-                                                    onChange={(value) => setSelectedUploadEstimateIds(prev => ({ ...prev, [index]: value }))}
-                                                    options={orderDetail?.cost_estimate?.filter(e => e.is_active).sort((a, b) => a.estimate_id - b.estimate_id).map((est, eIndex) => ({
-                                                        value: est.estimate_id,
-                                                        label: `Báo giá #${eIndex + 1} - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(est.final_total_cost)}`
-                                                    })) || []}
-                                                />
-                                                <Button
-                                                    type="text"
-                                                    danger
-                                                    size="small"
-                                                    className="absolute top-2 right-2 px-2 z-10"
-                                                    onClick={() => {
-                                                        const newFiles = [...tempContractFiles];
-                                                        newFiles.splice(index, 1);
-                                                        setTempContractFiles(newFiles);
-
-                                                        const newIds = { ...selectedUploadEstimateIds };
-                                                        delete newIds[index];
-                                                        const reindexed: Record<number, number> = {};
-                                                        let newIdx = 0;
-                                                        for (let i = 0; i < tempContractFiles.length; i++) {
-                                                            if (i !== index) {
-                                                                if (newIds[i]) reindexed[newIdx] = newIds[i];
-                                                                newIdx++;
-                                                            }
-                                                        }
-                                                        setSelectedUploadEstimateIds(reindexed);
-                                                    }}
-                                                >
-                                                    Xóa
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </Modal>
                     </div>
                 </div>
 
@@ -529,7 +379,7 @@ export default function ConsultantRequestDetailPage() {
                                         {/* {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>} */}
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
-                                        {orderDetail.print_width_mm > 0 && orderDetail.print_height_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_height_mm} mm</Text></Descriptions.Item>}
+                                        {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
                                     </Descriptions>
 
                                     {orderDetail.description && (
@@ -587,7 +437,7 @@ export default function ConsultantRequestDetailPage() {
                                                         try {
                                                             await uploadApi.updateDesignFile(orderDetail.request_id, file as File);
                                                             message.success("Tải file thiết kế thành công");
-                                                            fetchOrderDetail();
+                                                            fetchOrderDetail(false);
                                                             if (onSuccess) onSuccess("ok");
                                                         } catch (error) {
                                                             message.error("Tải file thất bại");
@@ -605,50 +455,62 @@ export default function ConsultantRequestDetailPage() {
                                         </div>
                                     </div>
 
-                                    {/* Hợp đồng */}
-                                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                        <div className="flex items-center gap-2">
-                                            <svg
-                                                className="w-4 h-4 text-gray-400"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                                />
-                                            </svg>
-                                            <div>
-                                                <div className="font-medium text-sm">Hợp đồng</div>
-                                                {/* <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div> */}
+                                    {/* File in (Bản in) - Shown only when Accepted */}
+                                    {orderDetail.process_status === 'Accepted' && (
+                                        <div className="flex flex-col gap-2 p-2 bg-blue-50/50 border border-blue-100 rounded">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <PrinterOutlined className="text-blue-500 text-sm" />
+                                                    <div>
+                                                        <div className="font-medium text-sm">File in (Bản in)</div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {orderDetail.file_url ? "Đã sẵn sàng" : "Chưa tải lên"}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {orderDetail.file_url && (
+                                                        <Button
+                                                            size="small"
+                                                            type="primary"
+                                                            icon={<DownloadOutlined />}
+                                                            onClick={() => window.open(orderDetail.file_url, '_blank')}
+                                                        >
+                                                            Tải về
+                                                        </Button>
+                                                    )}
+                                                    <Upload
+                                                        showUploadList={false}
+                                                        customRequest={async (options) => {
+                                                            const { file, onSuccess, onError } = options;
+                                                            setUploadingPrint(true);
+                                                            try {
+                                                                await uploadApi.updatePrintReadyFile(orderDetail.order_request_id, file as File);
+                                                                message.success(orderDetail.file_url ? "Cập nhật file in thành công" : "Tải file in thành công");
+                                                                fetchOrderDetail(false);
+                                                                if (onSuccess) onSuccess("ok");
+                                                            } catch (error) {
+                                                                message.error("Tải file thất bại");
+                                                                if (onError) onError(error as any);
+                                                            } finally {
+                                                                setUploadingPrint(false);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Button
+                                                            size="small"
+                                                            type={orderDetail.file_url ? "default" : "primary"}
+                                                            icon={<UploadOutlined />}
+                                                            loading={uploadingPrint}
+                                                        >
+                                                            {orderDetail.file_url ? "Thay đổi" : "Tải file in"}
+                                                        </Button>
+                                                    </Upload>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {(orderDetail as any).contract_file && (
-                                                <Button
-                                                    size="small"
-                                                    type="primary"
-                                                    onClick={() => window.open((orderDetail as any).contract_file, "_blank")}
-                                                >
-                                                    Xem
-                                                </Button>
-                                            )}
-                                            <Button
-                                                size="small"
-                                                icon={<UploadOutlined />}
-                                                onClick={() => {
-                                                    setTempContractFiles([]);
-                                                    setSelectedUploadEstimateIds({});
-                                                    setIsUploadContractModalOpen(true);
-                                                }}
-                                            >
-                                                Tải lên
-                                            </Button>
-                                        </div>
-                                    </div>
+                                    )}
+
 
                                     {/* File khác */}
                                     {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
@@ -725,48 +587,78 @@ export default function ConsultantRequestDetailPage() {
                                                     </div>
 
                                                     {/* Hợp đồng của báo giá */}
-                                                    {(estimate.consultant_contract_path || estimate.customer_signed_contract_path) && (
-                                                        <div className="mt-3 pt-3 border-t border-slate-200">
-                                                            <div className="flex items-center gap-2 mb-2">
+                                                    <div className="mt-3 pt-3 border-t border-slate-200">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
                                                                 <FileTextOutlined className="text-blue-500" />
-                                                                <span className="text-sm font-medium text-slate-800">Hợp đồng đính kèm</span>
+                                                                <span className="text-sm font-medium text-slate-800">Hợp đồng</span>
                                                             </div>
-                                                            {estimate.customer_signed_contract_path && (
-                                                                <div className="flex justify-between items-center mb-1">
-                                                                    <span className="text-slate-500 text-xs">Hợp đồng đã ký:</span>
-                                                                    <Button
-                                                                        type="link"
-                                                                        size="small"
-                                                                        className="p-0 h-auto text-xs font-semibold text-green-600"
-                                                                        onClick={() => window.open(estimate.customer_signed_contract_path, "_blank")}
-                                                                    >
-                                                                        Xem bản cứng
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                            {estimate.consultant_contract_path && !estimate.customer_signed_contract_path && (
-                                                                <div className="flex justify-between items-center mb-1">
-                                                                    <span className="text-slate-500 text-xs">File hợp đồng:</span>
-                                                                    <Button
-                                                                        type="link"
-                                                                        size="small"
-                                                                        className="p-0 h-auto text-xs font-semibold"
-                                                                        onClick={() => window.open(estimate.consultant_contract_path, "_blank")}
-                                                                    >
-                                                                        Xem file
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                            {estimate.contract_uploaded_at && (
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-slate-500 text-xs">Ngày tải lên:</span>
-                                                                    <span className="text-slate-800 text-xs font-medium">
-                                                                        {dayjs(estimate.contract_uploaded_at).format("DD/MM/YYYY HH:mm")}
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                            <Upload
+                                                                showUploadList={false}
+                                                                customRequest={async (options) => {
+                                                                    const { file, onSuccess, onError } = options;
+                                                                    setUploadingContract(true);
+                                                                    try {
+                                                                        await estimatesApi.uploadConsultantContract({
+                                                                            request_id: Number(requestId),
+                                                                            estimate_id: estimate.estimate_id,
+                                                                            file: file as File
+                                                                        });
+                                                                        message.success("Tải hợp đồng thành công");
+                                                                        fetchOrderDetail(false);
+                                                                        if (onSuccess) onSuccess("ok");
+                                                                    } catch (error) {
+                                                                        message.error("Tải hợp đồng thất bại");
+                                                                        if (onError) onError(error as any);
+                                                                    } finally {
+                                                                        setUploadingContract(false);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Button
+                                                                    size="small"
+                                                                    icon={<UploadOutlined />}
+                                                                    loading={uploadingContract}
+                                                                >
+                                                                    {estimate.consultant_contract_path ? "Đổi file" : "Tải lên"}
+                                                                </Button>
+                                                            </Upload>
                                                         </div>
-                                                    )}
+                                                        {estimate.customer_signed_contract_path && (
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-500 text-xs">Hợp đồng đã ký:</span>
+                                                                <Button
+                                                                    type="link"
+                                                                    size="small"
+                                                                    className="p-0 h-auto text-xs font-semibold text-green-600"
+                                                                    onClick={() => window.open(estimate.customer_signed_contract_path, "_blank")}
+                                                                >
+                                                                    Xem bản cứng
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                        {estimate.consultant_contract_path && !estimate.customer_signed_contract_path && (
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-500 text-xs">File hợp đồng (chưa ký):</span>
+                                                                <Button
+                                                                    type="link"
+                                                                    size="small"
+                                                                    className="p-0 h-auto text-xs font-semibold"
+                                                                    onClick={() => window.open(estimate.consultant_contract_path, "_blank")}
+                                                                >
+                                                                    Xem file
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                        {estimate.contract_uploaded_at && (
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-slate-500 text-xs">Ngày tải lên:</span>
+                                                                <span className="text-slate-800 text-xs font-medium">
+                                                                    {dayjs(estimate.contract_uploaded_at).format("DD/MM/YYYY HH:mm")}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     {/* Material Costs Block (if any exist) */}
                                                     {(estimate.paper_cost > 0 || estimate.ink_cost > 0 || estimate.coating_glue_cost > 0 || estimate.mounting_glue_cost > 0 || estimate.lamination_cost > 0) && (
                                                         <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg mb-2">
@@ -1025,10 +917,11 @@ export default function ConsultantRequestDetailPage() {
                                         </div>
 
                                         <div className="p-6 flex-1 flex flex-col">
-                                            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                                {/* Left Column: Info */}
-                                                <div>
-                                                    <div className="mb-4">
+                                            <div className="flex-1 flex flex-col gap-6">
+                                                {/* Row 1: Thông tin & Chi phí */}
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                    {/* Left: Thông tin đơn hàng */}
+                                                    <div>
                                                         <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-blue-500 text-blue-600 tracking-wide">
                                                             Thông tin đơn hàng
                                                         </h3>
@@ -1049,53 +942,12 @@ export default function ConsultantRequestDetailPage() {
                                                         </div>
                                                     </div>
 
+                                                    {/* Right: Bảng kê chi phí */}
                                                     <div>
-                                                        <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-blue-500 text-blue-600 tracking-wide">
-                                                            Chi tiết sản phẩm
-                                                        </h3>
-                                                        <div className="space-y-1">
-                                                            {[
-                                                                { label: "Sản phẩm", value: quote.product_name },
-                                                                { label: "Số lượng", value: quote.quantity.toLocaleString('vi-VN') },
-                                                                { label: "Loại giấy", value: quote.paper_name || "---" },
-                                                                { label: "Thiết kế", value: designTypeText },
-                                                                { label: "Giao dự kiến", value: deliveryText }
-                                                            ].map((item, idx) => (
-                                                                <div key={idx} className="flex justify-between items-center py-1 border-b border-slate-50">
-                                                                    <span className="text-slate-500 text-[11px]">{item.label}</span>
-                                                                    <span className="text-slate-800 font-semibold text-[11px]">{item.value}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {(quote.consultant_contract_path || quote.customer_signed_contract_path) && (
-                                                        <div className="mt-4">
-                                                            <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-indigo-500 text-indigo-600 tracking-wide">
-                                                                Hợp đồng
-                                                            </h3>
-                                                            <div className="flex justify-between items-center py-1 border-b border-slate-50">
-                                                                <span className="text-slate-500 text-[11px]">Tệp đính kèm</span>
-                                                                <Button
-                                                                    type="link"
-                                                                    size="small"
-                                                                    className="p-0 h-auto text-[11px] font-semibold text-indigo-600"
-                                                                    onClick={() => window.open(quote.customer_signed_contract_path || quote.consultant_contract_path, "_blank")}
-                                                                >
-                                                                    Xem hợp đồng
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Right Column: Costs */}
-                                                <div>
-                                                    <div className="mb-4">
                                                         <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-orange-500 text-orange-600 tracking-wide">
                                                             Bảng kê chi phí
                                                         </h3>
-                                                        <div className="space-y-1 min-h-[110px]">
+                                                        <div className="space-y-1">
                                                             {!!quote.material_cost && (
                                                                 <div className="flex justify-between items-center py-1">
                                                                     <span className="text-slate-600 text-[11px]">Nguyên vật liệu</span>
@@ -1122,7 +974,51 @@ export default function ConsultantRequestDetailPage() {
                                                             )}
                                                         </div>
                                                     </div>
+                                                </div>
 
+                                                {/* Row 2: Sản phẩm & Tổng thanh toán */}
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                    {/* Left: Chi tiết sản phẩm */}
+                                                    <div>
+                                                        <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-blue-500 text-blue-600 tracking-wide">
+                                                            Chi tiết sản phẩm
+                                                        </h3>
+                                                        <div className="space-y-1">
+                                                            {[
+                                                                { label: "Sản phẩm", value: quote.product_name },
+                                                                { label: "Số lượng", value: quote.quantity.toLocaleString('vi-VN') },
+                                                                { label: "Loại giấy", value: quote.paper_name || "---" },
+                                                                { label: "Thiết kế", value: designTypeText },
+                                                                { label: "Giao dự kiến", value: deliveryText }
+                                                            ].map((item, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center py-1 border-b border-slate-50">
+                                                                    <span className="text-slate-500 text-[11px]">{item.label}</span>
+                                                                    <span className="text-slate-800 font-semibold text-[11px]">{item.value}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        
+                                                        {(quote.consultant_contract_path || quote.customer_signed_contract_path) && (
+                                                            <div className="mt-4">
+                                                                <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-indigo-500 text-indigo-600 tracking-wide">
+                                                                    Hợp đồng
+                                                                </h3>
+                                                                <div className="flex justify-between items-center py-1 border-b border-slate-50">
+                                                                    <span className="text-slate-500 text-[11px]">Tệp đính kèm</span>
+                                                                    <Button
+                                                                        type="link"
+                                                                        size="small"
+                                                                        className="p-0 h-auto text-[11px] font-semibold text-indigo-600"
+                                                                        onClick={() => window.open(quote.customer_signed_contract_path || quote.consultant_contract_path, "_blank")}
+                                                                    >
+                                                                        Xem hợp đồng
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Right: Tổng thanh toán */}
                                                     <div>
                                                         <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-green-500 text-green-600 tracking-wide">
                                                             Tổng thanh toán

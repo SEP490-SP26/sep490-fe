@@ -77,7 +77,7 @@ export interface ProductDimensions {
 
 export interface PrintSize {
   print_width_mm: number;
-  print_height_mm: number;
+  print_length_mm: number;
 }
 
 export interface ProductInfo {
@@ -155,7 +155,7 @@ export interface Material {
   stock_moves: [];
   supplier_materials: [];
   sheet_width_mm: number;
-  sheet_height_mm: number;
+  sheet_thick_mm: number;
   sheet_length_mm?: number;
   material_class: string;
   [key: string]: any;
@@ -181,7 +181,7 @@ export interface EstimationInputs {
   // Basic inputs
   paper_code: string;
   sheet_width_mm: number;
-  sheet_height_mm: number;
+  sheet_length_mm: number;
   quantity: number;
   length_mm: number;
   width_mm: number;
@@ -522,7 +522,7 @@ export interface DetailedProductionEstimation {
   bleed_mm: number;
   glue_tab_mm: number;
   is_one_side_box: boolean;
-  print_height_mm: number;
+  print_length_mm: number;
   print_width_mm: number;
 
   // --- Chi tiết chi phí nhân công/công đoạn ---

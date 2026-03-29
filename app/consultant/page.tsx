@@ -380,7 +380,7 @@ function ConsultantForm() {
         setDiscountPercent(targetTab.calculations.discountPercent || 0);
         setSavedEstimateId(targetTab.calculations.estimate_id || null);
         setPreviousEstimateId(targetTab.calculations.previous_estimate_id || null);
-        
+
         // Only set final_price if form doesn't have it already (manually edited)
         if (!nextValues.final_price) {
           form.setFieldValue("final_price", targetTab.calculations.costEstimate?.cost?.final_total_cost);
@@ -604,10 +604,10 @@ function ConsultantForm() {
 
           // Pick top 2 LATEST active estimates (or historical if none active), 
           // then sort ASC for stable labeling (Manager-style)
-          let baseEstimates = orderData.cost_estimate 
+          let baseEstimates = orderData.cost_estimate
             ? orderData.cost_estimate.filter((e: any) => e.is_active)
             : [];
-          
+
           if (baseEstimates.length === 0 && orderData.cost_estimate?.length > 0) {
             baseEstimates = orderData.cost_estimate;
           }
@@ -824,17 +824,17 @@ function ConsultantForm() {
         wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : profile.wave_type,
         glue_tab: currentValues.glue_tab !== undefined ? currentValues.glue_tab : profile.glue_tab_mm,
         is_one_side_box: currentValues.is_one_side_box !== undefined ? currentValues.is_one_side_box : profile.is_one_side_box,
-        
+
         // Dimensions that might be specific
         print_width: currentValues.print_width || profile.print_width_mm,
-        print_height: currentValues.print_height || profile.print_height_mm,
+        print_height: currentValues.print_height || profile.print_length_mm,
         bleed: currentValues.bleed !== undefined ? currentValues.bleed : profile.bleed_mm,
 
         // Processes: only if current is empty or array of length 0
-        production_processes: (Array.isArray(currentValues.production_processes) && currentValues.production_processes.length > 0) 
-          ? currentValues.production_processes 
+        production_processes: (Array.isArray(currentValues.production_processes) && currentValues.production_processes.length > 0)
+          ? currentValues.production_processes
           : (profile.production_processes ? profile.production_processes.split(",") : []),
-        
+
         default_quantity: profile.default_quantity,
         ...(selectedProductTypeCode === "HOP_MAU" && {
           glueTab: currentValues.glueTab !== undefined ? currentValues.glueTab : profile.glue_tab_mm,
@@ -899,7 +899,7 @@ function ConsultantForm() {
       const inputs: EstimationInputs = {
         paper_code,
         sheet_width_mm: selectedMaterial.sheet_width_mm || 0,
-        sheet_height_mm: selectedMaterial.sheet_height_mm || 0,
+        sheet_length_mm: selectedMaterial.sheet_length_mm || 0,
         quantity,
         length_mm: length,
         width_mm: width,
@@ -939,9 +939,9 @@ function ConsultantForm() {
       const paperEstimateObj = {
         paper_code: inputs.paper_code,
         sheet_width_mm: inputs.sheet_width_mm,
-        sheet_height_mm: inputs.sheet_height_mm,
+        sheet_length_mm: inputs.sheet_length_mm,
         print_width_mm: result.printSize.print_width_mm,
-        print_height_mm: result.printSize.print_height_mm,
+        print_length_mm: result.printSize.print_length_mm,
         n_up: result.nUp,
         quantity: inputs.quantity,
         sheets_base: result.sheetsBase,
@@ -1034,8 +1034,8 @@ function ConsultantForm() {
       width: Number(values.width) || 0,
       height: Number(values.height) || 0,
       product_type: values.product_type || "",
-      production_processes: Array.isArray(values.production_processes) 
-        ? [...values.production_processes].sort().join(",") 
+      production_processes: Array.isArray(values.production_processes)
+        ? [...values.production_processes].sort().join(",")
         : (values.production_processes || ""),
       coating_type: values.coating_type || "NONE",
       wave_type: values.wave_type || "NONE",
@@ -1053,7 +1053,7 @@ function ConsultantForm() {
       setEstimate(result.estimate);
       setPaperEstimate(result.paperEstimate);
       setCostEstimate(result.costEstimate);
-      
+
       // Only update final_price if specs have changed or it's currently empty
       const specsSignature = getSpecsSignature(values);
 
@@ -1283,7 +1283,7 @@ function ConsultantForm() {
 
             is_one_side_box: primaryQuote.is_one_side_box,
             print_width_mm: primaryQuote.print_width,
-            print_height_mm: primaryQuote.print_height,
+            print_length_mm: primaryQuote.print_height,
 
             production_processes: Array.isArray(primaryQuote.production_processes)
               ? primaryQuote.production_processes.join(",")
@@ -1497,216 +1497,216 @@ function ConsultantForm() {
       <Spin spinning={isPageLoading} fullscreen tip="Đang xử lý dữ liệu..." />
       <div className="p-4  min-h-screen">
         <div className="max-w-7xl mx-auto">
-        {/* HEADER */}
-        <div className="mb-4 flex justify-between items-center bg-white p-3 rounded shadow-sm">
-          <div>
-            <h1 className="text-xl font-bold m-0 uppercase">
-              {orderId
-                ? `Xử Lý Đơn Hàng #${orderId.split("-")[1] || orderId}`
-                : "Tạo Đơn Hàng Mới"}
-            </h1>
-            <span className="text-gray-500 text-sm">
-              {orderId
-                ? "Kiểm tra thông tin khách gửi và chốt phương án"
-                : "Nhập thông tin yêu cầu sản xuất"}
-            </span>
-          </div>
-          <div className="flex gap-4 items-center">
-            <div className="flex flex-col items-end w-48">
-              <div className="text-xs text-gray-500 flex gap-1 mb-1">
-                <DashboardOutlined /> Công suất xưởng ({runningMachines}/
-                {totalMachines})
+          {/* HEADER */}
+          <div className="mb-4 flex justify-between items-center bg-white p-3 rounded shadow-sm">
+            <div>
+              <h1 className="text-xl font-bold m-0 uppercase">
+                {orderId
+                  ? `Xử Lý Đơn Hàng #${orderId.split("-")[1] || orderId}`
+                  : "Tạo Đơn Hàng Mới"}
+              </h1>
+              <span className="text-gray-500 text-sm">
+                {orderId
+                  ? "Kiểm tra thông tin khách gửi và chốt phương án"
+                  : "Nhập thông tin yêu cầu sản xuất"}
+              </span>
+            </div>
+            <div className="flex gap-4 items-center">
+              <div className="flex flex-col items-end w-48">
+                <div className="text-xs text-gray-500 flex gap-1 mb-1">
+                  <DashboardOutlined /> Công suất xưởng ({runningMachines}/
+                  {totalMachines})
+                </div>
+                <Progress
+                  percent={(runningMachines / totalMachines) * 100}
+                  size="small"
+                  status={isWorkshopFull ? "exception" : "active"}
+                  format={() => `${runningMachines} máy`}
+                  strokeColor={isWorkshopFull ? "#ff4d4f" : "#52c41a"}
+                />
               </div>
-              <Progress
-                percent={(runningMachines / totalMachines) * 100}
-                size="small"
-                status={isWorkshopFull ? "exception" : "active"}
-                format={() => `${runningMachines} máy`}
-                strokeColor={isWorkshopFull ? "#ff4d4f" : "#52c41a"}
-              />
             </div>
           </div>
-        </div>
 
-        {orderStatus === 'Declined' && managerNote && (
-          <div className="mb-4 sticky top-4 z-50">
-            <Alert
-              // title={<span className="font-bold">Yêu cầu chỉnh sửa từ Quản lý</span>}
-              description={<div className="whitespace-pre-wrap text-slate-700">Yêu cầu chỉnh sửa từ Quản lý: <span className="font-bold">{managerNote}</span></div>}
-              type="warning"
-              showIcon
-              className="border border-yellow-300 shadow-sm bg-yellow-50/50"
-            />
-          </div>
-        )}
+          {orderStatus === 'Declined' && managerNote && (
+            <div className="mb-4 sticky top-4 z-50">
+              <Alert
+                // title={<span className="font-bold">Yêu cầu chỉnh sửa từ Quản lý</span>}
+                description={<div className="whitespace-pre-wrap text-slate-700">Yêu cầu chỉnh sửa từ Quản lý: <span className="font-bold">{managerNote}</span></div>}
+                type="warning"
+                showIcon
+                className="border border-yellow-300 shadow-sm bg-yellow-50/50"
+              />
+            </div>
+          )}
 
-        <Form
-          form={form}
-          layout="vertical"
-          disabled={loading}
-          onFinish={onFinish}
-          onValuesChange={handleFormValuesChange}
-          initialValues={{
-            number_of_plates: 1,
-            coating_type: "KEO_NUOC",
-            isOneSideBox: true,
-            glueTab: 10,
-          }}
-        >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Card
-                title={
-                  <>
-                    <CodeSandboxOutlined /> Thông Tin Đơn Hàng
-                  </>
-                }
-                className="shadow-sm"
-              >
-                <CustomerInfoSection
-                  orderId={orderId || (createdOrderId ? createdOrderId.toString() : null)}
-                  form={form}
-                  handleFormValuesChange={handleFormValuesChange}
-                  onConfirmCreate={handleCreateCustomerInfo}
-                  loading={loading}
-                />
+          <Form
+            form={form}
+            layout="vertical"
+            disabled={loading}
+            onFinish={onFinish}
+            onValuesChange={handleFormValuesChange}
+            initialValues={{
+              number_of_plates: 1,
+              coating_type: "KEO_NUOC",
+              isOneSideBox: true,
+              glueTab: 10,
+            }}
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card
+                  title={
+                    <>
+                      <CodeSandboxOutlined /> Thông Tin Đơn Hàng
+                    </>
+                  }
+                  className="shadow-sm"
+                >
+                  <CustomerInfoSection
+                    orderId={orderId || (createdOrderId ? createdOrderId.toString() : null)}
+                    form={form}
+                    handleFormValuesChange={handleFormValuesChange}
+                    onConfirmCreate={handleCreateCustomerInfo}
+                    loading={loading}
+                  />
 
-                <Divider titlePlacement="left" className="!my-3">
-                  Thông Số Kỹ Thuật
-                </Divider>
+                  <Divider titlePlacement="left" className="!my-3">
+                    Thông Số Kỹ Thuật
+                  </Divider>
 
-                <Tabs
-                  type="editable-card"
-                  hideAdd={quoteTabs.length >= 2}
-                  onChange={(key) => handleTabChange(key)}
-                  activeKey={activeTabKey}
-                  onEdit={handleTabEdit}
-                  items={quoteTabs.map((tab) => ({
-                    label: tab.label,
-                    key: tab.key,
-                    children: (
-                      <div className="pt-2">
-                        <ProductSpecsSection
-                          orderId={orderId}
-                          PRODUCT_SUGGESTIONS={productSuggestions}
-                          productTypes={productTypes}
-                          paperTypes={paperTypes}
-                          formTypes={formTypes}
-                          selectedProductTypeCode={selectedProductTypeCode}
-                          loadingProductTypes={loadingProductTypes}
-                          loadingPaperTypes={loadingPaperTypes}
-                          loadingFormTypes={loadingFormTypes}
-                          loadingProcessTypes={loadingProcessTypes}
-                          processTypes={processTypes}
-                          PROCESS_TYPE_LABELS={PROCESS_TYPE_LABELS}
-                          songTypes={songTypes}
-                          handleFormValuesChange={handleFormValuesChange}
-                          form={form}
-                          disabledSharedFields={activeTabKey !== "1"}
-                          highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
-                          isDeclined={orderStatus === 'Declined'}
-                        />
-                      </div>
-                    ),
-                  }))}
-                />
+                  <Tabs
+                    type="editable-card"
+                    hideAdd={quoteTabs.length >= 2}
+                    onChange={(key) => handleTabChange(key)}
+                    activeKey={activeTabKey}
+                    onEdit={handleTabEdit}
+                    items={quoteTabs.map((tab) => ({
+                      label: tab.label,
+                      key: tab.key,
+                      children: (
+                        <div className="pt-2">
+                          <ProductSpecsSection
+                            orderId={orderId}
+                            PRODUCT_SUGGESTIONS={productSuggestions}
+                            productTypes={productTypes}
+                            paperTypes={paperTypes}
+                            formTypes={formTypes}
+                            selectedProductTypeCode={selectedProductTypeCode}
+                            loadingProductTypes={loadingProductTypes}
+                            loadingPaperTypes={loadingPaperTypes}
+                            loadingFormTypes={loadingFormTypes}
+                            loadingProcessTypes={loadingProcessTypes}
+                            processTypes={processTypes}
+                            PROCESS_TYPE_LABELS={PROCESS_TYPE_LABELS}
+                            songTypes={songTypes}
+                            handleFormValuesChange={handleFormValuesChange}
+                            form={form}
+                            disabledSharedFields={activeTabKey !== "1"}
+                            highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
+                            isDeclined={orderStatus === 'Declined'}
+                          />
+                        </div>
+                      ),
+                    }))}
+                  />
 
-                <DesignUploadSection
-                  designFilePath={designFilePath}
-                  // setDesignFilePath={setDesignFilePath} // Removed
-                  // orderId={orderId}
-                  isSendDesign={isSendDesign}
-                  setIsSendDesign={(val) => {
-                    setIsSendDesign(val);
-                  }}
-                  fileList={fileList}
-                  setFileList={setFileList}
-                />
+                  <DesignUploadSection
+                    designFilePath={designFilePath}
+                    // setDesignFilePath={setDesignFilePath} // Removed
+                    // orderId={orderId}
+                    isSendDesign={isSendDesign}
+                    setIsSendDesign={(val) => {
+                      setIsSendDesign(val);
+                    }}
+                    fileList={fileList}
+                    setFileList={setFileList}
+                  />
 
-                <Row gutter={16}>
-                  {/* read only */}
-                  <Col span={isCreateMode ? 12 : 24}>
-                    <Form.Item name="description" label="Ghi Chú khách hàng" className="mb-2">
-                      <Input.TextArea disabled rows={1} placeholder="Ghi chú thêm..." />
-                    </Form.Item>
-                  </Col>
-                  {/* consultant note */}
-                  <Col span={24}>
-                    <Form.Item name="consultant_note" label="Ghi chú của Consultant" className="mb-2">
-                      <Input.TextArea rows={2} placeholder="Nhập ghi chú dành cho Manager..." />
-                    </Form.Item>
-                  </Col>
-                  {isCreateMode && (
-                    <Col span={12}>
-                      <Form.Item
-                        name="contract_file"
-                        label={
-                          <span className="flex items-center gap-1 font-semibold text-blue-800">
-                            <FileTextOutlined /> Upload hợp đồng
-                          </span>
-                        }
-                        valuePropName="fileList"
-                        getValueFromEvent={(e) =>
-                          Array.isArray(e) ? e : e?.fileList
-                        }
-                        className="mb-2"
-                        rules={[{ required: true, message: "Vui lòng tải lên hợp đồng" }]}
-                      >
-                        <Upload
-                          name="contract"
-                          action="/upload.do"
-                          listType="text"
-                          maxCount={1}
-                        >
-                          <Button icon={<UploadOutlined />} size="small">
-                            Tải lên PDF/DOCX
-                          </Button>
-                        </Upload>
+                  <Row gutter={16}>
+                    {/* read only */}
+                    <Col span={isCreateMode ? 12 : 24}>
+                      <Form.Item name="description" label="Ghi Chú khách hàng" className="mb-2">
+                        <Input.TextArea disabled rows={1} placeholder="Ghi chú thêm..." />
                       </Form.Item>
                     </Col>
-                  )}
-                </Row>
+                    {/* consultant note */}
+                    <Col span={24}>
+                      <Form.Item name="consultant_note" label="Ghi chú của Consultant" className="mb-2">
+                        <Input.TextArea rows={2} placeholder="Nhập ghi chú dành cho Manager..." />
+                      </Form.Item>
+                    </Col>
+                    {isCreateMode && (
+                      <Col span={12}>
+                        <Form.Item
+                          name="contract_file"
+                          label={
+                            <span className="flex items-center gap-1 font-semibold text-blue-800">
+                              <FileTextOutlined /> Upload hợp đồng
+                            </span>
+                          }
+                          valuePropName="fileList"
+                          getValueFromEvent={(e) =>
+                            Array.isArray(e) ? e : e?.fileList
+                          }
+                          className="mb-2"
+                          rules={[{ required: true, message: "Vui lòng tải lên hợp đồng" }]}
+                        >
+                          <Upload
+                            name="contract"
+                            action="/upload.do"
+                            listType="text"
+                            maxCount={1}
+                          >
+                            <Button icon={<UploadOutlined />} size="small">
+                              Tải lên PDF/DOCX
+                            </Button>
+                          </Upload>
+                        </Form.Item>
+                      </Col>
+                    )}
+                  </Row>
 
-                {isSendToManagerAction && orderStatus !== 'Declined' && (
-                  <div className="mb-2">
-                    <Checkbox
-                      checked={isCustomerContacted}
-                      onChange={(e) => setIsCustomerContacted(e.target.checked)}
-                      className="font-medium text-blue-700"
+                  {isSendToManagerAction && orderStatus !== 'Declined' && (
+                    <div className="mb-2">
+                      <Checkbox
+                        checked={isCustomerContacted}
+                        onChange={(e) => setIsCustomerContacted(e.target.checked)}
+                        className="font-medium text-blue-700"
+                      >
+                        Tôi đã liên hệ với khách hàng và được sự thống nhất với khách
+                      </Checkbox>
+                    </div>
+                  )}
+                  <Form.Item className={isSendToManagerAction && orderStatus !== 'Declined' ? "mt-2" : "mt-4"}>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      size="large"
+                      loading={loading}
+                      block
+                      className={`h-12 font-bold ${isCreateMode
+                        ? "bg-green-600 hover:bg-green-700"
+                        : estimate?.caseType === 3
+                          ? "bg-red-600 hover:bg-red-700"
+                          : estimate?.caseType === 2
+                            ? "bg-orange-500 hover:bg-orange-600"
+                            : "bg-blue-600"
+                        }`}
+                      disabled={
+                        (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing") ||
+                        (isSendToManagerAction && orderStatus !== 'Declined' && !isCustomerContacted)
+                      }
                     >
-                      Tôi đã liên hệ với khách hàng và được sự thống nhất với khách
-                    </Checkbox>
-                  </div>
-                )}
-                <Form.Item className={isSendToManagerAction && orderStatus !== 'Declined' ? "mt-2" : "mt-4"}>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    size="large"
-                    loading={loading}
-                    block
-                    className={`h-12 font-bold ${isCreateMode
-                      ? "bg-green-600 hover:bg-green-700"
-                      : estimate?.caseType === 3
-                        ? "bg-red-600 hover:bg-red-700"
-                        : estimate?.caseType === 2
-                          ? "bg-orange-500 hover:bg-orange-600"
-                          : "bg-blue-600"
-                      }`}
-                    disabled={
-                      (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing") ||
-                      (isSendToManagerAction && orderStatus !== 'Declined' && !isCustomerContacted)
-                    }
-                  >
-                    {isCreateMode
-                      ? "GỬI QUẢN LÝ DUYỆT"
-                      : (existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified")
-                        ? "GỬI BÁO GIÁ CHO KHÁCH HÀNG"
-                        : (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing")
-                          ? "ĐANG CHỜ DUYỆT"
-                          : "GỬI QUẢN LÝ DUYỆT"}
-                  </Button>
-                  {/* <Button
+                      {isCreateMode
+                        ? "GỬI QUẢN LÝ DUYỆT"
+                        : (existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified")
+                          ? "GỬI BÁO GIÁ CHO KHÁCH HÀNG"
+                          : (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing")
+                            ? "ĐANG CHỜ DUYỆT"
+                            : "GỬI QUẢN LÝ DUYỆT"}
+                    </Button>
+                    {/* <Button
                     type="primary"
                     htmlType="submit"
                     size="large"
@@ -1724,340 +1724,340 @@ function ConsultantForm() {
                       ? "HOÀN TẤT BÁO GIÁ (ĐÃ DUYỆT)"
                       : "CHỜ DUYỆT / GỬI DUYỆT"}
                   </Button> */}
-                </Form.Item>
-              </Card>
-            </Col>
+                  </Form.Item>
+                </Card>
+              </Col>
 
-            <Col span={12}>
-              <EstimatesCard
-                estimate={estimate}
-                paperEstimate={paperEstimate}
-                costEstimate={costEstimate}
-                loadingCostEstimate={loadingCostEstimate}
-                loadingPaperEstimate={loadingPaperEstimate}
-                onCalculate={handleManualCalculate}
-                workshopFreeInfo={workshopFreeInfo}
-                isWorkshopFull={isWorkshopFull}
-                runningMachines={runningMachines}
-                totalMachines={totalMachines}
-                discountPercent={discountPercent}
-                setDiscountPercent={(val) => {
-                  setDiscountPercent(val);
+              <Col span={12}>
+                <EstimatesCard
+                  estimate={estimate}
+                  paperEstimate={paperEstimate}
+                  costEstimate={costEstimate}
+                  loadingCostEstimate={loadingCostEstimate}
+                  loadingPaperEstimate={loadingPaperEstimate}
+                  onCalculate={handleManualCalculate}
+                  workshopFreeInfo={workshopFreeInfo}
+                  isWorkshopFull={isWorkshopFull}
+                  runningMachines={runningMachines}
+                  totalMachines={totalMachines}
+                  discountPercent={discountPercent}
+                  setDiscountPercent={(val) => {
+                    setDiscountPercent(val);
 
-                  // Cũng update value cho cái tab hiện hành ngay lập tức vào state QuoteTabs
-                  setQuoteTabs((prev) =>
-                    prev.map(tab => {
-                      if (tab.key === activeTabKey) {
-                        return {
-                          ...tab,
-                          calculations: {
-                            estimate: tab.calculations?.estimate || null,
-                            paperEstimate: tab.calculations?.paperEstimate || null,
-                            costEstimate: tab.calculations?.costEstimate || null,
-                            estimate_id: tab.calculations?.estimate_id,
-                            discountPercent: val
-                          }
-                        }
-                      }
-                      return tab;
-                    })
-                  );
-                }}
-                depositAmount={depositAmount}
-                form={form}
-                isCreateMode={isCreateMode}
-                handleAdjustPrice={handleAdjustPrice}
-                orderId={orderId}
-                isSavingCost={isSavingCost}
-                systemParameters={systemParameters}
-                highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
-                isDeclined={orderStatus === 'Declined'}
-              />
-            </Col>
-          </Row>
-        </Form>
-
-        <FactoryOrdersModal
-          isOpen={isFactoryModalOpen}
-          onClose={() => setIsFactoryModalOpen(false)}
-          factoryOrders={factoryOrders}
-        />
-
-        {/* REVIEW MODAL */}
-        <Modal
-          title={<div className="text-lg font-bold uppercase text-blue-800 border-b pb-2 mb-4">
-            {(existingOrder?.process_status === 'Verified' || existingOrder?.process_status === 'verified')
-              ? "Xác nhận gửi báo giá cho khách"
-              : "Xác nhận gửi duyệt giá cho Manager"
-            }
-          </div>}
-          open={isReviewModalOpen}
-          onCancel={() => setIsReviewModalOpen(false)}
-          footer={[
-            <Button key="back" onClick={() => setIsReviewModalOpen(false)}>
-              Hủy
-            </Button>,
-            <Button
-              key="submit"
-              type="primary"
-              loading={loading}
-              onClick={handleConfirmSend}
-              className="bg-blue-600 font-bold"
-            >
-              Xác Nhận & Gửi ({submitValues?.length || 0} báo giá)
-            </Button>,
-          ]}
-          width={750}
-        >
-          {submitValues && Array.isArray(submitValues) && (() => {
-            // --- LOGIC TO EXTRACT COMMON SPECS ---
-            const allQuotes = submitValues;
-            if (allQuotes.length === 0) return null;
-
-            // Define fields to check for commonality
-            // Keys must match submitValues keys
-            const specFields: { key: string; label: string; format?: (val: any) => string }[] = [
-              { key: "product_name", label: "Sản phẩm" },
-              { key: "product_type", label: "Loại sản phẩm", format: (v) => productTypes.find(pt => pt.code === v || pt.product_type_id === v)?.name || v },
-              {
-                key: "dimensions", // Virtual key for combined dimensions
-                label: "Kích thước",
-                format: (_) => "" // Handled manually below
-              },
-              { key: "paper_code", label: "Giấy/Chất liệu", format: (v) => paperTypes.find(p => p.code === v)?.name || v },
-              { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v === "KEO_NUOC" ? "Keo nước" : v === "KEO_DAN" ? "Keo dán" : v },
-              { key: "wave_type", label: "Sóng", format: (v) => v },
-              { key: "number_of_plates", label: "Số lượng kẽm", format: (v) => v },
-              {
-                key: "production_processes",
-                label: "Công đoạn",
-                format: (v) => {
-                  if (!v) return "Không";
-                  const arr = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(',') : []);
-                  return arr.map((p: string) => PROCESS_TYPE_LABELS[p] || p).join(", ");
-                }
-              },
-              // { key: "print_width", label: "Khổ in (Rộng)", format: (v) => `${v} mm` },
-              // { key: "print_height", label: "Khổ in (Cao)", format: (v) => `${v} mm` },
-              // { key: "is_one_side_box", label: "Kiểu in", format: (v) => v ? "In 1 mặt" : "In 2 mặt" },
-              // { key: "glue_tab", label: "Nắp dán", format: (v) => `${v} mm` }
-            ];
-
-            const commonSpecs: Record<string, any> = {};
-            const uniqueSpecsMap: Record<number, Record<string, any>> = {};
-
-            // Helper to get value
-            const getVal = (quote: any, fieldKey: string) => {
-              if (fieldKey === "dimensions") {
-                return `${quote.length} x ${quote.width} x ${quote.height}`;
-              }
-              return quote[fieldKey];
-            };
-
-            // Check each field
-            specFields.forEach(field => {
-              const firstVal = getVal(allQuotes[0], field.key);
-              const isCommon = allQuotes.every(q => getVal(q, field.key) === firstVal);
-
-              if (isCommon && firstVal) {
-                // If it's common (and not empty), add to commonSpecs
-                // For dimensions, stick to the formatted string. For others, keep raw value but we might need formatted for display?
-                // Let's store formatted if possible or raw?
-                // Let's store raw and format on render
-                commonSpecs[field.key] = firstVal;
-              } else {
-                // Not common, add to uniqueSpecs for each quote
-                allQuotes.forEach((q, idx) => {
-                  if (!uniqueSpecsMap[idx]) uniqueSpecsMap[idx] = {};
-                  uniqueSpecsMap[idx][field.key] = getVal(q, field.key);
-                });
-              }
-            });
-
-
-            return (
-              <div className="flex flex-col gap-2 overflow-y-auto pr-2 custom-scrollbar">
-                {/* 1. Customer Info - Ultra Compact */}
-                <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-base">
-                  <div className="flex gap-2 items-center">
-                    <span className="text-blue-800 font-semibold"><UserOutlined /> {submitValues[0]?.customer_name || "Khách hàng"}</span>
-                    <span className="text-gray-400">|</span>
-                    <span className="text-gray-600">{submitValues[0]?.customer_phone || "SĐT"}</span>
-                  </div>
-                  <div className="text-sm text-gray-500 italic">
-                    {submitValues?.length} phương án báo giá
-                  </div>
-                </div>
-
-                {/* 2. Common Technical Specs Card (Only if there are common specs) */}
-                {Object.keys(commonSpecs).length > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
-                    <div className="font-bold text-gray-700 mb-2 uppercase border-b border-gray-200 pb-1">
-                      Thông số kỹ thuật chung
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      {specFields.map(field => {
-                        if (Object.prototype.hasOwnProperty.call(commonSpecs, field.key)) {
-                          let displayVal = commonSpecs[field.key];
-                          if (field.key === "dimensions") {
-                            displayVal = displayVal + " mm";
-                          } else if (field.format) {
-                            displayVal = field.format(displayVal);
-                          }
-
-                          // Hide empty values or "None" if desired? 
-                          if (!displayVal || displayVal === "Không") return null;
-
-                          return (
-                            <div key={field.key} className="flex justify-between border-b border-dashed border-gray-200 pb-1">
-                              <span className="text-gray-500">{field.label}:</span>
-                              <span className="font-medium text-gray-800 text-right truncate pl-2 max-w-[200px]" title={displayVal.toString()}>
-                                {displayVal}
-                              </span>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Individual Quote Cards */}
-                {submitValues.map((quote: any, index: number) => {
-                  const calc = quote.calculations?.costEstimate?.cost;
-                  const quoteDiscountPercent = quote.calculations?.discountPercent || 0;
-                  // unique specs for this quote
-                  const uniqueForThis = uniqueSpecsMap[index] || {};
-
-                  // Derived Values
-                  const subtotal = Math.round(calc?.subtotal || 0);
-                  const discountAmt = Math.round((subtotal * quoteDiscountPercent) / 100) || 0;
-                  const finalTotal = Math.round(calc?.final_total_cost || 0);
-                  const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000;
-
-                  // Calculate default rounded price (same logic as in EstimatesCard)
-                  const defaultAutoPrice = Math.round(finalTotal / 1000) * 1000;
-                  // Only show negotiated price if it differs from the default rounded value
-                  const negotiatedPrice = quote.final_price && quote.final_price !== defaultAutoPrice ? quote.final_price : null;
-
-                  return (
-                    <div key={quote.key || index} className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
-                      {/* Header */}
-                      <div className="bg-white px-4 py-2 flex justify-between items-center border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
-                            {quote.label || `PA ${index + 1}`}
-                          </span>
-                          {/* If product name is unique, show it here? Or just show it in common? 
-                              Usually product name is common. Use it here anyway for identity. */}
-                          {/* <span className="font-bold text-gray-800 text-sm truncate" title={quote.product_name}>
-                            {quote.product_name}
-                          </span> */}
-                        </div>
-                        {/* <span className="text-blue-600 text-xs font-bold whitespace-nowrap bg-blue-50 border border-blue-100 px-2 py-0.5 rounded">
-                          SL: {Number(quote.quantity)?.toLocaleString()}
-                        </span> */}
-                      </div>
-
-                      {/* Content Grid */}
-                      <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        {/* Left: Unique Specs */}
-                        <div className="space-y-1">
-                          {/* Always show Quantity first if needed, but it's in header. */}
-
-                          {/* Render Unique Specs */}
-                          {specFields.map(field => {
-                            // Check if this field is in uniqueForThis
-                            if (Object.prototype.hasOwnProperty.call(uniqueForThis, field.key)) {
-                              let val = uniqueForThis[field.key];
-                              if (field.key === "dimensions") {
-                                val = val + " mm";
-                              } else if (field.format) {
-                                val = field.format(val);
-                              }
-
-                              if (!val || val === "Không") return null;
-
-                              return (
-                                <div key={field.key} className="flex justify-between border-b border-dashed border-gray-100 pb-1">
-                                  <span className="text-gray-500">{field.label}:</span>
-                                  <span className="font-medium text-gray-700 text-right">{val}</span>
-                                </div>
-                              );
+                    // Cũng update value cho cái tab hiện hành ngay lập tức vào state QuoteTabs
+                    setQuoteTabs((prev) =>
+                      prev.map(tab => {
+                        if (tab.key === activeTabKey) {
+                          return {
+                            ...tab,
+                            calculations: {
+                              estimate: tab.calculations?.estimate || null,
+                              paperEstimate: tab.calculations?.paperEstimate || null,
+                              costEstimate: tab.calculations?.costEstimate || null,
+                              estimate_id: tab.calculations?.estimate_id,
+                              discountPercent: val
                             }
-                            return null;
-                          })}
+                          }
+                        }
+                        return tab;
+                      })
+                    );
+                  }}
+                  depositAmount={depositAmount}
+                  form={form}
+                  isCreateMode={isCreateMode}
+                  handleAdjustPrice={handleAdjustPrice}
+                  orderId={orderId}
+                  isSavingCost={isSavingCost}
+                  systemParameters={systemParameters}
+                  highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
+                  isDeclined={orderStatus === 'Declined'}
+                />
+              </Col>
+            </Row>
+          </Form>
 
-                          {/* If no unique specs, maybe show a message? or just empty */}
-                          {Object.keys(uniqueForThis).length === 0 && (
-                            <div className="text-gray-400 italic py-2">
-                              (Thông số giống như trên)
-                            </div>
-                          )}
-                        </div>
+          <FactoryOrdersModal
+            isOpen={isFactoryModalOpen}
+            onClose={() => setIsFactoryModalOpen(false)}
+            factoryOrders={factoryOrders}
+          />
 
-                        {/* Right: Financials */}
-                        <div className="space-y-1 pl-2 border-l border-gray-100">
-                          {calc ? (
-                            <>
-                              <div className="flex justify-between text-gray-500">
-                                <span>Thành tiền:</span>
-                                <span>{subtotal.toLocaleString()} đ</span>
-                              </div>
-                              {discountAmt > 0 && (
-                                <div className="flex justify-between text-gray-500">
-                                  <span>Chiết khấu ({quoteDiscountPercent}%):</span>
-                                  <span className="text-red-500">-{discountAmt.toLocaleString()} đ</span>
-                                </div>
-                              )}
+          {/* REVIEW MODAL */}
+          <Modal
+            title={<div className="text-lg font-bold uppercase text-blue-800 border-b pb-2 mb-4">
+              {(existingOrder?.process_status === 'Verified' || existingOrder?.process_status === 'verified')
+                ? "Xác nhận gửi báo giá cho khách"
+                : "Xác nhận gửi duyệt giá cho Manager"
+              }
+            </div>}
+            open={isReviewModalOpen}
+            onCancel={() => setIsReviewModalOpen(false)}
+            footer={[
+              <Button key="back" onClick={() => setIsReviewModalOpen(false)}>
+                Hủy
+              </Button>,
+              <Button
+                key="submit"
+                type="primary"
+                loading={loading}
+                onClick={handleConfirmSend}
+                className="bg-blue-600 font-bold"
+              >
+                Xác Nhận & Gửi ({submitValues?.length || 0} báo giá)
+              </Button>,
+            ]}
+            width={750}
+          >
+            {submitValues && Array.isArray(submitValues) && (() => {
+              // --- LOGIC TO EXTRACT COMMON SPECS ---
+              const allQuotes = submitValues;
+              if (allQuotes.length === 0) return null;
 
-                              <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                                <span className="font-bold text-gray-700">Tổng cộng (Sau VAT):</span>
-                                <span className={`font-bold text-lg ${negotiatedPrice ? 'text-gray-400 line-through text-base' : 'text-blue-600'}`}>
-                                  {finalTotal.toLocaleString()} đ
+              // Define fields to check for commonality
+              // Keys must match submitValues keys
+              const specFields: { key: string; label: string; format?: (val: any) => string }[] = [
+                { key: "product_name", label: "Sản phẩm" },
+                { key: "product_type", label: "Loại sản phẩm", format: (v) => productTypes.find(pt => pt.code === v || pt.product_type_id === v)?.name || v },
+                {
+                  key: "dimensions", // Virtual key for combined dimensions
+                  label: "Kích thước",
+                  format: (_) => "" // Handled manually below
+                },
+                { key: "paper_code", label: "Giấy/Chất liệu", format: (v) => paperTypes.find(p => p.code === v)?.name || v },
+                { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v === "KEO_NUOC" ? "Keo nước" : v === "KEO_DAN" ? "Keo dán" : v },
+                { key: "wave_type", label: "Sóng", format: (v) => v },
+                { key: "number_of_plates", label: "Số lượng kẽm", format: (v) => v },
+                {
+                  key: "production_processes",
+                  label: "Công đoạn",
+                  format: (v) => {
+                    if (!v) return "Không";
+                    const arr = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(',') : []);
+                    return arr.map((p: string) => PROCESS_TYPE_LABELS[p] || p).join(", ");
+                  }
+                },
+                // { key: "print_width", label: "Khổ in (Rộng)", format: (v) => `${v} mm` },
+                // { key: "print_height", label: "Khổ in (Cao)", format: (v) => `${v} mm` },
+                // { key: "is_one_side_box", label: "Kiểu in", format: (v) => v ? "In 1 mặt" : "In 2 mặt" },
+                // { key: "glue_tab", label: "Nắp dán", format: (v) => `${v} mm` }
+              ];
+
+              const commonSpecs: Record<string, any> = {};
+              const uniqueSpecsMap: Record<number, Record<string, any>> = {};
+
+              // Helper to get value
+              const getVal = (quote: any, fieldKey: string) => {
+                if (fieldKey === "dimensions") {
+                  return `${quote.length} x ${quote.width} x ${quote.height}`;
+                }
+                return quote[fieldKey];
+              };
+
+              // Check each field
+              specFields.forEach(field => {
+                const firstVal = getVal(allQuotes[0], field.key);
+                const isCommon = allQuotes.every(q => getVal(q, field.key) === firstVal);
+
+                if (isCommon && firstVal) {
+                  // If it's common (and not empty), add to commonSpecs
+                  // For dimensions, stick to the formatted string. For others, keep raw value but we might need formatted for display?
+                  // Let's store formatted if possible or raw?
+                  // Let's store raw and format on render
+                  commonSpecs[field.key] = firstVal;
+                } else {
+                  // Not common, add to uniqueSpecs for each quote
+                  allQuotes.forEach((q, idx) => {
+                    if (!uniqueSpecsMap[idx]) uniqueSpecsMap[idx] = {};
+                    uniqueSpecsMap[idx][field.key] = getVal(q, field.key);
+                  });
+                }
+              });
+
+
+              return (
+                <div className="flex flex-col gap-2 overflow-y-auto pr-2 custom-scrollbar">
+                  {/* 1. Customer Info - Ultra Compact */}
+                  <div className="bg-blue-50/50 px-4 py-2 rounded-md border border-blue-100 flex justify-between items-center text-base">
+                    <div className="flex gap-2 items-center">
+                      <span className="text-blue-800 font-semibold"><UserOutlined /> {submitValues[0]?.customer_name || "Khách hàng"}</span>
+                      <span className="text-gray-400">|</span>
+                      <span className="text-gray-600">{submitValues[0]?.customer_phone || "SĐT"}</span>
+                    </div>
+                    <div className="text-sm text-gray-500 italic">
+                      {submitValues?.length} phương án báo giá
+                    </div>
+                  </div>
+
+                  {/* 2. Common Technical Specs Card (Only if there are common specs) */}
+                  {Object.keys(commonSpecs).length > 0 && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                      <div className="font-bold text-gray-700 mb-2 uppercase border-b border-gray-200 pb-1">
+                        Thông số kỹ thuật chung
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        {specFields.map(field => {
+                          if (Object.prototype.hasOwnProperty.call(commonSpecs, field.key)) {
+                            let displayVal = commonSpecs[field.key];
+                            if (field.key === "dimensions") {
+                              displayVal = displayVal + " mm";
+                            } else if (field.format) {
+                              displayVal = field.format(displayVal);
+                            }
+
+                            // Hide empty values or "None" if desired? 
+                            if (!displayVal || displayVal === "Không") return null;
+
+                            return (
+                              <div key={field.key} className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                                <span className="text-gray-500">{field.label}:</span>
+                                <span className="font-medium text-gray-800 text-right truncate pl-2 max-w-[200px]" title={displayVal.toString()}>
+                                  {displayVal}
                                 </span>
                               </div>
-
-                              {negotiatedPrice && (
-                                <div className="flex justify-between items-center bg-yellow-50 px-2 py-1 rounded mt-1 border border-yellow-100">
-                                  <span className="font-bold text-yellow-700">Giá chốt:</span>
-                                  <span className="font-bold text-xl text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
-                                </div>
-                              )}
-
-                              <div className="flex justify-between items-center text-sm text-orange-600 mt-1">
-                                <span>Cọc (30%):</span>
-                                <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
-                              </div>
-                            </>
-                          ) : (
-                            <span className="text-red-400 italic text-center block py-2">Chưa có giá</span>
-                          )}
-                        </div>
+                            );
+                          }
+                          return null;
+                        })}
                       </div>
                     </div>
-                  );
-                })}
+                  )}
 
-                {/* 4. Consultant Note */}
-                {submitValues[0]?.consultant_note && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm mt-3">
-                    <div className="font-bold text-yellow-800 mb-1 uppercase border-b border-yellow-200 pb-1">
-                       Ghi chú 
-                    </div>
-                    <div className="text-yellow-900 whitespace-pre-wrap mt-2">
-                      {submitValues[0].consultant_note}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </Modal>
+                  {/* 3. Individual Quote Cards */}
+                  {submitValues.map((quote: any, index: number) => {
+                    const calc = quote.calculations?.costEstimate?.cost;
+                    const quoteDiscountPercent = quote.calculations?.discountPercent || 0;
+                    // unique specs for this quote
+                    const uniqueForThis = uniqueSpecsMap[index] || {};
 
+                    // Derived Values
+                    const subtotal = Math.round(calc?.subtotal || 0);
+                    const discountAmt = Math.round((subtotal * quoteDiscountPercent) / 100) || 0;
+                    const finalTotal = Math.round(calc?.final_total_cost || 0);
+                    const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000;
+
+                    // Calculate default rounded price (same logic as in EstimatesCard)
+                    const defaultAutoPrice = Math.round(finalTotal / 1000) * 1000;
+                    // Only show negotiated price if it differs from the default rounded value
+                    const negotiatedPrice = quote.final_price && quote.final_price !== defaultAutoPrice ? quote.final_price : null;
+
+                    return (
+                      <div key={quote.key || index} className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
+                        {/* Header */}
+                        <div className="bg-white px-4 py-2 flex justify-between items-center border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                              {quote.label || `PA ${index + 1}`}
+                            </span>
+                            {/* If product name is unique, show it here? Or just show it in common? 
+                              Usually product name is common. Use it here anyway for identity. */}
+                            {/* <span className="font-bold text-gray-800 text-sm truncate" title={quote.product_name}>
+                            {quote.product_name}
+                          </span> */}
+                          </div>
+                          {/* <span className="text-blue-600 text-xs font-bold whitespace-nowrap bg-blue-50 border border-blue-100 px-2 py-0.5 rounded">
+                          SL: {Number(quote.quantity)?.toLocaleString()}
+                        </span> */}
+                        </div>
+
+                        {/* Content Grid */}
+                        <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          {/* Left: Unique Specs */}
+                          <div className="space-y-1">
+                            {/* Always show Quantity first if needed, but it's in header. */}
+
+                            {/* Render Unique Specs */}
+                            {specFields.map(field => {
+                              // Check if this field is in uniqueForThis
+                              if (Object.prototype.hasOwnProperty.call(uniqueForThis, field.key)) {
+                                let val = uniqueForThis[field.key];
+                                if (field.key === "dimensions") {
+                                  val = val + " mm";
+                                } else if (field.format) {
+                                  val = field.format(val);
+                                }
+
+                                if (!val || val === "Không") return null;
+
+                                return (
+                                  <div key={field.key} className="flex justify-between border-b border-dashed border-gray-100 pb-1">
+                                    <span className="text-gray-500">{field.label}:</span>
+                                    <span className="font-medium text-gray-700 text-right">{val}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+
+                            {/* If no unique specs, maybe show a message? or just empty */}
+                            {Object.keys(uniqueForThis).length === 0 && (
+                              <div className="text-gray-400 italic py-2">
+                                (Thông số giống như trên)
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Right: Financials */}
+                          <div className="space-y-1 pl-2 border-l border-gray-100">
+                            {calc ? (
+                              <>
+                                <div className="flex justify-between text-gray-500">
+                                  <span>Thành tiền:</span>
+                                  <span>{subtotal.toLocaleString()} đ</span>
+                                </div>
+                                {discountAmt > 0 && (
+                                  <div className="flex justify-between text-gray-500">
+                                    <span>Chiết khấu ({quoteDiscountPercent}%):</span>
+                                    <span className="text-red-500">-{discountAmt.toLocaleString()} đ</span>
+                                  </div>
+                                )}
+
+                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                                  <span className="font-bold text-gray-700">Tổng cộng (Sau VAT):</span>
+                                  <span className={`font-bold text-lg ${negotiatedPrice ? 'text-gray-400 line-through text-base' : 'text-blue-600'}`}>
+                                    {finalTotal.toLocaleString()} đ
+                                  </span>
+                                </div>
+
+                                {negotiatedPrice && (
+                                  <div className="flex justify-between items-center bg-yellow-50 px-2 py-1 rounded mt-1 border border-yellow-100">
+                                    <span className="font-bold text-yellow-700">Giá chốt:</span>
+                                    <span className="font-bold text-xl text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
+                                  </div>
+                                )}
+
+                                <div className="flex justify-between items-center text-sm text-orange-600 mt-1">
+                                  <span>Cọc (30%):</span>
+                                  <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
+                                </div>
+                              </>
+                            ) : (
+                              <span className="text-red-400 italic text-center block py-2">Chưa có giá</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* 4. Consultant Note */}
+                  {submitValues[0]?.consultant_note && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm mt-3">
+                      <div className="font-bold text-yellow-800 mb-1 uppercase border-b border-yellow-200 pb-1">
+                        Ghi chú
+                      </div>
+                      <div className="text-yellow-900 whitespace-pre-wrap mt-2">
+                        {submitValues[0].consultant_note}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </Modal>
+
+        </div>
       </div>
-    </div>
     </>
   );
 }

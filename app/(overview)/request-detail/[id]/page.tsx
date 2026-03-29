@@ -43,6 +43,7 @@ import {
   Skeleton,
   Steps,
   Tag,
+  Tooltip,
   Typography,
   Upload
 } from "antd";
@@ -546,7 +547,12 @@ export default function RequestDetailPage() {
                     </div> */}
                       <div>
                         {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Số lượng</Text> */}
-                        <div className="text-lg font-bold text-slate-800">SL: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc</div>
+                        <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                          SL: {requestDetail.quantity.toLocaleString("vi-VN")} chiếc
+                          <Tooltip title="Số lượng sẽ được xác nhận khi tư vấn viên liên hệ">
+                            <InfoCircleOutlined className="text-slate-400 text-base cursor-help" />
+                          </Tooltip>
+                        </div>
                       </div>
                       {requestDetail.preliminary_estimated_price && (
                         <div>
@@ -704,9 +710,11 @@ export default function RequestDetailPage() {
                             </p>
                           </div>
 
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                              <div className="mb-6">
+                          <div className="flex-1 flex flex-col gap-8">
+                            {/* Row 1: Thông tin & Chi phí */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                              {/* Left: Thông tin đơn hàng */}
+                              <div>
                                 <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
                                   Thông tin đơn hàng
                                 </h3>
@@ -730,6 +738,48 @@ export default function RequestDetailPage() {
                                 </div>
                               </div>
 
+                              {/* Right: Bảng kê chi phí */}
+                              <div>
+                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-orange-500 text-orange-600 tracking-wide">
+                                  Bảng kê chi phí
+                                </h3>
+                                <div className="rounded-lg p-2">
+                                  <div className="space-y-2">
+                                    {!!quote.material_cost && quote.material_cost > 0 && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.material_cost)}</span>
+                                      </div>
+                                    )}
+                                    {!!quote.labor_cost && quote.labor_cost > 0 && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.labor_cost)}</span>
+                                      </div>
+                                    )}
+                                    {!!quote.other_fees && quote.other_fees > 0 && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Chi phí khác</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.other_fees)}</span>
+                                      </div>
+                                    )}
+                                    {!!quote.rush_amount && quote.rush_amount > 0 && (
+                                      <div className="flex justify-between items-center py-1.5">
+                                        <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
+                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.rush_amount)}</span>
+                                      </div>
+                                    )}
+                                    {(!quote.material_cost && !quote.labor_cost && !quote.other_fees && !quote.rush_amount) && (
+                                      <div className="text-slate-400 text-[13px] italic py-2">Liên hệ để biết thêm chi tiết</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Row 2: Sản phẩm & Tổng thanh toán */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                              {/* Left: Chi tiết sản phẩm */}
                               <div>
                                 <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
                                   Chi tiết sản phẩm
@@ -761,46 +811,8 @@ export default function RequestDetailPage() {
                                   )}
                                 </div>
                               </div>
-                            </div>
 
-                            <div>
-                              <div className="mb-6">
-                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-orange-500 text-orange-600 tracking-wide">
-                                  Bảng kê chi phí
-                                </h3>
-                                <div className="rounded-lg p-2">
-                                  <div className="space-y-2 min-h-[40px]">
-                                    {!!quote.material_cost && quote.material_cost > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.material_cost)}</span>
-                                      </div>
-                                    )}
-                                    {!!quote.labor_cost && quote.labor_cost > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.labor_cost)}</span>
-                                      </div>
-                                    )}
-                                    {!!quote.other_fees && quote.other_fees > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Chi phí khác</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.other_fees)}</span>
-                                      </div>
-                                    )}
-                                    {!!quote.rush_amount && quote.rush_amount > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.rush_amount)}</span>
-                                      </div>
-                                    )}
-                                    {(!quote.material_cost && !quote.labor_cost && !quote.other_fees && !quote.rush_amount) && (
-                                      <div className="text-slate-400 text-[13px] italic py-2">Liên hệ để biết thêm chi tiết</div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
+                              {/* Right: Tổng thanh toán */}
                               <div>
                                 <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-green-500 text-green-600 tracking-wide">
                                   Tổng thanh toán
@@ -825,14 +837,14 @@ export default function RequestDetailPage() {
                                   </div>
                                 </div>
 
-                                  {quote.deposit && quote.deposit > 0 ? (
-                                    <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-green-800 font-bold text-[13px]">Đã Thanh toán:</span>
-                                        <span className="text-green-700 font-extrabold text-base">{formatVND(quote.deposit || 0)}</span>
-                                      </div>
+                                {quote.deposit && quote.deposit > 0 ? (
+                                  <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-green-800 font-bold text-[13px]">Đã Thanh toán:</span>
+                                      <span className="text-green-700 font-extrabold text-base">{formatVND(quote.deposit || 0)}</span>
                                     </div>
-                                  ) : null}
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
                           </div>

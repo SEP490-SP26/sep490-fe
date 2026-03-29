@@ -58,6 +58,8 @@ export interface DetailedEstimate {
 export interface RequestDetailResponse {
   request_id: number;
   order_id: number;
+  order_request_id: number;
+  quote_id: number;
   customer_name: string;
   customer_phone: string;
   email: string;
@@ -96,11 +98,12 @@ export interface RequestDetailResponse {
   bleed_mm: number;
   is_one_side_box: boolean;
   print_width_mm: number;
-  print_height_mm: number;
+  print_length_mm: number;
 
   // Danh sách các phương án báo giá đi kèm
   preliminary_estimated_price?: number;
   cost_estimate: DetailedEstimate[];
+  file_url?: string;
 }
 
 // --- PHẦN 1: CÁC INTERFACE CON ---

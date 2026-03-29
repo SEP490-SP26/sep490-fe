@@ -21,7 +21,7 @@ export const calculatePrintSize = (
     is_one_side_box: boolean,
     productTypeCode: string
 ): PrintSize => {
-    let print_width_mm: number, print_height_mm: number;
+    let print_width_mm: number, print_length_mm: number;
 
     // Kiểm tra và gán giá trị mặc định
     const effectiveGlueTab = glue_tab_mm <= 0 ? 20 : glue_tab_mm;
@@ -29,25 +29,25 @@ export const calculatePrintSize = (
     // Dòng gạch
     if (productTypeCode?.startsWith('GACH_')) {
         print_width_mm = length_mm + 2 * height_mm + 2 * bleed_mm;
-        print_height_mm = width_mm + 2 * height_mm + 2 * bleed_mm;
+        print_length_mm = width_mm + 2 * height_mm + 2 * bleed_mm;
     }
     // Hộp carton
     else if (productTypeCode?.startsWith('HOP_MAU')) {
         print_width_mm = 2 * (length_mm + width_mm) + effectiveGlueTab + 2 * bleed_mm;
 
         if (is_one_side_box) {
-            print_height_mm = width_mm + height_mm + 2 * bleed_mm;
+            print_length_mm = width_mm + height_mm + 2 * bleed_mm;
         } else {
-            print_height_mm = (2 * width_mm + height_mm) + 2 * bleed_mm;
+            print_length_mm = (2 * width_mm + height_mm) + 2 * bleed_mm;
         }
     }
     // Trường hợp khác
     else {
         print_width_mm = 2 * (length_mm + width_mm) + effectiveGlueTab + 2 * bleed_mm;
-        print_height_mm = (2 * width_mm + height_mm) + 2 * bleed_mm;
+        print_length_mm = (2 * width_mm + height_mm) + 2 * bleed_mm;
     }
 
-    return { print_width_mm, print_height_mm };
+    return { print_width_mm, print_length_mm };
 };
 
 // ==========================================
@@ -271,7 +271,7 @@ export const calculatePlateCost = (
 
     const printWidthCm = printWidthMm / 10;
     const printHeightCm = printHeightMm / 10;
-    
+
     // Sort plate items by area to find the smallest fitting plate
     let rawItems = config?.platePrices?.items || [];
     if (rawItems.length === 0 && config?.platePrices) {
@@ -282,8 +282,8 @@ export const calculatePlateCost = (
             ...(config.platePrices.xlarge || [])
         ];
     }
-    
-    const plateItems = rawItems.length > 0 ? [...rawItems].sort((a, b) => 
+
+    const plateItems = rawItems.length > 0 ? [...rawItems].sort((a, b) =>
         (a.width_cm * a.height_cm) - (b.width_cm * b.height_cm)
     ) : [];
 
@@ -294,13 +294,13 @@ export const calculatePlateCost = (
             // Check if print fits in plate (allow rotation)
             const fitsNormal = printWidthCm <= plate.width_cm && printHeightCm <= plate.height_cm;
             const fitsRotated = printHeightCm <= plate.width_cm && printWidthCm <= plate.height_cm;
-            
+
             if (fitsNormal || fitsRotated) {
                 selectedPlate = plate;
                 break;
             }
         }
-        
+
         // If no plate is large enough, fallback to the largest available
         if (!selectedPlate) {
             selectedPlate = plateItems[plateItems.length - 1];
