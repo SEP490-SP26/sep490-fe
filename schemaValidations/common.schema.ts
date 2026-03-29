@@ -293,6 +293,11 @@ export interface EstimateCostData {
 
   // Material details
   material_cost_details: MaterialCostDetail[];
+  
+  // Potential new calculation fields
+  wave_sheets_used?: number;
+  paper_alternative?: string;
+  wave_alternative?: string;
 }
 
 // New response structure with cost and process_cost

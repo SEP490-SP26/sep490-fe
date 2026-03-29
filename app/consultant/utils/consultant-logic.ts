@@ -273,5 +273,10 @@ export const mapToOrderEstimationResult = (
     total_process_cost: costEstimate.cost.total_process_cost || 0,
 
     process_costs: mappedProcessCosts,
+    paper_alternative: additionalSpecs?.paper_alternative || costEstimate.cost.paper_alternative || "",
+    wave_alternative: additionalSpecs?.wave_alternative || costEstimate.cost.wave_alternative || "",
+    wave_sheets_used: costEstimate.cost.wave_sheets_used || 0,
+    contract_file_path: additionalSpecs?.contract_file_path || "",
+    contract_uploaded_at: additionalSpecs?.contract_uploaded_at || "",
   };
 };

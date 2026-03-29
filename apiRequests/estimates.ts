@@ -3,7 +3,6 @@ import http from "@/lib/httpAxios";
 import {
     DepositResponse,
     EstimateCostRequest,
-    EstimateCostResponse,
     EstimatePaperRequest,
     EstimatePaperResponse,
     ProcessCostBreakdownResponse

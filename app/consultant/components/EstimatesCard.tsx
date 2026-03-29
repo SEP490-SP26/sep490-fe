@@ -197,6 +197,14 @@ export default function EstimatesCard({
                     <div className="text-sm font-semibold text-green-800 mb-3">
                       TÍNH TOÁN SƠ BỘ:
                     </div>
+                    {paperEstimate.warning_message && (
+                      <Alert
+                        message={paperEstimate.warning_message}
+                        type="error"
+                        showIcon
+                        className="mb-3"
+                      />
+                    )}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="text-gray-600">Khổ giấy:</div>
                       <div className="font-medium text-right">

@@ -60,18 +60,23 @@ export default function ProductSpecsSection({
   const selectedProductType = productTypes?.find((pt) => pt.product_type_id === currentProductTypeId);
   const selectedPaper = paperTypes?.find((paper) => paper.code === currentPaperCode);
 
-  let showPaperWarning = false;
-  let paperWarningMsg = "";
+  // Determine the active product type for compatibility checks
+  const activeProductType = selectedProductType || productTypes?.find((pt) => pt.code === selectedProductTypeCode);
 
-  if (selectedProductType && selectedProductType.name && selectedPaper && selectedPaper.material_class) {
-    const validClasses = selectedPaper.material_class.split(",").map((s: string) => s.trim().toLowerCase());
-    const productNameLower = selectedProductType.name.trim().toLowerCase();
+  const checkPaperCompatibility = (paper: any, prodType: any) => {
+    if (!paper || !paper.material_class || !prodType) return true;
+    const validClasses = paper.material_class.split(",").map((s: string) => s.trim().toLowerCase());
+    const productNameLower = prodType.name?.trim().toLowerCase();
+    const productCodeLower = prodType.code?.trim().toLowerCase();
     
-    if (validClasses.length > 0 && !validClasses.includes(productNameLower)) {
-      showPaperWarning = true;
-      paperWarningMsg = `Cảnh báo: Loại giấy bạn chọn có thể không phù hợp với loại sản phẩm ${selectedProductType.name}.`;
-    }
-  }
+    if (validClasses.length === 0) return true;
+    
+    return (productNameLower && validClasses.includes(productNameLower)) || 
+           (productCodeLower && validClasses.includes(productCodeLower));
+  };
+
+  const isCurrentPaperIncompatible = selectedPaper && !checkPaperCompatibility(selectedPaper, activeProductType);
+  const paperWarningMsg = isCurrentPaperIncompatible ? `Loại giấy ${selectedPaper.name} có thể không phù hợp với loại sản phẩm ${activeProductType?.name}.` : "";
 
   useEffect(() => {
     if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
@@ -94,6 +99,16 @@ export default function ProductSpecsSection({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductTypeCode, formTypes, form]);
+
+  useEffect(() => {
+    const processes = form.getFieldValue("production_processes");
+    const currentWave = form.getFieldValue("wave_type");
+    
+    // Ensure wave_type is initialized if BOI is present but wave_type is missing
+    if (Array.isArray(processes) && processes.includes("BOI") && !currentWave) {
+      form.setFieldValue("wave_type", "SONG_B_NAU");
+    }
+  }, [form]);
 
   return (
     <>
@@ -142,11 +157,12 @@ export default function ProductSpecsSection({
       <Row gutter={16}>
 
         <Col span={9}>
-          <Tooltip title={highlightFields['paper_code'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
+          <Tooltip title={isCurrentPaperIncompatible ? paperWarningMsg : (highlightFields['paper_code'] || "")} color={isCurrentPaperIncompatible ? "volcano" : "orange"} placement="topLeft" trigger={['hover', 'focus']}>
             <div className="w-full">
               <Form.Item
                 name="paper_code"
                 rules={[{ required: true, message: "Vui lòng chọn loại giấy" }]}
+                validateStatus={isCurrentPaperIncompatible ? "warning" : undefined}
                 className="mb-0"
               >
                 <FloatingSelect
@@ -155,23 +171,27 @@ export default function ProductSpecsSection({
                   placeholder="Chọn loại giấy..."
                   loading={loadingPaperTypes}
                   optionFilterProp="label"
-                  options={paperTypes.map((paper) => ({
-                    label: <div className="flex justify-between gap-2">
-                      <span>{paper.name}</span>
-                      <span className="text-gray-500">(SL: {paper.stock ?? 0})</span>
-                    </div>,
-                    value: paper.code,
-                    stockQty: paper.stock,
-                  }))}
+                  options={paperTypes.map((paper) => {
+                    const isOptionCompatible = checkPaperCompatibility(paper, activeProductType);
+                    return {
+                      label: <div className="flex justify-between gap-2 items-center">
+                        <div className="flex items-center gap-1">
+                          <span>{paper.name}</span>
+                          {!isOptionCompatible && (
+                            <Tooltip title={`Có thể không phù hợp với ${activeProductType?.name}`}>
+                            </Tooltip>
+                          )}
+                        </div>
+                        <span className="text-gray-500 text-[11px]">(SL: {paper.stock ?? 0})</span>
+                      </div>,
+                      value: paper.code,
+                      stockQty: paper.stock,
+                    };
+                  })}
                   className={highlightFields['paper_code'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
                   disabled={isDeclined && !highlightFields['paper_code']}
                 />
               </Form.Item>
-              {showPaperWarning && (
-                <div className="text-yellow-600 text-[12px] mt-1 leading-[1.2]">
-                  {paperWarningMsg}
-                </div>
-              )}
             </div>
           </Tooltip>
         </Col>
@@ -392,17 +412,19 @@ export default function ProductSpecsSection({
             label="Gia Công"
             className="mb-1"
             normalize={(value) => {
-              if (!Array.isArray(value)) return ["RALO", "BE", "DUT"];
-              let updatedValues = [...value] as string[];
+              let updatedValues: string[] = [];
+              if (Array.isArray(value)) {
+                updatedValues = [...value];
+              } else if (typeof value === "string") {
+                updatedValues = value.split(",").map(v => v.trim()).filter(v => v);
+              } else {
+                updatedValues = ["RALO", "BE", "DUT"];
+              }
 
               // NẾU LUÔN LUÔN BẮT BUỘC RALO VÀ BẾ
               if (!updatedValues.includes("RALO")) updatedValues.push("RALO");
               if (!updatedValues.includes("BE")) updatedValues.push("BE");
-
-              // Bế luôn có nên Dứt cũng luôn có
-              if (!updatedValues.includes("DUT")) {
-                updatedValues.push("DUT");
-              }
+              if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
 
               // Sắp xếp đúng theo trình tự gia công chuẩn
               const STANDARD_ORDER = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"];

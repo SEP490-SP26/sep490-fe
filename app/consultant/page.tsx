@@ -61,14 +61,14 @@ import {
   getEstimatedFreeDate,
   mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
-import { 
-  calculateEstimateForSave, 
-  CalculateInput, 
-  calculateTotalWaste, 
-  calculateNUp, 
-  calculatePrintSize, 
-  calculateRushFee, 
-  calculateProductionDays 
+import {
+  calculateEstimateForSave,
+  CalculateInput,
+  calculateTotalWaste,
+  calculateNUp,
+  calculatePrintSize,
+  calculateRushFee,
+  calculateProductionDays
 } from "@/lib/estimationUtils";
 import axios from "@/apiRequests/axios";
 import { log } from "console";
@@ -473,6 +473,7 @@ function ConsultantForm() {
               name: pt.name,
               stock: pt.stockQty || 0, // Ensure stock is mapped
               value: pt.code, // For easier finding
+              material_class: pt.material_class,
             }))
           );
         }
@@ -965,40 +966,40 @@ function ConsultantForm() {
         coating_type: coating_type,
         design_file_path: designFilePath,
         is_send_design: isSendDesign,
-        
+
         sheet_width_mm: selectedMaterial.sheet_width_mm || 0,
         sheet_length_mm: selectedMaterial.sheet_length_mm || 0,
-        
+
         wave_sheet_width_mm: selectedWaveMaterial?.sheet_width_mm || 0,
         wave_sheet_length_mm: selectedWaveMaterial?.sheet_length_mm || 0,
-        
+
         print_width_mm: printSizeResult.print_width_mm,
         print_length_mm: printSizeResult.print_length_mm,
-        
+
         processesCsv: inputs.production_processes || "",
         processCosts: processCosts as any,
         materials: materials,
-        
+
         ink_rate_per_m2: ink_rate,
         ink_price_per_kg: 150000,
         coating_glue_price_per_kg: coating_type === 'KEO_NUOC' ? 80000 : 120000,
         mounting_glue_price_per_kg: 90000,
         lamination_price_per_kg: 150000,
         default_design_cost: designConfig?.default_design_cost || 0,
-        
+
         waste_printing: wasteResult.wastes.printing,
         waste_die_cutting: wasteResult.wastes.dieCutting,
         waste_mounting: wasteResult.wastes.mounting,
         waste_coating: wasteResult.wastes.coating,
         waste_lamination: wasteResult.wastes.lamination,
-        
+
         rush_amount: 0, // Rush amount is computed similarly but injected directly if available
-        discount_percent: discountPercent || 0
+        discount_percent: discountPercent || 0,
       };
 
       // Execute new drop-in algorithm
       const partialEstimate = calculateEstimateForSave(calcInput);
-      
+
       // Calculate rush logic independently to append
       const rushResult = calculateRushFee(
         calculateProductionDays(
@@ -1049,7 +1050,7 @@ function ConsultantForm() {
         waste_lamination: wasteResult.wastes.lamination,
         waste_gluing: wasteResult.wastes.gluing,
         waste_percent: savedEstimate.sheets_required > 0 ? (savedEstimate.sheets_waste / savedEstimate.sheets_required) * 100 : 0,
-        warning_message: ""
+        warning_message: savedEstimate.warning_message || ""
       };
 
       const costEstimateObj = {
@@ -1099,7 +1100,26 @@ function ConsultantForm() {
 
     } catch (err) {
       console.error("Calculation error", err);
-      return null;
+      const basicEstimate = calculateProductionTime(
+        quantity, paper_code, paperTypes, isWorkshopFull,
+        daysUntilFree, values.delivery_date, isBusy,
+        quantity
+      );
+      return {
+        estimate: basicEstimate,
+        paperEstimate: {
+          warning_message: "Lỗi hệ thống khi tính toán. Vui lòng kiểm tra lại kích thước hoặc loại giấy.",
+          sheets_with_waste: 0,
+          sheets_base: 0,
+          n_up: 0,
+          print_width_mm: 0,
+          print_length_mm: 0,
+          sheet_width_mm: 0,
+          sheet_length_mm: 0
+        } as any,
+        costEstimate: null,
+        finalTotalCost: 0
+      };
     }
   }
 
@@ -1326,6 +1346,28 @@ function ConsultantForm() {
         }
       }
 
+      // 2.2 UPLOAD CONTRACT
+      let finalContractPath = "";
+      let contractUploadedAt = "";
+      if (primaryQuote.contract_file && primaryQuote.contract_file.length > 0) {
+        const contractFiles = primaryQuote.contract_file
+          .map((f: any) => f.originFileObj || f)
+          .filter((f: any) => f instanceof File || f instanceof Blob);
+
+        if (contractFiles.length > 0) {
+          try {
+            const uploadRes: any = await uploadApi.uploadFile(contractFiles);
+            if (uploadRes && uploadRes.data && uploadRes.data.length > 0) {
+              finalContractPath = uploadRes.data[0];
+              contractUploadedAt = new Date().toISOString();
+            }
+          } catch (uploadError) {
+            console.error("Error uploading contract:", uploadError);
+            message.warning("Không thể tải lên file hợp đồng. Tiến hành gửi báo giá không có file hợp đồng.");
+          }
+        }
+      }
+
       // 3. UPDATE REQUEST (Primary Info)
       // We update the request with details from the Primary Quote to ensure basic fields are filled
       if (isNegotiateMode) {
@@ -1403,7 +1445,9 @@ function ConsultantForm() {
                 glue_tab_mm: quote.glue_tab,
                 is_one_side_box: quote.is_one_side_box,
                 previous_estimate_id: calculations.previous_estimate_id || null,
-                final_total_cost: quote.final_price
+                final_total_cost: quote.final_price,
+                contract_file_path: finalContractPath,
+                contract_uploaded_at: contractUploadedAt
               }
             );
 
@@ -1466,6 +1510,27 @@ function ConsultantForm() {
 
     setIsSavingCost(true);
     try {
+      // 1. UPLOAD CONTRACT IF PRESENT
+      let finalContractPath = "";
+      let contractUploadedAt = "";
+      const contractFieldValue = form.getFieldValue("contract_file");
+      if (contractFieldValue && contractFieldValue.length > 0) {
+        const contractFiles = contractFieldValue
+          .map((f: any) => f.originFileObj || f)
+          .filter((f: any) => f instanceof File || f instanceof Blob);
+
+        if (contractFiles.length > 0) {
+          try {
+            const uploadRes: any = await uploadApi.uploadFile(contractFiles);
+            if (uploadRes && uploadRes.data && uploadRes.data.length > 0) {
+              finalContractPath = uploadRes.data[0];
+              contractUploadedAt = new Date().toISOString();
+            }
+          } catch (uploadError) {
+            console.error("Error uploading contract in adjust price:", uploadError);
+          }
+        }
+      }
 
       if (costEstimate && paperEstimate) {
         try {
@@ -1491,7 +1556,9 @@ function ConsultantForm() {
               glue_tab_mm: form.getFieldValue("glue_tab"),
               is_one_side_box: form.getFieldValue("is_one_side_box"),
               previous_estimate_id: previousEstimateId || null,
-              final_total_cost: finalPrice
+              final_total_cost: finalPrice,
+              contract_file_path: finalContractPath,
+              contract_uploaded_at: contractUploadedAt
             }
           );
 

@@ -589,345 +589,347 @@ export const formatProcess = (processCode: string | null | undefined): string =>
 };
 
 export type ProcessCostRule = {
-  process_name?: string;
-  unit?: string;
-  unit_price?: number;
-  note?: string;
+    process_name?: string;
+    unit?: string;
+    unit_price?: number;
+    note?: string;
 };
 
 export type CalculateInput = {
-  quantity: number;
-  paper_code: string;
-  wave_type?: string | null;
-  coating_type?: string | null;
-  design_file_path?: string | null;
-  is_send_design?: boolean;
+    quantity: number;
+    paper_code: string;
+    wave_type?: string | null;
+    coating_type?: string | null;
+    design_file_path?: string | null;
+    is_send_design?: boolean;
 
-  sheet_width_mm: number;
-  sheet_length_mm: number;
+    sheet_width_mm: number;
+    sheet_length_mm: number;
 
-  wave_sheet_width_mm?: number;
-  wave_sheet_length_mm?: number;
+    wave_sheet_width_mm?: number;
+    wave_sheet_length_mm?: number;
 
-  print_width_mm: number;
-  print_length_mm: number;
+    print_width_mm: number;
+    print_length_mm: number;
 
-  processesCsv: string;
-  processCosts?: Record<string, ProcessCostRule>;
-  materials?: Array<{ code: string; name?: string; cost_price?: number; sheet_width_mm?: number; sheet_length_mm?: number }>;
+    processesCsv: string;
+    processCosts?: Record<string, ProcessCostRule>;
+    materials?: Array<{ code: string; name?: string; cost_price?: number; sheet_width_mm?: number; sheet_length_mm?: number }>;
 
-  ink_rate_per_m2: number;
-  ink_price_per_kg: number;
-  coating_glue_price_per_kg: number;
-  mounting_glue_price_per_kg: number;
-  lamination_price_per_kg: number;
-  default_design_cost: number;
+    ink_rate_per_m2: number;
+    ink_price_per_kg: number;
+    coating_glue_price_per_kg: number;
+    mounting_glue_price_per_kg: number;
+    lamination_price_per_kg: number;
+    default_design_cost: number;
 
-  waste_printing: number;
-  waste_die_cutting: number;
-  waste_mounting: number;
-  waste_coating: number;
-  waste_lamination: number;
+    waste_printing: number;
+    waste_die_cutting: number;
+    waste_mounting: number;
+    waste_coating: number;
+    waste_lamination: number;
 
-  rush_amount: number;
-  discount_percent: number;
+    rush_amount: number;
+    discount_percent: number;
 };
 
 const normalizeProcessCode = (code?: string) => {
-  const x = (code || "").trim().toUpperCase();
-  return x === "CAN_MANG" ? "CAN" : x;
+    const x = (code || "").trim().toUpperCase();
+    return x === "CAN_MANG" ? "CAN" : x;
 };
 
 export const calculateEstimateForSave = (input: CalculateInput) => {
-  const {
-    quantity,
-    paper_code,
-    wave_type,
-    coating_type,
-    design_file_path,
-    is_send_design,
+    const {
+        quantity,
+        paper_code,
+        wave_type,
+        coating_type,
+        design_file_path,
+        is_send_design,
 
-    sheet_width_mm,
-    sheet_length_mm,
-    wave_sheet_width_mm = 0,
-    wave_sheet_length_mm = 0,
+        sheet_width_mm,
+        sheet_length_mm,
+        wave_sheet_width_mm = 0,
+        wave_sheet_length_mm = 0,
 
-    print_width_mm,
-    print_length_mm,
+        print_width_mm,
+        print_length_mm,
 
-    processesCsv,
-    processCosts,
-    materials,
+        processesCsv,
+        processCosts,
+        materials,
 
-    ink_rate_per_m2,
-    ink_price_per_kg,
-    coating_glue_price_per_kg,
-    mounting_glue_price_per_kg,
-    lamination_price_per_kg,
-    default_design_cost,
+        ink_rate_per_m2,
+        ink_price_per_kg,
+        coating_glue_price_per_kg,
+        mounting_glue_price_per_kg,
+        lamination_price_per_kg,
+        default_design_cost,
 
-    waste_printing,
-    waste_die_cutting,
-    waste_mounting,
-    waste_coating,
-    waste_lamination,
+        waste_printing,
+        waste_die_cutting,
+        waste_mounting,
+        waste_coating,
+        waste_lamination,
 
-    rush_amount,
-    discount_percent
-  } = input;
+        rush_amount,
+        discount_percent
+    } = input;
 
-  const processes = (processesCsv || "")
-    .split(",")
-    .map(normalizeProcessCode)
-    .filter(Boolean);
+    const processes = (processesCsv || "")
+        .split(",")
+        .map(normalizeProcessCode)
+        .filter(Boolean);
 
-  const hasPhu = processes.includes("PHU");
-  const hasCan = processes.includes("CAN");
-  const hasBoi = processes.includes("BOI");
-  const hasDan = processes.includes("DAN");
+    const hasPhu = processes.includes("PHU");
+    const hasCan = processes.includes("CAN");
+    const hasBoi = processes.includes("BOI");
+    const hasDan = processes.includes("DAN");
 
-  const sheet_area_m2 =
-    (sheet_width_mm / 1000) * (sheet_length_mm / 1000);
+    const sheet_area_m2 =
+        (sheet_width_mm / 1000) * (sheet_length_mm / 1000);
 
-  const n1 =
-    Math.floor(sheet_width_mm / print_width_mm) *
-    Math.floor(sheet_length_mm / print_length_mm);
+    const n1 =
+        Math.floor(sheet_width_mm / print_width_mm) *
+        Math.floor(sheet_length_mm / print_length_mm);
 
-  const n2 =
-    Math.floor(sheet_width_mm / print_length_mm) *
-    Math.floor(sheet_length_mm / print_width_mm);
+    const n2 =
+        Math.floor(sheet_width_mm / print_length_mm) *
+        Math.floor(sheet_length_mm / print_width_mm);
 
-  const n_up = Math.max(n1, n2);
+    const n_up = Math.max(n1, n2);
 
-  if (n_up <= 0) {
-    throw new Error("Kích thước in không lọt khổ giấy");
-  }
-
-  const sheets_base = Math.ceil(quantity / n_up);
-
-  const waste_gluing_boxes =
-    !hasDan ? 0 :
-    quantity < 100 ? 10 :
-    quantity < 500 ? 15 :
-    quantity < 2000 ? 20 : 25;
-
-  const waste_gluing = !hasDan
-    ? 0
-    : Math.max(
-        0,
-        Math.ceil((quantity + waste_gluing_boxes) / n_up) -
-          Math.ceil(quantity / n_up)
-      );
-
-  const sheets_required = sheets_base;
-  const sheets_waste =
-    waste_printing +
-    waste_die_cutting +
-    waste_mounting +
-    waste_coating +
-    waste_lamination +
-    waste_gluing;
-
-  const sheets_total = sheets_required + sheets_waste;
-  const paper_sheets_used = sheets_total;
-
-  const print_sheets_used = sheets_base + waste_printing;
-  const coating_sheets_used = hasPhu
-    ? print_sheets_used + waste_coating
-    : 0;
-  const lamination_sheets_used = hasCan
-    ? ((hasPhu ? coating_sheets_used : print_sheets_used) + waste_lamination)
-    : 0;
-
-  const total_print_area_m2 = sheet_area_m2 * print_sheets_used;
-  const total_coating_area_m2 = sheet_area_m2 * coating_sheets_used;
-  const total_lamination_area_m2 = sheet_area_m2 * lamination_sheets_used;
-
-  let wave_n_up = 0;
-  let wave_sheets_required = 0;
-  let wave_sheets_used = 0;
-  let wave_sheet_area_m2 = 0;
-  let total_mounting_area_m2 = 0;
-
-  if (hasBoi) {
-    wave_sheet_area_m2 =
-      (wave_sheet_width_mm / 1000) * (wave_sheet_length_mm / 1000);
-
-    const wave_n1 =
-      Math.floor(wave_sheet_width_mm / print_width_mm) *
-      Math.floor(wave_sheet_length_mm / print_length_mm);
-
-    const wave_n2 =
-      Math.floor(wave_sheet_width_mm / print_length_mm) *
-      Math.floor(wave_sheet_length_mm / print_width_mm);
-
-    wave_n_up = Math.max(wave_n1, wave_n2);
-
-    if (wave_n_up <= 0) {
-      throw new Error("Kích thước in không lọt khổ sóng");
+    let warning_message = "";
+    if (n_up <= 0) {
+        warning_message = "Kích thước in không lọt khổ giấy";
     }
 
-    wave_sheets_required = Math.ceil(quantity / wave_n_up);
-    wave_sheets_used = wave_sheets_required + waste_mounting;
-    total_mounting_area_m2 = wave_sheet_area_m2 * wave_sheets_used;
-  }
+    const sheets_base = Math.ceil(quantity / (n_up || 1));
 
-  const paperMaterial = materials?.find(x => x.code === paper_code);
-  const waveMaterial = wave_type
-    ? materials?.find(x => x.code === wave_type)
-    : undefined;
+    const waste_gluing_boxes =
+        !hasDan ? 0 :
+            quantity < 100 ? 10 :
+                quantity < 500 ? 15 :
+                    quantity < 2000 ? 20 : 25;
 
-  const paper_unit_price = paperMaterial?.cost_price || 0;
-  const wave_unit_price = waveMaterial?.cost_price || 0;
+    const waste_gluing = !hasDan
+        ? 0
+        : Math.max(
+            0,
+            Math.ceil((quantity + waste_gluing_boxes) / n_up) -
+            Math.ceil(quantity / n_up)
+        );
 
-  const coating_glue_rate_per_m2 = 0.004;
-  const mounting_glue_rate_per_m2 = 0.004;
-  const lamination_rate_per_m2 = 0.017;
+    const sheets_required = sheets_base;
+    const sheets_waste =
+        waste_printing +
+        waste_die_cutting +
+        waste_mounting +
+        waste_coating +
+        waste_lamination +
+        waste_gluing;
 
-  const ink_weight_kg = total_print_area_m2 * ink_rate_per_m2;
-  const coating_glue_weight_kg = hasPhu
-    ? total_coating_area_m2 * coating_glue_rate_per_m2
-    : 0;
-  const mounting_glue_weight_kg = hasBoi
-    ? total_mounting_area_m2 * mounting_glue_rate_per_m2
-    : 0;
-  const lamination_weight_kg = hasCan
-    ? total_lamination_area_m2 * lamination_rate_per_m2
-    : 0;
+    const sheets_total = sheets_required + sheets_waste;
+    const paper_sheets_used = sheets_total;
 
-  const paper_cost = paper_sheets_used * paper_unit_price;
-  const wave_cost = wave_sheets_used * wave_unit_price;
+    const print_sheets_used = sheets_base + waste_printing;
+    const coating_sheets_used = hasPhu
+        ? print_sheets_used + waste_coating
+        : 0;
+    const lamination_sheets_used = hasCan
+        ? ((hasPhu ? coating_sheets_used : print_sheets_used) + waste_lamination)
+        : 0;
 
-  const ink_cost = ink_weight_kg * ink_price_per_kg;
-  const coating_glue_cost = coating_glue_weight_kg * coating_glue_price_per_kg;
-  const mounting_glue_cost = mounting_glue_weight_kg * mounting_glue_price_per_kg;
-  const lamination_cost = lamination_weight_kg * lamination_price_per_kg;
+    const total_print_area_m2 = sheet_area_m2 * print_sheets_used;
+    const total_coating_area_m2 = sheet_area_m2 * coating_sheets_used;
+    const total_lamination_area_m2 = sheet_area_m2 * lamination_sheets_used;
 
-  const material_cost =
-    paper_cost +
-    wave_cost +
-    ink_cost +
-    coating_glue_cost +
-    mounting_glue_cost +
-    lamination_cost;
+    let wave_n_up = 0;
+    let wave_sheets_required = 0;
+    let wave_sheets_used = 0;
+    let wave_sheet_area_m2 = 0;
+    let total_mounting_area_m2 = 0;
 
-  let totalProcessCost = 0;
-  const processDetails: Array<{
-    process_code: string;
-    process_name: string;
-    quantity: number;
-    unit: string;
-    unit_price: number;
-    total_cost: number;
-    note?: string;
-  }> = [];
+    if (hasBoi) {
+        wave_sheet_area_m2 =
+            (wave_sheet_width_mm / 1000) * (wave_sheet_length_mm / 1000);
 
-  for (const processCode of processes) {
-    const cfg = processCosts?.[processCode];
-    if (!cfg) continue;
+        const wave_n1 =
+            Math.floor(wave_sheet_width_mm / print_width_mm) *
+            Math.floor(wave_sheet_length_mm / print_length_mm);
 
-    let qtyForProcess = 0;
+        const wave_n2 =
+            Math.floor(wave_sheet_width_mm / print_length_mm) *
+            Math.floor(wave_sheet_length_mm / print_width_mm);
 
-    if (processCode === "IN") {
-      qtyForProcess = total_print_area_m2;
-    } else if (processCode === "PHU") {
-      qtyForProcess = total_coating_area_m2;
-    } else if (processCode === "CAN") {
-      qtyForProcess = total_lamination_area_m2;
-    } else if (["BE", "BOI", "RALO"].includes(processCode)) {
-      qtyForProcess = sheets_total;
-    } else if (["DAN"].includes(processCode)) {
-      qtyForProcess = quantity;
+        wave_n_up = Math.max(wave_n1, wave_n2);
+
+        if (wave_n_up <= 0) {
+            warning_message = warning_message ? `${warning_message} & Kích thước in không lọt khổ sóng` : "Kích thước in không lọt khổ sóng";
+        }
+
+        wave_sheets_required = Math.ceil(quantity / wave_n_up);
+        wave_sheets_used = wave_sheets_required + waste_mounting;
+        total_mounting_area_m2 = wave_sheet_area_m2 * wave_sheets_used;
     }
 
-    if (qtyForProcess <= 0) continue;
+    const paperMaterial = materials?.find(x => x.code === paper_code);
+    const waveMaterial = wave_type
+        ? materials?.find(x => x.code === wave_type)
+        : undefined;
 
-    const total_cost = qtyForProcess * (cfg.unit_price || 0);
+    const paper_unit_price = paperMaterial?.cost_price || 0;
+    const wave_unit_price = waveMaterial?.cost_price || 0;
 
-    totalProcessCost += total_cost;
-    processDetails.push({
-      process_code: processCode,
-      process_name: cfg.process_name || processCode,
-      quantity: qtyForProcess,
-      unit: cfg.unit || "",
-      unit_price: cfg.unit_price || 0,
-      total_cost,
-      note: cfg.note || ""
-    });
-  }
+    const coating_glue_rate_per_m2 = 0.004;
+    const mounting_glue_rate_per_m2 = 0.004;
+    const lamination_rate_per_m2 = 0.017;
 
-  const base_cost = material_cost;
-  const subtotal = base_cost + rush_amount;
-  const discount_amount = subtotal * (Math.max(0, Math.min(discount_percent, 100)) / 100);
-  const final_total_base = subtotal - discount_amount;
-  const design_cost =
-    !is_send_design || !design_file_path ? default_design_cost : 0;
+    const ink_weight_kg = total_print_area_m2 * ink_rate_per_m2;
+    const coating_glue_weight_kg = hasPhu
+        ? total_coating_area_m2 * coating_glue_rate_per_m2
+        : 0;
+    const mounting_glue_weight_kg = hasBoi
+        ? total_mounting_area_m2 * mounting_glue_rate_per_m2
+        : 0;
+    const lamination_weight_kg = hasCan
+        ? total_lamination_area_m2 * lamination_rate_per_m2
+        : 0;
 
-  const final_total_cost = final_total_base + totalProcessCost + design_cost;
+    const paper_cost = paper_sheets_used * paper_unit_price;
+    const wave_cost = wave_sheets_used * wave_unit_price;
 
-  return {
-    paper_code,
-    wave_type,
-    coating_type,
+    const ink_cost = ink_weight_kg * ink_price_per_kg;
+    const coating_glue_cost = coating_glue_weight_kg * coating_glue_price_per_kg;
+    const mounting_glue_cost = mounting_glue_weight_kg * mounting_glue_price_per_kg;
+    const lamination_cost = lamination_weight_kg * lamination_price_per_kg;
 
-    print_width_mm,
-    print_length_mm,
+    const material_cost =
+        paper_cost +
+        wave_cost +
+        ink_cost +
+        coating_glue_cost +
+        mounting_glue_cost +
+        lamination_cost;
 
-    n_up,
-    sheets_required,
-    sheets_waste,
-    sheets_total,
-    paper_sheets_used,
+    let totalProcessCost = 0;
+    const processDetails: Array<{
+        process_code: string;
+        process_name: string;
+        quantity: number;
+        unit: string;
+        unit_price: number;
+        total_cost: number;
+        note?: string;
+    }> = [];
 
-    waste_gluing_boxes,
+    for (const processCode of processes) {
+        const cfg = processCosts?.[processCode];
+        if (!cfg) continue;
 
-    sheet_area_m2,
-    print_sheets_used,
-    coating_sheets_used,
-    lamination_sheets_used,
+        let qtyForProcess = 0;
 
-    total_area_m2: total_print_area_m2,
-    total_coating_area_m2,
-    total_lamination_area_m2,
+        if (processCode === "IN") {
+            qtyForProcess = total_print_area_m2;
+        } else if (processCode === "PHU") {
+            qtyForProcess = total_coating_area_m2;
+        } else if (processCode === "CAN") {
+            qtyForProcess = total_lamination_area_m2;
+        } else if (["BE", "BOI", "RALO"].includes(processCode)) {
+            qtyForProcess = sheets_total;
+        } else if (["DAN"].includes(processCode)) {
+            qtyForProcess = quantity;
+        }
 
-    wave_n_up,
-    wave_sheets_required,
-    wave_sheets_used,
-    wave_sheet_area_m2,
-    total_mounting_area_m2,
+        if (qtyForProcess <= 0) continue;
 
-    paper_unit_price,
-    wave_unit_price,
+        const total_cost = qtyForProcess * (cfg.unit_price || 0);
 
-    paper_cost,
-    wave_cost,
-    ink_cost,
-    coating_glue_cost,
-    mounting_glue_cost,
-    lamination_cost,
+        totalProcessCost += total_cost;
+        processDetails.push({
+            process_code: processCode,
+            process_name: cfg.process_name || processCode,
+            quantity: qtyForProcess,
+            unit: cfg.unit || "",
+            unit_price: cfg.unit_price || 0,
+            total_cost,
+            note: cfg.note || ""
+        });
+    }
 
-    ink_weight_kg,
-    coating_glue_weight_kg,
-    mounting_glue_weight_kg,
-    lamination_weight_kg,
+    const base_cost = material_cost;
+    const subtotal = base_cost + rush_amount;
+    const discount_amount = subtotal * (Math.max(0, Math.min(discount_percent, 100)) / 100);
+    const final_total_base = subtotal - discount_amount;
+    const design_cost =
+        !is_send_design || !design_file_path ? default_design_cost : 0;
 
-    ink_rate_per_m2,
-    coating_glue_rate_per_m2,
-    mounting_glue_rate_per_m2,
-    lamination_rate_per_m2,
+    const final_total_cost = final_total_base + totalProcessCost + design_cost;
 
-    material_cost,
-    base_cost,
+    return {
+        paper_code,
+        wave_type,
+        coating_type,
+        warning_message,
 
-    total_process_cost: totalProcessCost,
-    process_costs: processDetails,
+        print_width_mm,
+        print_length_mm,
 
-    design_cost,
-    subtotal,
-    discount_percent,
-    discount_amount,
-    final_total_cost,
+        n_up,
+        sheets_required,
+        sheets_waste,
+        sheets_total,
+        paper_sheets_used,
 
-    production_processes: processes.join(",")
-  };
+        waste_gluing_boxes,
+
+        sheet_area_m2,
+        print_sheets_used,
+        coating_sheets_used,
+        lamination_sheets_used,
+
+        total_area_m2: total_print_area_m2,
+        total_coating_area_m2,
+        total_lamination_area_m2,
+
+        wave_n_up,
+        wave_sheets_required,
+        wave_sheets_used,
+        wave_sheet_area_m2,
+        total_mounting_area_m2,
+
+        paper_unit_price,
+        wave_unit_price,
+
+        paper_cost,
+        wave_cost,
+        ink_cost,
+        coating_glue_cost,
+        mounting_glue_cost,
+        lamination_cost,
+
+        ink_weight_kg,
+        coating_glue_weight_kg,
+        mounting_glue_weight_kg,
+        lamination_weight_kg,
+
+        ink_rate_per_m2,
+        coating_glue_rate_per_m2,
+        mounting_glue_rate_per_m2,
+        lamination_rate_per_m2,
+
+        material_cost,
+        base_cost,
+
+        total_process_cost: totalProcessCost,
+        process_costs: processDetails,
+
+        design_cost,
+        subtotal,
+        discount_percent,
+        discount_amount,
+        final_total_cost,
+
+        production_processes: processes.join(",")
+    };
 };
