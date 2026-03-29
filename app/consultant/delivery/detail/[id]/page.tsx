@@ -2,70 +2,170 @@
 
 import {
   ArrowLeftOutlined,
-  BankOutlined,
   BoxPlotOutlined,
   CalendarOutlined,
-  CheckCircleOutlined,
   DollarOutlined,
   EnvironmentOutlined,
+  EyeOutlined,
   FileTextOutlined,
   LoadingOutlined,
   MailOutlined,
   PhoneOutlined,
   PrinterOutlined,
+  SendOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { Button, Divider, Image, Spin, Tag, Tooltip } from "antd";
+import { Button, Divider, Image, Input, Modal, Spin, message } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
-import { Modal } from "antd";
 
-const API_BASE = "https://amms-juaa.onrender.com/api/Orders/detail";
+const API_BASE = "https://amms-juaa.onrender.com/api/Requests/get-by-order-id";
+const COST_ESTIMATE_API = "https://amms-juaa.onrender.com/api/Requests/get-cost-estimate";
+const DELIVERY_NOTE_API = "https://amms-juaa.onrender.com/api/Requests";
+const SEND_EMAIL_API = "https://amms-juaa.onrender.com/api/Orders/send-remaining-payment-email";
 
-interface QuoteFields {
-  request_date: string;
-  paper_name: string;
-  coating_type: string;
-  wave_type: string;
-  design_type: string;
-  production_process: string;
-  material_cost: number;
-  labor_cost: number;
-  other_fees: number;
-  rush_amount: number;
-  sub_total: number;
-  discount_percent: number;
-  discount_amount: number;
-}
-
-interface OrderDetail {
-  order_id: number;
-  code: string;
-  status: string;
-  payment_status: string;
-  order_date: string;
-  delivery_date: string;
+interface OrderRequest {
+  order_request_id: number;
   customer_name: string;
-  customer_email: string;
   customer_phone: string;
-  detail_address: string;
+  customer_email: string;
+  delivery_date: string;
   product_name: string;
   quantity: number;
-  production_id: number | null;
-  production_start_date: string | null;
-  production_end_date: string | null;
-  approver_name: string | null;
-  specification: string | null;
+  description: string;
+  design_file_path: string | null;
+  order_request_date: string;
+  detail_address: string;
+  process_status: string;
+  product_type: string;
+  number_of_plates: number;
+  order_id: number;
+  quote_id: number;
+  product_length_mm: number;
+  product_width_mm: number;
+  product_height_mm: number;
+  glue_tab_mm: number;
+  bleed_mm: number;
+  is_one_side_box: boolean;
+  print_width_mm: number;
+  print_length_mm: number;
+  is_send_design: boolean;
+  reason: string | null;
   note: string;
-  final_total_cost: number;
-  deposit_amount: number;
+  accepted_estimate_id: number;
+  consultant_note: string;
+  verified_at: string;
+  quote_expire_at: string;
+  message_to_customer: string;
+  preliminary_estimated_price: number | null;
+  assigned_consultant: number;
+  assigned_at: string;
+  delivery_note: string | null;
+  print_ready_file: string | null;
+  estimate_finish_date: string;
+  estimate_id: number;
+  base_cost: number;
+  is_rush: boolean;
+  rush_percent: number;
   rush_amount: number;
-  file_url: string | null;
-  contract_file: string | null;
-  quote_fields: QuoteFields | null;
-  layout_confirmed: boolean;
+  estimated_finish_date: string;
+  desired_delivery_date: string;
+  estimate_created_at: string;
+  paper_cost: number;
+  ink_cost: number;
+  coating_glue_cost: number;
+  mounting_glue_cost: number;
+  lamination_cost: number;
+  material_cost: number;
+  sheets_required: number;
+  sheets_waste: number;
+  sheets_total: number;
+  total_area_m2: number;
+  final_total_cost: number;
+  cost_note: string;
+  paper_sheets_used: number;
+  paper_unit_price: number;
+  ink_weight_kg: number;
+  ink_rate_per_m2: number;
+  coating_glue_weight_kg: number;
+  coating_glue_rate_per_m2: number;
+  coating_type: string;
+  mounting_glue_weight_kg: number;
+  mounting_glue_rate_per_m2: number;
+  lamination_weight_kg: number;
+  lamination_rate_per_m2: number;
+  days_early: number;
+  subtotal: number;
+  discount_percent: number;
+  discount_amount: number;
+  deposit_amount: number;
+  design_cost: number;
+  n_up: number;
+  is_active: boolean;
+  paper_code: string;
+  paper_name: string;
+  wave_type: string;
+  production_processes: string;
+  previous_estimate_id: number;
+  consultant_contract_path: string | null;
+  customer_signed_contract_path: string | null;
+  wave_sheets_used: number;
+  paper_alternative: string | null;
+  wave_alternative: string | null;
+}
+
+interface CostEstimate {
+  estimate_id: number;
+  order_request_id: number;
+  paper_cost: number;
+  paper_sheets_used: number;
+  paper_unit_price: number;
+  ink_cost: number;
+  ink_weight_kg: number;
+  ink_rate_per_m2: number;
+  coating_glue_cost: number;
+  coating_glue_weight_kg: number;
+  coating_glue_rate_per_m2: number;
+  coating_type: string;
+  mounting_glue_cost: number;
+  mounting_glue_weight_kg: number;
+  mounting_glue_rate_per_m2: number;
+  lamination_cost: number;
+  lamination_weight_kg: number;
+  lamination_rate_per_m2: number;
+  material_cost: number;
+  base_cost: number;
+  is_rush: boolean;
+  rush_percent: number;
+  rush_amount: number;
+  days_early: number;
+  subtotal: number;
+  discount_percent: number;
+  discount_amount: number;
+  final_total_cost: number;
+  estimated_finish_date: string;
+  desired_delivery_date: string;
+  created_at: string;
+  sheets_required: number;
+  sheets_waste: number;
+  sheets_total: number;
+  n_up: number;
+  total_area_m2: number;
+  design_cost: number;
+  cost_note: string;
+  is_active: boolean;
+  paper_code: string;
+  paper_name: string;
+  wave_type: string;
+  paper_alternative: string | null;
+  wave_alternative: string | null;
+  wave_sheets_used: number;
+  production_processes: string;
+  deposit_amount: number;
+  previous_estimate_id: number | null;
+  consultant_contract_path: string | null;
+  customer_signed_contract_path: string | null;
 }
 
 const fmt = (n: number) =>
@@ -74,30 +174,20 @@ const fmt = (n: number) =>
 const fmtDate = (d: string | null) =>
   d ? dayjs(d).format("DD/MM/YYYY HH:mm") : "—";
 
-const statusMap: Record<string, { label: string; color: string; bg: string }> =
-  {
-    Finished: { label: "Hoàn thành", color: "#16a34a", bg: "#dcfce7" },
-    Delivery: { label: "Đang giao", color: "#2563eb", bg: "#dbeafe" },
-    InProcessing: { label: "Đang sản xuất", color: "#d97706", bg: "#fef3c7" },
-    Scheduled: { label: "Đã lên lịch", color: "#7c3aed", bg: "#ede9fe" },
-    Completed: { label: "Đã nghiệm thu", color: "#0891b2", bg: "#cffafe" },
-  };
+const fmtDateShort = (d: string | null) =>
+  d ? dayjs(d).format("DD/MM/YYYY") : "—";
 
-const paymentMap: Record<
-  string,
-  { label: string; color: string; bg: string }
-> = {
-  Deposited: { label: "Đã cọc", color: "#d97706", bg: "#fef3c7" },
-  Paid: { label: "Thanh toán đủ", color: "#16a34a", bg: "#dcfce7" },
-  Unpaid: { label: "Chưa thanh toán", color: "#dc2626", bg: "#fee2e2" },
+const statusMap: Record<string, { label: string; color: string; bg: string }> = {
+  Finished: { label: "Hoàn thành", color: "#16a34a", bg: "#dcfce7" },
+  Delivery: { label: "Đang giao", color: "#2563eb", bg: "#dbeafe" },
+  InProcessing: { label: "Đang sản xuất", color: "#d97706", bg: "#fef3c7" },
+  Scheduled: { label: "Đã lên lịch", color: "#7c3aed", bg: "#ede9fe" },
+  Completed: { label: "Đã nghiệm thu", color: "#0891b2", bg: "#cffafe" },
+  PendingPaid: { label: "Chờ thanh toán", color: "#dc2626", bg: "#fee2e2" },
 };
 
-function StatusBadge({ value, map }: { value: string; map: typeof statusMap }) {
-  const s = map[value] ?? {
-    label: value,
-    color: "#6b7280",
-    bg: "#f3f4f6",
-  };
+function StatusBadge({ value }: { value: string }) {
+  const s = statusMap[value] ?? { label: value, color: "#6b7280", bg: "#f3f4f6" };
   return (
     <span
       style={{
@@ -130,12 +220,8 @@ function InfoRow({
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
       <span className="text-gray-400 mt-0.5 text-sm flex-shrink-0">{icon}</span>
-      <span className="text-gray-400 text-xs w-32 flex-shrink-0 pt-0.5">
-        {label}
-      </span>
-      <span
-        className={`text-gray-800 text-sm flex-1 ${mono ? "font-mono text-xs" : "font-medium"}`}
-      >
+      <span className="text-gray-400 text-xs w-36 flex-shrink-0 pt-0.5">{label}</span>
+      <span className={`text-gray-800 text-sm flex-1 ${mono ? "font-mono text-xs" : "font-medium"}`}>
         {value ?? "—"}
       </span>
     </div>
@@ -188,9 +274,7 @@ function CostRow({
     <div
       className={`flex justify-between items-center py-2 ${bold ? "border-t border-gray-100 mt-1 pt-3" : "border-b border-gray-50"}`}
     >
-      <span
-        className={`${bold ? "font-semibold text-gray-800 text-sm" : "text-gray-500 text-xs"}`}
-      >
+      <span className={`${bold ? "font-semibold text-gray-800 text-sm" : "text-gray-500 text-xs"}`}>
         {label}
       </span>
       <span
@@ -203,27 +287,271 @@ function CostRow({
   );
 }
 
+// Email preview modal content
+function EmailPreview({
+  order,
+  deliveryNote,
+  remaining,
+  depositAmt,
+}: {
+  order: OrderRequest;
+  deliveryNote: string;
+  remaining: number;
+  depositAmt: number;
+}) {
+  const feBase = "https://sep490-fe.vercel.app";
+  const paymentPageUrl = `${feBase}/payment/${order.order_id}`;
+
+  return (
+    <div
+      style={{
+        fontFamily: "'Segoe UI', Arial, sans-serif",
+        background: "#f8fafc",
+        padding: "20px 0",
+      }}
+    >
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 12px" }}>
+        {/* Header */}
+        <div
+          style={{
+            background: "linear-gradient(135deg,#1d4ed8 0%,#1e3a8a 100%)",
+            padding: "24px 26px",
+            borderRadius: "18px 18px 0 0",
+            color: "#ffffff",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              opacity: 0.9,
+            }}
+          >
+            MES PAYMENT NOTICE
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 900, marginTop: 8 }}>
+            Đơn hàng đã hoàn thành
+          </div>
+          <div style={{ fontSize: 13, marginTop: 6, color: "#dbeafe" }}>
+            Vui lòng thanh toán phần còn lại để chúng tôi chuyển đơn sang bộ phận vận chuyển.
+          </div>
+        </div>
+
+        {/* Body */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderTop: "none",
+            borderRadius: "0 0 18px 18px",
+            padding: "24px 24px 20px",
+            boxShadow: "0 10px 28px rgba(15,23,42,0.06)",
+          }}
+        >
+          <p style={{ margin: "0 0 14px 0", fontSize: 14, color: "#334155", lineHeight: 1.8 }}>
+            Kính gửi <b>{order.customer_name}</b>,
+          </p>
+          <p style={{ margin: "0 0 14px 0", fontSize: 14, color: "#334155", lineHeight: 1.8 }}>
+            Chúng tôi chân thành cảm ơn Quý khách đã tin tưởng sử dụng dịch vụ của doanh nghiệp.
+            Đơn hàng của Quý khách hiện đã hoàn thành toàn bộ công đoạn sản xuất.
+          </p>
+          <p style={{ margin: "0 0 16px 0", fontSize: 14, color: "#334155", lineHeight: 1.8 }}>
+            Để chúng tôi tiếp tục chuyển đơn hàng sang bộ phận vận chuyển và tiến hành giao hàng,
+            Quý khách vui lòng thanh toán <b>phần giá trị còn lại</b> của đơn hàng theo thông tin bên dưới.
+          </p>
+
+          {/* Order info table */}
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "16px 18px",
+              margin: "14px 0 18px 0",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: "#334155",
+                marginBottom: 10,
+                textTransform: "uppercase",
+              }}
+            >
+              Thông tin đơn hàng
+            </div>
+            <table width="100%" cellPadding={0} cellSpacing={0} style={{ borderCollapse: "collapse" }}>
+              <tbody>
+                {[
+                  ["Mã request", `AM${String(order.order_request_id).padStart(6, "0")}`],
+                  ["Sản phẩm", order.product_name],
+                  ["Số lượng", order.quantity.toLocaleString("vi-VN")],
+                  ["Ngày giao dự kiến", fmtDateShort(order.delivery_date)],
+                  ["Trạng thái sản xuất", statusMap[order.process_status]?.label ?? order.process_status],
+                ].map(([label, val]) => (
+                  <tr key={label}>
+                    <td style={{ padding: "6px 0", fontSize: 13, color: "#64748b", width: "40%" }}>{label}</td>
+                    <td style={{ padding: "6px 0", fontSize: 13, color: "#0f172a", fontWeight: 700 }}>{val}</td>
+                  </tr>
+                ))}
+                {deliveryNote && (
+                  <tr>
+                    <td style={{ padding: "6px 0", fontSize: 13, color: "#64748b" }}>Ghi chú giao hàng</td>
+                    <td style={{ padding: "6px 0", fontSize: 13, color: "#0f172a", fontWeight: 700 }}>{deliveryNote}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Payment info */}
+          <div
+            style={{
+              background: "linear-gradient(135deg,#fff7ed 0%,#fffbeb 100%)",
+              border: "1px solid #fed7aa",
+              borderRadius: 14,
+              padding: "16px 18px",
+              margin: "0 0 18px 0",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: "#9a3412",
+                marginBottom: 10,
+                textTransform: "uppercase",
+              }}
+            >
+              Thông tin thanh toán
+            </div>
+            <table width="100%" cellPadding={0} cellSpacing={0} style={{ borderCollapse: "collapse" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "6px 0", fontSize: 13, color: "#7c2d12", width: "50%" }}>Tổng giá trị đơn hàng</td>
+                  <td style={{ padding: "6px 0", fontSize: 13, color: "#7c2d12", fontWeight: 700, textAlign: "right" }}>{fmt(order.final_total_cost)}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "6px 0", fontSize: 13, color: "#7c2d12" }}>Đã thanh toán tiền cọc</td>
+                  <td style={{ padding: "6px 0", fontSize: 13, color: "#7c2d12", fontWeight: 700, textAlign: "right" }}>{fmt(depositAmt)}</td>
+                </tr>
+                <tr>
+                  <td
+                    style={{
+                      padding: "10px 0 6px 0",
+                      fontSize: 14,
+                      color: "#9a3412",
+                      fontWeight: 900,
+                      borderTop: "1px dashed #fdba74",
+                    }}
+                  >
+                    Số tiền cần thanh toán còn lại
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 0 6px 0",
+                      fontSize: 18,
+                      color: "#b45309",
+                      fontWeight: 900,
+                      textAlign: "right",
+                      borderTop: "1px dashed #fdba74",
+                    }}
+                  >
+                    {fmt(remaining)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Payment link */}
+          <div style={{ textAlign: "center", margin: "0 0 18px 0" }}>
+            <a
+              href={paymentPageUrl}
+              style={{
+                display: "inline-block",
+                background: "linear-gradient(135deg,#1d4ed8,#1e3a8a)",
+                color: "#fff",
+                padding: "12px 28px",
+                borderRadius: 10,
+                fontWeight: 700,
+                fontSize: 14,
+                textDecoration: "none",
+              }}
+            >
+              Thanh toán ngay
+            </a>
+            <p style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>
+              Hoặc truy cập: <a href={paymentPageUrl} style={{ color: "#2563eb" }}>{paymentPageUrl}</a>
+            </p>
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #cbd5e1",
+              borderRadius: 12,
+              padding: "14px 16px",
+            }}
+          >
+            <p style={{ margin: "0 0 8px 0", fontSize: 13, color: "#334155", lineHeight: 1.7 }}>
+              Sau khi hệ thống xác nhận thanh toán thành công, đơn hàng sẽ được chuyển sang bước giao hàng để gửi cho đơn vị vận chuyển.
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: "#64748b", lineHeight: 1.7 }}>
+              Nếu Quý khách cần hỗ trợ thêm về đơn hàng hoặc thanh toán, vui lòng phản hồi lại email này hoặc liên hệ bộ phận chăm sóc khách hàng của chúng tôi.
+            </p>
+          </div>
+
+          <p style={{ margin: "18px 0 0 0", fontSize: 13, color: "#475569", lineHeight: 1.7 }}>
+            Xin chân thành cảm ơn Quý khách đã đồng hành cùng doanh nghiệp.
+          </p>
+        </div>
+
+        <div style={{ padding: 14, textAlign: "center", fontSize: 12, color: "#64748b" }}>
+          Email này được gửi tự động từ hệ thống MES.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function OrderDetailPage() {
-  const [openViewer, setOpenViewer] = useState(false);
   const params = useParams();
   const router = useRouter();
   const orderId = params?.id as string;
 
-  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [order, setOrder] = useState<OrderRequest | null>(null);
+  const [estimate, setEstimate] = useState<CostEstimate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [deliveryNote, setDeliveryNote] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const [messageApi, contextHolder] = message.useMessage();
 
   const fetchOrder = useCallback(async () => {
     if (!orderId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/${orderId}`, {
-        headers: { accept: "*/*" },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: OrderDetail = await res.json();
+      const [orderRes, estimateRes] = await Promise.all([
+        fetch(`${API_BASE}/${orderId}`, { headers: { accept: "*/*" } }),
+        fetch(`${COST_ESTIMATE_API}/${orderId}`, { headers: { accept: "text/plain" } }),
+      ]);
+      if (!orderRes.ok) throw new Error(`HTTP ${orderRes.status}`);
+      const data: OrderRequest = await orderRes.json();
       setOrder(data);
+      setDeliveryNote(data.delivery_note ?? "");
+
+      if (estimateRes.ok) {
+        const estData: CostEstimate = await estimateRes.json();
+        setEstimate(estData);
+      }
     } catch (e) {
       console.error(e);
       setError("Không thể tải thông tin đơn hàng.");
@@ -235,6 +563,37 @@ export default function OrderDetailPage() {
   useEffect(() => {
     fetchOrder();
   }, [fetchOrder]);
+
+  const handleSendEmail = async () => {
+    if (!order) return;
+    setSending(true);
+    setPreviewOpen(false);
+    try {
+      // Step 1: Save delivery note
+      const noteRes = await fetch(`${DELIVERY_NOTE_API}/${orderId}/delivery-note`, {
+        method: "PUT",
+        headers: { accept: "*/*", "Content-Type": "application/json" },
+        body: JSON.stringify({ delivery_note: deliveryNote }),
+      });
+      if (!noteRes.ok) throw new Error(`Lưu ghi chú thất bại: HTTP ${noteRes.status}`);
+
+      // Step 2: Send email
+      const emailRes = await fetch(`${SEND_EMAIL_API}/${orderId}`, {
+        method: "POST",
+        headers: { accept: "*/*" },
+        body: "",
+      });
+      if (!emailRes.ok) throw new Error(`Gửi email thất bại: HTTP ${emailRes.status}`);
+
+      const result = await emailRes.json();
+      messageApi.success(result.message ?? "Đã gửi email thành công!");
+      await fetchOrder();
+    } catch (e: any) {
+      messageApi.error(e?.message ?? "Có lỗi xảy ra khi gửi email.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -255,17 +614,18 @@ export default function OrderDetailPage() {
     );
   }
 
-  const remaining = order.final_total_cost - order.deposit_amount;
+  const isFinished = order.process_status === "Finished";
+  const finalTotal = estimate?.final_total_cost ?? order.final_total_cost;
+  const depositAmt = estimate?.deposit_amount ?? order.deposit_amount;
+  const remaining = finalTotal - depositAmt;
   const depositPct =
-    order.final_total_cost > 0
-      ? Math.round((order.deposit_amount / order.final_total_cost) * 100)
-      : 0;
-const docs = order?.contract_file
-  ? [{ uri: order.contract_file }]
-  : [];
+    finalTotal > 0 ? Math.round((depositAmt / finalTotal) * 100) : 0;
+
   return (
     <div className="min-h-screen bg-[#f5f7fa] pb-12">
-      {/* Top header bar */}
+      {contextHolder}
+
+      {/* Top header */}
       <div
         className="sticky top-0 z-10 border-b border-gray-200 px-6 py-3 flex items-center justify-between"
         style={{ background: "#fff" }}
@@ -280,22 +640,23 @@ const docs = order?.contract_file
             Quay lại
           </Button>
           <Divider type="vertical" />
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-sm text-gray-400">{order.code}</span>
-          </div>
+          <span className="font-mono text-sm text-gray-400">
+            AM{String(order.order_request_id).padStart(6, "0")}
+          </span>
         </div>
-        <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
-          In đơn
-        </Button>
+        <div className="flex items-center gap-2">
+          <StatusBadge value={order.process_status} />
+          <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
+            In đơn
+          </Button>
+        </div>
       </div>
 
       {/* Page title */}
       <div className="px-6 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Chi Tiết Đơn Hàng
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-800">Chi Tiết Đơn Hàng</h1>
         <p className="text-gray-400 text-sm mt-0.5">
-          Tạo lúc {fmtDate(order.order_date)}
+          Tạo lúc {fmtDate(order.order_request_date)}
         </p>
       </div>
 
@@ -308,11 +669,7 @@ const docs = order?.contract_file
             <InfoRow icon={<UserOutlined />} label="Họ tên" value={order.customer_name} />
             <InfoRow icon={<PhoneOutlined />} label="Điện thoại" value={order.customer_phone} mono />
             <InfoRow icon={<MailOutlined />} label="Email" value={order.customer_email} mono />
-            <InfoRow
-              icon={<EnvironmentOutlined />}
-              label="Địa chỉ giao"
-              value={order.detail_address}
-            />
+            <InfoRow icon={<EnvironmentOutlined />} label="Địa chỉ giao" value={order.detail_address} />
           </Section>
 
           {/* Product */}
@@ -327,128 +684,122 @@ const docs = order?.contract_file
                 </span>
               }
             />
-            {order.quote_fields && (
-              <>
-                <InfoRow
-                  icon={<FileTextOutlined />}
-                  label="Loại giấy"
-                  value={order.quote_fields.paper_name}
-                />
-                <InfoRow
-                  icon={<FileTextOutlined />}
-                  label="Tráng phủ"
-                  value={order.quote_fields.coating_type}
-                />
-                <InfoRow
-                  icon={<FileTextOutlined />}
-                  label="Sóng"
-                  value={order.quote_fields.wave_type}
-                />
-                <InfoRow
-                  icon={<PrinterOutlined />}
-                  label="Quy trình"
-                  value={order.quote_fields.production_process}
-                />
-                <InfoRow
-                  icon={<FileTextOutlined />}
-                  label="Thiết kế"
-                  value={order.quote_fields.design_type}
-                />
-              </>
+            <InfoRow icon={<FileTextOutlined />} label="Loại giấy" value={order.paper_name} />
+            <InfoRow icon={<FileTextOutlined />} label="Tráng phủ" value={order.coating_type} />
+            {order.wave_type && (
+              <InfoRow icon={<FileTextOutlined />} label="Sóng" value={order.wave_type} />
             )}
-            {order.specification && (
-              <InfoRow
-                icon={<FileTextOutlined />}
-                label="Thông số"
-                value={order.specification}
-              />
-            )}
+            <InfoRow icon={<PrinterOutlined />} label="Quy trình" value={order.production_processes} />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Kích thước"
+              value={`${order.product_length_mm} × ${order.product_width_mm} × ${order.product_height_mm} mm`}
+            />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Kích thước in"
+              value={`${order.print_width_mm} × ${order.print_length_mm} mm`}
+            />
+            <InfoRow
+              icon={<span className="text-xs font-bold">N</span>}
+              label="N-up"
+              value={`${order.n_up}`}
+            />
             {order.note && (
               <InfoRow icon={<FileTextOutlined />} label="Ghi chú" value={order.note} />
+            )}
+            {order.consultant_note && (
+              <InfoRow icon={<FileTextOutlined />} label="Ghi chú tư vấn" value={order.consultant_note} />
             )}
           </Section>
 
           {/* Production timeline */}
-          <Section
-            title="Tiến Độ Sản Xuất"
-            icon={<PrinterOutlined />}
-            accent="#8b5cf6"
-          >
-            <InfoRow
-              icon={<CalendarOutlined />}
-              label="Ngày đặt"
-              value={fmtDate(order.order_date)}
-            />
-            <InfoRow
-              icon={<CalendarOutlined />}
-              label="Bắt đầu SX"
-              value={fmtDate(order.production_start_date)}
-            />
-            <InfoRow
-              icon={<CalendarOutlined />}
-              label="Kết thúc SX"
-              value={fmtDate(order.production_end_date)}
-            />
+          <Section title="Tiến Độ Sản Xuất" icon={<PrinterOutlined />} accent="#8b5cf6">
+            <InfoRow icon={<CalendarOutlined />} label="Ngày đặt" value={fmtDate(order.order_request_date)} />
+            <InfoRow icon={<CalendarOutlined />} label="Ngày xác nhận" value={fmtDate(order.verified_at)} />
+            <InfoRow icon={<CalendarOutlined />} label="Hoàn thành dự kiến" value={fmtDate(order.estimated_finish_date)} />
             <InfoRow
               icon={<CalendarOutlined />}
               label="Ngày giao"
               value={
                 <span
                   className={
-                    order.delivery_date &&
-                    dayjs(order.delivery_date).isBefore(dayjs(), "day")
+                    order.delivery_date && dayjs(order.delivery_date).isBefore(dayjs(), "day")
                       ? "text-red-500 font-semibold"
                       : "text-gray-800"
                   }
                 >
-                  {fmtDate(order.delivery_date)}
+                  {fmtDateShort(order.delivery_date)}
                 </span>
               }
             />
-            {order.production_id && (
-              <InfoRow
-                icon={<span className="text-xs font-bold">#</span>}
-                label="Mã SX"
-                value={`#${order.production_id}`}
-                mono
-              />
-            )}
+            <InfoRow icon={<CalendarOutlined />} label="Mong muốn giao" value={fmtDateShort(order.desired_delivery_date)} />
+          </Section>
 
-            {/* Visual timeline bar */}
-            {order.production_start_date &&
-              order.production_end_date &&
-              order.delivery_date && (
-                <div className="mt-4 pt-3 border-t border-gray-50">
-                  <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-                    <span>Bắt đầu SX</span>
-                    <span>Kết thúc SX</span>
-                    <span>Giao hàng</span>
-                  </div>
-                  <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="absolute left-0 top-0 h-full rounded-full"
-                      style={{
-                        width: "66%",
-                        background:
-                          "linear-gradient(90deg, #8b5cf6, #a78bfa)",
-                      }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-1.5">
-                    <span>{dayjs(order.production_start_date).format("DD/MM")}</span>
-                    <span>{dayjs(order.production_end_date).format("DD/MM")}</span>
-                    <span>{dayjs(order.delivery_date).format("DD/MM")}</span>
-                  </div>
+          {/* Delivery Info */}
+          <Section title="Thông Tin Giao Hàng" icon={<SendOutlined />} accent="#ec4899">
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Ghi chú giao hàng"
+              value={order.delivery_note || <span className="text-gray-300 italic text-xs">Chưa có ghi chú</span>}
+            />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Ghi chú KH"
+              value={order.message_to_customer || <span className="text-gray-300 italic text-xs">—</span>}
+            />
+            {isFinished && (
+              <div className="pt-3 border-t border-gray-50 mt-1">
+                <label className="block text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">
+                  Cập nhật ghi chú giao hàng
+                </label>
+                <Input.TextArea
+                  rows={3}
+                  value={deliveryNote}
+                  onChange={(e) => setDeliveryNote(e.target.value)}
+                  placeholder="Nhập ghi chú giao hàng cho khách hàng..."
+                  className="rounded-xl"
+                  style={{ resize: "none", fontSize: 13 }}
+                />
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Ghi chú này sẽ được hiển thị trong email thông báo thanh toán gửi đến khách hàng.
+                </p>
+                <div className="flex gap-3 pt-3">
+                  <Button
+                    icon={<EyeOutlined />}
+                    onClick={() => setPreviewOpen(true)}
+                    className="flex-1"
+                    style={{ borderRadius: 10, height: 40 }}
+                  >
+                    Xem trước email
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={() => setPreviewOpen(true)}
+                    loading={sending}
+                    style={{
+                      flex: 2,
+                      borderRadius: 10,
+                      height: 40,
+                      background: "linear-gradient(135deg, #1d4ed8, #1e3a8a)",
+                      border: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Gửi email yêu cầu thanh toán
+                  </Button>
                 </div>
-              )}
+              </div>
+            )}
           </Section>
 
           {/* Design file */}
-          {order.file_url && (
-            <Section title="File Thiết Kế" icon={<FileTextOutlined />} accent="#ec4899">
+          {order.design_file_path && (
+            <Section title="File Thiết Kế" icon={<FileTextOutlined />} accent="#14b8a6">
               <div className="flex gap-4 items-start pt-1">
                 <Image
-                  src={order.file_url}
+                  src={order.design_file_path}
                   alt="Design file"
                   width={140}
                   height={140}
@@ -461,15 +812,61 @@ const docs = order?.contract_file
                 <div className="flex flex-col gap-2 pt-1">
                   <p className="text-xs text-gray-400">File thiết kế đã upload</p>
                   <a
-                    href={order.file_url}
+                    href={order.design_file_path}
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-500 text-xs underline break-all"
                   >
                     Xem file gốc
                   </a>
+                  <div className="flex gap-2 mt-1">
+                    <span
+                      style={{
+                        background: order.is_send_design ? "#dcfce7" : "#fee2e2",
+                        color: order.is_send_design ? "#16a34a" : "#dc2626",
+                        fontSize: 11,
+                        padding: "2px 8px",
+                        borderRadius: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {order.is_send_design ? "Đã gửi thiết kế" : "Chưa gửi thiết kế"}
+                    </span>
+                  </div>
                 </div>
               </div>
+            </Section>
+          )}
+
+          {/* Contract files */}
+          {(estimate?.consultant_contract_path || estimate?.customer_signed_contract_path) && (
+            <Section title="Hợp Đồng" icon={<FileTextOutlined />} accent="#6366f1">
+              {estimate.consultant_contract_path && (
+                <div className="py-2 border-b border-gray-50">
+                  <p className="text-xs text-gray-400 mb-1">Hợp đồng từ tư vấn viên</p>
+                  <a
+                    href={estimate.consultant_contract_path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-500 text-sm font-medium underline break-all"
+                  >
+                    Xem hợp đồng tư vấn
+                  </a>
+                </div>
+              )}
+              {estimate.customer_signed_contract_path && (
+                <div className="py-2">
+                  <p className="text-xs text-gray-400 mb-1">Hợp đồng khách hàng đã ký</p>
+                  <a
+                    href={estimate.customer_signed_contract_path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-500 text-sm font-medium underline break-all"
+                  >
+                    Xem hợp đồng đã ký
+                  </a>
+                </div>
+              )}
             </Section>
           )}
         </div>
@@ -478,43 +875,32 @@ const docs = order?.contract_file
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
           {/* Cost summary */}
           <Section title="Chi Phí" icon={<DollarOutlined />} accent="#16a34a">
-            {order.quote_fields && (
-              <>
-                <CostRow
-                  label="Chi phí vật liệu"
-                  value={order.quote_fields.material_cost}
-                />
-                <CostRow
-                  label="Chi phí nhân công"
-                  value={order.quote_fields.labor_cost}
-                />
-                {order.quote_fields.other_fees > 0 && (
-                  <CostRow
-                    label="Phí khác"
-                    value={order.quote_fields.other_fees}
-                  />
-                )}
-                {order.rush_amount > 0 && (
-                  <CostRow label="Phí gấp" value={order.rush_amount} />
-                )}
-                {order.quote_fields.discount_amount > 0 && (
-                  <CostRow
-                    label={`Giảm giá (${order.quote_fields.discount_percent}%)`}
-                    value={-order.quote_fields.discount_amount}
-                  />
-                )}
-                <div className="my-1" />
-              </>
+            <CostRow label="Chi phí vật liệu" value={estimate?.material_cost ?? order.material_cost} />
+            <CostRow label="Chi phí giấy" value={estimate?.paper_cost ?? order.paper_cost} />
+            <CostRow label="Chi phí mực" value={estimate?.ink_cost ?? order.ink_cost} />
+            {(estimate?.coating_glue_cost ?? order.coating_glue_cost) > 0 && (
+              <CostRow label="Keo tráng phủ" value={estimate?.coating_glue_cost ?? order.coating_glue_cost} />
             )}
-            <CostRow label="Tổng cộng" value={order.final_total_cost} bold />
+            {(estimate?.lamination_cost ?? order.lamination_cost) > 0 && (
+              <CostRow label="Chi phí cán màng" value={estimate?.lamination_cost ?? order.lamination_cost} />
+            )}
+            {(estimate?.design_cost ?? order.design_cost) > 0 && (
+              <CostRow label="Chi phí thiết kế" value={estimate?.design_cost ?? order.design_cost} />
+            )}
+            {(estimate?.rush_amount ?? order.rush_amount) > 0 && (
+              <CostRow label={`Phí gấp (${estimate?.rush_percent ?? order.rush_percent}%)`} value={estimate?.rush_amount ?? order.rush_amount} />
+            )}
+            {(estimate?.discount_amount ?? order.discount_amount) > 0 && (
+              <CostRow label={`Giảm giá (${estimate?.discount_percent ?? order.discount_percent}%)`} value={-(estimate?.discount_amount ?? order.discount_amount)} />
+            )}
+            <div className="my-1" />
+            <CostRow label="Tổng cộng" value={finalTotal} bold />
 
             {/* Deposit progress */}
             <div className="mt-4 pt-3 border-t border-gray-100">
               <div className="flex justify-between text-xs text-gray-500 mb-2">
                 <span>Đã cọc ({depositPct}%)</span>
-                <span className="font-medium text-amber-600">
-                  {fmt(order.deposit_amount)}
-                </span>
+                <span className="font-medium text-amber-600">{fmt(depositAmt)}</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
@@ -527,33 +913,54 @@ const docs = order?.contract_file
               </div>
               <div className="flex justify-between text-xs mt-2">
                 <span className="text-gray-400">Còn lại</span>
-                <span className="font-semibold text-red-500">
-                  {fmt(remaining)}
-                </span>
+                <span className="font-semibold text-red-500">{fmt(remaining)}</span>
               </div>
             </div>
           </Section>
 
-          
-
-          {/* Contract */}
-          {order.contract_file && (
-            <Section
-              title="Hợp Đồng"
+          {/* Production material details */}
+          <Section title="Chi Tiết Vật Liệu" icon={<FileTextOutlined />} accent="#0891b2">
+            <InfoRow
               icon={<FileTextOutlined />}
-              accent="#6366f1"
-            >
-              <Button
-                type="link"
-                className="text-indigo-500 text-sm"
-                onClick={() => setOpenViewer(true)}
-              >
-                Xem hợp đồng
-              </Button>
-            </Section>
-          )}
+              label="Tờ yêu cầu"
+              value={`${(estimate?.sheets_required ?? order.sheets_required).toLocaleString()} tờ`}
+            />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Tờ hao phí"
+              value={`${(estimate?.sheets_waste ?? order.sheets_waste).toLocaleString()} tờ`}
+            />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Tổng tờ"
+              value={`${(estimate?.sheets_total ?? order.sheets_total).toLocaleString()} tờ`}
+            />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Tổng diện tích"
+              value={`${(estimate?.total_area_m2 ?? order.total_area_m2).toFixed(2)} m²`}
+            />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Mã giấy"
+              value={estimate?.paper_code ?? order.paper_code}
+              mono
+            />
+            <InfoRow
+              icon={<FileTextOutlined />}
+              label="Đơn giá giấy"
+              value={fmt(estimate?.paper_unit_price ?? order.paper_unit_price)}
+            />
+            {estimate?.cost_note && (
+              <InfoRow
+                icon={<FileTextOutlined />}
+                label="Ghi chú chi phí"
+                value={estimate.cost_note}
+              />
+            )}
+          </Section>
 
-          {/* Quick info card */}
+          {/* Quick summary card */}
           <div
             className="rounded-2xl p-5"
             style={{
@@ -566,8 +973,10 @@ const docs = order?.contract_file
             </p>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="opacity-70">Mã đơn</span>
-                <span className="font-mono font-semibold">{order.code}</span>
+                <span className="opacity-70">Mã request</span>
+                <span className="font-mono font-semibold">
+                  AM{String(order.order_request_id).padStart(6, "0")}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="opacity-70">Sản phẩm</span>
@@ -577,17 +986,11 @@ const docs = order?.contract_file
               </div>
               <div className="flex justify-between text-sm">
                 <span className="opacity-70">Số lượng</span>
-                <span className="font-bold">
-                  {order.quantity.toLocaleString("vi-VN")} SP
-                </span>
+                <span className="font-bold">{order.quantity.toLocaleString("vi-VN")} SP</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="opacity-70">Ngày giao</span>
-                <span className="font-medium">
-                  {order.delivery_date
-                    ? dayjs(order.delivery_date).format("DD/MM/YYYY")
-                    : "—"}
-                </span>
+                <span className="font-medium">{fmtDateShort(order.delivery_date)}</span>
               </div>
               <div
                 className="flex justify-between text-sm pt-2 mt-2"
@@ -595,26 +998,59 @@ const docs = order?.contract_file
               >
                 <span className="opacity-70">Tổng tiền</span>
                 <span className="font-bold text-yellow-300 text-base">
-                  {fmt(order.final_total_cost)}
+                  {fmt(finalTotal)}
                 </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="opacity-70">Còn lại</span>
+                <span className="font-bold text-red-300">{fmt(remaining)}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Email Preview Modal */}
       <Modal
-        open={openViewer}
-        onCancel={() => setOpenViewer(false)}
-        footer={null}
-        width="90%"
+        open={previewOpen}
+        onCancel={() => setPreviewOpen(false)}
+        width="85%"
         style={{ top: 20 }}
+        title={
+          <div className="flex items-center gap-2">
+            <EyeOutlined className="text-blue-500" />
+            <span>Xem trước email gửi đến: <b>{order.customer_email}</b></span>
+          </div>
+        }
+        footer={
+          <div className="flex justify-end gap-3 py-1">
+            <Button onClick={() => setPreviewOpen(false)}>Hủy</Button>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              loading={sending}
+              onClick={handleSendEmail}
+              style={{
+                background: "linear-gradient(135deg, #1d4ed8, #1e3a8a)",
+                border: "none",
+                fontWeight: 600,
+              }}
+            >
+              Xác nhận gửi email
+            </Button>
+          </div>
+        }
       >
-        <div style={{ height: "80vh" }}>
-          <DocViewer
-            documents={docs}
-            pluginRenderers={DocViewerRenderers}
-            style={{ height: "100%" }}
-          />
+        <div
+          style={{
+            maxHeight: "70vh",
+            overflowY: "auto",
+            border: "1px solid #e2e8f0",
+            borderRadius: 12,
+            background: "#f8fafc",
+          }}
+        >
+          <EmailPreview order={order} deliveryNote={deliveryNote} remaining={remaining} depositAmt={depositAmt} />
         </div>
       </Modal>
     </div>

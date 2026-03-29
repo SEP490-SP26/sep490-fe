@@ -13,6 +13,7 @@ import {
   Button,
   message,
   Tabs,
+  Modal,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
@@ -36,38 +37,33 @@ type ProductionStatus =
   | "Scheduled"
   | "PendingPaid"
   | "Paid"
-  | "LayoutPending";
+  | "LayoutPending"
+  | string;
 
-interface OrderItem {
+interface RequestItem {
   order_id: string;
+  order_request_id: string;
   code: string;
   customer_name: string;
   product_name: string | null;
-  product_id: string | null;
   quantity: number;
-  created_at: string;
   delivery_date: string;
-  status: ProductionStatus;
-  can_fulfill: boolean;
-  missing_materials: unknown;
-  layout_confirmed: boolean;
+  process_status: ProductionStatus;
+  delivery_note: string | null;
 }
 
-interface PagedOrderResponse {
+interface PagedResponse {
   page: number;
   pageSize: number;
   hasNext: boolean;
-  data: OrderItem[];
+  data: any[];
 }
 
 /* =======================
    Status config
 ======================= */
 
-const statusConfig: Record<
-  string,
-  { label: string; color: string }
-> = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   Finished: { label: "Sẵn sàng giao", color: "green" },
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
@@ -90,14 +86,36 @@ const TAB_ITEMS = [
 ======================= */
 
 const FinishProduction: React.FC = () => {
-
-  const [data, setData] = useState<OrderItem[]>([]);
+  const [data, setData] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
   const [customerKeyword, setCustomerKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] =
     useState<[Dayjs | null, Dayjs | null] | null>(null);
+
+  const [noteModal, setNoteModal] = useState<{
+    open: boolean;
+    content: string | null;
+  }>({
+    open: false,
+    content: null,
+  });
+
+  /* =======================
+     Normalize status
+  ======================= */
+
+  const normalizeStatus = (s: string): ProductionStatus => {
+    if (!s) return s;
+    const upper = s.toUpperCase();
+
+    if (upper === "FINISHED" || upper === "DONE") return "Finished";
+    if (upper === "PENDINGPAID") return "PendingPaid";
+    if (upper === "PAID") return "Paid";
+
+    return s;
+  };
 
   /* =======================
      Fetch API
@@ -107,18 +125,32 @@ const FinishProduction: React.FC = () => {
     try {
       setLoading(true);
       const res = await fetch(
-        "https://amms-juaa.onrender.com/api/Orders/paged?page=1&pageSize=500"
+        "https://amms-juaa.onrender.com/api/Requests/paged?page=1&pageSize=500"
       );
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-      const json: PagedOrderResponse = await res.json();
-      // Keep only orders with the statuses we care about
-      const filtered = (json.data || []).filter((o) =>
-        DISPLAY_STATUSES.includes(o.status)
+
+      const json: PagedResponse = await res.json();
+
+      const mapped: RequestItem[] = (json.data || []).map((r: any) => ({
+        order_id: r.order_id, // 🔥 vẫn giữ order_id
+        order_request_id: r.order_request_id,
+        code: r.order_id,
+        customer_name: r.customer_name,
+        product_name: r.product_name,
+        quantity: r.quantity,
+        delivery_date: r.delivery_date,
+        process_status: normalizeStatus(r.process_status),
+        delivery_note: r.delivery_note,
+      }));
+
+      const filtered = mapped.filter((o) =>
+        DISPLAY_STATUSES.includes(o.process_status)
       );
+
       setData(filtered);
     } catch (err) {
-      console.error("Fetch orders error:", err);
-      message.error("Không thể tải danh sách đơn hàng");
+      console.error("Fetch requests error:", err);
+      message.error("Không thể tải danh sách yêu cầu");
     } finally {
       setLoading(false);
     }
@@ -135,7 +167,7 @@ const FinishProduction: React.FC = () => {
   const filteredData = useMemo(() => {
     return data
       .filter((o) =>
-        activeTab === "all" ? true : o.status === activeTab
+        activeTab === "all" ? true : o.process_status === activeTab
       )
       .filter((o) =>
         customerKeyword
@@ -162,7 +194,7 @@ const FinishProduction: React.FC = () => {
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = { all: data.length };
     for (const s of DISPLAY_STATUSES) {
-      counts[s] = data.filter((o) => o.status === s).length;
+      counts[s] = data.filter((o) => o.process_status === s).length;
     }
     return counts;
   }, [data]);
@@ -173,7 +205,6 @@ const FinishProduction: React.FC = () => {
 
   const handleTransfer = async (orderId: string) => {
     try {
-      // Replace with actual shipping transfer API call
       await productionsApi.transferToShipping(Number(orderId));
       setData((prev) =>
         prev.filter((item) => item.order_id !== orderId)
@@ -189,7 +220,7 @@ const FinishProduction: React.FC = () => {
      Columns
   ======================= */
 
-  const columns: ColumnsType<OrderItem> = [
+  const columns: ColumnsType<RequestItem> = [
     {
       title: "Mã đơn",
       dataIndex: "code",
@@ -218,7 +249,7 @@ const FinishProduction: React.FC = () => {
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "process_status",
       render: (status: string) => {
         const cfg = statusConfig[status];
         return cfg ? (
@@ -229,11 +260,32 @@ const FinishProduction: React.FC = () => {
       },
     },
     {
+      title: "Ghi chú vận chuyển",
+      dataIndex: "delivery_note",
+      render: (note: string | null) =>
+        note ? (
+          <Button
+            type="link"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNoteModal({
+                open: true,
+                content: note,
+              });
+            }}
+          >
+            Xem
+          </Button>
+        ) : (
+          <span style={{ color: "#aaa" }}>—</span>
+        ),
+    },
+    {
       title: "Thao tác",
       key: "action",
       align: "center",
       render: (_, record) => {
-        const status = record.status;
+        const status = record.process_status;
 
         let text = "";
         let disabled = true;
@@ -287,12 +339,10 @@ const FinishProduction: React.FC = () => {
         },
       }}
     >
-      {/* Header */}
       <Title level={4} style={{ marginBottom: 16 }}>
         Đơn sẵn sàng giao
       </Title>
 
-      {/* Tabs by status */}
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
@@ -313,7 +363,6 @@ const FinishProduction: React.FC = () => {
         }))}
       />
 
-      {/* Filters */}
       <Space
         style={{
           marginBottom: 20,
@@ -338,7 +387,6 @@ const FinishProduction: React.FC = () => {
         />
       </Space>
 
-      {/* Table */}
       <Spin spinning={loading}>
         <Table
           rowKey="order_id"
@@ -346,13 +394,24 @@ const FinishProduction: React.FC = () => {
           dataSource={filteredData}
           pagination={{ pageSize: 10 }}
           bordered
-          onRow={() => ({          
+          onRow={() => ({
             style: {
               cursor: "pointer",
             },
           })}
         />
       </Spin>
+
+      <Modal
+        title="Ghi chú vận chuyển"
+        open={noteModal.open}
+        onCancel={() => setNoteModal({ open: false, content: null })}
+        footer={null}
+      >
+        <p style={{ whiteSpace: "pre-wrap" }}>
+          {noteModal.content}
+        </p>
+      </Modal>
     </Card>
   );
 };

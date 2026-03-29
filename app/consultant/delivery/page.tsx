@@ -29,21 +29,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 const { Title } = Typography;
 
-const API_URL = "https://amms-juaa.onrender.com/api/Orders/paged";
+// ✅ Đổi sang API mới
+const API_URL = "https://amms-juaa.onrender.com/api/Requests/paged";
 
+// ✅ Interface cập nhật theo response của API mới
 interface Order {
-  order_id: string;
-  code: string;
+  order_request_id: number;
   customer_name: string;
+  customer_phone: string;
+  customer_email: string;
   product_name: string | null;
-  product_id: string | null;
-  quantity: number;
-  created_at: string;
+  quantity: number | null;
+  order_request_date: string | null;
   delivery_date: string | null;
-  status: string;
-  can_fulfill: boolean;
-  missing_materials: unknown;
-  layout_confirmed: boolean;
+  process_status: string | null;
+  detail_address: string | null;
+  order_id: number | null;
 }
 
 interface ApiResponse {
@@ -57,7 +58,7 @@ interface ApiResponse {
 const TAB_STATUS_MAP: Record<string, string[]> = {
   finished: ["Finished"],
   pending_payment: ["PendingPayment", "Pending Payment", "WaitingPayment"],
-  delivery: ["Shipping", "InShipping", "InDelivery", "Delivering"],
+  delivery: ["Shipping", "InShipping", "InDelivery", "Delivering", "Delivery"],
   completed: ["Delivered", "Received", "Done", "Completed"],
 };
 
@@ -119,6 +120,7 @@ export default function DeliveryPage() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
+      // ✅ Gọi API mới
       const response = await fetch(`${API_URL}?page=1&pageSize=500`, {
         headers: { accept: "*/*" },
       });
@@ -149,13 +151,17 @@ export default function DeliveryPage() {
       const search = searchText.toLowerCase().trim();
 
       return allOrders
-        .filter((o) => statuses.includes(o.status?.toLowerCase() ?? ""))
+        // ✅ Dùng process_status thay vì status
+        .filter((o) =>
+          statuses.includes(o.process_status?.toLowerCase() ?? "")
+        )
         .filter((o) => {
           if (!search) return true;
           if (o.customer_name?.toLowerCase().includes(search)) return true;
           if (o.product_name?.toLowerCase().includes(search)) return true;
-          if (o.code?.toLowerCase().includes(search)) return true;
-          if (String(o.order_id).includes(search)) return true;
+          // ✅ Tìm theo order_request_id thay vì code / order_id
+          if (String(o.order_request_id).includes(search)) return true;
+          if (o.order_id && String(o.order_id).includes(search)) return true;
           if (o.delivery_date && o.delivery_date !== "") {
             if (
               dayjs(o.delivery_date).format("DD/MM/YYYY").includes(search)
@@ -191,12 +197,13 @@ export default function DeliveryPage() {
 
   const getColumns = (cfg: (typeof TAB_CONFIG)[number]) => [
     {
-      title: "Mã Đơn",
-      dataIndex: "code",
-      key: "code",
-      width: 150,
-      render: (code: string) => (
-        <span className="font-mono text-gray-500 text-xs">{code}</span>
+      // ✅ Đổi từ "Mã Đơn" (code) sang "Mã Yêu Cầu" (order_request_id)
+      title: "Mã YC",
+      dataIndex: "order_request_id",
+      key: "order_request_id",
+      width: 100,
+      render: (id: number) => (
+        <span className="font-mono text-gray-500 text-xs">#{id}</span>
       ),
     },
     {
@@ -220,7 +227,7 @@ export default function DeliveryPage() {
       dataIndex: "quantity",
       key: "quantity",
       align: "right" as const,
-      render: (val: number) =>
+      render: (val: number | null) =>
         val != null ? (
           <b className="text-blue-600">{val.toLocaleString("vi-VN")} SP</b>
         ) : (
@@ -228,11 +235,12 @@ export default function DeliveryPage() {
         ),
     },
     {
+      // ✅ Đổi từ created_at sang order_request_date
       title: "Ngày Tạo",
-      dataIndex: "created_at",
-      key: "created_at",
+      dataIndex: "order_request_date",
+      key: "order_request_date",
       align: "center" as const,
-      render: (date: string) =>
+      render: (date: string | null) =>
         date ? (
           <span className="text-gray-600 text-sm">
             {dayjs(date).format("DD/MM/YYYY")}
@@ -264,7 +272,7 @@ export default function DeliveryPage() {
     },
     {
       title: "Trạng Thái",
-      key: "status",
+      key: "process_status",
       align: "center" as const,
       render: () => (
         <Tag color={cfg.tagColor as string}>{cfg.tagLabel}</Tag>
@@ -273,8 +281,9 @@ export default function DeliveryPage() {
     {
       key: "action",
       align: "center" as const,
+      // ✅ Dùng order_request_id cho đường dẫn chi tiết
       render: (_: unknown, record: Order) => (
-        <Link href={`/consultant/delivery/detail/${record.order_id}`}>
+        <Link href={`/consultant/delivery/detail/${record.order_request_id}`}>
           <Button size="small" icon={<EyeOutlined />}>
             Chi tiết
           </Button>
@@ -338,7 +347,7 @@ export default function DeliveryPage() {
         </div>
         <div className="w-1/3">
           <Input
-            placeholder="Tìm mã đơn, khách hàng, sản phẩm..."
+            placeholder="Tìm mã YC, khách hàng, sản phẩm..."
             prefix={<SearchOutlined />}
             onChange={(e) => setSearchText(e.target.value)}
             size="large"
@@ -389,7 +398,8 @@ export default function DeliveryPage() {
           <Table
             columns={getColumns(tabConfig)}
             dataSource={currentOrders}
-            rowKey="order_id"
+            // ✅ Dùng order_request_id làm rowKey
+            rowKey="order_request_id"
             bordered
             size="middle"
             pagination={{
