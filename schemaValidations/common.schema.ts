@@ -275,6 +275,22 @@ export interface EstimateCostData {
   total_area_m2: number;
   design_cost: number;
 
+  // New calculation output fields
+  waste_gluing_boxes?: number;
+  wave_sheets_required?: number;
+  wave_n_up?: number;
+  sheet_area_m2?: number;
+  wave_sheet_area_m2?: number;
+  print_sheets_used?: number;
+  coating_sheets_used?: number;
+  lamination_sheets_used?: number;
+  total_coating_area_m2?: number;
+  total_mounting_area_m2?: number;
+  total_lamination_area_m2?: number;
+  wave_unit_price?: number;
+  wave_cost?: number;
+  total_process_cost?: number;
+
   // Material details
   material_cost_details: MaterialCostDetail[];
 }
@@ -342,7 +358,6 @@ export interface Material {
   cost_price: number;
   description?: string;
   sheet_width_mm?: number;
-  sheet_length_mm?: number;
   sheet_length_mm?: number;
   boms: any[];
   purchase_items: any[];

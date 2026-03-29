@@ -525,6 +525,22 @@ export interface DetailedProductionEstimation {
   print_length_mm: number;
   print_width_mm: number;
 
+  // --- Các thông số mới ---
+  waste_gluing_boxes: number;
+  wave_sheets_required: number;
+  wave_n_up: number;
+  sheet_area_m2: number;
+  wave_sheet_area_m2: number;
+  print_sheets_used: number;
+  coating_sheets_used: number;
+  lamination_sheets_used: number;
+  total_coating_area_m2: number;
+  total_mounting_area_m2: number;
+  total_lamination_area_m2: number;
+  wave_unit_price: number;
+  wave_cost: number;
+  total_process_cost: number;
+
   // --- Chi tiết chi phí nhân công/công đoạn ---
   process_costs: ProcessCostItem[];
 }

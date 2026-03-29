@@ -29,7 +29,6 @@ export interface Material {
   description?: string;
   sheet_width_mm?: number;
   sheet_length_mm?: number;
-  sheet_length_mm?: number;
   boms: any[];
   purchase_items: any[];
   stock_moves: any[];

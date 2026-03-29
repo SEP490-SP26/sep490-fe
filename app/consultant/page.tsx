@@ -61,6 +61,15 @@ import {
   getEstimatedFreeDate,
   mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
+import { 
+  calculateEstimateForSave, 
+  CalculateInput, 
+  calculateTotalWaste, 
+  calculateNUp, 
+  calculatePrintSize, 
+  calculateRushFee, 
+  calculateProductionDays 
+} from "@/lib/estimationUtils";
 import axios from "@/apiRequests/axios";
 import { log } from "console";
 
@@ -893,6 +902,7 @@ function ConsultantForm() {
     const productTypeCode = selectedProductType?.code || "";
 
     const selectedMaterial = materials.find(m => m.code === paper_code);
+    const selectedWaveMaterial = materials.find(m => m.code === wave_type);
     if (!selectedMaterial) return null;
 
     try {
@@ -927,97 +937,164 @@ function ConsultantForm() {
         has_design_file: !!designFilePath
       };
 
-      const result = calculateAll(inputs, {
-        systemParameters: {
-          default_production_days: systemParameters?.default_production_days || 5,
-          vat_percent: systemParameters?.vat_percent || 10,
-          rush_threshold_days: systemParameters?.rush_threshold_days || 1,
-          rush_percent_by_days_early: systemParameters?.rush_percent_by_days_early || {}
-        }
-      });
+      // Calculate total waste using existing calculation first
+      const wasteResult = calculateTotalWaste(
+        {
+          baseSheets: Math.ceil(quantity / calculateNUp(selectedMaterial.sheet_width_mm || 0, selectedMaterial.sheet_length_mm || 0, calculatePrintSize(length, width, height, glue_tab, 5, is_one_side_box, productTypeCode).print_width_mm, calculatePrintSize(length, width, height, glue_tab, 5, is_one_side_box, productTypeCode).print_length_mm)),
+          productTypeCode,
+          numberOfPlates: inputs.number_of_plates || 1,
+          processes: Array.isArray(production_processes) ? production_processes : (production_processes || "").split(','),
+          coatingType: inputs.coating_type as any,
+          quantity
+        },
+        wasteRules || undefined
+      );
 
+      const printSizeResult = calculatePrintSize(length, width, height, glue_tab, 5, is_one_side_box, productTypeCode);
+
+      // Now we construct the new Calculator payload
+      let ink_rate = 0.018; // Default to HOP_MAU
+      if (productTypeCode === 'GACH_1MAU') ink_rate = 0.02;
+      else if (productTypeCode === 'GACH_XUAT_KHAU_DON_GIAN') ink_rate = 0.015;
+      else if (['GACH_XUAT_KHAU_TERACON', 'GACH_NOI_DIA_4SP', 'GACH_NOI_DIA_6SP'].includes(productTypeCode)) ink_rate = 0.025;
+
+      const calcInput: CalculateInput = {
+        quantity: quantity,
+        paper_code: paper_code,
+        wave_type: wave_type,
+        coating_type: coating_type,
+        design_file_path: designFilePath,
+        is_send_design: isSendDesign,
+        
+        sheet_width_mm: selectedMaterial.sheet_width_mm || 0,
+        sheet_length_mm: selectedMaterial.sheet_length_mm || 0,
+        
+        wave_sheet_width_mm: selectedWaveMaterial?.sheet_width_mm || 0,
+        wave_sheet_length_mm: selectedWaveMaterial?.sheet_length_mm || 0,
+        
+        print_width_mm: printSizeResult.print_width_mm,
+        print_length_mm: printSizeResult.print_length_mm,
+        
+        processesCsv: inputs.production_processes || "",
+        processCosts: processCosts as any,
+        materials: materials,
+        
+        ink_rate_per_m2: ink_rate,
+        ink_price_per_kg: 150000,
+        coating_glue_price_per_kg: coating_type === 'KEO_NUOC' ? 80000 : 120000,
+        mounting_glue_price_per_kg: 90000,
+        lamination_price_per_kg: 150000,
+        default_design_cost: designConfig?.default_design_cost || 0,
+        
+        waste_printing: wasteResult.wastes.printing,
+        waste_die_cutting: wasteResult.wastes.dieCutting,
+        waste_mounting: wasteResult.wastes.mounting,
+        waste_coating: wasteResult.wastes.coating,
+        waste_lamination: wasteResult.wastes.lamination,
+        
+        rush_amount: 0, // Rush amount is computed similarly but injected directly if available
+        discount_percent: discountPercent || 0
+      };
+
+      // Execute new drop-in algorithm
+      const partialEstimate = calculateEstimateForSave(calcInput);
+      
+      // Calculate rush logic independently to append
+      const rushResult = calculateRushFee(
+        calculateProductionDays(
+          partialEstimate.sheets_total, quantity,
+          partialEstimate.production_processes.split(","),
+          machines
+        ),
+        inputs.desired_delivery_date,
+        partialEstimate.base_cost,
+        {
+          systemParameters: {
+            default_production_days: systemParameters?.default_production_days || 5,
+            vat_percent: systemParameters?.vat_percent || 10,
+            rush_threshold_days: systemParameters?.rush_threshold_days || 1,
+            rush_percent_by_days_early: systemParameters?.rush_percent_by_days_early || {}
+          }
+        }
+      );
+
+      const rush_amount = rushResult.rushAmount;
+      const subtotalWithRush = partialEstimate.base_cost + rush_amount;
+      const discount_amount = subtotalWithRush * (discountPercent / 100);
+      const final_total_cost = subtotalWithRush - discount_amount + partialEstimate.design_cost + partialEstimate.total_process_cost;
+
+      const savedEstimate = {
+        ...partialEstimate,
+        rush_amount,
+        subtotal: subtotalWithRush,
+        discount_amount,
+        final_total_cost
+      };
+
+      // Ensure backward compatibility with paperEstimateObj for UI state
       const paperEstimateObj = {
-        paper_code: inputs.paper_code,
-        sheet_width_mm: inputs.sheet_width_mm,
-        sheet_length_mm: inputs.sheet_length_mm,
-        print_width_mm: result.printSize.print_width_mm,
-        print_length_mm: result.printSize.print_length_mm,
-        n_up: result.nUp,
-        quantity: inputs.quantity,
-        sheets_base: result.sheetsBase,
-        waste_printing: result.waste.wastes.printing,
-        waste_die_cutting: result.waste.wastes.dieCutting,
-        waste_mounting: result.waste.wastes.mounting,
-        waste_coating: result.waste.wastes.coating,
-        waste_lamination: result.waste.wastes.lamination,
-        waste_gluing: result.waste.wastes.gluing,
-        total_waste: result.waste.totalWaste,
-        sheets_with_waste: result.waste.sheetsWithWaste,
-        waste_percent: result.waste.wastePercent,
+        ...savedEstimate,
+        quantity: quantity,
+        sheet_width_mm: calcInput.sheet_width_mm,
+        sheet_length_mm: calcInput.sheet_length_mm,
+        print_width_mm: savedEstimate.print_width_mm,
+        print_length_mm: savedEstimate.print_length_mm,
+        sheets_base: savedEstimate.sheets_required,
+        total_waste: savedEstimate.sheets_waste,
+        sheets_with_waste: savedEstimate.sheets_total,
+        waste_printing: wasteResult.wastes.printing,
+        waste_die_cutting: wasteResult.wastes.dieCutting,
+        waste_mounting: wasteResult.wastes.mounting,
+        waste_coating: wasteResult.wastes.coating,
+        waste_lamination: wasteResult.wastes.lamination,
+        waste_gluing: wasteResult.wastes.gluing,
+        waste_percent: savedEstimate.sheets_required > 0 ? (savedEstimate.sheets_waste / savedEstimate.sheets_required) * 100 : 0,
         warning_message: ""
       };
 
       const costEstimateObj = {
         cost: {
-          paper_cost: result.costs.material.paper,
-          paper_sheets_used: result.waste.sheetsWithWaste,
-          paper_unit_price: selectedMaterial.cost_price || 0,
-          ink_cost: result.costs.material.ink.cost,
-          ink_weight_kg: result.costs.material.ink.weight,
-          ink_rate_per_m2: result.costs.material.ink.rate,
-          ink_unit_price: result.costs.material.ink.unitPrice,
-          coating_glue_cost: result.costs.material.coatingGlue.cost,
-          coating_glue_weight_kg: result.costs.material.coatingGlue.weight,
-          coating_glue_rate_per_m2: result.costs.material.coatingGlue.rate,
-          coating_glue_unit_price: result.costs.material.coatingGlue.unitPrice,
-          coating_type: inputs.coating_type || "KEO_NUOC",
-          mounting_glue_cost: result.costs.material.mountingGlue.cost,
-          mounting_glue_weight_kg: result.costs.material.mountingGlue.weight,
-          mounting_glue_rate_per_m2: result.costs.material.mountingGlue.rate,
-          mounting_glue_unit_price: result.costs.material.mountingGlue.unitPrice,
-          lamination_cost: result.costs.material.lamination.cost,
-          lamination_weight_kg: result.costs.material.lamination.weight,
-          lamination_rate_per_m2: result.costs.material.lamination.rate,
-          lamination_unit_price: result.costs.material.lamination.unitPrice,
-          material_cost: result.costs.material.total,
+          ...savedEstimate,
+          coating_type: savedEstimate.coating_type || "NONE",
+          ink_unit_price: 150000,
+          coating_glue_unit_price: coating_type === 'KEO_NUOC' ? 80000 : 120000,
+          mounting_glue_unit_price: 90000,
+          lamination_unit_price: 150000,
           overhead_percent: systemParameters?.vat_percent || 10,
-          overhead_cost: result.costs.overhead,
-          base_cost: result.costs.base,
-          final_total_cost: result.totals.finalTotalCost,
-          rush_amount: result.production.rush.rushAmount,
-          rush_percent: result.production.rush.rushPercent,
-          is_rush: result.production.rush.isRush,
-          days_early: result.production.rush.daysEarly,
-          subtotal: result.totals.subtotal,
-          discount_percent: discountPercent,
-          discount_amount: result.discount.amount,
-          total_area_m2: result.printArea.total,
-          design_cost: result.costs.design,
+          overhead_cost: 0, // Not used strictly anymore since there's no overhead in the new calculation
+          is_rush: rushResult.isRush,
+          days_early: rushResult.daysEarly,
+          rush_percent: rushResult.rushPercent,
+          rush_amount: rushResult.rushAmount,
           material_cost_details: [],
           estimated_finish_date: (() => {
             const date = new Date();
-            date.setDate(date.getDate() + result.production.days);
+            date.setDate(date.getDate() + calculateProductionDays(savedEstimate.sheets_total, quantity, savedEstimate.production_processes.split(","), machines));
             return date.toISOString();
           })()
         },
         process_cost: {
           order_request_id: orderId ? parseInt(orderId) : 0,
-          total_cost: result.costs.process,
-          details: result.costs.processDetails
+          total_cost: savedEstimate.total_process_cost,
+          details: savedEstimate.process_costs.map(p => ({
+            ...p,
+            process: p.process_code,
+            note: p.note || ''
+          }))
         }
       };
 
       const basicEstimate = calculateProductionTime(
         quantity, paper_code, paperTypes, isWorkshopFull,
         daysUntilFree, values.delivery_date, isBusy,
-        result.waste.sheetsWithWaste
+        savedEstimate.sheets_total
       );
 
       return {
         estimate: basicEstimate,
         paperEstimate: paperEstimateObj,
         costEstimate: costEstimateObj,
-        finalTotalCost: Math.round(result.totals.finalTotalCost)
+        finalTotalCost: Math.round(savedEstimate.final_total_cost)
       };
 
     } catch (err) {
