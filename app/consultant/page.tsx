@@ -76,13 +76,13 @@ import { log } from "console";
 
 
 const PROCESS_TYPE_LABELS: Record<string, string> = {
-  RALO: "Ralo/Cắt",
+  RALO: "Ralo",
   CAT: "Cắt",
   IN: "In",
   PHU: "Phủ",
   CAN: "Cán",
   BOI: "Bồi",
-  BE: "Bế/Dứt",
+  BE: "Bế",
   DUT: "Dứt",
   DAN: "Dán",
 };
