@@ -68,6 +68,41 @@ export default function ConsultantRequestDetailPage() {
     const [sendingMessage, setSendingMessage] = useState(false);
     const [uploadingPrint, setUploadingPrint] = useState(false);
 
+    const [alternativeModalOpen, setAlternativeModalOpen] = useState(false);
+    const [submittingAlternative, setSubmittingAlternative] = useState(false);
+    const [alternativeForm] = Form.useForm();
+    const [selectedEstimateForMaterial, setSelectedEstimateForMaterial] = useState<any>(null);
+
+    const handleOpenAlternativeModal = (estimate: any) => {
+        setSelectedEstimateForMaterial(estimate);
+        alternativeForm.setFieldsValue({
+            paper_alternative: estimate.paper_alternative || '',
+            wave_alternative: estimate.wave_alternative || ''
+        });
+        setAlternativeModalOpen(true);
+    };
+
+    const handleAlternativeSubmit = async (values: any) => {
+        if (!selectedEstimateForMaterial) return;
+        setSubmittingAlternative(true);
+        try {
+            await estimatesApi.alternativeMaterials({
+                request_id: Number(requestId),
+                estimate_id: selectedEstimateForMaterial.estimate_id,
+                paper_alternative: values.paper_alternative || '',
+                wave_alternative: values.wave_alternative || ''
+            });
+            message.success("Cập nhật vật liệu thay thế thành công!");
+            setAlternativeModalOpen(false);
+            fetchOrderDetail(false);
+        } catch (error) {
+            console.error("Lỗi khi cập nhật vật liệu:", error);
+            message.error("Lỗi khi cập nhật vật liệu thay thế.");
+        } finally {
+            setSubmittingAlternative(false);
+        }
+    };
+
     // Fetch order detail from API
     const fetchOrderDetail = async (showLoading: boolean = true) => {
         if (!requestId) return;
@@ -373,8 +408,10 @@ export default function ConsultantRequestDetailPage() {
                                         <Descriptions.Item label="Dự kiến" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
                                         {orderDetail.product_name && <Descriptions.Item label="Kiểu hộp" span={1}><Text strong className="text-slate-800">{orderDetail.product_name}</Text></Descriptions.Item>}
                                         {orderDetail.paper_name && <Descriptions.Item label="Loại giấy" span={1}><Text strong className="text-slate-800">{orderDetail.paper_name}</Text></Descriptions.Item>}
+                                        {orderDetail.paper_alternative && <Descriptions.Item label="Giấy thay thế" span={1}><Text strong className="text-amber-600">{orderDetail.paper_alternative}</Text></Descriptions.Item>}
                                         {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && <Descriptions.Item label="Loại phủ" span={1}><Text strong className="text-slate-800">{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>}
                                         {orderDetail.wave_type && orderDetail.wave_type !== "NONE" && <Descriptions.Item label="Kiểu sóng" span={1}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item>}
+                                        {orderDetail.wave_alternative && <Descriptions.Item label="Sóng thay thế" span={1}><Text strong className="text-amber-600">{orderDetail.wave_alternative}</Text></Descriptions.Item>}
                                         {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
                                         {/* {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>} */}
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
@@ -485,7 +522,12 @@ export default function ConsultantRequestDetailPage() {
                                                             const { file, onSuccess, onError } = options;
                                                             setUploadingPrint(true);
                                                             try {
-                                                                await uploadApi.updatePrintReadyFile(orderDetail.order_request_id, file as File);
+                                                                const activeEstimate = orderDetail.cost_estimate?.find(e => e.is_active);
+                                                                const estimateId = activeEstimate ? activeEstimate.estimate_id : 0;
+                                                                await requestOrderApi.uploadPrintReadyFile(orderDetail.request_id, {
+                                                                    estimate_id: estimateId,
+                                                                    file: file as File
+                                                                });
                                                                 message.success(orderDetail.file_url ? "Cập nhật file in thành công" : "Tải file in thành công");
                                                                 fetchOrderDetail(false);
                                                                 if (onSuccess) onSuccess("ok");
@@ -568,11 +610,34 @@ export default function ConsultantRequestDetailPage() {
                                                 <div key={estimate.estimate_id} className={`p-4 rounded-xl border ${hasNote ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-slate-100'}`}>
                                                     <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
                                                         <Tag className={`m-0 border-0 font-medium px-2 rounded ${hasNote ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-50 text-blue-600'}`}>Báo giá #{index + 1}</Tag>
+                                                        {orderDetail.process_status === 'Accepted' && (
+                                                            <Button size="small" type="dashed" onClick={() => handleOpenAlternativeModal(estimate)}>
+                                                                Đổi vật tư
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Loại giấy:</span>
                                                         <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
                                                     </div>
+                                                    {estimate.paper_alternative && (
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-slate-500 text-sm">Giấy thay thế:</span>
+                                                            <span className="font-medium text-amber-600 text-sm">{estimate.paper_alternative}</span>
+                                                        </div>
+                                                    )}
+                                                    {estimate.wave_type && estimate.wave_type !== "NONE" && (
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-slate-500 text-sm">Kiểu sóng:</span>
+                                                            <span className="font-medium text-slate-800 text-sm">{estimate.wave_type}</span>
+                                                        </div>
+                                                    )}
+                                                    {estimate.wave_alternative && (
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-slate-500 text-sm">Sóng thay thế:</span>
+                                                            <span className="font-medium text-amber-600 text-sm">{estimate.wave_alternative}</span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Loại phủ:</span>
                                                         <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
@@ -847,6 +912,48 @@ export default function ConsultantRequestDetailPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Alternative Materials Modal */}
+                <Modal
+                    title={<span className="font-bold text-lg"><EditOutlined className="mr-2 text-amber-600"/>Thay đổi vật tư</span>}
+                    open={alternativeModalOpen}
+                    onCancel={() => setAlternativeModalOpen(false)}
+                    footer={null}
+                    centered
+                    destroyOnClose
+                >
+                    <Form
+                        form={alternativeForm}
+                        layout="vertical"
+                        onFinish={handleAlternativeSubmit}
+                        className="mt-4"
+                    >
+                        <Form.Item
+                            name="paper_alternative"
+                            label={<span className="font-medium text-slate-700">Giấy thay thế (tên giấy)</span>}
+                            help="Nhập tên giấy để thay thế cho loại giấy cũ, để trống nếu không đổi"
+                        >
+                            <Input placeholder="Nhập tên giấy thay thế..." className="rounded-lg" />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="wave_alternative"
+                            label={<span className="font-medium text-slate-700">Sóng thay thế</span>}
+                            help="Nhập loại sóng để thay thế cho sóng cũ, để trống nếu không đổi"
+                        >
+                            <Input placeholder="Nhập tên sóng thay thế..." className="rounded-lg" />
+                        </Form.Item>
+
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                            <Button onClick={() => setAlternativeModalOpen(false)} className="rounded-lg">
+                                Hủy
+                            </Button>
+                            <Button type="primary" htmlType="submit" loading={submittingAlternative} className="rounded-lg bg-amber-600 hover:bg-amber-500 border-none">
+                                Xác nhận
+                            </Button>
+                        </div>
+                    </Form>
+                </Modal>
 
                 {/* Quote Preview Modal */}
                 <Modal

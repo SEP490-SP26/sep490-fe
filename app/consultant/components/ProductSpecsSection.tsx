@@ -19,6 +19,7 @@ interface ProductSpecsSectionProps {
   processTypes: string[];
   PROCESS_TYPE_LABELS: Record<string, string>;
   songTypes: Material[];
+  glueTypes: Material[];
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   form: any;
   disabledSharedFields?: boolean;
@@ -48,6 +49,7 @@ export default function ProductSpecsSection({
   processTypes,
   PROCESS_TYPE_LABELS,
   songTypes,
+  glueTypes,
   handleFormValuesChange,
   form,
   disabledSharedFields = false,
@@ -68,11 +70,11 @@ export default function ProductSpecsSection({
     const validClasses = paper.material_class.split(",").map((s: string) => s.trim().toLowerCase());
     const productNameLower = prodType.name?.trim().toLowerCase();
     const productCodeLower = prodType.code?.trim().toLowerCase();
-    
+
     if (validClasses.length === 0) return true;
-    
-    return (productNameLower && validClasses.includes(productNameLower)) || 
-           (productCodeLower && validClasses.includes(productCodeLower));
+
+    return (productNameLower && validClasses.includes(productNameLower)) ||
+      (productCodeLower && validClasses.includes(productCodeLower));
   };
 
   const isCurrentPaperIncompatible = selectedPaper && !checkPaperCompatibility(selectedPaper, activeProductType);
@@ -103,7 +105,7 @@ export default function ProductSpecsSection({
   useEffect(() => {
     const processes = form.getFieldValue("production_processes");
     const currentWave = form.getFieldValue("wave_type");
-    
+
     // Ensure wave_type is initialized if BOI is present but wave_type is missing
     if (Array.isArray(processes) && processes.includes("BOI") && !currentWave) {
       form.setFieldValue("wave_type", "SONG_B_NAU");
@@ -234,10 +236,10 @@ export default function ProductSpecsSection({
               <Form.Item name="coating_type" className="mb-0">
                 <FloatingSelect
                   label="Loại keo"
-                  options={[
-                    { label: "Keo nước", value: "KEO_NUOC" },
-                    { label: "Keo dầu", value: "KEO_DAU" },
-                  ]}
+                  options={glueTypes.map((gt) => ({
+                    label: gt.name,
+                    value: gt.code,
+                  }))}
                   className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
                   disabled={isDeclined && !highlightFields['coating_type']}
                 />
@@ -453,7 +455,7 @@ export default function ProductSpecsSection({
                 if (!checkedValues.includes("BOI")) {
                   form.setFieldValue("wave_type", "");
                 }
-                
+
                 // Trigger form re-calculation manually if needed because some hidden constraints updated
                 // We use setTimeout to ensure form has updated with normalized value
                 setTimeout(() => {
@@ -461,39 +463,25 @@ export default function ProductSpecsSection({
                 }, 0);
               }}
             >
-              <div className="grid grid-cols-4 xl:grid-cols-6 gap-y-1">
+              <div className="flex flex-wrap gap-x-3">
                 {loadingProcessTypes ? (
                   <span className="text-gray-400 text-xs">Đang tải...</span>
                 ) : (
-                  <>
-                    {processTypes
-                      .filter((pt) => ["IN", "DUT", "CAT", "RALO", "BE"].includes(pt))
-                      .map((pt) => (
-                        <Checkbox
-                          value={pt}
-                          key={pt}
-                          disabled
-                          className="!flex items-center m-0"
-                        >
-                          <span className="text-[13px] leading-tight">
-                            {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
-                          </span>
-                        </Checkbox>
-                      ))}
-                    {processTypes
-                      .filter((pt) => !["IN", "DUT", "DOT", "CAT", "RALO", "BE"].includes(pt))
-                      .map((pt) => (
-                        <Checkbox
-                          value={pt}
-                          key={pt}
-                          className="!flex items-center m-0"
-                        >
-                          <span className="text-[13px] leading-tight">
-                            {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
-                          </span>
-                        </Checkbox>
-                      ))}
-                  </>
+                  ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"].map((pt) => {
+                    const isDisabled = ["IN", "DUT", "CAT", "RALO", "BE"].includes(pt);
+                    return (
+                      <Checkbox
+                        value={pt}
+                        key={pt}
+                        disabled={isDisabled}
+                        className="!flex items-center m-0"
+                      >
+                        <span className={`text-[13px] leading-tight ${isDisabled ? "text-gray-400" : "text-gray-700"}`}>
+                          {PROCESS_TYPE_LABELS[pt] || pt}
+                        </span>
+                      </Checkbox>
+                    );
+                  })
                 )}
               </div>
             </Checkbox.Group>

@@ -25,14 +25,5 @@ export const uploadApi = {
         return http.delete<void>(`/api/Uploads/delete-design-file/${request_id}`);
     },
 
-    // POST /api/Uploads/update-print-ready-file/{orderRequestId}
-    updatePrintReadyFile: async (orderRequestId: number, file: File): Promise<UploadResponse> => {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        return http.post<UploadResponse>(
-            `/api/Uploads/update-print-ready-file/${orderRequestId}`,
-            formData
-        );
-    },
+   
 };

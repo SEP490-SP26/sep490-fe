@@ -215,4 +215,18 @@ export const estimatesApi = {
         formData.append("file", body.file);
         return http.post<void>(`/api/Estimates/upload-customer-signed-contract`, formData);
     },
+
+    alternativeMaterials: (body: {
+        request_id: number;
+        estimate_id: number;
+        paper_alternative: string;
+        wave_alternative: string;
+    }) => {
+        const formData = new FormData();
+        formData.append("request_id", body.request_id.toString());
+        formData.append("estimate_id", body.estimate_id.toString());
+        formData.append("paper_alternative", body.paper_alternative);
+        formData.append("wave_alternative", body.wave_alternative);
+        return http.put<void>(`/api/Estimates/alternative-materials`, formData);
+    },
 };

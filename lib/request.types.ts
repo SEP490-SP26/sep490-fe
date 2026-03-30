@@ -17,8 +17,10 @@ export interface DetailedEstimate {
   // Vật tư & Quy trình
   paper_code: string;
   paper_name: string;
+  paper_alternative?: string;
   coating_type: string;
   wave_type: string;
+  wave_alternative?: string;
   production_processes: string;
   cost_note: string;
 
@@ -90,7 +92,9 @@ export interface RequestDetailResponse {
   coating_type: string;
   paper_code: string;
   paper_name: string;
+  paper_alternative?: string;
   wave_type: string;
+  wave_alternative?: string;
   product_length_mm: number;
   product_width_mm: number;
   product_height_mm: number;

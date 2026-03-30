@@ -76,16 +76,15 @@ import { log } from "console";
 
 
 const PROCESS_TYPE_LABELS: Record<string, string> = {
-  IN: "In",
   RALO: "Ra Lô",
   CAT: "Cắt",
-  BOI: "Bồi",
+  IN: "In",
   PHU: "Phủ",
   CAN: "Cán",
+  BOI: "Bồi",
   BE: "Bế",
   DUT: "Dứt",
   DAN: "Dán",
-  DOT: "Đột",
 };
 
 function ConsultantForm() {
@@ -133,6 +132,7 @@ function ConsultantForm() {
   const [processTypes, setProcessTypes] = useState<string[]>([]);
   const [loadingProcessTypes, setLoadingProcessTypes] = useState(false);
   const [songTypes, setSongTypes] = useState<Material[]>([]);
+  const [glueTypes, setGlueTypes] = useState<Material[]>([]);
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
   const [fileList, setFileList] = useState<any[]>([]);
@@ -462,23 +462,35 @@ function ConsultantForm() {
   // --- FETCH DATA ---
   useEffect(() => {
     const fetchData = async () => {
-      // Paper Types
+      // Materials (Paper, Song, Keo)
       setLoadingPaperTypes(true);
       try {
-        const response = await materialsApi.getAllPaperTypes();
-        if (response?.paperTypes && Array.isArray(response.paperTypes)) {
+        const response: any = await materialsApi.getAll();
+        const allMaterials = Array.isArray(response) ? response : (response?.data || []);
+
+        if (Array.isArray(allMaterials)) {
+          // 1. Filter Paper Types (type: GIẤY)
+          const papers = allMaterials.filter((m: any) => m.type === "GIẤY");
           setPaperTypes(
-            response.paperTypes.map((pt: any) => ({
+            papers.map((pt: any) => ({
               code: pt.code,
               name: pt.name,
-              stock: pt.stockQty || 0, // Ensure stock is mapped
-              value: pt.code, // For easier finding
+              stock: pt.stock_qty || 0,
+              value: pt.code,
               material_class: pt.material_class,
             }))
           );
+
+          // 2. Filter Song Types (type: SÓNG)
+          const songs = allMaterials.filter((m: any) => m.type === "SÓNG");
+          setSongTypes(songs);
+
+          // 3. Filter Glue Types (type: KEO)
+          const glues = allMaterials.filter((m: any) => m.type === "KEO");
+          setGlueTypes(glues);
         }
       } catch (error) {
-        console.error("Error fetching paper types:", error);
+        console.error("Error fetching materials:", error);
       } finally {
         setLoadingPaperTypes(false);
       }
@@ -537,13 +549,6 @@ function ConsultantForm() {
         setLoadingProcessTypes(false);
       }
 
-      // Song Types
-      try {
-        const response = await materialsApi.getSongTypes();
-        if (Array.isArray(response)) setSongTypes(response);
-      } catch (error) {
-        console.error("Error fetching song types:", error);
-      }
 
       // Product Suggestions
       try {
@@ -902,8 +907,38 @@ function ConsultantForm() {
     );
     const productTypeCode = selectedProductType?.code || "";
 
-    const selectedMaterial = materials.find(m => m.code === paper_code);
-    const selectedWaveMaterial = materials.find(m => m.code === wave_type);
+    // Robust material lookup helper
+    const findMaterialByIdentifier = (mats: Material[], identifier: string, fallbackType?: string) => {
+      if (!identifier || identifier === "NONE" || identifier === "null") return undefined;
+      
+      const normalizedOriginal = identifier.trim().toUpperCase();
+      
+      // 1. Try exact code match
+      const byCode = mats.find(m => m.code.toUpperCase() === normalizedOriginal);
+      if (byCode) return byCode;
+      
+      // 2. Try exact name match
+      const byName = mats.find(m => m.name.toUpperCase() === normalizedOriginal);
+      if (byName) return byName;
+      
+      // 3. Try partial name overlap
+      const byPartial = mats.find(m => 
+        m.name.toUpperCase().includes(normalizedOriginal) || 
+        normalizedOriginal.includes(m.name.toUpperCase())
+      );
+      if (byPartial) return byPartial;
+
+      // 4. Default fallbacks for common wave types if BOI is present
+      if (fallbackType === 'SÓNG' && normalizedOriginal.includes('SÓNG B')) {
+        return mats.find(m => m.code === "SONG_B_NAU");
+      }
+      
+      return undefined;
+    };
+
+    const selectedMaterial = findMaterialByIdentifier(materials, paper_code);
+    const selectedWaveMaterial = findMaterialByIdentifier(materials, wave_type, 'SÓNG');
+    
     if (!selectedMaterial) return null;
 
     try {
@@ -1130,9 +1165,18 @@ function ConsultantForm() {
       length: Number(values.length) || 0,
       width: Number(values.width) || 0,
       height: Number(values.height) || 0,
-      product_type: values.product_type || "",
       production_processes: Array.isArray(values.production_processes)
-        ? [...values.production_processes].sort().join(",")
+        ? [...values.production_processes]
+          .sort((a, b) => {
+            const order = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN", "DOT"];
+            const idxA = order.indexOf(a);
+            const idxB = order.indexOf(b);
+            if (idxA === -1 && idxB === -1) return 0;
+            if (idxA === -1) return 1;
+            if (idxB === -1) return -1;
+            return idxA - idxB;
+          })
+          .join(",")
         : (values.production_processes || ""),
       coating_type: values.coating_type || "NONE",
       wave_type: values.wave_type || "NONE",
@@ -1744,6 +1788,7 @@ function ConsultantForm() {
                             processTypes={processTypes}
                             PROCESS_TYPE_LABELS={PROCESS_TYPE_LABELS}
                             songTypes={songTypes}
+                            glueTypes={glueTypes}
                             handleFormValuesChange={handleFormValuesChange}
                             form={form}
                             disabledSharedFields={activeTabKey !== "1"}
