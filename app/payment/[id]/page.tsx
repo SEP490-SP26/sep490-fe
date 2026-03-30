@@ -469,7 +469,7 @@ export default function Payment() {
               <div className="success-icon">✓</div>
               <div className="success-title">Thanh toán thành công!</div>
               <div className="success-sub">Giao dịch của bạn đã được xác nhận</div>
-              <div className="success-amount">{formatVND(554400)}</div>
+              <div className="success-amount">{formatVND(initData?.amount || 0)}</div>
               <div className="info-row" style={{ width: '100%' }}>
                 <span className="info-key">Đơn hàng</span>
                 <span className="info-val">#{paymentData.order_code}</span>
