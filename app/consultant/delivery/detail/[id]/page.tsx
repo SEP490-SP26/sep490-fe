@@ -469,23 +469,8 @@ function EmailPreview({
 
           {/* Payment link */}
           <div style={{ textAlign: "center", margin: "0 0 18px 0" }}>
-            <a
-              href={paymentPageUrl}
-              style={{
-                display: "inline-block",
-                background: "linear-gradient(135deg,#1d4ed8,#1e3a8a)",
-                color: "#fff",
-                padding: "12px 28px",
-                borderRadius: 10,
-                fontWeight: 700,
-                fontSize: 14,
-                textDecoration: "none",
-              }}
-            >
-              Thanh toán ngay
-            </a>
             <p style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>
-              Hoặc truy cập: <a href={paymentPageUrl} style={{ color: "#2563eb" }}>{paymentPageUrl}</a>
+              Hoặc truy cập bằng cách dán đường link này vào trình duyệt: <p style={{color: "#3382f1"}}>{paymentPageUrl}</p>
             </p>
           </div>
 
@@ -740,12 +725,7 @@ export default function OrderDetailPage() {
           <Section title="Thông Tin Giao Hàng" icon={<SendOutlined />} accent="#ec4899">
             <InfoRow
               icon={<FileTextOutlined />}
-              label="Ghi chú giao hàng"
-              value={order.delivery_note || <span className="text-gray-300 italic text-xs">Chưa có ghi chú</span>}
-            />
-            <InfoRow
-              icon={<FileTextOutlined />}
-              label="Ghi chú KH"
+              label="Ghi chú cho KH"
               value={order.message_to_customer || <span className="text-gray-300 italic text-xs">—</span>}
             />
             {isFinished && (
@@ -765,14 +745,6 @@ export default function OrderDetailPage() {
                   Ghi chú này sẽ được hiển thị trong email thông báo thanh toán gửi đến khách hàng.
                 </p>
                 <div className="flex gap-3 pt-3">
-                  <Button
-                    icon={<EyeOutlined />}
-                    onClick={() => setPreviewOpen(true)}
-                    className="flex-1"
-                    style={{ borderRadius: 10, height: 40 }}
-                  >
-                    Xem trước email
-                  </Button>
                   <Button
                     type="primary"
                     icon={<SendOutlined />}

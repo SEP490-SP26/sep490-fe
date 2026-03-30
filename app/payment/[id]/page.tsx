@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import QRCode from 'qrcode'
 import { useParams, useRouter } from 'next/navigation'
-
+//Đã npm run build
 
 
 const POLLING_INTERVAL = 3000
@@ -22,9 +22,25 @@ type PaymentStatus = {
   message: string
 }
 
+type PaymentInitData = {
+  expired_at: string | null
+  check_out_url: string
+  qr_code: string
+  account_number: string
+  account_name: string
+  amount: number
+  status: string
+  description: string
+  bin: string
+  payment_link_id: string
+  transaction_id: string | null
+  order_code: number
+}
+
 type Stage = 'loading' | 'pending' | 'paid' | 'error'
 
 export default function Payment() {
+  const [initData, setInitData] = useState<PaymentInitData | null>(null)
   const params = useParams();
   const ORDER_ID = params.id;
   const router = useRouter()
@@ -82,6 +98,15 @@ export default function Payment() {
   useEffect(() => {
     const init = async () => {
       try {
+        // 1. Gọi API tạo link thanh toán
+        const initRes = await fetch(
+          `https://amms-juaa.onrender.com/api/Orders/create-payos-remaining-link/${ORDER_ID}`
+        )
+        if (!initRes.ok) throw new Error(`HTTP ${initRes.status}`)
+        const initData: PaymentInitData = await initRes.json()
+        setInitData(initData)
+
+        // 2. Gọi API check status (giữ nguyên logic cũ)
         const res = await fetch(
           `https://amms-juaa.onrender.com/api/Orders/payos/remaining-status-by-order-id?order_id=${ORDER_ID}`
         )
@@ -94,7 +119,9 @@ export default function Payment() {
           return
         }
 
-        await generateQR(data.qr_code)
+        // ⚡ dùng QR từ API mới
+        await generateQR(initData.qr_code)
+
         setStage('pending')
 
         pollingRef.current = setInterval(checkStatus, POLLING_INTERVAL)
@@ -389,7 +416,7 @@ export default function Payment() {
               <div className="amount-box">
                 <div>
                   <div className="amount-label">Số tiền cần thanh toán</div>
-                  <div className="amount-value">{formatVND(554400)}</div>
+                  <div className="amount-value">{formatVND(initData?.amount || 0)}</div>
                 </div>
                 <span className="badge pending">
                   <span className="badge-dot" />
@@ -416,15 +443,15 @@ export default function Payment() {
 
               <div className="info-row">
                 <span className="info-key">Tên tài khoản</span>
-                <span className="info-val">PHAM MINH TRUONG</span>
+                <span className="info-val">{initData?.account_name}</span>
               </div>
               <div className="info-row">
                 <span className="info-key">Số tài khoản</span>
-                <span className="info-val">V3CAS6960330897</span>
+                <span className="info-val">{initData?.account_number}</span>
               </div>
               <div className="info-row">
                 <span className="info-key">Nội dung CK</span>
-                <span className="info-val">{paymentData.qr_code ? 'CS4ASCVWJG4 REM000087' : ''}</span>
+                <span className="info-val">{initData?.description}</span>
               </div>
 
               <div className="polling-bar">
@@ -442,7 +469,7 @@ export default function Payment() {
               <div className="success-icon">✓</div>
               <div className="success-title">Thanh toán thành công!</div>
               <div className="success-sub">Giao dịch của bạn đã được xác nhận</div>
-              <div className="success-amount">{formatVND(554400)}</div>
+              <div className="success-amount">{formatVND(initData?.amount || 0)}</div>
               <div className="info-row" style={{ width: '100%' }}>
                 <span className="info-key">Đơn hàng</span>
                 <span className="info-val">#{paymentData.order_code}</span>

@@ -283,7 +283,7 @@ export default function DeliveryPage() {
       align: "center" as const,
       // ✅ Dùng order_request_id cho đường dẫn chi tiết
       render: (_: unknown, record: Order) => (
-        <Link href={`/consultant/delivery/detail/${record.order_request_id}`}>
+        <Link href={`/consultant/delivery/detail/${record.order_id}`}>
           <Button size="small" icon={<EyeOutlined />}>
             Chi tiết
           </Button>
