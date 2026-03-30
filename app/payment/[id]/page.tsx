@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import QRCode from 'qrcode'
 import { useParams, useRouter } from 'next/navigation'
-
+//Đã npm run build
 
 
 const POLLING_INTERVAL = 3000
