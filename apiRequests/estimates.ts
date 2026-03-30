@@ -160,6 +160,7 @@ export interface OrderRequestWithQuotes {
     product_name: string;
     quantity: number;
     is_send_design: boolean;
+    estimate_finish_date: string;
 
     /** Danh sách các phương án báo giá cho yêu cầu này */
     quotes: QuoteOption[];

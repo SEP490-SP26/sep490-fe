@@ -35,6 +35,7 @@ export default function RequestDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState<QuoteOption[]>([]);
+  const [estimate_finish_date, setEstimateFinishDate] = useState<string>("---");
   const [selectedQuote, setSelectedQuote] = useState<QuoteOption | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<PaymentResponse | null>(null);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
@@ -69,6 +70,10 @@ export default function RequestDetailPage() {
 
         if (data && data.quotes) {
           setQuotes(data.quotes);
+          if (data.estimate_finish_date) {
+            const formattedDate = dayjs(data.estimate_finish_date).format("DD/MM/YYYY");
+            setEstimateFinishDate(formattedDate !== "Invalid Date" ? formattedDate : data.estimate_finish_date);
+          }
         }
       } catch (error) {
         console.error("Error fetching order detail:", error);
@@ -187,7 +192,7 @@ export default function RequestDetailPage() {
                       MES SYSTEM
                     </div>
                     <div className="text-white text-2xl font-extrabold mt-1">
-                      BÁO GIÁ {quotes.length > 1 ? index + 1 : ""}
+                      BÁO GIÁ {quote.quote_id}
                     </div>
                   </div>
                   <div className="bg-white/15 text-white px-3 py-1.5 rounded text-sm font-bold">
@@ -267,6 +272,10 @@ export default function RequestDetailPage() {
                         <div className="flex justify-between items-center py-2">
                           <span className="text-slate-500 text-[13px]">Giao dự kiến</span>
                           <span className="text-slate-800 font-semibold text-[13px]">{deliveryText}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2">
+                          <span className="text-slate-500 text-[13px]">Ngày hoàn thành dự kiến</span>
+                          <span className="text-slate-800 font-semibold text-[13px]">{estimate_finish_date}</span>
                         </div>
                       </div>
                     </div>
@@ -367,7 +376,7 @@ export default function RequestDetailPage() {
 
       {/* Confirmation Modal */}
       <Modal
-        title={<div className="text-lg font-bold text-slate-800">Xác nhận hợp đồng & thanh toán</div>}
+        title={<div className="text-lg font-bold text-slate-800">Xác nhận hợp đồng & thanh toán {selectedQuote ? `- Báo giá ${selectedQuote.quote_id}` : ""}</div>}
         open={isConfirmModalVisible}
         onCancel={() => setIsConfirmModalVisible(false)}
         footer={[
@@ -389,15 +398,54 @@ export default function RequestDetailPage() {
         centered
       >
         <div className="py-4">
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
             <h4 className="text-blue-800 font-bold mb-2 flex items-center gap-2">
               <InfoCircleOutlined className="text-blue-500" />
-              Điều khoản hợp đồng
+              Điều khoản hợp đồng {selectedQuote ? `- Báo giá ${selectedQuote.quote_id}` : ""}
             </h4>
             <p className="text-blue-700 text-sm m-0">
-              Vui lòng xem kỹ file hợp đồng và các thông tin báo giá trước khi tiến hành thanh toán đặt cọc.
+              Bạn đang chọn <strong className="text-blue-800">Báo giá {selectedQuote ? selectedQuote.quote_id : ""}</strong>. Vui lòng kiểm tra lại thông tin và xem kỹ file hợp đồng đính kèm trước khi tiến hành thanh toán.
             </p>
           </div>
+
+          {selectedQuote && (
+            <div className="mb-6 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                <h4 className="font-bold text-slate-800 m-0">Thông tin Báo giá</h4>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-semibold tracking-wider">AM{selectedQuote.order_request_id.toString().padStart(6, '0')}</span>
+              </div>
+              <div className="p-4 space-y-3 text-sm">
+                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
+                  <span className="text-slate-500">Sản phẩm:</span>
+                  <span className="font-semibold text-slate-800 text-right max-w-[65%]">{selectedQuote.product_name}</span>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
+                  <span className="text-slate-500">Số lượng:</span>
+                  <span className="font-semibold text-slate-800">{selectedQuote.quantity.toLocaleString('vi-VN')}</span>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
+                  <span className="text-slate-500">Loại giấy:</span>
+                  <span className="font-semibold text-slate-800 text-right max-w-[65%]">{selectedQuote.paper_name || "---"}</span>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
+                  <span className="text-slate-500">Thiết kế:</span>
+                  <span className="font-semibold text-slate-800">{selectedQuote.design_type_text || (selectedQuote.is_send_design ? "Khách gửi file" : "Thuê thiết kế")}</span>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
+                  <span className="text-slate-500">Ngày hoàn thành dự kiến:</span>
+                  <span className="font-semibold text-slate-800">{estimate_finish_date}</span>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-slate-100 pb-2">
+                  <span className="text-slate-500">Giao hàng dự kiến:</span>
+                  <span className="font-semibold text-slate-800">{selectedQuote.delivery_text || dayjs(selectedQuote.delivery_date).format("DD/MM/YYYY")}</span>
+                </div>
+                <div className="flex justify-between pt-1">
+                  <span className="text-slate-800 font-bold">Thành tiền (đã gồm VAT):</span>
+                  <span className="font-bold text-blue-700 text-base">{formatVND(selectedQuote.final_total || 0)}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
@@ -594,10 +642,10 @@ export default function RequestDetailPage() {
       >
         <div className="py-2 text-slate-600 space-y-3">
           <p className="m-0">
-            Bạn đã chọn <strong className="text-slate-800">Báo giá {quotes.length > 1 ? `số ${quotes.findIndex(q => q.quote_id === selectedQuote?.quote_id) + 1}` : ""}</strong>.
+            Bạn đã chọn <strong className="text-slate-800">Báo giá {selectedQuote?.quote_id}</strong>.
           </p>
           <p className="m-0">
-            Mọi thanh toán sau này sẽ dựa trên <strong className="text-slate-800">Báo giá {quotes.length > 1 ? `số ${quotes.findIndex(q => q.quote_id === selectedQuote?.quote_id) + 1}` : ""}</strong>. Bạn có xác nhận không?
+            Mọi thanh toán sau này sẽ dựa trên <strong className="text-slate-800">Báo giá {selectedQuote?.quote_id}</strong>. Bạn có xác nhận không?
           </p>
           <p className="m-0 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm mt-4">
             <InfoCircleOutlined className="mr-1" />

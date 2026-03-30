@@ -108,6 +108,7 @@ export interface RequestDetailResponse {
   preliminary_estimated_price?: number;
   cost_estimate: DetailedEstimate[];
   file_url?: string;
+  estimate_finish_date?: string;
 }
 
 // --- PHẦN 1: CÁC INTERFACE CON ---
