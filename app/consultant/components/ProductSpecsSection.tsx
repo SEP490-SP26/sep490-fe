@@ -58,6 +58,8 @@ export default function ProductSpecsSection({
 }: ProductSpecsSectionProps) {
   const currentProductTypeId = Form.useWatch("product_type", form);
   const currentPaperCode = Form.useWatch("paper_code", form);
+  const currentProcesses = Form.useWatch("production_processes", form) || [];
+  const hasPHU = currentProcesses.includes("PHU");
 
   const selectedProductType = productTypes?.find((pt) => pt.product_type_id === currentProductTypeId);
   const selectedPaper = paperTypes?.find((paper) => paper.code === currentPaperCode);
@@ -231,21 +233,23 @@ export default function ProductSpecsSection({
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Tooltip title={highlightFields['coating_type'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
-            <div className="w-full">
-              <Form.Item name="coating_type" className="mb-0">
-                <FloatingSelect
-                  label="Loại keo"
-                  options={glueTypes.map((gt) => ({
-                    label: gt.name,
-                    value: gt.code,
-                  }))}
-                  className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-                  disabled={isDeclined && !highlightFields['coating_type']}
-                />
-              </Form.Item>
-            </div>
-          </Tooltip>
+          {hasPHU && (
+            <Tooltip title={highlightFields['coating_type'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
+              <div className="w-full">
+                <Form.Item name="coating_type" className="mb-0">
+                  <FloatingSelect
+                    label="Loại keo phủ"
+                    options={glueTypes.map((gt) => ({
+                      label: gt.name,
+                      value: gt.code,
+                    }))}
+                    className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                    disabled={isDeclined && !highlightFields['coating_type']}
+                  />
+                </Form.Item>
+              </div>
+            </Tooltip>
+          )}
         </Col>
       </Row>
 
@@ -455,6 +459,9 @@ export default function ProductSpecsSection({
                 if (!checkedValues.includes("BOI")) {
                   form.setFieldValue("wave_type", "");
                 }
+                if (!checkedValues.includes("PHU")) {
+                  form.setFieldValue("coating_type", undefined);
+                }
 
                 // Trigger form re-calculation manually if needed because some hidden constraints updated
                 // We use setTimeout to ensure form has updated with normalized value
@@ -463,7 +470,7 @@ export default function ProductSpecsSection({
                 }, 0);
               }}
             >
-              <div className="flex flex-wrap gap-x-3">
+              <div className="flex flex-wrap gap-x-2">
                 {loadingProcessTypes ? (
                   <span className="text-gray-400 text-xs">Đang tải...</span>
                 ) : (

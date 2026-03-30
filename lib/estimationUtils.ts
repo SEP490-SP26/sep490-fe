@@ -565,8 +565,8 @@ export const formatCoatingType = (coatingType: string | null | undefined): strin
 
 export const formatProcess = (processCode: string | null | undefined): string => {
     switch (processCode?.trim().toUpperCase()) {
-        case 'IN': return 'In';
-        case 'BE': return 'Bế';
+        case 'IN': return 'Cắt/In';
+        case 'BE': return 'Bế/Dứt';
         case 'BOI': return 'Bồi';
         case 'PHU': return 'Phủ';
         case 'CAN': return 'Cán';
