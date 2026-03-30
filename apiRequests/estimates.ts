@@ -160,6 +160,7 @@ export interface OrderRequestWithQuotes {
     product_name: string;
     quantity: number;
     is_send_design: boolean;
+    estimate_finish_date: string;
 
     /** Danh sách các phương án báo giá cho yêu cầu này */
     quotes: QuoteOption[];
@@ -222,11 +223,6 @@ export const estimatesApi = {
         paper_alternative: string;
         wave_alternative: string;
     }) => {
-        const formData = new FormData();
-        formData.append("request_id", body.request_id.toString());
-        formData.append("estimate_id", body.estimate_id.toString());
-        formData.append("paper_alternative", body.paper_alternative);
-        formData.append("wave_alternative", body.wave_alternative);
-        return http.put<void>(`/api/Estimates/alternative-materials`, formData);
+        return http.put<void>(`/api/Estimates/alternative-materials`, body);
     },
 };

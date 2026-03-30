@@ -76,13 +76,13 @@ import { log } from "console";
 
 
 const PROCESS_TYPE_LABELS: Record<string, string> = {
-  RALO: "Ralo/Cắt",
+  RALO: "Ralo",
   CAT: "Cắt",
   IN: "In",
   PHU: "Phủ",
   CAN: "Cán",
   BOI: "Bồi",
-  BE: "Bế/Dứt",
+  BE: "Bế",
   DUT: "Dứt",
   DAN: "Dán",
 };
@@ -260,6 +260,10 @@ function ConsultantForm() {
     "number_of_plates",
     "glueTab",
     "consultant_note",
+    "paper_code",
+    "production_processes",
+    "coating_type",
+    "wave_type",
   ];
 
   const handleTabEdit = (
@@ -645,7 +649,8 @@ function ConsultantForm() {
                 detail_address: orderData.detail_address,
                 description: orderData.description,
                 number_of_plates: est.number_of_plates || orderData.number_of_plates || 1,
-                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : "Keo phủ nước"),
+                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : "NONE"),
+                wave_type: est.wave_type && est.wave_type !== "NONE" ? est.wave_type : (orderData.wave_type && orderData.wave_type !== "NONE" ? orderData.wave_type : "NONE"),
                 length: orderData.product_length_mm,
                 width: orderData.product_width_mm,
                 height: orderData.product_height_mm,
@@ -655,10 +660,9 @@ function ConsultantForm() {
                 is_one_side_box: orderData.is_one_side_box,
                 glue_tab: orderData.glue_tab_mm,
                 bleed: orderData.bleed_mm,
-                wave_type: est.wave_type || orderData.wave_type,
                 production_processes: est.process_cost && est.process_cost.length > 0
-                  ? est.process_cost.map((pc: any) => pc.process_code)
-                  : (orderData.production_processes ? orderData.production_processes.split(",") : []),
+                  ? est.process_cost.map((pc: any) => (pc.process_code || "").trim())
+                  : (orderData.production_processes ? orderData.production_processes.split(",").map((s: string) => s.trim()) : []),
                 consultant_note: orderData.consultant_note || "",
               };
 
@@ -690,11 +694,9 @@ function ConsultantForm() {
 
             if (orderData.design_file_path) {
               setDesignFilePath(orderData.design_file_path);
-              if (orderData.is_send_design !== undefined) {
-                setIsSendDesign(orderData.is_send_design);
-              }
-            } else {
-              setIsSendDesign(false);
+            }
+            if (orderData.is_send_design !== undefined) {
+              setIsSendDesign(orderData.is_send_design);
             }
 
 
@@ -731,7 +733,12 @@ function ConsultantForm() {
 
               // Only call calculateEstimates for the first tab IF materials/productTypes weren't loaded yet during the pre-calculation loop
               // Either way, it ensures at least the active tab is calculated.
-              calculateEstimates();
+              const est = estimatesToLoad[0];
+              calculateEstimates({
+                  isSendDesign: orderData.is_send_design,
+                  designFilePath: orderData.design_file_path,
+                  designCost: est?.design_cost
+              });
             }, 500);
 
           } else {
@@ -754,22 +761,24 @@ function ConsultantForm() {
               ...(orderData.product_height_mm && { height: orderData.product_height_mm }),
               ...(orderData.paper_code && { paper_code: orderData.paper_code }),
               ...(orderData.paper_name && { paper_name: orderData.paper_name }),
-              ...(orderData.production_processes && { production_processes: orderData.production_processes.split(",") }),
+              ...(orderData.production_processes && { production_processes: orderData.production_processes.split(",").map((s: string) => s.trim()) }),
               consultant_note: orderData.consultant_note || "",
             });
 
             if (orderData.design_file_path) {
               setDesignFilePath(orderData.design_file_path);
-              if (orderData.is_send_design !== undefined) {
-                setIsSendDesign(orderData.is_send_design);
-              }
-            } else {
-              setIsSendDesign(false);
+            }
+            if (orderData.is_send_design !== undefined) {
+              setIsSendDesign(orderData.is_send_design);
             }
 
             const values = form.getFieldsValue();
             handleCalculate(values, values);
-            setTimeout(() => calculateEstimates(), 500);
+            setTimeout(() => calculateEstimates({
+              isSendDesign: orderData.is_send_design,
+              designFilePath: orderData.design_file_path,
+              designCost: orderData.cost_estimate?.[0]?.design_cost
+            }), 500);
           }
         }
 
@@ -840,7 +849,9 @@ function ConsultantForm() {
 
         // Use current if it exists, else follow profile
         number_of_plates: currentValues.number_of_plates !== undefined ? currentValues.number_of_plates : profile.number_of_plates,
-        coating_type: (currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : profile.coating_type,
+        coating_type: (profile.production_processes && profile.production_processes.includes("PHU")) 
+          ? ((currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : profile.coating_type)
+          : "NONE",
         wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : profile.wave_type,
         glue_tab: currentValues.glue_tab !== undefined ? currentValues.glue_tab : profile.glue_tab_mm,
         is_one_side_box: currentValues.is_one_side_box !== undefined ? currentValues.is_one_side_box : profile.is_one_side_box,
@@ -903,6 +914,8 @@ function ConsultantForm() {
       wave_type
     } = values;
 
+    const effectiveWaveType = wave_type && wave_type !== "NONE" ? wave_type : "NONE";
+
     if (!paper_code || !quantity || !length || !width || !height || !product_type || configLoading) {
       return null;
     }
@@ -942,7 +955,7 @@ function ConsultantForm() {
     };
 
     const selectedMaterial = findMaterialByIdentifier(materials, paper_code);
-    const selectedWaveMaterial = findMaterialByIdentifier(materials, wave_type, 'SÓNG');
+    const selectedWaveMaterial = findMaterialByIdentifier(materials, effectiveWaveType, 'SÓNG');
 
     if (!selectedMaterial) return null;
 
@@ -961,8 +974,8 @@ function ConsultantForm() {
         form_product: form_product || "",
         is_one_side_box,
         production_processes: Array.isArray(production_processes) ? production_processes.join(",") : (production_processes || ""),
-        coating_type: coating_type || "Keo phủ nước",
-        wave_type,
+        coating_type: (Array.isArray(production_processes) ? production_processes.includes("PHU") : (production_processes || "").includes("PHU")) ? (coating_type || "NONE") : "NONE",
+        wave_type: effectiveWaveType,
         number_of_plates: number_of_plates || 1,
 
         // Configs
@@ -1002,8 +1015,8 @@ function ConsultantForm() {
       const calcInput: CalculateInput = {
         quantity: quantity,
         paper_code: paper_code,
-        wave_type: wave_type,
-        coating_type: coating_type,
+        wave_type: effectiveWaveType,
+        coating_type: (Array.isArray(production_processes) ? production_processes.includes("PHU") : (production_processes || "").includes("PHU")) ? (coating_type || "NONE") : "NONE",
         design_file_path: explicitConfig?.designFilePath !== undefined ? explicitConfig.designFilePath : designFilePath,
         is_send_design: explicitConfig?.isSendDesign !== undefined ? explicitConfig.isSendDesign : isSendDesign,
 
@@ -1025,7 +1038,8 @@ function ConsultantForm() {
         coating_glue_price_per_kg: coating_type === 'Keo phủ nước' ? 80000 : 120000,
         mounting_glue_price_per_kg: 90000,
         lamination_price_per_kg: 150000,
-        default_design_cost: explicitConfig?.designCost !== undefined ? explicitConfig.designCost : (designConfig?.default_design_cost || 0),
+        default_design_cost: designConfig?.default_design_cost || 0,
+        override_design_cost: explicitConfig?.designCost,
 
         waste_printing: wasteResult.wastes.printing,
         waste_die_cutting: wasteResult.wastes.dieCutting,
@@ -1098,7 +1112,7 @@ function ConsultantForm() {
           ...savedEstimate,
           coating_type: savedEstimate.coating_type || "NONE",
           ink_unit_price: 150000,
-          coating_glue_unit_price: coating_type === 'Keo phủ nước' ? 80000 : 120000,
+          coating_glue_unit_price: (calcInput.coating_type && calcInput.coating_type !== 'NONE') ? (calcInput.coating_type === 'Keo phủ nước' ? 80000 : 120000) : 0,
           mounting_glue_unit_price: 90000,
           lamination_unit_price: 150000,
           overhead_percent: systemParameters?.vat_percent || 10,
@@ -1183,17 +1197,17 @@ function ConsultantForm() {
           })
           .join(",")
         : (values.production_processes || ""),
-      coating_type: values.coating_type || "NONE",
-      wave_type: values.wave_type || "NONE",
+      coating_type: (values.production_processes && values.production_processes.includes("PHU")) ? (values.coating_type || "NONE") : "NONE",
+      wave_type: (values.production_processes && values.production_processes.includes("BOI")) ? (values.wave_type || "NONE") : "NONE",
       is_one_side_box: !!values.is_one_side_box,
       glue_tab: Number(values.glue_tab) || 0,
       bleed: Number(values.bleed) || 0,
     });
   };
 
-  function calculateEstimates() {
+  function calculateEstimates(explicitConfig?: { isSendDesign?: boolean, designFilePath?: string | null, designCost?: number }) {
     const values = form.getFieldsValue();
-    const result = calculateEstimateResult(values);
+    const result = calculateEstimateResult(values, explicitConfig);
 
     if (result) {
       setEstimate(result.estimate);

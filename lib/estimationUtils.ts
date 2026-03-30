@@ -565,8 +565,8 @@ export const formatCoatingType = (coatingType: string | null | undefined): strin
 
 export const formatProcess = (processCode: string | null | undefined): string => {
     switch (processCode?.trim().toUpperCase()) {
-        case 'IN': return 'Cắt/In';
-        case 'BE': return 'Bế/Dứt';
+        case 'IN': return 'In';
+        case 'BE': return 'Bế';
         case 'BOI': return 'Bồi';
         case 'PHU': return 'Phủ';
         case 'CAN': return 'Cán';
@@ -622,6 +622,7 @@ export type CalculateInput = {
     mounting_glue_price_per_kg: number;
     lamination_price_per_kg: number;
     default_design_cost: number;
+    override_design_cost?: number;
 
     waste_printing: number;
     waste_die_cutting: number;
@@ -665,6 +666,7 @@ export const calculateEstimateForSave = (input: CalculateInput) => {
         mounting_glue_price_per_kg,
         lamination_price_per_kg,
         default_design_cost,
+        override_design_cost,
 
         waste_printing,
         waste_die_cutting,
@@ -862,7 +864,9 @@ export const calculateEstimateForSave = (input: CalculateInput) => {
     const discount_amount = subtotal * (Math.max(0, Math.min(discount_percent, 100)) / 100);
     const final_total_base = subtotal - discount_amount;
     const design_cost =
-        !is_send_design || !design_file_path ? default_design_cost : 0;
+        override_design_cost !== undefined
+            ? override_design_cost
+            : (!is_send_design || !design_file_path ? default_design_cost : 0);
 
     const final_total_cost = final_total_base + totalProcessCost + design_cost;
 

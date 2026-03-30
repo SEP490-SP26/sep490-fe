@@ -104,6 +104,7 @@ export default function RequestDetailPage() {
   const [paymentInfo, setPaymentInfo] = useState<PaymentResponse | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [loadingQR, setLoadingQR] = useState(false);
+  const [estimate_finish_date, setEstimateFinishDate] = useState<string>("---");
 
   const { Panel } = Collapse;
 
@@ -117,6 +118,10 @@ export default function RequestDetailPage() {
 
         if (data && data.quotes) {
           setQuotes(data.quotes);
+          if (data.estimate_finish_date) {
+            const formattedDate = dayjs(data.estimate_finish_date).format("DD/MM/YYYY");
+            setEstimateFinishDate(formattedDate !== "Invalid Date" ? formattedDate : data.estimate_finish_date);
+          }
         }
       } catch (error) {
         console.error("Error fetching quotes:", error);
@@ -802,6 +807,10 @@ export default function RequestDetailPage() {
                                   <div className="flex justify-between items-center py-2 border-b border-slate-100">
                                     <span className="text-slate-500 text-[13px]">Thiết kế</span>
                                     <span className="text-slate-800 font-semibold text-[13px]">{designTypeText}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                    <span className="text-slate-500 text-[13px]">Ngày hoàn thành dự kiến</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">{estimate_finish_date}</span>
                                   </div>
                                   {deliveryText && (
                                     <div className="flex justify-between items-center py-2">

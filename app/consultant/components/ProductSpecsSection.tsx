@@ -27,6 +27,8 @@ interface ProductSpecsSectionProps {
   isDeclined?: boolean;
 }
 
+import React, { useRef } from "react";
+
 const FORM_TYPE_LABELS: Record<string, string> = {
   "HOP_MAU_1LUOT_DON_GIAN": "Hộp màu 1 lượt đơn giản",
   "HOP_MAU_1LUOT_THUONG": "Hộp màu 1 lượt thường",
@@ -60,6 +62,10 @@ export default function ProductSpecsSection({
   const currentPaperCode = Form.useWatch("paper_code", form);
   const currentProcesses = Form.useWatch("production_processes", form) || [];
   const hasPHU = currentProcesses.includes("PHU");
+  const hasBOI = currentProcesses.includes("BOI");
+
+  const prevHasPHURef = useRef(hasPHU);
+  const prevHasBOIRef = useRef(hasBOI);
 
   const selectedProductType = productTypes?.find((pt) => pt.product_type_id === currentProductTypeId);
   const selectedPaper = paperTypes?.find((paper) => paper.code === currentPaperCode);
@@ -105,7 +111,7 @@ export default function ProductSpecsSection({
   }, [selectedProductTypeCode, formTypes, form]);
 
   useEffect(() => {
-    const processes = form.getFieldValue("production_processes");
+    const processes = form.getFieldValue("production_processes") || [];
     const currentWave = form.getFieldValue("wave_type");
 
     // Ensure wave_type is initialized if BOI is present but wave_type is missing
@@ -113,6 +119,27 @@ export default function ProductSpecsSection({
       form.setFieldValue("wave_type", "SONG_B_NAU");
     }
   }, [form]);
+
+  // Handle clearing dependent fields when processes are removed (Only if user deselected them)
+  useEffect(() => {
+    // Only clear if it was active and now it's not (User interaction or tab change to a tab without it)
+    if (prevHasPHURef.current && !hasPHU) {
+      const currentCoating = form.getFieldValue("coating_type");
+      if (currentCoating && currentCoating !== "NONE") {
+        form.setFieldValue("coating_type", "NONE");
+      }
+    }
+    
+    if (prevHasBOIRef.current && !hasBOI) {
+      const currentWave = form.getFieldValue("wave_type");
+      if (currentWave && currentWave !== "NONE") {
+        form.setFieldValue("wave_type", "NONE");
+      }
+    }
+
+    prevHasPHURef.current = hasPHU;
+    prevHasBOIRef.current = hasBOI;
+  }, [hasPHU, hasBOI, form]);
 
   return (
     <>
@@ -420,15 +447,17 @@ export default function ProductSpecsSection({
             normalize={(value) => {
               let updatedValues: string[] = [];
               if (Array.isArray(value)) {
-                updatedValues = [...value];
+                updatedValues = value.map(v => typeof v === 'string' ? v.trim().toUpperCase() : v).filter(v => v);
               } else if (typeof value === "string") {
-                updatedValues = value.split(",").map(v => v.trim()).filter(v => v);
+                updatedValues = value.split(",").map(v => v.trim().toUpperCase()).filter(v => v);
               } else {
-                updatedValues = ["RALO", "BE", "DUT"];
+                updatedValues = ["RALO", "CAT", "IN", "BE", "DUT"];
               }
 
               // NẾU LUÔN LUÔN BẮT BUỘC RALO VÀ BẾ
               if (!updatedValues.includes("RALO")) updatedValues.push("RALO");
+              if (!updatedValues.includes("CAT")) updatedValues.push("CAT");
+              if (!updatedValues.includes("IN")) updatedValues.push("IN");
               if (!updatedValues.includes("BE")) updatedValues.push("BE");
               if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
 
@@ -457,10 +486,10 @@ export default function ProductSpecsSection({
                   form.setFieldValue("wave_type", "SONG_B_NAU");
                 }
                 if (!checkedValues.includes("BOI")) {
-                  form.setFieldValue("wave_type", "");
+                  form.setFieldValue("wave_type", "NONE");
                 }
                 if (!checkedValues.includes("PHU")) {
-                  form.setFieldValue("coating_type", undefined);
+                  form.setFieldValue("coating_type", "NONE");
                 }
 
                 // Trigger form re-calculation manually if needed because some hidden constraints updated

@@ -39,6 +39,8 @@ import {
     Select
 } from "antd";
 import { estimatesApi, OrderRequestWithQuotes, QuoteOption } from "@/apiRequests/estimates";
+import { materialsApi } from "@/apiRequests/materials";
+import { Material } from "@/lib/estimation.types";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -75,6 +77,7 @@ export default function ConsultantRequestDetailPage() {
     const [submittingAlternative, setSubmittingAlternative] = useState(false);
     const [alternativeForm] = Form.useForm();
     const [selectedEstimateForMaterial, setSelectedEstimateForMaterial] = useState<any>(null);
+    const [materials, setMaterials] = useState<Material[]>([]);
 
     const handleOpenAlternativeModal = (estimate: any) => {
         setSelectedEstimateForMaterial(estimate);
@@ -128,7 +131,19 @@ export default function ConsultantRequestDetailPage() {
 
     useEffect(() => {
         fetchOrderDetail();
+        
+        // Fetch materials
+        materialsApi.getAll().then(res => {
+            const data = (res as any).data || res;
+            setMaterials(Array.isArray(data) ? data : []);
+        }).catch(err => console.error("Error fetching materials:", err));
     }, [requestId]);
+
+    const paperOptions = Array.from(new Map(materials.filter(m => m.type === "Giấy").map(m => [m.name, m])).values())
+        .map(m => ({ label: m.name, value: m.name }));
+
+    const waveOptions = Array.from(new Map(materials.filter(m => m.type === "Sóng").map(m => [m.name, m])).values())
+        .map(m => ({ label: m.name, value: m.name }));
 
     const handleSendQuote = async () => {
         if (!orderDetail) return;
@@ -679,6 +694,10 @@ export default function ConsultantRequestDetailPage() {
                                                         <span className="text-slate-500 text-sm">Loại phủ:</span>
                                                         <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
                                                     </div>
+                                                    {/* <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-slate-500 text-sm">Ngày hoàn thành dự kiến:</span>
+                                                        <span className="font-medium text-slate-800 text-sm">{orderDetail.estimate_finish_date ? dayjs(orderDetail.estimate_finish_date).format('DD/MM/YYYY') : "---"}</span>
+                                                    </div> */}
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Đặt cọc:</span>
                                                         <span className="font-semibold text-accent-dark">{formatCurrency(estimate.deposit_amount)}</span>
@@ -968,17 +987,35 @@ export default function ConsultantRequestDetailPage() {
                         <Form.Item
                             name="paper_alternative"
                             label={<span className="font-medium text-slate-700">Giấy thay thế (tên giấy)</span>}
-                            help="Nhập tên giấy để thay thế cho loại giấy cũ, để trống nếu không đổi"
+                            help="Chọn giấy để thay thế cho loại giấy cũ, để trống nếu không đổi"
                         >
-                            <Input placeholder="Nhập tên giấy thay thế..." className="rounded-lg" />
+                            <Select 
+                                placeholder="Chọn giấy thay thế..." 
+                                className="rounded-lg" 
+                                showSearch
+                                allowClear
+                                filterOption={(input, option) =>
+                                    (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                                }
+                                options={paperOptions} 
+                            />
                         </Form.Item>
 
                         <Form.Item
                             name="wave_alternative"
                             label={<span className="font-medium text-slate-700">Sóng thay thế</span>}
-                            help="Nhập loại sóng để thay thế cho sóng cũ, để trống nếu không đổi"
+                            help="Chọn loại sóng để thay thế cho sóng cũ, để trống nếu không đổi"
                         >
-                            <Input placeholder="Nhập tên sóng thay thế..." className="rounded-lg" />
+                            <Select 
+                                placeholder="Chọn sóng thay thế..." 
+                                className="rounded-lg" 
+                                showSearch
+                                allowClear
+                                filterOption={(input, option) =>
+                                    (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                                }
+                                options={waveOptions} 
+                            />
                         </Form.Item>
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
