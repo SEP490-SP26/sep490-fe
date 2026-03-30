@@ -94,7 +94,7 @@ export interface ProductTemplate {
 
   // Thông số kỹ thuật in ấn & Bình bản
   print_width_mm: number;
-  print_height_mm: number;
+  print_length_mm: number;
   number_of_plates: number; // Số bản kẽm
   is_one_side_box: boolean;
 

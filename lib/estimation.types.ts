@@ -77,7 +77,7 @@ export interface ProductDimensions {
 
 export interface PrintSize {
   print_width_mm: number;
-  print_height_mm: number;
+  print_length_mm: number;
 }
 
 export interface ProductInfo {
@@ -155,7 +155,7 @@ export interface Material {
   stock_moves: [];
   supplier_materials: [];
   sheet_width_mm: number;
-  sheet_height_mm: number;
+  sheet_thick_mm: number;
   sheet_length_mm?: number;
   material_class: string;
   [key: string]: any;
@@ -181,7 +181,7 @@ export interface EstimationInputs {
   // Basic inputs
   paper_code: string;
   sheet_width_mm: number;
-  sheet_height_mm: number;
+  sheet_length_mm: number;
   quantity: number;
   length_mm: number;
   width_mm: number;
@@ -457,75 +457,100 @@ export interface ProcessCostItem {
 }
 
 export interface DetailedProductionEstimation {
+// --- Định danh & Lịch sử ---
   order_request_id: number;
+  previous_estimate_id: number | null;
+  created_at: string; // ISO Date
 
-  // --- Chi phí và thông số Giấy ---
-  paper_cost: number;
-  paper_sheets_used: number;
-  paper_unit_price: number;
+  // --- Thông số Giấy (Chính & Dự phòng) ---
   paper_code: string;
   paper_name: string;
-  wave_type: string;
-  previous_estimate_id: number | null;
+  paper_alternative: string;
+  paper_unit_price: number;
+  paper_cost: number;
+  paper_sheets_used: number; // Tổng số tờ giấy chính sử dụng
+  sheet_area_m2: number;      // Diện tích 1 tờ giấy (m2)
 
-  // --- Chi phí Mực in ---
+  // --- Thông số Sóng (Wave - Dành cho bồi hộp) ---
+  wave_type: string;
+  wave_alternative: string;
+  wave_unit_price: number;
+  wave_cost: number;
+  wave_sheets_required: number; // Số tờ sóng lý thuyết
+  wave_sheets_used: number;     // Số tờ sóng thực tế (gồm bù hao)
+  wave_sheet_area_m2: number;   // Diện tích 1 tờ sóng (m2)
+  wave_n_up: number;            // Số con trên 1 tờ sóng
+
+  // --- Định mức tiêu hao Mực in ---
   ink_cost: number;
   ink_weight_kg: number;
   ink_rate_per_m2: number;
+  print_sheets_used: number;    // Số tờ đi qua máy in (có thể khác paper_sheets_used)
 
-  // --- Chi phí Phủ (Coating) ---
+  // --- Công đoạn Phủ (Coating) ---
+  coating_type: string;
   coating_glue_cost: number;
   coating_glue_weight_kg: number;
   coating_glue_rate_per_m2: number;
-  coating_type: string;
+  coating_sheets_used: number;      // Số tờ thực hiện phủ
+  total_coating_area_m2: number;    // Tổng diện tích phủ (m2)
 
-  // --- Chi phí Bồi (Mounting) ---
-  mounting_glue_cost: number;
-  mounting_glue_weight_kg: number;
-  mounting_glue_rate_per_m2: number;
-
-  // --- Chi phí Cán màng (Lamination) ---
+  // --- Công đoạn Cán màng (Lamination) ---
   lamination_cost: number;
   lamination_weight_kg: number;
   lamination_rate_per_m2: number;
+  lamination_sheets_used: number;   // Số tờ thực hiện cán
+  total_lamination_area_m2: number; // Tổng diện tích cán (m2)
 
-  // --- Tổng hợp chi phí cơ bản ---
+  // --- Công đoạn Bồi (Mounting) ---
+  mounting_glue_cost: number;
+  mounting_glue_weight_kg: number;
+  mounting_glue_rate_per_m2: number;
+  total_mounting_area_m2: number;   // Tổng diện tích bồi (m2)
+
+  // --- Công đoạn Dán (Gluing) ---
+  waste_gluing_boxes: number;       // Số hộp bù hao khi dán máy
+
+  // --- Tổng hợp chi phí & Tài chính ---
   material_cost: number;
   design_cost: number;
+  total_process_cost: number; // Tổng chi phí từ các bước gia công
   base_cost: number;
-
-  // --- Thông tin hàng gấp (Rush) ---
+  
   is_rush: boolean;
   rush_percent: number;
   rush_amount: number;
   days_early: number;
 
-  // --- Tổng kết tài chính ---
   subtotal: number;
   discount_percent: number;
   discount_amount: number;
   final_total_cost: number;
   cost_note: string;
 
-  // --- Thời gian ---
+  // --- Thời gian & Giao hàng ---
   estimated_finish_date: string; // ISO Date
   desired_delivery_date: string; // ISO Date
-  created_at: string;            // ISO Date
 
-  // --- Thông số kỹ thuật & Bình bản ---
-  production_processes: string; // VD: "IN,PHU,BE,DAN"
-  sheets_required: number;
-  sheets_waste: number;
-  sheets_total: number;
-  n_up: number;
-  total_area_m2: number;
+  // --- Thông số Kỹ thuật & Bình bản ---
+  production_processes: string; // VD: "RALO,IN,PHU,CAN,BOI,BE,DAN"
+  sheets_required: number;      // Số tờ thành phẩm lý thuyết
+  sheets_waste: number;         // Tổng số tờ bù hao
+  sheets_total: number;         // Tổng số tờ giấy cần xuất (required + waste)
+  n_up: number;                 // Số con trên 1 tờ in
+  total_area_m2: number;        // Tổng diện tích in ấn (m2)
+  
   bleed_mm: number;
   glue_tab_mm: number;
   is_one_side_box: boolean;
-  print_height_mm: number;
+  print_length_mm: number;
   print_width_mm: number;
 
-  // --- Chi tiết chi phí nhân công/công đoạn ---
+  // --- Pháp lý & Hợp đồng ---
+  contract_file_path: string;
+  contract_uploaded_at: string; // ISO Date
+
+  // --- Chi tiết chi phí nhân công theo bảng giá ---
   process_costs: ProcessCostItem[];
 }
 

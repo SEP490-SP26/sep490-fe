@@ -24,4 +24,6 @@ export const uploadApi = {
     deleteFile: async (request_id: number): Promise<void> => {
         return http.delete<void>(`/api/Uploads/delete-design-file/${request_id}`);
     },
+
+   
 };

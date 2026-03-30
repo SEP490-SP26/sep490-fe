@@ -119,7 +119,7 @@ export interface UpdateRequestBody {
   // Thông số in ấn
   is_one_side_box: boolean;
   print_width_mm: number;
-  print_height_mm: number;
+  print_length_mm: number;
 
   // Quy trình sản xuất (có thể là chuỗi JSON hoặc danh sách các bước)
   production_processes: string;
@@ -173,9 +173,9 @@ export interface EstimatePaperRequest {
 export interface EstimatePaperResponse {
   paper_code: string;
   sheet_width_mm: number;
-  sheet_height_mm: number;
+  sheet_length_mm: number;
   print_width_mm: number;
-  print_height_mm: number;
+  print_length_mm: number;
   n_up: number;
   quantity: number;
   sheets_base: number;
@@ -275,8 +275,29 @@ export interface EstimateCostData {
   total_area_m2: number;
   design_cost: number;
 
+  // New calculation output fields
+  waste_gluing_boxes?: number;
+  wave_sheets_required?: number;
+  wave_n_up?: number;
+  sheet_area_m2?: number;
+  wave_sheet_area_m2?: number;
+  print_sheets_used?: number;
+  coating_sheets_used?: number;
+  lamination_sheets_used?: number;
+  total_coating_area_m2?: number;
+  total_mounting_area_m2?: number;
+  total_lamination_area_m2?: number;
+  wave_unit_price?: number;
+  wave_cost?: number;
+  total_process_cost?: number;
+
   // Material details
   material_cost_details: MaterialCostDetail[];
+  
+  // Potential new calculation fields
+  wave_sheets_used?: number;
+  paper_alternative?: string;
+  wave_alternative?: string;
 }
 
 // New response structure with cost and process_cost
@@ -342,7 +363,6 @@ export interface Material {
   cost_price: number;
   description?: string;
   sheet_width_mm?: number;
-  sheet_height_mm?: number;
   sheet_length_mm?: number;
   boms: any[];
   purchase_items: any[];
@@ -385,7 +405,7 @@ export interface OrderHistoryItem {
 }
 
 export interface RequestHistoryItem {
-  
+
 }
 
 export interface OrderHistoryResponse {
@@ -398,8 +418,8 @@ export interface OrderHistoryResponse {
 export interface RequestHistoryResponse {
   page: number;
   pageSize: number;
-otp: string;
-phone:string;
+  otp: string;
+  phone: string;
 }
 
 // Order Detail Response for GET /api/Orders/{id}
@@ -472,11 +492,11 @@ export interface RequestDetailResponse {
   detail_address: string;
   order_request_date: string;
 
-  reason:string;
-  final_total_cost:number;
-  deposit_amount:number;
-  rush_amount:number;
-  file_url:string;
+  reason: string;
+  final_total_cost: number;
+  deposit_amount: number;
+  rush_amount: number;
+  file_url: string;
 
   // Thông tin thanh toán
   payments: OrderPayment[];
