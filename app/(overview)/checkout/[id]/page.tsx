@@ -20,7 +20,6 @@ import {
   Skeleton,
   Modal,
   Upload,
-  Popconfirm,
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -44,7 +43,7 @@ export default function RequestDetailPage() {
   const [fullRequestDetail, setFullRequestDetail] = useState<any>(null);
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [hasUploadedContract, setHasUploadedContract] = useState(false);
-  const [isPopconfirmOpen, setIsPopconfirmOpen] = useState(false);
+  const [isWarningModalVisible, setIsWarningModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchFullDetail = async () => {
@@ -93,7 +92,7 @@ export default function RequestDetailPage() {
     if (!selectedQuote) return;
 
     setIsConfirmModalVisible(false);
-    setIsPopconfirmOpen(false);
+    setIsWarningModalVisible(false);
     setIsPaymentModalVisible(true);
     setLoadingQR(true);
     setPaymentInfo(null);
@@ -109,7 +108,7 @@ export default function RequestDetailPage() {
       setIsPaymentModalVisible(false);
     } finally {
       setLoadingQR(false);
-      setIsPopconfirmOpen(false);
+      setIsWarningModalVisible(false);
     }
   };
 
@@ -375,40 +374,15 @@ export default function RequestDetailPage() {
           <Button key="cancel" onClick={() => setIsConfirmModalVisible(false)} className="rounded-lg">
             Hủy
           </Button>,
-          <Popconfirm
-            key="submit-pop"
-            title={<span className="font-bold text-slate-800">Xác nhận thanh toán</span>}
-            description={<div className="max-w-[300px] text-slate-600">Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc báo giá còn lại sẽ bị hủy. Bạn có chắc chắn muốn thanh toán?</div>}
-            onConfirm={proceedToPayment}
-            onCancel={() => {
-              setIsPopconfirmOpen(false);
-            }}
-            open={isPopconfirmOpen}
-            onOpenChange={(open) => {
-              if (hasUploadedContract) {
-                setIsPopconfirmOpen(open);
-              }
-            }}
-            okText="Xác nhận"
-            cancelText="Hủy"
-            icon={<InfoCircleOutlined style={{ color: '#faad14' }} />}
-            okButtonProps={{
-              className: 'bg-emerald-600 hover:bg-emerald-500 border-none rounded-lg font-medium'
-            }}
-            cancelButtonProps={{
-              className: 'rounded-lg'
-            }}
+          <Button
+            key="submit"
+            type="primary"
             disabled={!hasUploadedContract}
+            className={`rounded-lg ${!hasUploadedContract ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
+            onClick={() => setIsWarningModalVisible(true)}
           >
-            <Button
-              key="submit"
-              type="primary"
-              disabled={!hasUploadedContract}
-              className={`rounded-lg ${!hasUploadedContract ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
-            >
-              Xác nhận & Thanh toán
-            </Button>
-          </Popconfirm>
+            Xác nhận & Thanh toán
+          </Button>
 
         ]}
         width={600}
@@ -596,13 +570,41 @@ export default function RequestDetailPage() {
         )}
       </Modal>
 
-      {/* Popconfirm Backdrop Overlay */}
-      {isPopconfirmOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[1010] transition-opacity duration-300"
-          onClick={() => setIsPopconfirmOpen(false)}
-        />
-      )}
+      {/* Warning Payment Modal */}
+      <Modal
+        title={<span className="font-bold text-slate-800 flex items-center gap-2"><InfoCircleOutlined className="text-amber-500" /> Xác nhận thanh toán</span>}
+        open={isWarningModalVisible}
+        onCancel={() => setIsWarningModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsWarningModalVisible(false)} className="rounded-lg">
+            Hủy
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={proceedToPayment}
+            className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-lg font-medium"
+          >
+            Xác nhận
+          </Button>
+        ]}
+        width={450}
+        centered
+        zIndex={1010}
+      >
+        <div className="py-2 text-slate-600 space-y-3">
+          <p className="m-0">
+            Bạn đã chọn <strong className="text-slate-800">Báo giá {quotes.length > 1 ? `số ${quotes.findIndex(q => q.quote_id === selectedQuote?.quote_id) + 1}` : ""}</strong>.
+          </p>
+          <p className="m-0">
+            Mọi thanh toán sau này sẽ dựa trên <strong className="text-slate-800">Báo giá {quotes.length > 1 ? `số ${quotes.findIndex(q => q.quote_id === selectedQuote?.quote_id) + 1}` : ""}</strong>. Bạn có xác nhận không?
+          </p>
+          <p className="m-0 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm mt-4">
+            <InfoCircleOutlined className="mr-1" />
+            Lưu ý: Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc các báo giá lựa chọn khác sẽ bị hủy.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }
