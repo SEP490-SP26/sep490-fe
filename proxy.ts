@@ -17,6 +17,7 @@ const PUBLIC_ROUTES = [
   '/reject-deal',
   '/payment'
 ]
+
 const MANAGEMENT_ROUTES = [
   '/admin',
   '/manager',
@@ -40,11 +41,27 @@ const ROLE_DASHBOARDS: Record<number, string> = {
   17: '/materials-manager'
 }
 
-
-
-export async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get('token')?.value
   const { pathname } = request.nextUrl
+
+  /* =========================
+     🔥 FIX QUAN TRỌNG NHẤT
+     Không cho middleware xử lý login pages
+     ========================= */
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/management-login') ||
+    pathname.startsWith('/register')
+  ) {
+    return NextResponse.next()
+  }
+
+  const isStaticFile =
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/assets') ||
+    pathname.includes('.') ||
+    pathname === '/favicon.ico'
 
   const isPublicRoute = PUBLIC_ROUTES.some(route =>
     route === '/' ? pathname === '/' : pathname.startsWith(route)
@@ -54,33 +71,49 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith(route)
   )
 
-  const isStaticFile = pathname.includes('.')
+  const isManagementContext = isManagementRoute
 
-  // 1. Unauthenticated guest (No token)
-  if (!token && !isPublicRoute && !isStaticFile) {
-    if (isManagementRoute) {
-      return NextResponse.redirect(new URL('/management-login', request.url))
+  /* =========================
+     1. NO TOKEN
+     ========================= */
+  if (!token) {
+    if (isStaticFile || isPublicRoute) {
+      return NextResponse.next()
     }
-    return NextResponse.redirect(new URL('/login', request.url))
+
+    return NextResponse.redirect(
+      new URL(
+        isManagementContext ? '/management-login' : '/login',
+        request.url
+      )
+    )
   }
 
-  // 2. Public route with no token -> Let through
-  if (!token) return NextResponse.next()
-
-  // 3. Authenticated user (Token exists) -> Decode it
+  /* =========================
+     2. HAS TOKEN
+     ========================= */
   try {
     const payload = decodeJwt(token) as any
-    // Check multiple potential keys for roleId (common keys in different JWT types)
     const rolePayload = payload.role_id || payload.roleid || payload.role
     const roleId = Number(rolePayload)
 
-    // Redirect away from login screens if already authenticated
-    if (pathname === '/login' || pathname === '/register' || pathname === '/management-login') {
-      const dashboard = ROLE_DASHBOARDS[roleId] || '/'
+    /* =========================
+       Đã login → không cho vào login page
+       ========================= */
+    if (
+      pathname === '/login' ||
+      pathname === '/management-login' ||
+      pathname === '/register'
+    ) {
+      const dashboard = ROLE_DASHBOARDS[roleId]
+      if (!dashboard) return NextResponse.next()
+
       return NextResponse.redirect(new URL(dashboard, request.url))
     }
 
-    // Role-based access control (Verify correct role for matched management routes)
+    /* =========================
+       RBAC
+       ========================= */
     if (pathname.startsWith('/admin') && roleId !== 1) {
       return NextResponse.redirect(new URL('/403', request.url))
     }
@@ -102,28 +135,27 @@ export async function proxy(request: NextRequest) {
 
     return NextResponse.next()
   } catch (err) {
-    // Token is invalid/expired
-    // Create a response that redirects and clears the invalid token to avoid loops
-    const redirectUrl = new URL(isManagementRoute ? '/management-login' : '/login', request.url)
-    const response = NextResponse.redirect(redirectUrl)
+    /* =========================
+       TOKEN LỖI / EXPIRED
+       ========================= */
+    const isManagementContext = MANAGEMENT_ROUTES.some(route =>
+      pathname.startsWith(route)
+    )
+
+    const response = NextResponse.redirect(
+      new URL(
+        isManagementContext ? '/management-login' : '/login',
+        request.url
+      )
+    )
+
     response.cookies.delete('token')
-
-    // If already on a public route, just clear cookie but don't redirect (let through)
-    if (isPublicRoute || isStaticFile) {
-      const nextResponse = NextResponse.next()
-      nextResponse.cookies.delete('token')
-      return nextResponse
-    }
-
-    // Protect non-public routes by redirecting
     return response
   }
 }
 
-export default proxy
-
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|assets|favicon.ico|sitemap.xml|robots.txt).*)',
-  ],
+    '/((?!api|_next/static|_next/image|assets|favicon.ico|sitemap.xml|robots.txt).*)'
+  ]
 }
