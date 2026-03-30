@@ -14,7 +14,8 @@ import {
     ShoppingOutlined,
     UploadOutlined,
     UserOutlined,
-    PrinterOutlined
+    PrinterOutlined,
+    CheckCircleOutlined
 } from "@ant-design/icons";
 import {
     Button,
@@ -27,6 +28,7 @@ import {
     Input,
     message,
     Modal,
+    Popconfirm,
     Skeleton,
     Tag,
     Typography,
@@ -67,6 +69,7 @@ export default function ConsultantRequestDetailPage() {
     const [customerMessage, setCustomerMessage] = useState("");
     const [sendingMessage, setSendingMessage] = useState(false);
     const [uploadingPrint, setUploadingPrint] = useState(false);
+    const [confirmingLayout, setConfirmingLayout] = useState(false);
 
     const [alternativeModalOpen, setAlternativeModalOpen] = useState(false);
     const [submittingAlternative, setSubmittingAlternative] = useState(false);
@@ -204,6 +207,20 @@ export default function ConsultantRequestDetailPage() {
         }
     };
 
+    const handleConfirmLayout = async () => {
+        setConfirmingLayout(true);
+        try {
+            await requestOrderApi.designerConfirmLayout({ request_id: Number(requestId) });
+            message.success("Đã xác nhận bố cục thành công!");
+            fetchOrderDetail(false);
+        } catch (error: any) {
+            console.error("Lỗi khi xác nhận bố cục:", error);
+            message.error(error.response?.data?.message || "Không thể xác nhận bố cục. Vui lòng thử lại.");
+        } finally {
+            setConfirmingLayout(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -314,6 +331,26 @@ export default function ConsultantRequestDetailPage() {
                                 Cập nhật yêu cầu
                             </Button>
 
+                        )}
+
+                        {orderDetail.process_status === 'Accepted' && (
+                            <Popconfirm
+                                title={<span className="font-semibold text-lg">Xác nhận bố cục</span>}
+                                description={`Bạn có chắc chắn muốn xác nhận bố cục cho yêu cầu #${orderDetail.request_id}?`}
+                                onConfirm={handleConfirmLayout}
+                                okText="Xác nhận"
+                                cancelText="Hủy"
+                                okButtonProps={{ className: "bg-blue-600 hover:bg-blue-500" }}
+                            >
+                                <Button
+                                    type="primary"
+                                    icon={<CheckCircleOutlined />}
+                                    loading={confirmingLayout}
+                                    className="bg-green-600 hover:bg-green-500 rounded-lg text-white border-0"
+                                >
+                                    Xác nhận bố cục
+                                </Button>
+                            </Popconfirm>
                         )}
 
                         {/* Confirm Update Modal */}

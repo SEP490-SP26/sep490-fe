@@ -457,7 +457,7 @@ export interface ProcessCostItem {
 }
 
 export interface DetailedProductionEstimation {
-// --- Định danh & Lịch sử ---
+  // --- Định danh & Lịch sử ---
   order_request_id: number;
   previous_estimate_id: number | null;
   created_at: string; // ISO Date
@@ -516,7 +516,7 @@ export interface DetailedProductionEstimation {
   design_cost: number;
   total_process_cost: number; // Tổng chi phí từ các bước gia công
   base_cost: number;
-  
+
   is_rush: boolean;
   rush_percent: number;
   rush_amount: number;
@@ -539,7 +539,7 @@ export interface DetailedProductionEstimation {
   sheets_total: number;         // Tổng số tờ giấy cần xuất (required + waste)
   n_up: number;                 // Số con trên 1 tờ in
   total_area_m2: number;        // Tổng diện tích in ấn (m2)
-  
+
   bleed_mm: number;
   glue_tab_mm: number;
   is_one_side_box: boolean;
@@ -548,7 +548,7 @@ export interface DetailedProductionEstimation {
 
   // --- Pháp lý & Hợp đồng ---
   contract_file_path: string;
-  contract_uploaded_at: string; // ISO Date
+  contract_uploaded_at: string | null; // ISO Date
 
   // --- Chi tiết chi phí nhân công theo bảng giá ---
   process_costs: ProcessCostItem[];

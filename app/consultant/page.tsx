@@ -76,13 +76,13 @@ import { log } from "console";
 
 
 const PROCESS_TYPE_LABELS: Record<string, string> = {
-  RALO: "Ra Lô",
+  RALO: "Ralo/Cắt",
   CAT: "Cắt",
   IN: "In",
   PHU: "Phủ",
   CAN: "Cán",
   BOI: "Bồi",
-  BE: "Bế",
+  BE: "Bế/Dứt",
   DUT: "Dứt",
   DAN: "Dán",
 };
@@ -470,7 +470,7 @@ function ConsultantForm() {
 
         if (Array.isArray(allMaterials)) {
           // 1. Filter Paper Types (type: GIẤY)
-          const papers = allMaterials.filter((m: any) => m.type === "GIẤY");
+          const papers = allMaterials.filter((m: any) => m.type === "Giấy");
           setPaperTypes(
             papers.map((pt: any) => ({
               code: pt.code,
@@ -482,11 +482,11 @@ function ConsultantForm() {
           );
 
           // 2. Filter Song Types (type: SÓNG)
-          const songs = allMaterials.filter((m: any) => m.type === "SÓNG");
+          const songs = allMaterials.filter((m: any) => m.type === "Sóng");
           setSongTypes(songs);
 
           // 3. Filter Glue Types (type: KEO)
-          const glues = allMaterials.filter((m: any) => m.type === "KEO");
+          const glues = allMaterials.filter((m: any) => m.type === "Keo phủ");
           setGlueTypes(glues);
         }
       } catch (error) {
@@ -645,7 +645,7 @@ function ConsultantForm() {
                 detail_address: orderData.detail_address,
                 description: orderData.description,
                 number_of_plates: est.number_of_plates || orderData.number_of_plates || 1,
-                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : "KEO_NUOC"),
+                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : "Keo phủ nước"),
                 length: orderData.product_length_mm,
                 width: orderData.product_width_mm,
                 height: orderData.product_height_mm,
@@ -701,10 +701,15 @@ function ConsultantForm() {
             // Execute pre-calculation for all restored tabs to wake up computations
             for (let i = 0; i < newTabs.length; i++) {
               const tab = newTabs[i];
+              const est = estimatesToLoad[i];
               try {
                 // Ensure all necessary dependencies exist before calculating
                 if (materials.length > 0 && productTypes.length > 0) {
-                  const result = calculateEstimateResult(tab.data);
+                  const result = calculateEstimateResult(tab.data, {
+                      isSendDesign: orderData.is_send_design,
+                      designFilePath: orderData.design_file_path,
+                      designCost: est?.design_cost
+                  });
                   if (result) {
                     tab.calculations = {
                       ...tab.calculations,
@@ -881,7 +886,7 @@ function ConsultantForm() {
 
 
   // Helper to calculate estimations without touching React state
-  function calculateEstimateResult(values: any) {
+  function calculateEstimateResult(values: any, explicitConfig?: { isSendDesign?: boolean, designFilePath?: string | null, designCost?: number }) {
     const {
       paper_code,
       quantity,
@@ -910,20 +915,20 @@ function ConsultantForm() {
     // Robust material lookup helper
     const findMaterialByIdentifier = (mats: Material[], identifier: string, fallbackType?: string) => {
       if (!identifier || identifier === "NONE" || identifier === "null") return undefined;
-      
+
       const normalizedOriginal = identifier.trim().toUpperCase();
-      
+
       // 1. Try exact code match
       const byCode = mats.find(m => m.code.toUpperCase() === normalizedOriginal);
       if (byCode) return byCode;
-      
+
       // 2. Try exact name match
       const byName = mats.find(m => m.name.toUpperCase() === normalizedOriginal);
       if (byName) return byName;
-      
+
       // 3. Try partial name overlap
-      const byPartial = mats.find(m => 
-        m.name.toUpperCase().includes(normalizedOriginal) || 
+      const byPartial = mats.find(m =>
+        m.name.toUpperCase().includes(normalizedOriginal) ||
         normalizedOriginal.includes(m.name.toUpperCase())
       );
       if (byPartial) return byPartial;
@@ -932,13 +937,13 @@ function ConsultantForm() {
       if (fallbackType === 'SÓNG' && normalizedOriginal.includes('SÓNG B')) {
         return mats.find(m => m.code === "SONG_B_NAU");
       }
-      
+
       return undefined;
     };
 
     const selectedMaterial = findMaterialByIdentifier(materials, paper_code);
     const selectedWaveMaterial = findMaterialByIdentifier(materials, wave_type, 'SÓNG');
-    
+
     if (!selectedMaterial) return null;
 
     try {
@@ -956,7 +961,7 @@ function ConsultantForm() {
         form_product: form_product || "",
         is_one_side_box,
         production_processes: Array.isArray(production_processes) ? production_processes.join(",") : (production_processes || ""),
-        coating_type: coating_type || "KEO_NUOC",
+        coating_type: coating_type || "Keo phủ nước",
         wave_type,
         number_of_plates: number_of_plates || 1,
 
@@ -969,8 +974,8 @@ function ConsultantForm() {
 
         desired_delivery_date: values.delivery_date ? dayjs(values.delivery_date).toDate() : new Date(),
         discount_percent: discountPercent,
-        is_send_design: isSendDesign,
-        has_design_file: !!designFilePath
+        is_send_design: explicitConfig?.isSendDesign !== undefined ? explicitConfig.isSendDesign : isSendDesign,
+        has_design_file: !!(explicitConfig?.designFilePath !== undefined ? explicitConfig.designFilePath : designFilePath)
       };
 
       // Calculate total waste using existing calculation first
@@ -999,8 +1004,8 @@ function ConsultantForm() {
         paper_code: paper_code,
         wave_type: wave_type,
         coating_type: coating_type,
-        design_file_path: designFilePath,
-        is_send_design: isSendDesign,
+        design_file_path: explicitConfig?.designFilePath !== undefined ? explicitConfig.designFilePath : designFilePath,
+        is_send_design: explicitConfig?.isSendDesign !== undefined ? explicitConfig.isSendDesign : isSendDesign,
 
         sheet_width_mm: selectedMaterial.sheet_width_mm || 0,
         sheet_length_mm: selectedMaterial.sheet_length_mm || 0,
@@ -1017,10 +1022,10 @@ function ConsultantForm() {
 
         ink_rate_per_m2: ink_rate,
         ink_price_per_kg: 150000,
-        coating_glue_price_per_kg: coating_type === 'KEO_NUOC' ? 80000 : 120000,
+        coating_glue_price_per_kg: coating_type === 'Keo phủ nước' ? 80000 : 120000,
         mounting_glue_price_per_kg: 90000,
         lamination_price_per_kg: 150000,
-        default_design_cost: designConfig?.default_design_cost || 0,
+        default_design_cost: explicitConfig?.designCost !== undefined ? explicitConfig.designCost : (designConfig?.default_design_cost || 0),
 
         waste_printing: wasteResult.wastes.printing,
         waste_die_cutting: wasteResult.wastes.dieCutting,
@@ -1093,7 +1098,7 @@ function ConsultantForm() {
           ...savedEstimate,
           coating_type: savedEstimate.coating_type || "NONE",
           ink_unit_price: 150000,
-          coating_glue_unit_price: coating_type === 'KEO_NUOC' ? 80000 : 120000,
+          coating_glue_unit_price: coating_type === 'Keo phủ nước' ? 80000 : 120000,
           mounting_glue_unit_price: 90000,
           lamination_unit_price: 150000,
           overhead_percent: systemParameters?.vat_percent || 10,
@@ -1392,7 +1397,7 @@ function ConsultantForm() {
 
       // 2.2 UPLOAD CONTRACT
       let finalContractPath = "";
-      let contractUploadedAt = "";
+      let contractUploadedAt: string | null = null;
       if (primaryQuote.contract_file && primaryQuote.contract_file.length > 0) {
         const contractFiles = primaryQuote.contract_file
           .map((f: any) => f.originFileObj || f)
@@ -1556,7 +1561,7 @@ function ConsultantForm() {
     try {
       // 1. UPLOAD CONTRACT IF PRESENT
       let finalContractPath = "";
-      let contractUploadedAt = "";
+      let contractUploadedAt: string | null = null;
       const contractFieldValue = form.getFieldValue("contract_file");
       if (contractFieldValue && contractFieldValue.length > 0) {
         const contractFiles = contractFieldValue
@@ -1736,7 +1741,7 @@ function ConsultantForm() {
             onValuesChange={handleFormValuesChange}
             initialValues={{
               number_of_plates: 1,
-              coating_type: "KEO_NUOC",
+              coating_type: "Keo phủ nước",
               isOneSideBox: true,
               glueTab: 10,
             }}
@@ -2014,7 +2019,7 @@ function ConsultantForm() {
                   format: (_) => "" // Handled manually below
                 },
                 { key: "paper_code", label: "Giấy/Chất liệu", format: (v) => paperTypes.find(p => p.code === v)?.name || v },
-                { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v === "KEO_NUOC" ? "Keo nước" : v === "KEO_DAN" ? "Keo dán" : v },
+                { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v === "Keo phủ nước" ? "Keo nước" : v === "KEO_DAN" ? "Keo dán" : v },
                 { key: "wave_type", label: "Sóng", format: (v) => v },
                 { key: "number_of_plates", label: "Số lượng kẽm", format: (v) => v },
                 {
