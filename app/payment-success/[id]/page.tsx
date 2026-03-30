@@ -83,10 +83,10 @@ export default function PaymentSuccess() {
     const fetchData = async () => {
       try {
         const [orderRes, estimateRes] = await Promise.all([
-          //fetch(`https://amms-juaa.onrender.com/api/Orders/detail/${orderId}`),
-          //fetch(`https://amms-juaa.onrender.com/api/Requests/get-cost-estimate/${orderId}`),
-          fetch(`https://localhost:7109/api/Orders/detail/${orderId}`),
-          fetch(`https://localhost:7109/api/Requests/get-cost-estimate/${orderId}`)
+          fetch(`https://amms-juaa.onrender.com/api/Orders/detail/${orderId}`),
+          fetch(`https://amms-juaa.onrender.com/api/Requests/get-cost-estimate/${orderId}`),
+          //fetch(`https://localhost:7109/api/Orders/detail/${orderId}`),
+          //fetch(`https://localhost:7109/api/Requests/get-cost-estimate/${orderId}`)
         ]);
 
         if (!orderRes.ok || !estimateRes.ok) {
