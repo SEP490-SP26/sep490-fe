@@ -17,8 +17,10 @@ export interface DetailedEstimate {
   // Vật tư & Quy trình
   paper_code: string;
   paper_name: string;
+  paper_alternative?: string;
   coating_type: string;
   wave_type: string;
+  wave_alternative?: string;
   production_processes: string;
   cost_note: string;
 
@@ -58,6 +60,8 @@ export interface DetailedEstimate {
 export interface RequestDetailResponse {
   request_id: number;
   order_id: number;
+  order_request_id: number;
+  quote_id: number;
   customer_name: string;
   customer_phone: string;
   email: string;
@@ -88,7 +92,9 @@ export interface RequestDetailResponse {
   coating_type: string;
   paper_code: string;
   paper_name: string;
+  paper_alternative?: string;
   wave_type: string;
+  wave_alternative?: string;
   product_length_mm: number;
   product_width_mm: number;
   product_height_mm: number;
@@ -96,11 +102,12 @@ export interface RequestDetailResponse {
   bleed_mm: number;
   is_one_side_box: boolean;
   print_width_mm: number;
-  print_height_mm: number;
+  print_length_mm: number;
 
   // Danh sách các phương án báo giá đi kèm
   preliminary_estimated_price?: number;
   cost_estimate: DetailedEstimate[];
+  file_url?: string;
 }
 
 // --- PHẦN 1: CÁC INTERFACE CON ---

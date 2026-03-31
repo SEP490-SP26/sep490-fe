@@ -197,17 +197,25 @@ export default function EstimatesCard({
                     <div className="text-sm font-semibold text-green-800 mb-3">
                       TÍNH TOÁN SƠ BỘ:
                     </div>
+                    {paperEstimate.warning_message && (
+                      <Alert
+                        message={paperEstimate.warning_message}
+                        type="error"
+                        showIcon
+                        className="mb-3"
+                      />
+                    )}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="text-gray-600">Khổ giấy:</div>
                       <div className="font-medium text-right">
                         {paperEstimate.sheet_width_mm} x{" "}
-                        {paperEstimate.sheet_height_mm} mm
+                        {paperEstimate.sheet_length_mm} mm
                       </div>
 
                       <div className="text-gray-600">Kích thước in:</div>
                       <div className="font-medium text-right">
                         {paperEstimate.print_width_mm} x{" "}
-                        {paperEstimate.print_height_mm} mm
+                        {paperEstimate.print_length_mm} mm
                       </div>
 
                       <div className="text-gray-600">Số SP/tờ:</div>
@@ -376,27 +384,27 @@ export default function EstimatesCard({
                             className="flex justify-between"
                           >
                             <span className="text-gray-600">
-                              {detail.process === "IN"
-                                ? "Công in"
-                                : detail.process === "BOI"
-                                  ? "Công bồi"
-                                  : detail.process === "DAN"
-                                    ? "Công dán"
-                                    : detail.process === "BE"
-                                      ? "Công bế"
-                                      : detail.process === "RALO"
-                                        ? "Ra lô"
-                                        : detail.process === "PHU"
-                                          ? "Công phủ"
-                                          : detail.process === "CAN"
-                                            ? "Cán màng"
-                                            : detail.process === "DUT"
-                                              ? "Đục"
-                                              : detail.process === "DOT"
-                                                ? "Đột"
-                                                : detail.process === "CAT"
-                                                  ? "Cắt"
-                                                  : detail.process}
+                                {detail.process === "IN"
+                                  ? "Công in"
+                                  : detail.process === "BOI"
+                                    ? "Công bồi"
+                                    : detail.process === "DAN"
+                                      ? "Công dán"
+                                      : detail.process === "BE"
+                                        ? "Công bế/Dứt"
+                                        : detail.process === "RALO"
+                                          ? "Ralo/Cắt"
+                                          : detail.process === "PHU"
+                                            ? "Công phủ"
+                                            : detail.process === "CAN"
+                                              ? "Cán màng"
+                                              : detail.process === "DUT"
+                                                ? "Dứt"
+                                                : detail.process === "DOT"
+                                                  ? "Đột"
+                                                  : detail.process === "CAT"
+                                                    ? "Cắt"
+                                                    : detail.process}
                               :
                             </span>
                             <span className="font-medium">
@@ -508,13 +516,13 @@ export default function EstimatesCard({
                                 <span className="font-bold text-green-900 leading-tight">
                                   Sau chiết khấu:
                                 </span>
-                               
-                                  <span className="font-bold text-base lg:text-lg xl:text-xl text-green-700 leading-none text-right shrink-0">
-                                    {Math.round(
-                                      (costEstimate.cost.subtotal || 0) - (costEstimate.cost.discount_amount || 0)
-                                    ).toLocaleString("vi-VN")}{" "}
-                                    ₫
-                                  </span>
+
+                                <span className="font-bold text-base lg:text-lg xl:text-xl text-green-700 leading-none text-right shrink-0">
+                                  {Math.round(
+                                    (costEstimate.cost.subtotal || 0) - (costEstimate.cost.discount_amount || 0)
+                                  ).toLocaleString("vi-VN")}{" "}
+                                  ₫
+                                </span>
                               </div>
                             </>
                           )}

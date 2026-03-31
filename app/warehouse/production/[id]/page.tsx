@@ -28,7 +28,6 @@ export interface Material {
   cost_price: number;
   description?: string;
   sheet_width_mm?: number;
-  sheet_height_mm?: number;
   sheet_length_mm?: number;
   boms: any[];
   purchase_items: any[];

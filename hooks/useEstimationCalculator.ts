@@ -33,7 +33,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       // Input chính
       paper_code,
       sheet_width_mm,
-      sheet_height_mm,
+      sheet_length_mm,
       quantity,
       length_mm,
       width_mm,
@@ -77,7 +77,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
     );
 
     // 3. Tính số con trên 1 tờ
-    const nUp = calculateNUp(sheet_width_mm, sheet_height_mm, printSize.print_width_mm, printSize.print_height_mm);
+    const nUp = calculateNUp(sheet_width_mm, sheet_length_mm, printSize.print_width_mm, printSize.print_length_mm);
 
     // 4. Tính số tờ cơ bản
     const sheetsBase = calculateBaseSheets(quantity, nUp);
@@ -100,7 +100,7 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
     const wasteResult = calculateTotalWaste(wasteParams, wasteRules);
 
     // 7. Tính chi phí vật liệu
-    const printArea = calculatePrintArea(printSize.print_width_mm, printSize.print_height_mm);
+    const printArea = calculatePrintArea(printSize.print_width_mm, printSize.print_length_mm);
     const totalPrintArea = calculateTotalPrintArea(printArea, quantity);
 
     // Tìm thông tin vật tư
@@ -166,12 +166,12 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
 
     // 8.5 Tính chi phí kẽm (không phải là công đoạn, mà là chi phí phụ trợ tính theo khổ giấy)
     const plateCostResult = calculatePlateCost(
-      number_of_plates, 
-      sheet_width_mm, 
-      sheet_height_mm, 
+      number_of_plates,
+      sheet_width_mm,
+      sheet_length_mm,
       config
     );
-    
+
     if (plateCostResult.cost > 0) {
       totalProcessCost += plateCostResult.cost;
       processDetails.push({

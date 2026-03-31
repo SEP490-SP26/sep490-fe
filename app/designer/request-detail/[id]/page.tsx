@@ -143,7 +143,7 @@ export default function DesignerRequestDetailPage() {
 
           <div className="flex gap-3">
             <Button onClick={() => router.back()}>Quay lại</Button>
-            
+
             <Popconfirm
               title={<span className="font-semibold text-lg">Xác nhận bố cục</span>}
               description={`Bạn có chắc chắn muốn xác nhận bố cục cho đơn hàng #${orderDetail.order_id}?`}
@@ -197,9 +197,9 @@ export default function DesignerRequestDetailPage() {
               {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && (
                 <Descriptions.Item label="Loại phủ"><Text strong>{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>
               )}
-              {orderDetail.print_width_mm > 0 && orderDetail.print_height_mm > 0 && (
+              {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && (
                 <Descriptions.Item label="Kích thước in">
-                  <Text strong>{orderDetail.print_width_mm} x {orderDetail.print_height_mm} mm</Text>
+                  <Text strong>{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text>
                 </Descriptions.Item>
               )}
             </Descriptions>
@@ -213,12 +213,12 @@ export default function DesignerRequestDetailPage() {
               </div>
             )}
           </div>
-          
+
           <Divider />
 
           {/* Design Files */}
           <div>
-             <h3 className="text-sm uppercase tracking-wider font-bold text-blue-600 mb-4 flex items-center gap-2">
+            <h3 className="text-sm uppercase tracking-wider font-bold text-blue-600 mb-4 flex items-center gap-2">
               <FileImageOutlined /> File đính kèm
             </h3>
             <div className="p-3 bg-slate-50 rounded-lg flex items-center justify-between border border-slate-200">
@@ -236,24 +236,24 @@ export default function DesignerRequestDetailPage() {
                 <Text type="secondary" className="text-sm italic">Không có file đính kèm</Text>
               )}
             </div>
-            
-             {/* Other files */}
-             {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
-                <div className="mt-3">
-                    <div className="text-xs font-medium text-gray-700 mb-2">
-                        File khác ({(orderDetail as any).other_files.length}):
-                    </div>
-                    <div className="space-y-2">
-                        {(orderDetail as any).other_files.map((file: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-white border rounded text-sm">
-                                <span className="truncate max-w-[80%]">{file.name}</span>
-                                <Button type="link" size="small" onClick={() => window.open(file.url, "_blank")}>
-                                    Tải về
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
+
+            {/* Other files */}
+            {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
+              <div className="mt-3">
+                <div className="text-xs font-medium text-gray-700 mb-2">
+                  File khác ({(orderDetail as any).other_files.length}):
                 </div>
+                <div className="space-y-2">
+                  {(orderDetail as any).other_files.map((file: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white border rounded text-sm">
+                      <span className="truncate max-w-[80%]">{file.name}</span>
+                      <Button type="link" size="small" onClick={() => window.open(file.url, "_blank")}>
+                        Tải về
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </Card>

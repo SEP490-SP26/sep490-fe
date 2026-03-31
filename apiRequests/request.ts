@@ -73,4 +73,11 @@ export const requestOrderApi = {
 
   designerConfirmLayout: (body: { request_id: number }) =>
     http.put<CommonResType>('/api/Requests/designer-confirm-layout', body),
+
+  uploadPrintReadyFile: (requestId: number, body: { estimate_id: number, file: File }) => {
+    const formData = new FormData();
+    formData.append("estimate_id", body.estimate_id.toString());
+    formData.append("file", body.file);
+    return http.post<CommonResType>(`/api/Requests/upload-print-ready-file/${requestId}`, formData);
+  },
 };

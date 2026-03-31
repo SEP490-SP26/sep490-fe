@@ -253,9 +253,30 @@ export const mapToOrderEstimationResult = (
     bleed_mm: additionalSpecs?.bleed_mm || 0,
     glue_tab_mm: additionalSpecs?.glue_tab_mm || 0,
     is_one_side_box: additionalSpecs?.is_one_side_box || false,
-    print_height_mm: additionalSpecs?.print_height_mm || (paperEstimate as any).print_height_mm || 0,
+    print_length_mm: additionalSpecs?.print_length_mm || (paperEstimate as any).print_length_mm || 0,
     print_width_mm: additionalSpecs?.print_width_mm || (paperEstimate as any).print_width_mm || 0,
 
+    // New Fields
+    waste_gluing_boxes: costEstimate.cost.waste_gluing_boxes || 0,
+    wave_sheets_required: costEstimate.cost.wave_sheets_required || 0,
+    wave_n_up: costEstimate.cost.wave_n_up || 0,
+    sheet_area_m2: costEstimate.cost.sheet_area_m2 || 0,
+    wave_sheet_area_m2: costEstimate.cost.wave_sheet_area_m2 || 0,
+    print_sheets_used: costEstimate.cost.print_sheets_used || 0,
+    coating_sheets_used: costEstimate.cost.coating_sheets_used || 0,
+    lamination_sheets_used: costEstimate.cost.lamination_sheets_used || 0,
+    total_coating_area_m2: costEstimate.cost.total_coating_area_m2 || 0,
+    total_mounting_area_m2: costEstimate.cost.total_mounting_area_m2 || 0,
+    total_lamination_area_m2: costEstimate.cost.total_lamination_area_m2 || 0,
+    wave_unit_price: costEstimate.cost.wave_unit_price || 0,
+    wave_cost: costEstimate.cost.wave_cost || 0,
+    total_process_cost: costEstimate.cost.total_process_cost || 0,
+
     process_costs: mappedProcessCosts,
+    paper_alternative: additionalSpecs?.paper_alternative || costEstimate.cost.paper_alternative || "",
+    wave_alternative: additionalSpecs?.wave_alternative || costEstimate.cost.wave_alternative || "",
+    wave_sheets_used: costEstimate.cost.wave_sheets_used || 0,
+    contract_file_path: additionalSpecs?.contract_file_path || "",
+    contract_uploaded_at: additionalSpecs?.contract_uploaded_at || null,
   };
 };

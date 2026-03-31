@@ -19,6 +19,7 @@ interface ProductSpecsSectionProps {
   processTypes: string[];
   PROCESS_TYPE_LABELS: Record<string, string>;
   songTypes: Material[];
+  glueTypes: Material[];
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   form: any;
   disabledSharedFields?: boolean;
@@ -48,12 +49,39 @@ export default function ProductSpecsSection({
   processTypes,
   PROCESS_TYPE_LABELS,
   songTypes,
+  glueTypes,
   handleFormValuesChange,
   form,
   disabledSharedFields = false,
   highlightFields = {},
   isDeclined = false,
 }: ProductSpecsSectionProps) {
+  const currentProductTypeId = Form.useWatch("product_type", form);
+  const currentPaperCode = Form.useWatch("paper_code", form);
+  const currentProcesses = Form.useWatch("production_processes", form) || [];
+  const hasPHU = currentProcesses.includes("PHU");
+
+  const selectedProductType = productTypes?.find((pt) => pt.product_type_id === currentProductTypeId);
+  const selectedPaper = paperTypes?.find((paper) => paper.code === currentPaperCode);
+
+  // Determine the active product type for compatibility checks
+  const activeProductType = selectedProductType || productTypes?.find((pt) => pt.code === selectedProductTypeCode);
+
+  const checkPaperCompatibility = (paper: any, prodType: any) => {
+    if (!paper || !paper.material_class || !prodType) return true;
+    const validClasses = paper.material_class.split(",").map((s: string) => s.trim().toLowerCase());
+    const productNameLower = prodType.name?.trim().toLowerCase();
+    const productCodeLower = prodType.code?.trim().toLowerCase();
+
+    if (validClasses.length === 0) return true;
+
+    return (productNameLower && validClasses.includes(productNameLower)) ||
+      (productCodeLower && validClasses.includes(productCodeLower));
+  };
+
+  const isCurrentPaperIncompatible = selectedPaper && !checkPaperCompatibility(selectedPaper, activeProductType);
+  const paperWarningMsg = isCurrentPaperIncompatible ? `Loại giấy ${selectedPaper.name} có thể không phù hợp với loại sản phẩm ${activeProductType?.name}.` : "";
+
   useEffect(() => {
     if (selectedProductTypeCode === "HOP_MAU" || selectedProductTypeCode === "VO_HOP_GACH") {
       const filteredFormTypes = formTypes.filter((ft) => {
@@ -75,6 +103,16 @@ export default function ProductSpecsSection({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductTypeCode, formTypes, form]);
+
+  useEffect(() => {
+    const processes = form.getFieldValue("production_processes");
+    const currentWave = form.getFieldValue("wave_type");
+
+    // Ensure wave_type is initialized if BOI is present but wave_type is missing
+    if (Array.isArray(processes) && processes.includes("BOI") && !currentWave) {
+      form.setFieldValue("wave_type", "SONG_B_NAU");
+    }
+  }, [form]);
 
   return (
     <>
@@ -123,11 +161,12 @@ export default function ProductSpecsSection({
       <Row gutter={16}>
 
         <Col span={9}>
-          <Tooltip title={highlightFields['paper_code'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
+          <Tooltip title={isCurrentPaperIncompatible ? paperWarningMsg : (highlightFields['paper_code'] || "")} color={isCurrentPaperIncompatible ? "volcano" : "orange"} placement="topLeft" trigger={['hover', 'focus']}>
             <div className="w-full">
               <Form.Item
                 name="paper_code"
                 rules={[{ required: true, message: "Vui lòng chọn loại giấy" }]}
+                validateStatus={isCurrentPaperIncompatible ? "warning" : undefined}
                 className="mb-0"
               >
                 <FloatingSelect
@@ -136,14 +175,23 @@ export default function ProductSpecsSection({
                   placeholder="Chọn loại giấy..."
                   loading={loadingPaperTypes}
                   optionFilterProp="label"
-                  options={paperTypes.map((paper) => ({
-                    label: <div className="flex justify-between gap-2">
-                      <span>{paper.name}</span>
-                      <span className="text-gray-500">(SL: {paper.stock ?? 0})</span>
-                    </div>,
-                    value: paper.code,
-                    stockQty: paper.stock,
-                  }))}
+                  options={paperTypes.map((paper) => {
+                    const isOptionCompatible = checkPaperCompatibility(paper, activeProductType);
+                    return {
+                      label: <div className="flex justify-between gap-2 items-center">
+                        <div className="flex items-center gap-1">
+                          <span>{paper.name}</span>
+                          {!isOptionCompatible && (
+                            <Tooltip title={`Có thể không phù hợp với ${activeProductType?.name}`}>
+                            </Tooltip>
+                          )}
+                        </div>
+                        <span className="text-gray-500 text-[11px]">(SL: {paper.stock ?? 0})</span>
+                      </div>,
+                      value: paper.code,
+                      stockQty: paper.stock,
+                    };
+                  })}
                   className={highlightFields['paper_code'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
                   disabled={isDeclined && !highlightFields['paper_code']}
                 />
@@ -185,21 +233,23 @@ export default function ProductSpecsSection({
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Tooltip title={highlightFields['coating_type'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
-            <div className="w-full">
-              <Form.Item name="coating_type" className="mb-0">
-                <FloatingSelect
-                  label="Loại keo"
-                  options={[
-                    { label: "Keo nước", value: "KEO_NUOC" },
-                    { label: "Keo dầu", value: "KEO_DAU" },
-                  ]}
-                  className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-                  disabled={isDeclined && !highlightFields['coating_type']}
-                />
-              </Form.Item>
-            </div>
-          </Tooltip>
+          {hasPHU && (
+            <Tooltip title={highlightFields['coating_type'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
+              <div className="w-full">
+                <Form.Item name="coating_type" className="mb-0">
+                  <FloatingSelect
+                    label="Loại keo phủ"
+                    options={glueTypes.map((gt) => ({
+                      label: gt.name,
+                      value: gt.code,
+                    }))}
+                    className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                    disabled={isDeclined && !highlightFields['coating_type']}
+                  />
+                </Form.Item>
+              </div>
+            </Tooltip>
+          )}
         </Col>
       </Row>
 
@@ -368,17 +418,19 @@ export default function ProductSpecsSection({
             label="Gia Công"
             className="mb-1"
             normalize={(value) => {
-              if (!Array.isArray(value)) return ["RALO", "BE", "DUT"];
-              let updatedValues = [...value] as string[];
+              let updatedValues: string[] = [];
+              if (Array.isArray(value)) {
+                updatedValues = [...value];
+              } else if (typeof value === "string") {
+                updatedValues = value.split(",").map(v => v.trim()).filter(v => v);
+              } else {
+                updatedValues = ["RALO", "BE", "DUT"];
+              }
 
               // NẾU LUÔN LUÔN BẮT BUỘC RALO VÀ BẾ
               if (!updatedValues.includes("RALO")) updatedValues.push("RALO");
               if (!updatedValues.includes("BE")) updatedValues.push("BE");
-
-              // Bế luôn có nên Dứt cũng luôn có
-              if (!updatedValues.includes("DUT")) {
-                updatedValues.push("DUT");
-              }
+              if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
 
               // Sắp xếp đúng theo trình tự gia công chuẩn
               const STANDARD_ORDER = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"];
@@ -407,7 +459,10 @@ export default function ProductSpecsSection({
                 if (!checkedValues.includes("BOI")) {
                   form.setFieldValue("wave_type", "");
                 }
-                
+                if (!checkedValues.includes("PHU")) {
+                  form.setFieldValue("coating_type", undefined);
+                }
+
                 // Trigger form re-calculation manually if needed because some hidden constraints updated
                 // We use setTimeout to ensure form has updated with normalized value
                 setTimeout(() => {
@@ -415,34 +470,25 @@ export default function ProductSpecsSection({
                 }, 0);
               }}
             >
-              <div className="grid grid-cols-4 xl:grid-cols-6 gap-y-1">
+              <div className="flex flex-wrap gap-x-2">
                 {loadingProcessTypes ? (
                   <span className="text-gray-400 text-xs">Đang tải...</span>
                 ) : (
-                  <>
-                    {processTypes
-                      .filter((pt) => ["IN", "DUT", "CAT", "RALO", "BE"].includes(pt))
-                      .map((pt) => (
-                        <Checkbox
-                          value={pt}
-                          key={pt}
-                          style={{ display: "none" }}
-                        />
-                      ))}
-                    {processTypes
-                      .filter((pt) => !["IN", "DUT", "DOT", "CAT", "RALO", "BE"].includes(pt))
-                      .map((pt) => (
-                        <Checkbox
-                          value={pt}
-                          key={pt}
-                          className="!flex items-center m-0"
-                        >
-                          <span className="text-[13px] leading-tight">
-                            {PROCESS_TYPE_LABELS[pt] || pt.replace(/_/g, " ")}
-                          </span>
-                        </Checkbox>
-                      ))}
-                  </>
+                  ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"].map((pt) => {
+                    const isDisabled = ["IN", "DUT", "CAT", "RALO", "BE"].includes(pt);
+                    return (
+                      <Checkbox
+                        value={pt}
+                        key={pt}
+                        disabled={isDisabled}
+                        className="!flex items-center m-0"
+                      >
+                        <span className={`text-[13px] leading-tight ${isDisabled ? "text-gray-400" : "text-gray-700"}`}>
+                          {PROCESS_TYPE_LABELS[pt] || pt}
+                        </span>
+                      </Checkbox>
+                    );
+                  })
                 )}
               </div>
             </Checkbox.Group>
