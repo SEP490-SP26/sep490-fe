@@ -81,9 +81,18 @@ export default function ConsultantRequestDetailPage() {
 
     const handleOpenAlternativeModal = (estimate: any) => {
         setSelectedEstimateForMaterial(estimate);
+        
+        // Split combined reason if possible
+        const reason = estimate.alternative_material_reason || '';
+        const parts = reason.split('; ');
+        const paperReason = parts.find((p: string) => p.startsWith('Giấy: '))?.replace('Giấy: ', '') || '';
+        const waveReason = parts.find((p: string) => p.startsWith('Sóng: '))?.replace('Sóng: ', '') || '';
+
         alternativeForm.setFieldsValue({
             paper_alternative: estimate.paper_alternative || '',
-            wave_alternative: estimate.wave_alternative || ''
+            paper_alternative_reason: paperReason,
+            wave_alternative: estimate.wave_alternative || '',
+            wave_alternative_reason: waveReason
         });
         setAlternativeModalOpen(true);
     };
@@ -91,12 +100,18 @@ export default function ConsultantRequestDetailPage() {
     const handleAlternativeSubmit = async (values: any) => {
         if (!selectedEstimateForMaterial) return;
         setSubmittingAlternative(true);
+        const combinedReason = [
+            values.paper_alternative_reason ? `Giấy: ${values.paper_alternative_reason}` : '',
+            values.wave_alternative_reason ? `Sóng: ${values.wave_alternative_reason}` : ''
+        ].filter(Boolean).join('; ');
+
         try {
             await estimatesApi.alternativeMaterials({
                 request_id: Number(requestId),
                 estimate_id: selectedEstimateForMaterial.estimate_id,
                 paper_alternative: values.paper_alternative || '',
-                wave_alternative: values.wave_alternative || ''
+                wave_alternative: values.wave_alternative || '',
+                alternative_material_reason: combinedReason
             });
             message.success("Cập nhật vật liệu thay thế thành công!");
             setAlternativeModalOpen(false);
@@ -673,10 +688,17 @@ export default function ConsultantRequestDetailPage() {
                                                         <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
                                                     </div>
                                                     {estimate.paper_alternative && (
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <span className="text-slate-500 text-sm">Giấy thay thế:</span>
-                                                            <span className="font-medium text-amber-600 text-sm">{estimate.paper_alternative}</span>
-                                                        </div>
+                                                        <>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-500 text-sm">Giấy thay thế:</span>
+                                                                <span className="font-medium text-amber-600 text-sm">{estimate.paper_alternative}</span>
+                                                            </div>
+                                                            {estimate.alternative_material_reason && estimate.alternative_material_reason.includes('Giấy:') && (
+                                                                <div className="mb-2 text-xs text-slate-400 italic">
+                                                                    Lý do: {estimate.alternative_material_reason.split('; ').find(p => p.startsWith('Giấy:'))?.replace('Giấy: ', '')}
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                     {estimate.wave_type && estimate.wave_type !== "NONE" && (
                                                         <div className="flex justify-between items-center mb-2">
@@ -685,10 +707,17 @@ export default function ConsultantRequestDetailPage() {
                                                         </div>
                                                     )}
                                                     {estimate.wave_alternative && (
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <span className="text-slate-500 text-sm">Sóng thay thế:</span>
-                                                            <span className="font-medium text-amber-600 text-sm">{estimate.wave_alternative}</span>
-                                                        </div>
+                                                        <>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-500 text-sm">Sóng thay thế:</span>
+                                                                <span className="font-medium text-amber-600 text-sm">{estimate.wave_alternative}</span>
+                                                            </div>
+                                                            {estimate.alternative_material_reason && estimate.alternative_material_reason.includes('Sóng:') && (
+                                                                <div className="mb-2 text-xs text-slate-400 italic">
+                                                                    Lý do: {estimate.alternative_material_reason.split('; ').find(p => p.startsWith('Sóng:'))?.replace('Sóng: ', '')}
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Loại phủ:</span>
@@ -1002,6 +1031,22 @@ export default function ConsultantRequestDetailPage() {
                         </Form.Item>
 
                         <Form.Item
+                            noStyle
+                            shouldUpdate={(prevValues, currentValues) => prevValues.paper_alternative !== currentValues.paper_alternative}
+                        >
+                            {({ getFieldValue }) => getFieldValue('paper_alternative') ? (
+                                <Form.Item
+                                    name="paper_alternative_reason"
+                                    label={<span className="font-medium text-slate-700 italic">Lý do thay đổi giấy</span>}
+                                    rules={[{ required: true, message: 'Vui lòng nhập lý do thay đổi loại giấy' }]}
+                                    className="ml-4 border-l-2 border-amber-100 pl-4"
+                                >
+                                    <Input.TextArea placeholder="Nhập lý do..." rows={2} className="rounded-lg" />
+                                </Form.Item>
+                            ) : null}
+                        </Form.Item>
+
+                        <Form.Item
                             name="wave_alternative"
                             label={<span className="font-medium text-slate-700">Sóng thay thế</span>}
                             help="Chọn loại sóng để thay thế cho sóng cũ, để trống nếu không đổi"
@@ -1016,6 +1061,22 @@ export default function ConsultantRequestDetailPage() {
                                 }
                                 options={waveOptions} 
                             />
+                        </Form.Item>
+
+                        <Form.Item
+                            noStyle
+                            shouldUpdate={(prevValues, currentValues) => prevValues.wave_alternative !== currentValues.wave_alternative}
+                        >
+                            {({ getFieldValue }) => getFieldValue('wave_alternative') ? (
+                                <Form.Item
+                                    name="wave_alternative_reason"
+                                    label={<span className="font-medium text-slate-700 italic">Lý do thay đổi sóng</span>}
+                                    rules={[{ required: true, message: 'Vui lòng nhập lý do thay đổi loại sóng' }]}
+                                    className="ml-4 border-l-2 border-amber-100 pl-4"
+                                >
+                                    <Input.TextArea placeholder="Nhập lý do..." rows={2} className="rounded-lg" />
+                                </Form.Item>
+                            ) : null}
                         </Form.Item>
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">

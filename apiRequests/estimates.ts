@@ -222,6 +222,7 @@ export const estimatesApi = {
         estimate_id: number;
         paper_alternative: string;
         wave_alternative: string;
+        alternative_material_reason: string;
     }) => {
         return http.put<void>(`/api/Estimates/alternative-materials`, body);
     },

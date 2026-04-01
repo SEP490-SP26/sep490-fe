@@ -21,6 +21,7 @@ export interface DetailedEstimate {
   coating_type: string;
   wave_type: string;
   wave_alternative?: string;
+  alternative_material_reason?: string;
   production_processes: string;
   cost_note: string;
 
@@ -95,6 +96,7 @@ export interface RequestDetailResponse {
   paper_alternative?: string;
   wave_type: string;
   wave_alternative?: string;
+  alternative_material_reason?: string;
   product_length_mm: number;
   product_width_mm: number;
   product_height_mm: number;

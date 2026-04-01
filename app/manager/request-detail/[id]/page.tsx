@@ -370,115 +370,84 @@ export default function ManagerRequestDetailPage() {
                                 </div>
                             </Card>
                         </div>
-                        <div className="lg:col-span-1">
-                            <Card
-                                className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary h-full flex flex-col"
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                            <FileImageOutlined />
-                                            File đính kèm
-                                        </h3>
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    {/* File mẫu */}
-                                    <div className="flex flex-col gap-2 p-2 bg-gray-50 rounded">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <FileTextOutlined className="text-gray-400 text-sm" />
-                                                <div>
-                                                    <div className="font-medium text-sm">File mẫu</div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {orderDetail.design_file_path ? `${orderDetail.design_file_path.split(',').length} file thiết kế` : "Chưa tải lên"}
-                                                    </div>
+                                     <div className="lg:col-span-1">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    {/* <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary flex items-center gap-2 m-0">
+                                                        <FileTextOutlined />
+                                                        Mô tả yêu cầu
+                                                    </h3>
                                                 </div>
                                             </div>
-                                            {orderDetail.design_file_path ? (
-                                                <Button
-                                                    size="small"
-                                                    icon={<DownloadOutlined />}
-                                                    onClick={downloadAllDesignFiles}
-                                                >
-                                                    Tải tất cả
-                                                </Button>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">Không có file</span>
-                                            )}
+                                            <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
+                                                {orderDetail.description || "Không có mô tả"}
+                                            </div>
                                         </div>
-                                    </div>
+                                    </Card> */}
 
-                                    {/* Hợp đồng */}
-                                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                        <div className="flex items-center gap-2">
-                                            <svg
-                                                className="w-4 h-4 text-gray-400"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                                />
-                                            </svg>
+                                    {orderDetail.consultant_note && (
+                                        <Card className="mt-4 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
                                             <div>
-                                                <div className="font-medium text-sm">Hợp đồng</div>
-                                                <div className="text-xs text-gray-500">{(orderDetail as any).contract_file ? "Đã đính kèm" : "Chưa tải lên"}</div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 flex items-center gap-2 m-0">
+                                                            <FileTextOutlined className="text-blue-500" />
+                                                            Ghi chú của tư vấn viên
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
+                                                    {orderDetail.consultant_note}
+                                                </div>
                                             </div>
-                                        </div>
-                                        {(orderDetail as any).contract_file ? (
-                                            <Button
-                                                size="small"
-                                                type="primary"
-                                                onClick={() => window.open((orderDetail as any).contract_file, "_blank")}
-                                            >
-                                                Xem
-                                            </Button>
-                                        ) : (
-                                            <span className="text-xs text-gray-400">Không có file</span>
-                                        )}
-                                    </div>
+                                        </Card>
+                                    )}
 
-                                    {/* File khác */}
-                                    {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
-                                        <div className="mt-2">
-                                            <div className="text-xs font-medium text-gray-700 mb-1">
-                                                File khác ({(orderDetail as any).other_files.length}):
-                                            </div>
-                                            <div className="space-y-1">
-                                                {(orderDetail as any).other_files.slice(0, 2).map((file: any, index: number) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
-                                                    >
-                                                        <div className="flex items-center gap-1.5 truncate">
-                                                            <FileTextOutlined className="text-gray-400" style={{ fontSize: "12px" }} />
-                                                            <span className="truncate">{file.name}</span>
-                                                        </div>
-                                                        <Button
-                                                            type="link"
-                                                            size="small"
-                                                            style={{ padding: 0, fontSize: "12px" }}
-                                                            onClick={() => window.open(file.url, "_blank")}
-                                                        >
-                                                            Tải
-                                                        </Button>
+                                    {orderDetail.process_status === 'Processing' && (
+                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
+                                                            <EditOutlined className="text-green-500" />
+                                                            Lời nhắn cho tư vấn viên
+                                                        </h3>
                                                     </div>
-                                                ))}
-                                                {(orderDetail as any).other_files.length > 2 && (
-                                                    <div className="text-xs text-gray-500 text-center">
-                                                        + {(orderDetail as any).other_files.length - 2} file khác
-                                                    </div>
-                                                )}
+                                                </div>
+                                                <TextArea
+                                                    rows={2}
+                                                    placeholder="Nhập ghi chú cho tư vấn viên khi duyệt yêu cầu..."
+                                                    className="w-full text-sm rounded-lg border-green-200 focus:border-green-400 focus:ring-green-400"
+                                                    value={managerNote}
+                                                    onChange={(e) => setManagerNote(e.target.value)}
+                                                />
                                             </div>
-                                        </div>
+                                        </Card>
+                                    )}
+
+                                    {orderDetail.process_status !== 'Processing' && orderDetail.note && (
+                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
+                                                            <FileTextOutlined className="text-green-500" />
+                                                            Ghi chú của Manager
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-green-200 rounded-lg p-3 whitespace-pre-wrap">
+                                                    {orderDetail.note}
+                                                </div>
+                                            </div>
+                                        </Card>
                                     )}
                                 </div>
-                            </Card>
+                            </div>
                         </div>
                     </div>
 
@@ -850,85 +819,6 @@ export default function ManagerRequestDetailPage() {
                                     </div>
                                 )}
                             </Card>
-                        </div>
-                        <div className="lg:col-span-1">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    {/* <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-3">
-                                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary flex items-center gap-2 m-0">
-                                                        <FileTextOutlined />
-                                                        Mô tả yêu cầu
-                                                    </h3>
-                                                </div>
-                                            </div>
-                                            <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
-                                                {orderDetail.description || "Không có mô tả"}
-                                            </div>
-                                        </div>
-                                    </Card> */}
-
-                                    {orderDetail.consultant_note && (
-                                        <Card className="mt-4 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 flex items-center gap-2 m-0">
-                                                            <FileTextOutlined className="text-blue-500" />
-                                                            Ghi chú của tư vấn viên
-                                                        </h3>
-                                                    </div>
-                                                </div>
-                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
-                                                    {orderDetail.consultant_note}
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    )}
-
-                                    {orderDetail.process_status === 'Processing' && (
-                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
-                                                            <EditOutlined className="text-green-500" />
-                                                            Lời nhắn cho tư vấn viên
-                                                        </h3>
-                                                    </div>
-                                                </div>
-                                                <TextArea
-                                                    rows={2}
-                                                    placeholder="Nhập ghi chú cho tư vấn viên khi duyệt yêu cầu..."
-                                                    className="w-full text-sm rounded-lg border-green-200 focus:border-green-400 focus:ring-green-400"
-                                                    value={managerNote}
-                                                    onChange={(e) => setManagerNote(e.target.value)}
-                                                />
-                                            </div>
-                                        </Card>
-                                    )}
-
-                                    {orderDetail.process_status !== 'Processing' && orderDetail.note && (
-                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
-                                                            <FileTextOutlined className="text-green-500" />
-                                                            Ghi chú của Manager
-                                                        </h3>
-                                                    </div>
-                                                </div>
-                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-green-200 rounded-lg p-3 whitespace-pre-wrap">
-                                                    {orderDetail.note}
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    )}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
