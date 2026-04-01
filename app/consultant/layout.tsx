@@ -17,6 +17,23 @@ export default function LayoutManager({
     name: "Tư vấn viên",
     role: "Consultant",
   };
+  const handleNavigate = (id: number, status?: string | null) => {
+  if (!status) return;
+
+  switch (status) {
+    case "Pending":
+      router.push(`/consultant?orderId=${id}&mode=negotiate`);
+      break;
+    case "Verified":
+      router.push(`/consultant/consultant/request-detail/${id}`);
+      break;
+    case "Declined":
+      router.push(`/consultant?$orderId=${id}&mode=negotiate`);
+      break;
+    default:
+      router.push(`/consultant/${id}`);
+  }
+};
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -43,6 +60,7 @@ export default function LayoutManager({
         <RoleHeader
           userInfo={userInfo}
           onLogout={handleLogout}
+          onNavigateToRequest={handleNavigate}
         />
         <main className="flex-1">
           {/* Content */}

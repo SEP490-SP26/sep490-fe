@@ -153,21 +153,45 @@ const request = async <Response>(
   });
   // Xử lý lỗi 401 tự động logout + redirect
   axiosInstance.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error instanceof AxiosError && error.response) {
-        if (error.response.status === 401) {
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            deleteCookie("token");
-            window.location.href = "/login";
-          }
+  (response) => response,
+  (error) => {
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status;
+
+      if (status === 401 && typeof window !== "undefined") {
+        const pathname = window.location.pathname;
+
+        // ❌ KHÔNG redirect nếu đang ở login page
+        const isAuthPage =
+          pathname === "/login" || pathname === "/management-login";
+
+        if (!isAuthPage) {
+          // 🔥 phân biệt context
+          const isManagement =
+            pathname.startsWith("/admin") ||
+            pathname.startsWith("/manager") ||
+            pathname.startsWith("/consultant") ||
+            pathname.startsWith("/staff") ||
+            pathname.startsWith("/warehouse") ||
+            pathname.startsWith("/productions-manager") ||
+            pathname.startsWith("/materials-manager") ||
+            pathname.startsWith("/designer");
+
+          // clear auth
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          deleteCookie("token");
+
+          window.location.href = isManagement
+            ? "/management-login"
+            : "/login";
         }
       }
-      return Promise.reject(error);
     }
-  );
+
+    return Promise.reject(error);
+  }
+);
 
   const axiosConfig = {
     method,
