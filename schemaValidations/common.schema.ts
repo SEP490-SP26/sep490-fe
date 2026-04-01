@@ -89,6 +89,7 @@ export interface UpdateRequestBody {
   delivery_date: string;      // ISO Date string
   processing_status: string;
   description: string;
+  delivery_date_change_reason?: string;
 
   // Thông tin sản phẩm
   product_name: string;

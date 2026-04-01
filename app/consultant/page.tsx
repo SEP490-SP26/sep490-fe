@@ -139,6 +139,8 @@ function ConsultantForm() {
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   const [managerNote, setManagerNote] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [requestDate, setRequestDate] = useState<string | undefined>(undefined);
+  const [initialDeliveryDate, setInitialDeliveryDate] = useState<string | undefined>(undefined);
 
   const [estimate, setEstimate] = useState<{
     baseCost: number;
@@ -620,6 +622,8 @@ function ConsultantForm() {
         if (orderData) {
           setOrderStatus(orderData.process_status || null);
           setManagerNote(orderData.reason || orderData.note || orderData.manager_note || null);
+          setRequestDate(orderData.request_date);
+          setInitialDeliveryDate(orderData.delevery_date || orderData.delivery_date);
 
           // Pick top 2 LATEST active estimates (or historical if none active), 
           // then sort ASC for stable labeling (Manager-style)
@@ -1539,9 +1543,15 @@ function ConsultantForm() {
           message.success("Đã gửi báo giá (Kiểm tra lại nếu không thấy mail)");
         }
       } else {
+        let finalConsultantNote = primaryQuote.consultant_note || "";
+        const dateChangeReason = form.getFieldValue("date_change_reason");
+        if (dateChangeReason) {
+          finalConsultantNote = `${finalConsultantNote}\nLí do thay đổi ngày giao hàng: ${dateChangeReason}`.trim();
+        }
+
         await requestOrderApi.submitEstimateForApproval({
           request_id: parseInt(currentOrderId),
-          consultant_note: primaryQuote.consultant_note,
+          consultant_note: finalConsultantNote,
         });
         // await axios.put("https://localhost:7109/api/Requests/submit-estimate-for-approval",{
         //    request_id: parseInt(currentOrderId),
@@ -1776,6 +1786,8 @@ function ConsultantForm() {
                     handleFormValuesChange={handleFormValuesChange}
                     onConfirmCreate={handleCreateCustomerInfo}
                     loading={loading}
+                    requestDate={requestDate}
+                    initialDeliveryDate={initialDeliveryDate}
                   />
 
                   <Divider titlePlacement="left" className="!my-3">

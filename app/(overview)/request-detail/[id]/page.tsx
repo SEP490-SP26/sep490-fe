@@ -630,7 +630,7 @@ export default function RequestDetailPage() {
                                 </div>
                               )}
 
-                              {requestDetail.number_of_plates !== undefined && requestDetail.number_of_plates !== null && (
+                              {requestDetail.number_of_plates !== undefined && requestDetail.number_of_plates !== null && requestDetail.number_of_plates !== 0 && (
                                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                                   <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
                                   <Text className="text-slate-800 font-bold text-sm">{requestDetail.number_of_plates}</Text>
