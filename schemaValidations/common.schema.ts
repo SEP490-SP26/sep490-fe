@@ -124,6 +124,7 @@ export interface UpdateRequestBody {
 
   // Quy trình sản xuất (có thể là chuỗi JSON hoặc danh sách các bước)
   production_processes: string;
+  ink_type_names?: string[];
 }
 
 export interface UploadResponse {
@@ -167,6 +168,7 @@ export interface EstimatePaperRequest {
   form_product?: string;
   number_of_plates?: number;
   production_processes?: string;
+  ink_type_names?: string[];
   coating_type?: string;
   wave_type?: string;
 }
@@ -199,6 +201,7 @@ export interface EstimateCostRequest {
   product_type?: string;
   form_product?: string;
   production_processes?: string;
+  ink_type_names?: string[];
   coating_type?: string;
   discount_percent?: number;
   wave_type?: string;
@@ -485,6 +488,7 @@ export interface RequestDetailResponse {
 
   // Quy trình sản xuất & Thiết kế
   production_processes: string; // VD: "RALO,PHU,BOI,BE,DAN,CAN_MANG"
+  ink_type_names?: string[];
   design_file_path: string;
   is_send_design: boolean;
 

@@ -23,6 +23,7 @@ export interface DetailedEstimate {
   wave_alternative?: string;
   alternative_material_reason?: string;
   production_processes: string;
+  ink_type_names?: string[];
   cost_note: string;
 
   // Định mức tiêu hao kỹ thuật
@@ -75,6 +76,7 @@ export interface RequestDetailResponse {
   // Trạng thái & Lý do
   process_status: 'Rejected' | 'Declined' | string;
   reason: string; // VD: "Từ chối deal do quá hạn 24h"
+  delivery_date_change_reason?: string;
 
   // Thông tin sản phẩm & Quy cách
   product_name: string;
@@ -90,6 +92,7 @@ export interface RequestDetailResponse {
   // Thông số kỹ thuật chung
   number_of_plates: number;
   production_processes: string;
+  ink_type_names?: string[];
   coating_type: string;
   paper_code: string;
   paper_name: string;

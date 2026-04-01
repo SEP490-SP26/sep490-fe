@@ -133,6 +133,7 @@ function ConsultantForm() {
   const [loadingProcessTypes, setLoadingProcessTypes] = useState(false);
   const [songTypes, setSongTypes] = useState<Material[]>([]);
   const [glueTypes, setGlueTypes] = useState<Material[]>([]);
+  const [inkMaterials, setInkMaterials] = useState<Material[]>([]);
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
   const [fileList, setFileList] = useState<any[]>([]);
@@ -266,6 +267,7 @@ function ConsultantForm() {
     "production_processes",
     "coating_type",
     "wave_type",
+    "ink_type_names",
   ];
 
   const handleTabEdit = (
@@ -494,6 +496,10 @@ function ConsultantForm() {
           // 3. Filter Glue Types (type: KEO)
           const glues = allMaterials.filter((m: any) => m.type === "Keo phủ");
           setGlueTypes(glues);
+
+          // 4. Filter Ink Types (type: MỨC)
+          const inks = allMaterials.filter((m: any) => m.type === "Mực");
+          setInkMaterials(inks);
         }
       } catch (error) {
         console.error("Error fetching materials:", error);
@@ -668,6 +674,7 @@ function ConsultantForm() {
                   ? est.process_cost.map((pc: any) => (pc.process_code || "").trim())
                   : (orderData.production_processes ? orderData.production_processes.split(",").map((s: string) => s.trim()) : []),
                 consultant_note: orderData.consultant_note || "",
+                ink_type_names: est.ink_type_names || orderData.ink_type_names || [],
               };
 
               return {
@@ -766,6 +773,7 @@ function ConsultantForm() {
               ...(orderData.paper_code && { paper_code: orderData.paper_code }),
               ...(orderData.paper_name && { paper_name: orderData.paper_name }),
               ...(orderData.production_processes && { production_processes: orderData.production_processes.split(",").map((s: string) => s.trim()) }),
+              ...(orderData.ink_type_names && { ink_type_names: orderData.ink_type_names }),
               consultant_note: orderData.consultant_note || "",
             });
 
@@ -1023,6 +1031,7 @@ function ConsultantForm() {
         coating_type: (Array.isArray(production_processes) ? production_processes.includes("PHU") : (production_processes || "").includes("PHU")) ? (coating_type || "NONE") : "NONE",
         design_file_path: explicitConfig?.designFilePath !== undefined ? explicitConfig.designFilePath : designFilePath,
         is_send_design: explicitConfig?.isSendDesign !== undefined ? explicitConfig.isSendDesign : isSendDesign,
+        ink_type_names: values.ink_type_names || [],
 
         sheet_width_mm: selectedMaterial.sheet_width_mm || 0,
         sheet_length_mm: selectedMaterial.sheet_length_mm || 0,
@@ -1820,7 +1829,8 @@ function ConsultantForm() {
                             PROCESS_TYPE_LABELS={PROCESS_TYPE_LABELS}
                             songTypes={songTypes}
                             glueTypes={glueTypes}
-                            handleFormValuesChange={handleFormValuesChange}
+                            inkTypes={inkMaterials}
+                            handleFormValuesChange={handleCalculate}
                             form={form}
                             disabledSharedFields={activeTabKey !== "1"}
                             highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
