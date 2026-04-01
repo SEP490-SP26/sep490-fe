@@ -20,6 +20,7 @@ interface ProductSpecsSectionProps {
   PROCESS_TYPE_LABELS: Record<string, string>;
   songTypes: Material[];
   glueTypes: Material[];
+  inkTypes: Material[];
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   form: any;
   disabledSharedFields?: boolean;
@@ -52,6 +53,7 @@ export default function ProductSpecsSection({
   PROCESS_TYPE_LABELS,
   songTypes,
   glueTypes,
+  inkTypes,
   handleFormValuesChange,
   form,
   disabledSharedFields = false,
@@ -436,6 +438,30 @@ export default function ProductSpecsSection({
           </Form.Item>
         </Col>
 
+      </Row>
+
+      <Row gutter={16}>
+        <Col span={24}>
+          <Form.Item
+            name="ink_type_names"
+            // rules={[{ required: true, message: "Vui lòng chọn ít nhất một loại mực" }]}
+          >
+            <FloatingSelect
+              label="Loại mực (chọn nhiều)"
+              mode="multiple"
+              placeholder="Chọn loại mực..."
+              showSearch
+              optionFilterProp="label"
+              options={inkTypes.map((ink) => ({
+                label: ink.name,
+                value: ink.name,
+              }))}
+              disabled={isDeclined && !highlightFields['ink_type_names']}
+              className={highlightFields['ink_type_names'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+              allowClear
+            />
+          </Form.Item>
+        </Col>
       </Row>
 
       <Row gutter={16}>

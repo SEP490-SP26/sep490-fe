@@ -602,6 +602,7 @@ export type CalculateInput = {
     coating_type?: string | null;
     design_file_path?: string | null;
     is_send_design?: boolean;
+    ink_type_names?: string[];
 
     sheet_width_mm: number;
     sheet_length_mm: number;
@@ -647,6 +648,7 @@ export const calculateEstimateForSave = (input: CalculateInput) => {
         coating_type,
         design_file_path,
         is_send_design,
+        ink_type_names = [],
 
         sheet_width_mm,
         sheet_length_mm,

@@ -15,6 +15,7 @@ export interface QuoteField {
   sub_total: number;
   discount_percent: number;
   discount_amount: number;
+  ink_type_names?: string[];
 }
 
 export interface OrderDetailResponse {

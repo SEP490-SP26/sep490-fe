@@ -34,6 +34,7 @@ import {
   Empty,
   Image,
   Skeleton,
+  Space,
   Tag,
   Typography,
   Breadcrumb,
@@ -393,6 +394,16 @@ export default function OrderDetailPage() {
                         <div className="bg-slate-50 p-2 rounded border border-slate-100 text-sm md:col-span-2">
                           <span className="text-slate-500 block text-xs">Gia công</span>
                           <span className="font-medium text-slate-800">{order.quote_fields.production_process}</span>
+                        </div>
+                      )}
+                      {order.quote_fields.ink_type_names && order.quote_fields.ink_type_names.length > 0 && (
+                        <div className="bg-slate-50 p-2 rounded border border-slate-100 text-sm md:col-span-2">
+                          <span className="text-slate-500 block text-xs">Loại mực</span>
+                          <Space wrap size={[4, 4]}>
+                            {order.quote_fields.ink_type_names.map((ink, idx) => (
+                              <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2">{ink}</Tag>
+                            ))}
+                          </Space>
                         </div>
                       )}
                     </div>

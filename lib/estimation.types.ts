@@ -486,6 +486,7 @@ export interface DetailedProductionEstimation {
   ink_weight_kg: number;
   ink_rate_per_m2: number;
   print_sheets_used: number;    // Số tờ đi qua máy in (có thể khác paper_sheets_used)
+  ink_type_names: string[];
 
   // --- Công đoạn Phủ (Coating) ---
   coating_type: string;

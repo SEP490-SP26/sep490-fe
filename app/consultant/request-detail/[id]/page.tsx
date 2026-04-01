@@ -1,25 +1,29 @@
 "use client";
 
+import { estimatesApi, OrderRequestWithQuotes } from "@/apiRequests/estimates";
+import { materialsApi } from "@/apiRequests/materials";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
+import { Material } from "@/lib/estimation.types";
 import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { RequestDetailResponse } from "@/lib/request.types";
 import {
+    CheckCircleOutlined,
     DollarOutlined,
     DownloadOutlined,
     EditOutlined,
     FileImageOutlined,
     FileTextOutlined,
+    PrinterOutlined,
     SendOutlined,
     ShoppingOutlined,
     UploadOutlined,
-    UserOutlined,
-    PrinterOutlined,
-    CheckCircleOutlined
+    UserOutlined
 } from "@ant-design/icons";
 import {
     Button,
     Card,
+    Checkbox,
     Collapse,
     Descriptions,
     Divider,
@@ -29,18 +33,15 @@ import {
     message,
     Modal,
     Popconfirm,
+    Select,
     Skeleton,
+    Space,
+    Steps,
+    Spin,
     Tag,
     Typography,
-    Upload,
-    Row,
-    Col,
-    Space,
-    Select
+    Upload
 } from "antd";
-import { estimatesApi, OrderRequestWithQuotes, QuoteOption } from "@/apiRequests/estimates";
-import { materialsApi } from "@/apiRequests/materials";
-import { Material } from "@/lib/estimation.types";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -72,6 +73,7 @@ export default function ConsultantRequestDetailPage() {
     const [sendingMessage, setSendingMessage] = useState(false);
     const [uploadingPrint, setUploadingPrint] = useState(false);
     const [confirmingLayout, setConfirmingLayout] = useState(false);
+    const [isContractCommitted, setIsContractCommitted] = useState(false);
 
     const [alternativeModalOpen, setAlternativeModalOpen] = useState(false);
     const [submittingAlternative, setSubmittingAlternative] = useState(false);
@@ -81,9 +83,18 @@ export default function ConsultantRequestDetailPage() {
 
     const handleOpenAlternativeModal = (estimate: any) => {
         setSelectedEstimateForMaterial(estimate);
+
+        // Split combined reason if possible
+        const reason = estimate.alternative_material_reason || '';
+        const parts = reason.split('; ');
+        const paperReason = parts.find((p: string) => p.startsWith('Giấy: '))?.replace('Giấy: ', '') || '';
+        const waveReason = parts.find((p: string) => p.startsWith('Sóng: '))?.replace('Sóng: ', '') || '';
+
         alternativeForm.setFieldsValue({
             paper_alternative: estimate.paper_alternative || '',
-            wave_alternative: estimate.wave_alternative || ''
+            paper_alternative_reason: paperReason,
+            wave_alternative: estimate.wave_alternative || '',
+            wave_alternative_reason: waveReason
         });
         setAlternativeModalOpen(true);
     };
@@ -91,12 +102,18 @@ export default function ConsultantRequestDetailPage() {
     const handleAlternativeSubmit = async (values: any) => {
         if (!selectedEstimateForMaterial) return;
         setSubmittingAlternative(true);
+        const combinedReason = [
+            values.paper_alternative_reason ? `Giấy: ${values.paper_alternative_reason}` : '',
+            values.wave_alternative_reason ? `Sóng: ${values.wave_alternative_reason}` : ''
+        ].filter(Boolean).join('; ');
+
         try {
             await estimatesApi.alternativeMaterials({
                 request_id: Number(requestId),
                 estimate_id: selectedEstimateForMaterial.estimate_id,
                 paper_alternative: values.paper_alternative || '',
-                wave_alternative: values.wave_alternative || ''
+                wave_alternative: values.wave_alternative || '',
+                alternative_material_reason: combinedReason
             });
             message.success("Cập nhật vật liệu thay thế thành công!");
             setAlternativeModalOpen(false);
@@ -131,7 +148,7 @@ export default function ConsultantRequestDetailPage() {
 
     useEffect(() => {
         fetchOrderDetail();
-        
+
         // Fetch materials
         materialsApi.getAll().then(res => {
             const data = (res as any).data || res;
@@ -163,6 +180,7 @@ export default function ConsultantRequestDetailPage() {
                 const data = (response as any).data || response;
                 if (data && data.quotes && data.quotes.length > 0) {
                     setPreviewData(data);
+                    setIsContractCommitted(false); // Reset before opening
                     setIsPreviewModalOpen(true);
                 } else {
                     message.warning("Không tìm thấy thông tin báo giá để xem trước.");
@@ -311,6 +329,7 @@ export default function ConsultantRequestDetailPage() {
 
     return (
         <div className="min-h-screen pb-8 bg-primary">
+            <Spin spinning={uploadingContract} fullscreen tip="Đang tải lên hợp đồng..." />
             <div className="max-w-7xl mx-auto px-2 pt-2 animate-fade-in-up">
                 {/* Header - Compact */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-4">
@@ -458,14 +477,27 @@ export default function ConsultantRequestDetailPage() {
                                         <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm || 0} x {orderDetail.product_width_mm || 0} x {orderDetail.product_height_mm || 0} mm</Text></Descriptions.Item>
                                         <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
                                         <Descriptions.Item label="Dự kiến" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
+                                        {orderDetail.delivery_date_change_reason && (
+                                            <Descriptions.Item label="Lý do đổi ngày" span={2}>
+                                                <Text strong className="text-amber-600 italic">{orderDetail.delivery_date_change_reason}</Text>
+                                            </Descriptions.Item>
+                                        )}
                                         {orderDetail.product_name && <Descriptions.Item label="Kiểu hộp" span={1}><Text strong className="text-slate-800">{orderDetail.product_name}</Text></Descriptions.Item>}
                                         {orderDetail.paper_name && <Descriptions.Item label="Loại giấy" span={1}><Text strong className="text-slate-800">{orderDetail.paper_name}</Text></Descriptions.Item>}
                                         {orderDetail.paper_alternative && <Descriptions.Item label="Giấy thay thế" span={1}><Text strong className="text-amber-600">{orderDetail.paper_alternative}</Text></Descriptions.Item>}
                                         {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && <Descriptions.Item label="Loại phủ" span={1}><Text strong className="text-slate-800">{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>}
                                         {orderDetail.wave_type && orderDetail.wave_type !== "NONE" && <Descriptions.Item label="Kiểu sóng" span={1}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item>}
-                                        {orderDetail.wave_alternative && <Descriptions.Item label="Sóng thay thế" span={1}><Text strong className="text-amber-600">{orderDetail.wave_alternative}</Text></Descriptions.Item>}
+                                        {orderDetail.wave_alternative && <Descriptions.Item label="Sóng thay thế" span={1}><Tag color="amber" className="text-amber-600 m-0 border-0 rounded px-2">{orderDetail.wave_alternative}</Tag></Descriptions.Item>}
                                         {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
-                                        {/* {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>} */}
+                                        {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
+                                            <Descriptions.Item label="Loại mực" span={2}>
+                                                <Space wrap size={[4, 4]}>
+                                                    {orderDetail.ink_type_names.map((ink, idx) => (
+                                                        <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2">{ink}</Tag>
+                                                    ))}
+                                                </Space>
+                                            </Descriptions.Item>
+                                         )}
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
@@ -553,7 +585,7 @@ export default function ConsultantRequestDetailPage() {
                                                     <div>
                                                         <div className="font-medium text-sm">File in (Bản in)</div>
                                                         <div className="text-xs text-gray-500">
-                                                            {orderDetail.file_url ? "Đã sẵn sàng" : "Chưa tải lên"}
+                                                            {orderDetail.file_url ? "Đã sẵn sàng" : ""}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -673,10 +705,17 @@ export default function ConsultantRequestDetailPage() {
                                                         <span className="font-medium text-slate-800 text-sm">{estimate.paper_name || "Chưa xác định"}</span>
                                                     </div>
                                                     {estimate.paper_alternative && (
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <span className="text-slate-500 text-sm">Giấy thay thế:</span>
-                                                            <span className="font-medium text-amber-600 text-sm">{estimate.paper_alternative}</span>
-                                                        </div>
+                                                        <>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-500 text-sm">Giấy thay thế:</span>
+                                                                <span className="font-medium text-amber-600 text-sm">{estimate.paper_alternative}</span>
+                                                            </div>
+                                                            {estimate.alternative_material_reason && estimate.alternative_material_reason.includes('Giấy:') && (
+                                                                <div className="mb-2 text-xs text-slate-400 italic">
+                                                                    Lý do: {estimate.alternative_material_reason.split('; ').find(p => p.startsWith('Giấy:'))?.replace('Giấy: ', '')}
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                     {estimate.wave_type && estimate.wave_type !== "NONE" && (
                                                         <div className="flex justify-between items-center mb-2">
@@ -685,23 +724,39 @@ export default function ConsultantRequestDetailPage() {
                                                         </div>
                                                     )}
                                                     {estimate.wave_alternative && (
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <span className="text-slate-500 text-sm">Sóng thay thế:</span>
-                                                            <span className="font-medium text-amber-600 text-sm">{estimate.wave_alternative}</span>
-                                                        </div>
+                                                        <>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-slate-500 text-sm">Sóng thay thế:</span>
+                                                                <span className="font-medium text-amber-600 text-sm">{estimate.wave_alternative}</span>
+                                                            </div>
+                                                            {estimate.alternative_material_reason && estimate.alternative_material_reason.includes('Sóng:') && (
+                                                                <div className="mb-2 text-xs text-slate-400 italic">
+                                                                    Lý do: {estimate.alternative_material_reason.split('; ').find(p => p.startsWith('Sóng:'))?.replace('Sóng: ', '')}
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Loại phủ:</span>
                                                         <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
                                                     </div>
-                                                    {/* <div className="flex justify-between items-center mb-2">
-                                                        <span className="text-slate-500 text-sm">Ngày hoàn thành dự kiến:</span>
-                                                        <span className="font-medium text-slate-800 text-sm">{orderDetail.estimate_finish_date ? dayjs(orderDetail.estimate_finish_date).format('DD/MM/YYYY') : "---"}</span>
-                                                    </div> */}
+                                                    
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Đặt cọc:</span>
                                                         <span className="font-semibold text-accent-dark">{formatCurrency(estimate.deposit_amount)}</span>
                                                     </div>
+                                                    
+                                                    {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
+                                                         <div className="flex justify-between items-start mb-2">
+                                                             <span className="text-slate-500 text-sm">Loại mực:</span>
+                                                             <Space wrap size={[4, 4]} style={{ justifyContent: 'flex-end', maxWidth: '70%' }}>
+                                                                 {estimate.ink_type_names.map((ink: string, idx: number) => (
+                                                                     <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2 text-xs">{ink}</Tag>
+                                                                 ))}
+                                                             </Space>
+                                                         </div>
+                                                     )}
+
                                                     <div className="flex justify-between items-center mb-3">
                                                         <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
                                                         <span className="font-bold text-lg text-accent-dark">{formatCurrency(estimate.final_total_cost)}</span>
@@ -739,7 +794,6 @@ export default function ConsultantRequestDetailPage() {
                                                                 <Button
                                                                     size="small"
                                                                     icon={<UploadOutlined />}
-                                                                    loading={uploadingContract}
                                                                 >
                                                                     {estimate.consultant_contract_path ? "Đổi file" : "Tải lên"}
                                                                 </Button>
@@ -971,7 +1025,7 @@ export default function ConsultantRequestDetailPage() {
 
                 {/* Alternative Materials Modal */}
                 <Modal
-                    title={<span className="font-bold text-lg"><EditOutlined className="mr-2 text-amber-600"/>Thay đổi vật tư</span>}
+                    title={<span className="font-bold text-lg"><EditOutlined className="mr-2 text-amber-600" />Thay đổi vật tư</span>}
                     open={alternativeModalOpen}
                     onCancel={() => setAlternativeModalOpen(false)}
                     footer={null}
@@ -989,16 +1043,32 @@ export default function ConsultantRequestDetailPage() {
                             label={<span className="font-medium text-slate-700">Giấy thay thế (tên giấy)</span>}
                             help="Chọn giấy để thay thế cho loại giấy cũ, để trống nếu không đổi"
                         >
-                            <Select 
-                                placeholder="Chọn giấy thay thế..." 
-                                className="rounded-lg" 
+                            <Select
+                                placeholder="Chọn giấy thay thế..."
+                                className="rounded-lg"
                                 showSearch
                                 allowClear
                                 filterOption={(input, option) =>
                                     (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
                                 }
-                                options={paperOptions} 
+                                options={paperOptions}
                             />
+                        </Form.Item>
+
+                        <Form.Item
+                            noStyle
+                            shouldUpdate={(prevValues, currentValues) => prevValues.paper_alternative !== currentValues.paper_alternative}
+                        >
+                            {({ getFieldValue }) => getFieldValue('paper_alternative') ? (
+                                <Form.Item
+                                    name="paper_alternative_reason"
+                                    label={<span className="font-medium text-slate-700 italic">Lý do thay đổi giấy</span>}
+                                    rules={[{ required: true, message: 'Vui lòng nhập lý do thay đổi loại giấy' }]}
+                                    className="ml-4 border-l-2 border-amber-100 pl-4"
+                                >
+                                    <Input.TextArea placeholder="Nhập lý do..." rows={2} className="rounded-lg" />
+                                </Form.Item>
+                            ) : null}
                         </Form.Item>
 
                         <Form.Item
@@ -1006,16 +1076,32 @@ export default function ConsultantRequestDetailPage() {
                             label={<span className="font-medium text-slate-700">Sóng thay thế</span>}
                             help="Chọn loại sóng để thay thế cho sóng cũ, để trống nếu không đổi"
                         >
-                            <Select 
-                                placeholder="Chọn sóng thay thế..." 
-                                className="rounded-lg" 
+                            <Select
+                                placeholder="Chọn sóng thay thế..."
+                                className="rounded-lg"
                                 showSearch
                                 allowClear
                                 filterOption={(input, option) =>
                                     (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
                                 }
-                                options={waveOptions} 
+                                options={waveOptions}
                             />
+                        </Form.Item>
+
+                        <Form.Item
+                            noStyle
+                            shouldUpdate={(prevValues, currentValues) => prevValues.wave_alternative !== currentValues.wave_alternative}
+                        >
+                            {({ getFieldValue }) => getFieldValue('wave_alternative') ? (
+                                <Form.Item
+                                    name="wave_alternative_reason"
+                                    label={<span className="font-medium text-slate-700 italic">Lý do thay đổi sóng</span>}
+                                    rules={[{ required: true, message: 'Vui lòng nhập lý do thay đổi loại sóng' }]}
+                                    className="ml-4 border-l-2 border-amber-100 pl-4"
+                                >
+                                    <Input.TextArea placeholder="Nhập lý do..." rows={2} className="rounded-lg" />
+                                </Form.Item>
+                            ) : null}
                         </Form.Item>
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
@@ -1051,13 +1137,26 @@ export default function ConsultantRequestDetailPage() {
                                 <Button
                                     type="primary"
                                     icon={<SendOutlined />}
-                                    className="bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg"
+                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${!isContractCommitted ? 'opacity-50 grayscale' : ''}`}
                                     loading={sending}
+                                    disabled={!isContractCommitted}
                                     onClick={handleSendQuote}
                                 >
                                     Xác nhận và Gửi cho khách
                                 </Button>
                             </div>
+                        </div>
+
+                        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+                            <Checkbox 
+                                checked={isContractCommitted} 
+                                onChange={(e) => setIsContractCommitted(e.target.checked)}
+                                className="text-amber-800 font-medium"
+                            >
+                                <span className="text-sm">
+                                    Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
+                                </span>
+                            </Checkbox>
                         </div>
 
                         {customerMessage.trim() && (
@@ -1178,7 +1277,7 @@ export default function ConsultantRequestDetailPage() {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        
+
                                                         {(quote.consultant_contract_path || quote.customer_signed_contract_path) && (
                                                             <div className="mt-4">
                                                                 <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-indigo-500 text-indigo-600 tracking-wide">

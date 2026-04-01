@@ -11,10 +11,12 @@ interface CustomerInfoSectionProps {
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   onConfirmCreate?: (values: any) => void;
   loading?: boolean;
+  requestDate?: string;
+  initialDeliveryDate?: string;
 }
 
 const disabledDate: RangePickerProps["disabledDate"] = (current) => {
-  return (current && current < dayjs().endOf("day")) || isVietnamHoliday(current);
+  return (current && current < dayjs().add(7, "day").startOf("day")) || isVietnamHoliday(current);
 };
 
 export default function CustomerInfoSection({
@@ -23,8 +25,12 @@ export default function CustomerInfoSection({
   handleFormValuesChange,
   onConfirmCreate,
   loading,
+  requestDate,
+  initialDeliveryDate,
 }: CustomerInfoSectionProps) {
 
+  const deliveryDate = form.getFieldValue("delivery_date");
+  const isDateChanged = initialDeliveryDate && deliveryDate && !dayjs(deliveryDate).isSame(dayjs(initialDeliveryDate), 'day');
 
   return (
     <div
@@ -67,6 +73,7 @@ export default function CustomerInfoSection({
             />
           </Form.Item>
         </Col>
+        
         <Col span={18}>
           <Form.Item name="detail_address" className="mb-2">
             <FloatingInputAntd
@@ -78,33 +85,10 @@ export default function CustomerInfoSection({
         </Col>
         <Col span={6}>
           {!orderId ? (
-            <div className="mb-2">
-              <Button
-                type="primary"
-                htmlType="button"
-                className="w-full h-10"
-                onClick={async () => {
-                  try {
-                    const values = await form.validateFields([
-                      "customer_name",
-                      "customer_phone",
-                      "customer_email",
-                      "detail_address"
-                    ]);
-                    onConfirmCreate?.(values);
-                  } catch (e) {
-                    // validation failed
-                  }
-                }}
-                loading={loading}
-              >
-                Xác nhận
-              </Button>
-            </div>
-          ) : (
+            // Create Mode: Delivery Date here
             <Form.Item
               name="delivery_date"
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "Vui lòng chọn ngày giao" }]}
               className="mb-2"
             >
               <FloatingDatePicker
@@ -124,9 +108,64 @@ export default function CustomerInfoSection({
                 }}
               />
             </Form.Item>
+          ) : (
+            // Negotiate Mode: Request Date here (disabled)
+            <div className="mb-2">
+               <FloatingDatePicker 
+                label="Ngày yêu cầu"
+                value={requestDate ? dayjs(requestDate) : null}
+                disabled
+                format="DD-MM-YYYY"
+                className="w-full bg-gray-50 bg-opacity-50"
+              />
+            </div>
           )}
         </Col>
       </Row>
+
+      {orderId && (
+        <Row gutter={12}>
+          <Col span={6}>
+            <Form.Item
+              name="delivery_date"
+              rules={[{ required: true, message: "Vui lòng chọn ngày giao" }]}
+              className="mb-2"
+            >
+              <FloatingDatePicker
+                label="Ngày giao hàng"
+                className="w-full"
+                format="DD-MM-YYYY"
+                placeholder="Ngày giao hàng mong muốn"
+                disabledDate={disabledDate}
+                onChange={(date) => {
+                  form.setFieldValue("desiredDate", date);
+                  if (date) {
+                    handleFormValuesChange(
+                      { desiredDate: date },
+                      form.getFieldsValue()
+                    );
+                  }
+                }}
+              />
+            </Form.Item>
+          </Col>
+          {isDateChanged && (
+            <Col span={18}>
+              <Form.Item
+                name="date_change_reason"
+                rules={[{ required: true, message: "Vui lòng nhập lí do thay đổi ngày" }]}
+                className="mb-2 animate-fade-in"
+              >
+                <FloatingInputAntd
+                  label="Lí do thay đổi ngày"
+                  placeholder="Nhập lí do thay đổi ngày giao hàng..."
+                  className="bg-yellow-50/50"
+                />
+              </Form.Item>
+            </Col>
+          )}
+        </Row>
+      )}
     </div>
   );
 }
