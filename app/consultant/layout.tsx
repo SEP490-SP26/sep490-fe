@@ -25,7 +25,7 @@ export default function LayoutManager({
       router.push(`/consultant?orderId=${id}&mode=negotiate`);
       break;
     case "Verified":
-      router.push(`/consultant/consultant/request-detail/${id}`);
+      router.push(`/consultant/request-detail/${id}`);
       break;
     case "Declined":
       router.push(`/consultant?$orderId=${id}&mode=negotiate`);
