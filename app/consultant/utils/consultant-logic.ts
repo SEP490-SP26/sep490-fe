@@ -203,6 +203,7 @@ export const mapToOrderEstimationResult = (
     ink_cost: costEstimate.cost.ink_cost || 0,
     ink_weight_kg: costEstimate.cost.ink_weight_kg || 0,
     ink_rate_per_m2: costEstimate.cost.ink_rate_per_m2 || 0,
+    ink_type_names: additionalSpecs?.ink_type_names || [],
 
     // Coating
     coating_glue_cost: costEstimate.cost.coating_glue_cost || 0,
