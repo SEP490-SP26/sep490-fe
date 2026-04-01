@@ -87,6 +87,7 @@ interface OrderDetail {
   preliminary_estimated_price?: number;
   consultant_contract_path?: string;
   customer_signed_contract_path?: string;
+  delivery_date_change_reason?: string;
 }
 
 export default function RequestDetailPage() {
@@ -246,6 +247,7 @@ export default function RequestDetailPage() {
             preliminary_estimated_price: (orderData as any).preliminary_estimated_price,
             consultant_contract_path: orderData.consultant_contract_path,
             customer_signed_contract_path: orderData.customer_signed_contract_path,
+            delivery_date_change_reason: orderData.delivery_date_change_reason,
           });
         }
       } catch (error) {
@@ -573,6 +575,11 @@ export default function RequestDetailPage() {
                       <div>
                         {/* <Text className="text-slate-400 text-xs uppercase font-bold tracking-wider block mb-1">Giao hàng</Text> */}
                         <div className="text-lg font-bold text-slate-800">Giao hàng: {dayjs(requestDetail.delivery_date).format("DD/MM/YYYY")}</div>
+                        {requestDetail.delivery_date_change_reason && (
+                          <div className="mt-1 text-sm text-amber-600 italic font-medium italic">
+                            Lý do đổi ngày: {requestDetail.delivery_date_change_reason}
+                          </div>
+                        )}
                       </div>
                       {/* </div> */}
                     </div>

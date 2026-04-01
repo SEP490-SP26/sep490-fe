@@ -44,7 +44,7 @@ export default function RequestDetailPage() {
   const [fullRequestDetail, setFullRequestDetail] = useState<any>(null);
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [hasUploadedContract, setHasUploadedContract] = useState(false);
-  const [isWarningModalVisible, setIsWarningModalVisible] = useState(false);
+
 
   useEffect(() => {
     const fetchFullDetail = async () => {
@@ -97,7 +97,7 @@ export default function RequestDetailPage() {
     if (!selectedQuote) return;
 
     setIsConfirmModalVisible(false);
-    setIsWarningModalVisible(false);
+
     setIsPaymentModalVisible(true);
     setLoadingQR(true);
     setPaymentInfo(null);
@@ -113,7 +113,6 @@ export default function RequestDetailPage() {
       setIsPaymentModalVisible(false);
     } finally {
       setLoadingQR(false);
-      setIsWarningModalVisible(false);
     }
   };
 
@@ -388,7 +387,7 @@ export default function RequestDetailPage() {
             type="primary"
             disabled={!hasUploadedContract}
             className={`rounded-lg ${!hasUploadedContract ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
-            onClick={() => setIsWarningModalVisible(true)}
+            onClick={proceedToPayment}
           >
             Xác nhận & Thanh toán
           </Button>
@@ -534,6 +533,11 @@ export default function RequestDetailPage() {
                 </span>
               </div>
             </div>
+
+            <p className="m-0 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+              <InfoCircleOutlined className="mr-1" />
+              Lưu ý: Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc các báo giá lựa chọn khác sẽ bị hủy.
+            </p>
           </div>
         </div>
       </Modal>
@@ -618,41 +622,7 @@ export default function RequestDetailPage() {
         )}
       </Modal>
 
-      {/* Warning Payment Modal */}
-      <Modal
-        title={<span className="font-bold text-slate-800 flex items-center gap-2"><InfoCircleOutlined className="text-amber-500" /> Xác nhận thanh toán</span>}
-        open={isWarningModalVisible}
-        onCancel={() => setIsWarningModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setIsWarningModalVisible(false)} className="rounded-lg">
-            Hủy
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            onClick={proceedToPayment}
-            className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-lg font-medium"
-          >
-            Xác nhận
-          </Button>
-        ]}
-        width={450}
-        centered
-        zIndex={1010}
-      >
-        <div className="py-2 text-slate-600 space-y-3">
-          <p className="m-0">
-            Bạn đã chọn <strong className="text-slate-800">Báo giá {selectedQuote?.quote_id}</strong>.
-          </p>
-          <p className="m-0">
-            Mọi thanh toán sau này sẽ dựa trên <strong className="text-slate-800">Báo giá {selectedQuote?.quote_id}</strong>. Bạn có xác nhận không?
-          </p>
-          <p className="m-0 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm mt-4">
-            <InfoCircleOutlined className="mr-1" />
-            Lưu ý: Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc các báo giá lựa chọn khác sẽ bị hủy.
-          </p>
-        </div>
-      </Modal>
+
     </div>
   );
 }

@@ -1,25 +1,29 @@
 "use client";
 
+import { estimatesApi, OrderRequestWithQuotes } from "@/apiRequests/estimates";
+import { materialsApi } from "@/apiRequests/materials";
 import { requestOrderApi } from "@/apiRequests/request";
 import { uploadApi } from "@/apiRequests/uploads";
+import { Material } from "@/lib/estimation.types";
 import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { RequestDetailResponse } from "@/lib/request.types";
 import {
+    CheckCircleOutlined,
     DollarOutlined,
     DownloadOutlined,
     EditOutlined,
     FileImageOutlined,
     FileTextOutlined,
+    PrinterOutlined,
     SendOutlined,
     ShoppingOutlined,
     UploadOutlined,
-    UserOutlined,
-    PrinterOutlined,
-    CheckCircleOutlined
+    UserOutlined
 } from "@ant-design/icons";
 import {
     Button,
     Card,
+    Checkbox,
     Collapse,
     Descriptions,
     Divider,
@@ -29,18 +33,14 @@ import {
     message,
     Modal,
     Popconfirm,
+    Select,
     Skeleton,
+    Space,
+    Spin,
     Tag,
     Typography,
-    Upload,
-    Row,
-    Col,
-    Space,
-    Select
+    Upload
 } from "antd";
-import { estimatesApi, OrderRequestWithQuotes, QuoteOption } from "@/apiRequests/estimates";
-import { materialsApi } from "@/apiRequests/materials";
-import { Material } from "@/lib/estimation.types";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -72,6 +72,7 @@ export default function ConsultantRequestDetailPage() {
     const [sendingMessage, setSendingMessage] = useState(false);
     const [uploadingPrint, setUploadingPrint] = useState(false);
     const [confirmingLayout, setConfirmingLayout] = useState(false);
+    const [isContractCommitted, setIsContractCommitted] = useState(false);
 
     const [alternativeModalOpen, setAlternativeModalOpen] = useState(false);
     const [submittingAlternative, setSubmittingAlternative] = useState(false);
@@ -81,7 +82,7 @@ export default function ConsultantRequestDetailPage() {
 
     const handleOpenAlternativeModal = (estimate: any) => {
         setSelectedEstimateForMaterial(estimate);
-        
+
         // Split combined reason if possible
         const reason = estimate.alternative_material_reason || '';
         const parts = reason.split('; ');
@@ -146,7 +147,7 @@ export default function ConsultantRequestDetailPage() {
 
     useEffect(() => {
         fetchOrderDetail();
-        
+
         // Fetch materials
         materialsApi.getAll().then(res => {
             const data = (res as any).data || res;
@@ -178,6 +179,7 @@ export default function ConsultantRequestDetailPage() {
                 const data = (response as any).data || response;
                 if (data && data.quotes && data.quotes.length > 0) {
                     setPreviewData(data);
+                    setIsContractCommitted(false); // Reset before opening
                     setIsPreviewModalOpen(true);
                 } else {
                     message.warning("Không tìm thấy thông tin báo giá để xem trước.");
@@ -326,6 +328,7 @@ export default function ConsultantRequestDetailPage() {
 
     return (
         <div className="min-h-screen pb-8 bg-primary">
+            <Spin spinning={uploadingContract} fullscreen tip="Đang tải lên hợp đồng..." />
             <div className="max-w-7xl mx-auto px-2 pt-2 animate-fade-in-up">
                 {/* Header - Compact */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-4">
@@ -473,6 +476,11 @@ export default function ConsultantRequestDetailPage() {
                                         <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm || 0} x {orderDetail.product_width_mm || 0} x {orderDetail.product_height_mm || 0} mm</Text></Descriptions.Item>
                                         <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
                                         <Descriptions.Item label="Dự kiến" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
+                                        {orderDetail.delivery_date_change_reason && (
+                                            <Descriptions.Item label="Lý do đổi ngày" span={2}>
+                                                <Text strong className="text-amber-600 italic">{orderDetail.delivery_date_change_reason}</Text>
+                                            </Descriptions.Item>
+                                        )}
                                         {orderDetail.product_name && <Descriptions.Item label="Kiểu hộp" span={1}><Text strong className="text-slate-800">{orderDetail.product_name}</Text></Descriptions.Item>}
                                         {orderDetail.paper_name && <Descriptions.Item label="Loại giấy" span={1}><Text strong className="text-slate-800">{orderDetail.paper_name}</Text></Descriptions.Item>}
                                         {orderDetail.paper_alternative && <Descriptions.Item label="Giấy thay thế" span={1}><Text strong className="text-amber-600">{orderDetail.paper_alternative}</Text></Descriptions.Item>}
@@ -568,7 +576,7 @@ export default function ConsultantRequestDetailPage() {
                                                     <div>
                                                         <div className="font-medium text-sm">File in (Bản in)</div>
                                                         <div className="text-xs text-gray-500">
-                                                            {orderDetail.file_url ? "Đã sẵn sàng" : "Chưa tải lên"}
+                                                            {orderDetail.file_url ? "Đã sẵn sàng" : ""}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -768,7 +776,6 @@ export default function ConsultantRequestDetailPage() {
                                                                 <Button
                                                                     size="small"
                                                                     icon={<UploadOutlined />}
-                                                                    loading={uploadingContract}
                                                                 >
                                                                     {estimate.consultant_contract_path ? "Đổi file" : "Tải lên"}
                                                                 </Button>
@@ -1000,7 +1007,7 @@ export default function ConsultantRequestDetailPage() {
 
                 {/* Alternative Materials Modal */}
                 <Modal
-                    title={<span className="font-bold text-lg"><EditOutlined className="mr-2 text-amber-600"/>Thay đổi vật tư</span>}
+                    title={<span className="font-bold text-lg"><EditOutlined className="mr-2 text-amber-600" />Thay đổi vật tư</span>}
                     open={alternativeModalOpen}
                     onCancel={() => setAlternativeModalOpen(false)}
                     footer={null}
@@ -1018,15 +1025,15 @@ export default function ConsultantRequestDetailPage() {
                             label={<span className="font-medium text-slate-700">Giấy thay thế (tên giấy)</span>}
                             help="Chọn giấy để thay thế cho loại giấy cũ, để trống nếu không đổi"
                         >
-                            <Select 
-                                placeholder="Chọn giấy thay thế..." 
-                                className="rounded-lg" 
+                            <Select
+                                placeholder="Chọn giấy thay thế..."
+                                className="rounded-lg"
                                 showSearch
                                 allowClear
                                 filterOption={(input, option) =>
                                     (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
                                 }
-                                options={paperOptions} 
+                                options={paperOptions}
                             />
                         </Form.Item>
 
@@ -1051,15 +1058,15 @@ export default function ConsultantRequestDetailPage() {
                             label={<span className="font-medium text-slate-700">Sóng thay thế</span>}
                             help="Chọn loại sóng để thay thế cho sóng cũ, để trống nếu không đổi"
                         >
-                            <Select 
-                                placeholder="Chọn sóng thay thế..." 
-                                className="rounded-lg" 
+                            <Select
+                                placeholder="Chọn sóng thay thế..."
+                                className="rounded-lg"
                                 showSearch
                                 allowClear
                                 filterOption={(input, option) =>
                                     (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
                                 }
-                                options={waveOptions} 
+                                options={waveOptions}
                             />
                         </Form.Item>
 
@@ -1112,13 +1119,26 @@ export default function ConsultantRequestDetailPage() {
                                 <Button
                                     type="primary"
                                     icon={<SendOutlined />}
-                                    className="bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg"
+                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${!isContractCommitted ? 'opacity-50 grayscale' : ''}`}
                                     loading={sending}
+                                    disabled={!isContractCommitted}
                                     onClick={handleSendQuote}
                                 >
                                     Xác nhận và Gửi cho khách
                                 </Button>
                             </div>
+                        </div>
+
+                        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+                            <Checkbox 
+                                checked={isContractCommitted} 
+                                onChange={(e) => setIsContractCommitted(e.target.checked)}
+                                className="text-amber-800 font-medium"
+                            >
+                                <span className="text-sm">
+                                    Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
+                                </span>
+                            </Checkbox>
                         </div>
 
                         {customerMessage.trim() && (
@@ -1239,7 +1259,7 @@ export default function ConsultantRequestDetailPage() {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        
+
                                                         {(quote.consultant_contract_path || quote.customer_signed_contract_path) && (
                                                             <div className="mt-4">
                                                                 <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-indigo-500 text-indigo-600 tracking-wide">
