@@ -121,8 +121,19 @@ export default function RequestDetailPage() {
         const data = (response as any).data || response;
 
         if (data && data.status === 'PAID') {
-          // message.success('Thanh toán thành công!');
-          router.push(`/request-detail/${requestId}`);
+          try {
+            await fetch(
+              `https://amms-juaa.onrender.com/api/Requests/notify-customer-pay?request_id=${requestId}`,
+              {
+                method: 'GET',
+              }
+            );
+
+            // message.success('Thanh toán thành công!');
+            router.push(`/request-detail/${requestId}`);
+          } catch (error) {
+            console.error('Call API notify failed:', error);
+          }
         }
       } catch (error) {
         // console.error("Error checking payment status:", error);
@@ -208,7 +219,7 @@ export default function RequestDetailPage() {
                         Lời nhắn từ tư vấn viên
                       </div>
                       <div className="text-slate-700 text-sm m-0 leading-relaxed italic bg-white/50 p-3 rounded-lg border border-blue-100">
-                        "{fullRequestDetail.consultant_note}"
+                        `{fullRequestDetail.consultant_note}`
                       </div>
                     </div>
                   )}

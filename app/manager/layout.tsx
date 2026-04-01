@@ -52,6 +52,18 @@ export default function LayoutManager({
     },
   ];
 
+    const handleNavigate = (id: number, status?: string | null) => {
+  if (!status) return;
+
+  switch (status) {
+    case "Processing":
+      router.push(`/manager/request-detail/${id}`);
+      break;
+    default:
+      break;
+  }
+};
+
   return (
     <div className="bg-gray-50">
       {/* Sidebar */}
@@ -98,6 +110,7 @@ export default function LayoutManager({
         <RoleHeader
           userInfo={userInfo}
           onLogout={handleLogout}
+          onNavigateToRequest={handleNavigate}
         />
         {/* Main content */}
         <main className="flex-1 p-6">

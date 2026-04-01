@@ -86,6 +86,16 @@ export default function Payment() {
       if (data.paid) {
         stopPolling();
         setStage('paid');
+        try {
+            await fetch(
+              `https://amms-juaa.onrender.com/api/Requests/notify-customer-pay?request_id=${ORDER_ID}`,
+              {
+                method: 'GET',
+              }
+            );
+          } catch (error) {
+            console.error('Call API notify failed:', error);
+          }
         setTimeout(() => {
     router.push(`/payment-success/${ORDER_ID}`)
   }, 2000)

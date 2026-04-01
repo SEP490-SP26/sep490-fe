@@ -22,7 +22,7 @@ import {
   BsScissors,
 } from "react-icons/bs";
 import { FiZap } from "react-icons/fi";
-import { getSignalRConnection } from "@/lib/signalr";
+import { getHubConnection } from "@/hooks/useNotifications";
 import { tasksApi } from "@/apiRequests/tasks";
 import Title from "antd/es/typography/Title";
 
@@ -139,51 +139,56 @@ export default function ProdutionManager() {
 
   useEffect(() => {
   let conn: any;
-
+ 
   const init = async () => {
-    conn = await getSignalRConnection();
-
+    conn = await getHubConnection(
+      process.env.NEXT_PUBLIC_SIGNALR_HUB_URL ?? "/hubs/realtime"
+    );
+ 
     conn.on("OrderUpdated", (data: any) => {
       console.log("🔥 ORDER UPDATED:", data);
-
-      queryClient.invalidateQueries({
-        queryKey: ["scheduledOrders"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
     });
-
+ 
     conn.on("ProdUpdated", (data: any) => {
       console.log("⚙️ PROD UPDATED:", data);
-
-      queryClient.invalidateQueries({
-        queryKey: ["scheduledOrders"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+    });
+ 
+    // Lắng nghe thêm event thanh toán từ khách hàng
+    conn.on("request.changed", (data: any) => {
+      if (data.action === "Payment") {
+        queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+      }
     });
   };
-
+ 
   init();
-
+ 
   return () => {
     if (conn) {
       conn.off("OrderUpdated");
       conn.off("ProdUpdated");
+      conn.off("request.changed");
     }
   };
 }, []);
 
   useEffect(() => {
-    if (!scheduledOrder.length) return;
-
-    const joinGroups = async () => {
-      const conn = await getSignalRConnection();
-
-      for (const o of scheduledOrder) {
-        await conn.invoke("JoinOrder", o.order_id);
-        console.log("Joined order-", o.order_id);
-      }
-    };
-
-    joinGroups();
-  }, [scheduledOrder]);
+  if (!scheduledOrder.length) return;
+ 
+  const joinGroups = async () => {
+    const conn = await getHubConnection(
+      process.env.NEXT_PUBLIC_SIGNALR_HUB_URL ?? "/hubs/realtime"
+    );
+ 
+    for (const o of scheduledOrder) {
+      await conn.invoke("JoinOrder", o.order_id);
+    }
+  };
+ 
+  joinGroups();
+}, [scheduledOrder]);
 
   /* ================== FILTER DATA ================== */
 
