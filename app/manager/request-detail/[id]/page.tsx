@@ -28,6 +28,7 @@ import {
     Popconfirm,
     Popover,
     Skeleton,
+    Space,
     Tag,
     Typography
 } from "antd";
@@ -354,14 +355,19 @@ export default function ManagerRequestDetailPage() {
                                             </Descriptions.Item>
                                         )}
                                         {orderDetail.product_name && <Descriptions.Item label="Kiểu hộp" span={1}><Text strong className="text-slate-800">{orderDetail.product_name}</Text></Descriptions.Item>}
-                                        {/* {orderDetail.paper_name && <Descriptions.Item label="Loại giấy" span={1}><Text strong className="text-slate-800">{orderDetail.paper_name}</Text></Descriptions.Item>} */}
-                                        {/* {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && <Descriptions.Item label="Loại phủ" span={1}><Text strong className="text-slate-800">{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>} */}
-                                        {/* {orderDetail.wave_type && orderDetail.wave_type !== "NONE" && <Descriptions.Item label="Kiểu sóng" span={1}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item>} */}
                                         {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
-                                        {/* {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>} */}
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
+                                        {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
+                                            <Descriptions.Item label="Loại mực" span={2}>
+                                                <Space wrap size={[4, 4]}>
+                                                    {orderDetail.ink_type_names.map((ink, idx) => (
+                                                        <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2">{ink}</Tag>
+                                                    ))}
+                                                </Space>
+                                            </Descriptions.Item>
+                                        )}
                                     </Descriptions>
 
                                     {orderDetail.description && (
@@ -378,22 +384,6 @@ export default function ManagerRequestDetailPage() {
                                      <div className="lg:col-span-1">
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    {/* <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-3">
-                                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary flex items-center gap-2 m-0">
-                                                        <FileTextOutlined />
-                                                        Mô tả yêu cầu
-                                                    </h3>
-                                                </div>
-                                            </div>
-                                            <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
-                                                {orderDetail.description || "Không có mô tả"}
-                                            </div>
-                                        </div>
-                                    </Card> */}
-
                                     {orderDetail.consultant_note && (
                                         <Card className="mt-4 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
                                             <div>
@@ -496,7 +486,6 @@ export default function ManagerRequestDetailPage() {
                                                         <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                                                             <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
                                                                 <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
-                                                                {/* {prevEstimate && <Tag color="warning" className="m-0 border-0 rounded" style={{ fontSize: '10px' }}>Đã được chỉnh sửa</Tag>} */}
                                                             </div>
                                                             <div className="flex justify-between items-center mb-2">
                                                                 <span className="text-slate-500 text-sm whitespace-nowrap">Loại giấy:</span>

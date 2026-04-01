@@ -41,6 +41,7 @@ import {
   message,
   Modal,
   Skeleton,
+  Space,
   Steps,
   Tag,
   Tooltip,
@@ -88,6 +89,7 @@ interface OrderDetail {
   consultant_contract_path?: string;
   customer_signed_contract_path?: string;
   delivery_date_change_reason?: string;
+  ink_type_names?: string[];
 }
 
 export default function RequestDetailPage() {
@@ -248,6 +250,7 @@ export default function RequestDetailPage() {
             consultant_contract_path: orderData.consultant_contract_path,
             customer_signed_contract_path: orderData.customer_signed_contract_path,
             delivery_date_change_reason: orderData.delivery_date_change_reason,
+            ink_type_names: orderData.ink_type_names || [],
           });
         }
       } catch (error) {
@@ -641,6 +644,17 @@ export default function RequestDetailPage() {
                                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                                   <Text className="text-slate-500 text-sm font-medium">Số bản kẽm:</Text>
                                   <Text className="text-slate-800 font-bold text-sm">{requestDetail.number_of_plates}</Text>
+                                </div>
+                              )}
+
+                              {requestDetail.ink_type_names && requestDetail.ink_type_names.length > 0 && (
+                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors md:col-span-2">
+                                  <Text className="text-slate-500 text-sm font-medium">Loại mực:</Text>
+                                  <Space wrap size={[4, 4]}>
+                                    {requestDetail.ink_type_names.map((ink, idx) => (
+                                      <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2">{ink}</Tag>
+                                    ))}
+                                  </Space>
                                 </div>
                               )}
                             </div>

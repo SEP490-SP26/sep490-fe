@@ -36,6 +36,7 @@ import {
     Select,
     Skeleton,
     Space,
+    Steps,
     Spin,
     Tag,
     Typography,
@@ -486,9 +487,17 @@ export default function ConsultantRequestDetailPage() {
                                         {orderDetail.paper_alternative && <Descriptions.Item label="Giấy thay thế" span={1}><Text strong className="text-amber-600">{orderDetail.paper_alternative}</Text></Descriptions.Item>}
                                         {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && <Descriptions.Item label="Loại phủ" span={1}><Text strong className="text-slate-800">{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>}
                                         {orderDetail.wave_type && orderDetail.wave_type !== "NONE" && <Descriptions.Item label="Kiểu sóng" span={1}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item>}
-                                        {orderDetail.wave_alternative && <Descriptions.Item label="Sóng thay thế" span={1}><Text strong className="text-amber-600">{orderDetail.wave_alternative}</Text></Descriptions.Item>}
+                                        {orderDetail.wave_alternative && <Descriptions.Item label="Sóng thay thế" span={1}><Tag color="amber" className="text-amber-600 m-0 border-0 rounded px-2">{orderDetail.wave_alternative}</Tag></Descriptions.Item>}
                                         {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
-                                        {/* {orderDetail.is_one_side_box !== undefined && orderDetail.is_one_side_box !== null && <Descriptions.Item label="In 1 mặt" span={1}><Text strong className="text-slate-800">{orderDetail.is_one_side_box ? "Có" : "Không"}</Text></Descriptions.Item>} */}
+                                        {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
+                                            <Descriptions.Item label="Loại mực" span={2}>
+                                                <Space wrap size={[4, 4]}>
+                                                    {orderDetail.ink_type_names.map((ink, idx) => (
+                                                        <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2">{ink}</Tag>
+                                                    ))}
+                                                </Space>
+                                            </Descriptions.Item>
+                                         )}
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
@@ -731,14 +740,23 @@ export default function ConsultantRequestDetailPage() {
                                                         <span className="text-slate-500 text-sm">Loại phủ:</span>
                                                         <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
                                                     </div>
-                                                    {/* <div className="flex justify-between items-center mb-2">
-                                                        <span className="text-slate-500 text-sm">Ngày hoàn thành dự kiến:</span>
-                                                        <span className="font-medium text-slate-800 text-sm">{orderDetail.estimate_finish_date ? dayjs(orderDetail.estimate_finish_date).format('DD/MM/YYYY') : "---"}</span>
-                                                    </div> */}
+                                                    
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Đặt cọc:</span>
                                                         <span className="font-semibold text-accent-dark">{formatCurrency(estimate.deposit_amount)}</span>
                                                     </div>
+                                                    
+                                                    {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
+                                                         <div className="flex justify-between items-start mb-2">
+                                                             <span className="text-slate-500 text-sm">Loại mực:</span>
+                                                             <Space wrap size={[4, 4]} style={{ justifyContent: 'flex-end', maxWidth: '70%' }}>
+                                                                 {estimate.ink_type_names.map((ink: string, idx: number) => (
+                                                                     <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2 text-xs">{ink}</Tag>
+                                                                 ))}
+                                                             </Space>
+                                                         </div>
+                                                     )}
+
                                                     <div className="flex justify-between items-center mb-3">
                                                         <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
                                                         <span className="font-bold text-lg text-accent-dark">{formatCurrency(estimate.final_total_cost)}</span>
