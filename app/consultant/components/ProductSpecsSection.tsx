@@ -26,6 +26,8 @@ interface ProductSpecsSectionProps {
   disabledSharedFields?: boolean;
   highlightFields?: Record<string, string>;
   isDeclined?: boolean;
+  /** Key of the currently active tab — used to reset prev-refs on tab switch */
+  activeTabKey?: string;
 }
 
 import React, { useRef } from "react";
@@ -59,15 +61,70 @@ export default function ProductSpecsSection({
   disabledSharedFields = false,
   highlightFields = {},
   isDeclined = false,
+  activeTabKey,
 }: ProductSpecsSectionProps) {
   const currentProductTypeId = Form.useWatch("product_type", form);
   const currentPaperCode = Form.useWatch("paper_code", form);
   const currentProcesses = Form.useWatch("production_processes", form) || [];
   const hasPHU = currentProcesses.includes("PHU");
+  const hasCAN = currentProcesses.includes("CAN");
   const hasBOI = currentProcesses.includes("BOI");
 
   const prevHasPHURef = useRef(hasPHU);
   const prevHasBOIRef = useRef(hasBOI);
+
+  // ── PER-PRODUCT-TYPE PROCESS RULES ──────────────────────────────────────
+  // Returns an object: { forbidden: string[], mandatoryExtra: string[], warnings: Record<string,string> }
+  const getProductTypeRules = (code: string): { forbidden: string[]; alwaysDisabled: string[]; warnings: Record<string, string> } => {
+    switch (code) {
+      case "KHAY":
+        // Full process except DAN
+        return {
+          forbidden: ["DAN"],
+          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT"],
+          warnings: { DAN: "Khay không cần công đoạn Dán (khay xếp gài với nhau)" },
+        };
+      case "VO_HOP_GACH":
+        // Mandatory: RALO,CAT,IN,BOI,BE,DUT,DAN; PHU/CAN optional (PHU preferred over CAN)
+        return {
+          forbidden: [],
+          alwaysDisabled: ["RALO", "CAT", "IN", "BOI", "BE", "DUT", "DAN"],
+          warnings: {
+            CAN: "Vỏ hộp gạch hiếm khi cần Cán màng. Nên dùng Phủ (keo nước) thay thế nếu cần.",
+          },
+        };
+      case "THE_MAU":
+        // Max: RALO,CAT,IN,PHU,BE. Forbidden: BOI, DAN. CAN warning.
+        return {
+          forbidden: ["BOI", "DAN"],
+          alwaysDisabled: ["RALO", "CAT", "IN", "BE"],
+          warnings: {
+            BOI: "Thẻ màu không cần Bồi (tấm giấy phẳng, không có khối lượng thể tích)",
+            DAN: "Thẻ màu không cần Dán (không tạo hình không gian 3D)",
+            CAN: "Thẻ màu: Cán màng nilon có thể làm sai lệch sắc độ màu in. Khuyến nghị dùng Phủ thay thế.",
+          },
+        };
+      case "HOP_MAU":
+        // Max: RALO,CAT,IN,PHU/CAN,BE,DUT,DAN. Forbidden: BOI.
+        return {
+          forbidden: ["BOI"],
+          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT"],
+          warnings: {
+            BOI: "Hộp màu không cần Bồi (giấy Ivory/Duplex đã đủ độ cứng, Bồi làm tăng chi phí và độ dày không cần thiết)",
+          },
+        };
+      default:
+        return {
+          forbidden: [],
+          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT"],
+          warnings: {},
+        };
+    }
+  };
+
+  const productTypeRules = getProductTypeRules(selectedProductTypeCode);
+  // Track the previous tab key to detect tab switches
+  const prevTabKeyRef = useRef(activeTabKey);
 
   const selectedProductType = productTypes?.find((pt) => pt.product_type_id === currentProductTypeId);
   const selectedPaper = paperTypes?.find((paper) => paper.code === currentPaperCode);
@@ -122,9 +179,17 @@ export default function ProductSpecsSection({
     }
   }, [form]);
 
-  // Handle clearing dependent fields when processes are removed (Only if user deselected them)
+  // When the active tab changes, immediately sync the prev-refs to the NEW values
+  // so the clear-effect below doesn't falsely fire a "removal" on tab switch.
+  if (prevTabKeyRef.current !== activeTabKey) {
+    prevTabKeyRef.current = activeTabKey;
+    prevHasPHURef.current = hasPHU;
+    prevHasBOIRef.current = hasBOI;
+  }
+
+  // Handle clearing dependent fields ONLY when the user explicitly unchecks a process
+  // (not when switching tabs — guarded by the ref-sync above)
   useEffect(() => {
-    // Only clear if it was active and now it's not (User interaction or tab change to a tab without it)
     if (prevHasPHURef.current && !hasPHU) {
       const currentCoating = form.getFieldValue("coating_type");
       if (currentCoating && currentCoating !== "NONE") {
@@ -480,12 +545,31 @@ export default function ProductSpecsSection({
                 updatedValues = ["RALO", "CAT", "IN", "BE", "DUT"];
               }
 
-              // NẾU LUÔN LUÔN BẮT BUỘC RALO VÀ BẾ
+              // Luôn bắt buộc các công đoạn cơ bản
               if (!updatedValues.includes("RALO")) updatedValues.push("RALO");
               if (!updatedValues.includes("CAT")) updatedValues.push("CAT");
               if (!updatedValues.includes("IN")) updatedValues.push("IN");
               if (!updatedValues.includes("BE")) updatedValues.push("BE");
-              if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
+
+              // VO_HOP_GACH: bắt buộc thêm BOI, DUT, DAN
+              if (selectedProductTypeCode === "VO_HOP_GACH") {
+                if (!updatedValues.includes("BOI")) updatedValues.push("BOI");
+                if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
+                if (!updatedValues.includes("DAN")) updatedValues.push("DAN");
+              } else {
+                if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
+              }
+
+              // Xóa các công đoạn bị cấm theo loại sản phẩm
+              const rules = getProductTypeRules(selectedProductTypeCode);
+              updatedValues = updatedValues.filter(v => !rules.forbidden.includes(v));
+
+              // PHU và CAN loại trừ nhau: nếu có cả hai, ưu tiên giữ cái mới chọn
+              // (logic này chỉ là fallback – UI đã disable cái kia)
+              if (updatedValues.includes("PHU") && updatedValues.includes("CAN")) {
+                // Giữ PHU, bỏ CAN
+                updatedValues = updatedValues.filter(v => v !== "CAN");
+              }
 
               // Sắp xếp đúng theo trình tự gia công chuẩn
               const STANDARD_ORDER = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"];
@@ -530,18 +614,56 @@ export default function ProductSpecsSection({
                   <span className="text-gray-400 text-xs">Đang tải...</span>
                 ) : (
                   ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"].map((pt) => {
-                    const isDisabled = ["IN", "DUT", "CAT", "RALO", "BE"].includes(pt);
+                    const rules = productTypeRules;
+                    const isForbidden = rules.forbidden.includes(pt);
+                    const isAlwaysDisabled = rules.alwaysDisabled.includes(pt);
+                    // PHU/CAN mutual exclusion
+                    const isPHUCANConflict =
+                      (pt === "PHU" && hasCAN) || (pt === "CAN" && hasPHU);
+                    const isDisabled = isAlwaysDisabled || isForbidden || isPHUCANConflict;
+                    const warningMsg = rules.warnings[pt];
+
+                    // Tooltip explanation
+                    let tooltipTitle: string | undefined;
+                    if (isForbidden) {
+                      tooltipTitle = warningMsg || `Không được phép sử dụng công đoạn ${PROCESS_TYPE_LABELS[pt] || pt} cho loại sản phẩm này`;
+                    } else if (isPHUCANConflict) {
+                      tooltipTitle =
+                        pt === "CAN"
+                          ? "Đã chọn Phủ — không thể chọn thêm Cán (hai công đoạn loại trừ nhau)"
+                          : "Đã chọn Cán — không thể chọn thêm Phủ (hai công đoạn loại trừ nhau)";
+                    } else if (warningMsg) {
+                      tooltipTitle = warningMsg;
+                    }
+
+                    const labelColor = isForbidden
+                      ? "text-red-300 line-through"
+                      : isPHUCANConflict
+                      ? "text-gray-400"
+                      : isAlwaysDisabled
+                      ? "text-gray-400"
+                      : warningMsg
+                      ? "text-amber-600"
+                      : "text-gray-700";
+
                     return (
-                      <Checkbox
-                        value={pt}
-                        key={pt}
-                        disabled={isDisabled}
-                        className="!flex items-center m-0"
-                      >
-                        <span className={`text-[13px] leading-tight ${isDisabled ? "text-gray-400" : "text-gray-700"}`}>
-                          {PROCESS_TYPE_LABELS[pt] || pt}
-                        </span>
-                      </Checkbox>
+                      <Tooltip key={pt} title={tooltipTitle} placement="top">
+                        <Checkbox
+                          value={pt}
+                          disabled={isDisabled || (isDeclined && !highlightFields['production_processes'])}
+                          className="!flex items-center m-0"
+                        >
+                          <span className={`text-[13px] leading-tight ${labelColor}`}>
+                            {PROCESS_TYPE_LABELS[pt] || pt}
+                            {warningMsg && !isForbidden && !isPHUCANConflict && (
+                              <span className="ml-0.5 text-amber-500 text-[10px]">⚠</span>
+                            )}
+                            {isForbidden && (
+                              <span className="ml-0.5 text-red-400 text-[10px]">✕</span>
+                            )}
+                          </span>
+                        </Checkbox>
+                      </Tooltip>
                     );
                   })
                 )}
