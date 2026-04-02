@@ -66,6 +66,7 @@ export default function ProductSpecsSection({
   const currentProductTypeId = Form.useWatch("product_type", form);
   const currentPaperCode = Form.useWatch("paper_code", form);
   const currentProcesses = Form.useWatch("production_processes", form) || [];
+  const currentInkTypes = Form.useWatch("ink_type_names", form) || [];
   const hasPHU = currentProcesses.includes("PHU");
   const hasCAN = currentProcesses.includes("CAN");
   const hasBOI = currentProcesses.includes("BOI");
@@ -207,6 +208,18 @@ export default function ProductSpecsSection({
     prevHasPHURef.current = hasPHU;
     prevHasBOIRef.current = hasBOI;
   }, [hasPHU, hasBOI, form]);
+
+  // Tự động cập nhật số kẽm dựa trên số loại mực được chọn
+  useEffect(() => {
+    const inkCount = Array.isArray(currentInkTypes) ? currentInkTypes.length : 0;
+    if (inkCount > 0) {
+      form.setFieldValue("number_of_plates", inkCount);
+      handleFormValuesChange(
+        { number_of_plates: inkCount },
+        { ...form.getFieldsValue(), number_of_plates: inkCount }
+      );
+    }
+  }, [currentInkTypes, form]);
 
   return (
     <>
@@ -658,9 +671,9 @@ export default function ProductSpecsSection({
                             {warningMsg && !isForbidden && !isPHUCANConflict && (
                               <span className="ml-0.5 text-amber-500 text-[10px]">⚠</span>
                             )}
-                            {isForbidden && (
+                            {/* {isForbidden && (
                               <span className="ml-0.5 text-red-400 text-[10px]">✕</span>
-                            )}
+                            )} */}
                           </span>
                         </Checkbox>
                       </Tooltip>

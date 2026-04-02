@@ -136,7 +136,22 @@ export default function ConsultantRequestDetailPage() {
             const orderData = response?.data || response;
 
             if (orderData) {
-                setOrderDetail(orderData);
+                // Parse ink_type_names: API trả về string "A,B,C", cần convert thành array
+                const parsed = { ...orderData };
+                if (typeof parsed.ink_type_names === 'string' && parsed.ink_type_names) {
+                    parsed.ink_type_names = parsed.ink_type_names.split(',').map((s: string) => s.trim()).filter(Boolean);
+                } else if (!parsed.ink_type_names) {
+                    parsed.ink_type_names = [];
+                }
+                if (Array.isArray(parsed.cost_estimate)) {
+                    parsed.cost_estimate = parsed.cost_estimate.map((e: any) => ({
+                        ...e,
+                        ink_type_names: typeof e.ink_type_names === 'string' && e.ink_type_names
+                            ? e.ink_type_names.split(',').map((s: string) => s.trim()).filter(Boolean)
+                            : (Array.isArray(e.ink_type_names) ? e.ink_type_names : [])
+                    }));
+                }
+                setOrderDetail(parsed);
             }
         } catch (error) {
             console.error("Error fetching order detail:", error);

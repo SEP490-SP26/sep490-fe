@@ -1,7 +1,7 @@
 "use client";
 
 import { estimatesApi } from "@/apiRequests/estimates";
-import { machineApi } from "@/apiRequests/machine";
+import { machineApi, WorkshopCapacityResponse } from "@/apiRequests/machine";
 import { materialsApi } from "@/apiRequests/materials";
 import { productionsApi } from "@/apiRequests/productions";
 import { Product, productsApi } from "@/apiRequests/products";
@@ -165,6 +165,7 @@ function ConsultantForm() {
   const [depositAmount, setDepositAmount] = useState<number>(0);
   const [machineCapacity, setMachineCapacity] = useState<MachineCapacity | null>(null);
   const [freeMachines, setFreeMachines] = useState<FreeMachine[]>([]);
+  const [availabilitySnapshot, setAvailabilitySnapshot] = useState<WorkshopCapacityResponse | null>(null);
   const [savedEstimateId, setSavedEstimateId] = useState<number | null>(null);
   const [previousEstimateId, setPreviousEstimateId] = useState<number | null>(null);
   const lastCalculatedSpecsRef = useRef<string>("");
@@ -471,7 +472,15 @@ function ConsultantForm() {
 
   const isWorkshopFull = runningMachines >= totalMachines * 0.9;
   const workshopFreeInfo = getEstimatedFreeDate(orders);
-  const daysUntilFree = workshopFreeInfo.days;
+  // Ưu tiên dùng workshop_all_free_at từ API nếu có, fallback về date cũ tính từ orders
+  const snapshotFreeDate = availabilitySnapshot?.workshop_all_free_at
+    ? dayjs(availabilitySnapshot.workshop_all_free_at).format("DD/MM/YYYY")
+    : workshopFreeInfo.date;
+  const snapshotFreeDays = availabilitySnapshot?.workshop_all_free_at
+    ? Math.max(dayjs(availabilitySnapshot.workshop_all_free_at).diff(dayjs(), "day"), 1)
+    : workshopFreeInfo.days;
+  const workshopFreeInfoMerged = { days: snapshotFreeDays, date: snapshotFreeDate };
+  const daysUntilFree = workshopFreeInfoMerged.days;
 
   // --- CLIENT SIDE CALCULATION HOOKS ---
   const { calculateAll } = useEstimationCalculator();
@@ -565,12 +574,14 @@ function ConsultantForm() {
 
       // Machine Data
       try {
-        const [capacityRes, freeRes] = await Promise.all([
+        const [capacityRes, freeRes, snapshotRes] = await Promise.all([
           machineApi.getCapacity(),
           machineApi.getFreeMachines(),
+          machineApi.getAvailabilitySnapshot(),
         ]);
         if (capacityRes) setMachineCapacity(capacityRes);
         if (Array.isArray(freeRes)) setFreeMachines(freeRes);
+        if (snapshotRes) setAvailabilitySnapshot(snapshotRes);
       } catch (error) {
         console.error("Error fetching machine data:", error);
       }
@@ -1995,7 +2006,7 @@ function ConsultantForm() {
                   loadingCostEstimate={loadingCostEstimate}
                   loadingPaperEstimate={loadingPaperEstimate}
                   onCalculate={handleManualCalculate}
-                  workshopFreeInfo={workshopFreeInfo}
+                  workshopFreeInfo={workshopFreeInfoMerged}
                   isWorkshopFull={isWorkshopFull}
                   runningMachines={runningMachines}
                   totalMachines={totalMachines}
