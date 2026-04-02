@@ -16,6 +16,7 @@ import {
 import type { UploadFile, UploadProps } from "antd";
 import {
   Button,
+  Checkbox,
   message,
   Skeleton,
   Modal,
@@ -44,6 +45,7 @@ export default function RequestDetailPage() {
   const [fullRequestDetail, setFullRequestDetail] = useState<any>(null);
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [hasUploadedContract, setHasUploadedContract] = useState(false);
+  const [hasConfirmedQuote, setHasConfirmedQuote] = useState(false);
 
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export default function RequestDetailPage() {
     setSelectedQuote(quote);
     setHasDownloadedContract(!!quote.customer_signed_contract_path);
     setHasUploadedContract(!!quote.customer_signed_contract_path);
+    setHasConfirmedQuote(false);
     setIsConfirmModalVisible(true);
   };
 
@@ -396,8 +399,8 @@ export default function RequestDetailPage() {
           <Button
             key="submit"
             type="primary"
-            disabled={!hasUploadedContract}
-            className={`rounded-lg ${!hasUploadedContract ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
+            disabled={!hasUploadedContract || !hasConfirmedQuote}
+            className={`rounded-lg ${(!hasUploadedContract || !hasConfirmedQuote) ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
             onClick={proceedToPayment}
           >
             Xác nhận & Thanh toán
@@ -549,6 +552,28 @@ export default function RequestDetailPage() {
               <InfoCircleOutlined className="mr-1" />
               Lưu ý: Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc các báo giá lựa chọn khác sẽ bị hủy.
             </p>
+
+            <div
+              onClick={() => setHasConfirmedQuote((prev) => !prev)}
+              className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${
+                hasConfirmedQuote
+                  ? "bg-emerald-50 border-emerald-400"
+                  : "bg-white border-slate-200 hover:border-blue-300"
+              }`}
+            >
+              <Checkbox
+                checked={hasConfirmedQuote}
+                onChange={(e) => setHasConfirmedQuote(e.target.checked)}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-0.5 flex-shrink-0"
+              />
+              <span className={`text-sm font-medium leading-relaxed ${
+                hasConfirmedQuote ? "text-emerald-700" : "text-slate-700"
+              }`}>
+                Tôi đã đọc kỹ và đồng ý với toàn bộ thông tin trong{" "}
+                <strong>Báo giá {selectedQuote?.quote_id}</strong>, bao gồm chi phí, điều khoản và thời gian giao hàng.
+              </span>
+            </div>
           </div>
         </div>
       </Modal>

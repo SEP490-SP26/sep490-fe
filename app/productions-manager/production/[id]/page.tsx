@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { BiPackage } from "react-icons/bi";
+import { BsBoxSeam } from "react-icons/bs";
 import {
   BsArrowLeft,
   BsClock,
@@ -263,6 +264,7 @@ export default function ProductionDetailPage() {
   const queryClient = useQueryClient();
 
 
+  const [activeTab, setActiveTab] = useState<"stages" | "materials">("stages");
   const [qtyInputStage, setQtyInputStage] = useState<ProductionStage | null>(null);
   const [qtyInputValue, setQtyInputValue] = useState<string>("");
 
@@ -291,6 +293,15 @@ export default function ProductionDetailPage() {
       },
       enabled: !!id,
     });
+
+  const { data: productionInfo } = useQuery({
+    queryKey: ["productionInfo", id],
+    queryFn: async () => {
+      if (!id) return null;
+      return productionsApi.getProductionInformation(id.toString());
+    },
+    enabled: !!id,
+  });
     /* =============================== SIGNALR ========================= */
   useEffect(() => {
   if (!production?.prod_id) return;
@@ -432,145 +443,235 @@ export default function ProductionDetailPage() {
         </p>
       </div>
 
-      {/* TIMELINE */}
-      {sortedStages && (
-        <div className="bg-white rounded-xl border border-blue-200 p-6 mb-6">
-          <h2 className="font-semibold mb-6 flex items-center gap-2 text-blue-700">
-            <BsClock /> Tiến độ công đoạn
-          </h2>
-          <ProductionTimeline stages={sortedStages} />
-        </div>
+      {/* TAB BAR */}
+      <div className="flex border-b border-blue-200 mb-4 bg-white rounded-t-xl">
+        <button
+          onClick={() => setActiveTab("stages")}
+          className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${
+            activeTab === "stages"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <BsClock className="w-4 h-4" />
+          Công đoạn sản xuất
+        </button>
+        <button
+          onClick={() => setActiveTab("materials")}
+          className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-colors ${
+            activeTab === "materials"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <BsBoxSeam className="w-4 h-4" />
+          Nguyên vật liệu
+        </button>
+      </div>
+
+      {/* TAB 1: CÔNG ĐOẠN SẢN XUẤT */}
+      {activeTab === "stages" && (
+        <>
+          {/* TIMELINE */}
+          {sortedStages && (
+            <div className="bg-white rounded-xl border border-blue-200 p-6 mb-6">
+              <h2 className="font-semibold mb-6 flex items-center gap-2 text-blue-700">
+                <BsClock /> Tiến độ công đoạn
+              </h2>
+              <ProductionTimeline stages={sortedStages} />
+            </div>
+          )}
+
+          {/* STAGE DETAIL */}
+          <div className="bg-white rounded-xl border border-blue-200 p-6">
+            <h2 className="font-semibold mb-6 flex items-center gap-2 text-blue-700">
+              <BsClock /> Chi tiết từng công đoạn
+            </h2>
+
+            <div className="space-y-6">
+              {sortedStages?.map((stage, index) => {
+                const isCollapsed =
+                  collapsedStages[stage.process_id] ?? true;
+
+                return (
+                  <div
+                    key={stage.process_id}
+                    className="rounded-xl border border-blue-200 overflow-hidden bg-blue-50"
+                  >
+                    <div
+                      className="flex justify-between items-center px-4 py-3 cursor-pointer"
+                      onClick={() => toggleStage(stage.process_id)}
+                    >
+                      <div>
+                        <h3 className="font-bold text-blue-800">
+                          {index + 1}. {stage.process_name}
+                          <span className="text-gray-500 font-normal">
+                            {" "}
+                            – {stage.machine}
+                          </span>
+                        </h3>
+                        <span
+                          className={`text-sm font-medium ${
+                            production?.production_status === "Scheduled"
+                              ? "text-red-600"
+                              : STATUS_MAP[stage.status].color
+                          }`}
+                        >
+                          {production?.production_status === "Scheduled"
+                            ? "Chưa bắt đầu sản xuất"
+                            : STATUS_MAP[stage.status].label}
+                        </span>
+                      </div>
+                      {isCollapsed ? <BsChevronDown /> : <BsChevronUp />}
+                    </div>
+
+                    {!isCollapsed && (
+                      <div className="p-4 space-y-5 bg-white">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-blue-50 p-3 rounded">
+                          <div>
+                            <b>Bắt đầu:</b>{" "}
+                            {stage.start_time
+                              ? new Date(stage.start_time).toLocaleString("vi-VN")
+                              : "-"}
+                          </div>
+                          <div>
+                            <b>Kết thúc:</b>{" "}
+                            {stage.end_time
+                              ? new Date(stage.end_time).toLocaleString("vi-VN")
+                              : "-"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <BiPackage /> Nguyên vật liệu đầu vào
+                          </h4>
+
+                          <table className="w-full text-sm border rounded bg-white">
+                            <thead className="bg-blue-100">
+                              <tr>
+                                <th className="px-3 py-2 text-left">Tên</th>
+                                <th className="px-3 py-2 text-right">Số lượng</th>
+                                <th className="px-3 py-2 text-center">ĐVT</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stage.input_materials.length === 0 ? (
+                                <tr>
+                                  <td
+                                    colSpan={3}
+                                    className="px-3 py-3 text-center text-gray-400"
+                                  >
+                                    Không có dữ liệu
+                                  </td>
+                                </tr>
+                              ) : (
+                                stage.input_materials.map((m: any, i: number) => (
+                                  <tr key={i} className="border-t">
+                                    <td className="px-3 py-2">{m.name}</td>
+                                    <td className="px-3 py-2 text-right">
+                                      {m.quantity}
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      {m.unit}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                          <h4 className="font-medium mb-1 flex items-center gap-2">
+                            <BiPackage /> Thành phẩm công đoạn
+                          </h4>
+                          <p className="text-sm">
+                            {stage.output_product.name} –{" "}
+                            <b>{stage.output_product.quantity}</b>{" "}
+                            {stage.output_product.unit}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
-      {/* STAGE DETAIL */}
-      <div className="bg-white rounded-xl border border-blue-200 p-6">
-        <h2 className="font-semibold mb-6 flex items-center gap-2 text-blue-700">
-          <BsClock /> Chi tiết từng công đoạn
-        </h2>
+      {/* TAB 2: NGUYÊN VẬT LIỆU */}
+      {activeTab === "materials" && (
+        <div className="bg-white rounded-xl border border-blue-200 p-6">
+          <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 text-blue-700">
+            <BiPackage className="w-5 h-5" />
+            DANH SÁCH NGUYÊN VẬT LIỆU
+          </h2>
 
-        <div className="space-y-6">
-          {sortedStages?.map((stage, index) => {
-            const isCollapsed =
-              collapsedStages[stage.process_id] ?? true;
-
-            return (
-              <div
-                key={stage.process_id}
-                className="rounded-xl border border-blue-200 overflow-hidden bg-blue-50"
-              >
-                <div
-                  className="flex justify-between items-center px-4 py-3 cursor-pointer"
-                  onClick={() => toggleStage(stage.process_id)}
-                >
-                  <div>
-                    <h3 className="font-bold text-blue-800">
-                      {index + 1}. {stage.process_name}
-                      <span className="text-gray-500 font-normal">
-                        {" "}
-                        – {stage.machine}
-                      </span>
-                    </h3>
-                      <span
-                      className={`text-sm font-medium ${
-                        production?.production_status === "Scheduled"
-                          ? "text-red-600"
-                          : STATUS_MAP[stage.status].color
-                      }`}
+          {productionInfo?.items ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+                <thead className="bg-blue-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nhóm vật tư
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Mã vật tư
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tên vật tư
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Số lượng
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ĐVT
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {productionInfo.items.map((item: any, index: number) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-blue-50 transition-colors"
                     >
-                      {production?.production_status === "Scheduled"
-                        ? "Chưa bắt đầu sản xuất"
-                        : STATUS_MAP[stage.status].label}
-                    </span>
-                  </div>
-                  {isCollapsed ? <BsChevronDown /> : <BsChevronUp />}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        {item.material_group}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.material_code}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.material_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                        {item.quantity && item.quantity > 0
+                          ? item.quantity.toLocaleString("vi-VN")
+                          : ""}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        {item.unit}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {productionInfo.items.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  Chưa có dữ liệu nguyên vật liệu
                 </div>
-
-                {!isCollapsed && (
-                  <div className="p-4 space-y-5 bg-white">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-blue-50 p-3 rounded">
-                      <div>
-                        <b>Bắt đầu:</b>{" "}
-                        {stage.start_time
-                          ? new Date(stage.start_time).toLocaleString("vi-VN")
-                          : "-"}
-                      </div>
-                      <div>
-                        <b>Kết thúc:</b>{" "}
-                        {stage.end_time
-                          ? new Date(stage.end_time).toLocaleString("vi-VN")
-                          : "-"}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <BiPackage /> Nguyên vật liệu đầu vào
-                      </h4>
-
-                      <table className="w-full text-sm border rounded bg-white">
-                        <thead className="bg-blue-100">
-                          <tr>
-                            <th className="px-3 py-2 text-left">Tên</th>
-                            <th className="px-3 py-2 text-right">Số lượng</th>
-                            <th className="px-3 py-2 text-center">ĐVT</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {stage.input_materials.length === 0 ? (
-                            <tr>
-                              <td
-                                colSpan={3}
-                                className="px-3 py-3 text-center text-gray-400"
-                              >
-                                Không có dữ liệu
-                              </td>
-                            </tr>
-                          ) : (
-                            stage.input_materials.map((m: any, i: number) => (
-                              <tr key={i} className="border-t">
-                                <td className="px-3 py-2">{m.name}</td>
-                                <td className="px-3 py-2 text-right">
-                                  {m.quantity}
-                                </td>
-                                <td className="px-3 py-2 text-center">
-                                  {m.unit}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="bg-blue-50 border border-blue-200 rounded p-4">
-                      <h4 className="font-medium mb-1 flex items-center gap-2">
-                        <BiPackage /> Thành phẩm công đoạn
-                      </h4>
-                      <p className="text-sm">
-                        {stage.output_product.name} –{" "}
-                        <b>{stage.output_product.quantity}</b>{" "}
-                        {stage.output_product.unit}
-                      </p>
-                    </div>
-
-                    {/* {stage.status === "Ready" && (
-                    <button
-                      onClick={() => {
-                        setQtyInputStage(stage);
-                        setQtyInputValue("");
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                    >
-                      <BsPrinter /> Tạo QR
-                    </button>
-                  )} */}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Đang tải hoặc chưa có dữ liệu nguyên vật liệu...
+            </div>
+          )}
         </div>
-      </div>
+      )}
       {/* MODALS */}
       {qtyInputStage && (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
