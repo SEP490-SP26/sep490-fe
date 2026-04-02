@@ -85,17 +85,10 @@ export default function EstimatesCard({
     if (isWorkshopFull) {
       return (
         <Alert
-          message="⚠️ Xưởng đang quá tải!"
+          message=" Xưởng đang quá tải!"
           description={
-            <div className="space-y-2">
-              <p>
-                Công suất hiện tại:{" "}
-                <b className="text-red-600">
-                  {/* {machinesInUse}/{TOTAL_MACHINES} */}
-                </b>{" "}
-                máy đang chạy.
-              </p>
-              <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+            <div className="">
+              <div className="bg-yellow-50">
                 <p className="font-medium text-yellow-800 mb-1">
                   Thông báo cho khách hàng:
                 </p>
@@ -104,10 +97,7 @@ export default function EstimatesCard({
                   <b className="text-yellow-900">{workshopFreeInfo.date}</b>{" "}
                   (còn <b>{daysUntilFree} ngày</b> nữa).
                 </p>
-                <p className="text-xs text-yellow-600 mt-1 italic">
-                  Nếu khách hàng vẫn đồng ý, bạn có thể tiếp tục gửi đơn cho
-                  Manager.
-                </p>
+                
               </div>
             </div>
           }
