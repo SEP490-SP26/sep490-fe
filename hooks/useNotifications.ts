@@ -8,6 +8,7 @@ import * as signalR from "@microsoft/signalr";
    ================================================================ */
 
 export interface RequestChangedEvent {
+  order_id: number;
   request_id: number;
   old_status: string | null;
   new_status: string | null;
@@ -76,7 +77,7 @@ const ROLE_ACTION_FILTER: Record<string, string[]> = {
     "created",                // request mới tạo
     "Payment",                // khách hàng thanh toán
   ],
-  production: [
+  "production manager": [
     "Payment",           // khách thanh toán → cần chuẩn bị sản xuất
     "manager_verified",  // request được duyệt → có thể vào lịch
   ],
@@ -186,7 +187,7 @@ export function defaultGroupsForRole(role: string): HubGroupConfig[] {
     { joinMethod: "JoinRequestsAll", leaveMethod: "LeaveRequestsAll" },
   ];
 
-  if (["manager", "consultant", "production"].includes(role.toLowerCase())) {
+  if (["manager", "consultant", "production manager", "warehouse manager"].includes(role.toLowerCase())) {
     base.push({
       joinMethod:  "JoinRequestsByRole",
       leaveMethod: "LeaveRequestsByRole",
@@ -244,7 +245,7 @@ function buildRequestChangedNotification(evt: RequestChangedEvent): AppNotificat
   const newLabel = labelStatus(evt.new_status);
   const oldLabel = labelStatus(evt.old_status);
 
-  let message = `Yêu cầu #${evt.request_id}`;
+  let message = `Yêu cầu #${evt.request_id} - Đơn hàng:${evt.order_id}`;
 
   switch (evt.action) {
     case "created":
@@ -362,7 +363,7 @@ export function useNotifications({
     // ── Subscriber: request.noteChanged ─────────────────────────
     const onRequestNote: RequestNoteSubscriber = (evt) => {
       // Chỉ consultant và manager nhận ghi chú
-      const noteRoles = ["consultant", "manager"];
+      const noteRoles = ["consultant", "manager", "warehouse manager", "production manager"];
       if (!noteRoles.includes(roleRef.current.toLowerCase())) return;
 
       const notification = buildRequestNoteNotification(evt);
