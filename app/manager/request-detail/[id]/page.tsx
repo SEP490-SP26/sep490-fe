@@ -331,137 +331,8 @@ export default function ManagerRequestDetailPage() {
                 </div>
 
                 <div className="flex flex-col gap-6">
-                    {/* ROW 1: Summary & Design Files */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-                        <div className="lg:col-span-2">
-                            <Card className="h-full rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
-                                {/* Customer Section */}
-                                <div className="mb-6">
-                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                        <UserOutlined />
-                                        Thông tin khách hàng
-                                    </h3>
-                                    <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} className="text-sm" labelStyle={{ color: '#64748b' }}>
-                                        <Descriptions.Item label="Họ tên"><Text strong className="text-slate-800">{orderDetail.customer_name}</Text></Descriptions.Item>
-                                        <Descriptions.Item label="Điện thoại"><Text strong className="text-slate-800">{maskPhone(orderDetail.customer_phone)}</Text></Descriptions.Item>
-                                        <Descriptions.Item label="Email"><Text strong className="text-slate-800 truncate" style={{ maxWidth: 180 }} title={maskEmail(orderDetail.email)}>{maskEmail(orderDetail.email)}</Text></Descriptions.Item>
-                                        <Descriptions.Item label="Địa chỉ giao hàng" span={3}>
-                                            <Text strong className="text-slate-800">{orderDetail.detail_address || <span className="font-normal italic text-slate-400">Chưa cập nhật</span>}</Text>
-                                        </Descriptions.Item>
-                                    </Descriptions>
-                                </div>
 
-                                <Divider className="my-0 mb-6 border-slate-100" />
-
-                                {/* Product Section */}
-                                <div>
-                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                        <ShoppingOutlined />
-                                        Chi tiết sản phẩm: <span className="text-slate-800 normal-case font-semibold">{orderDetail.product_name}</span>
-                                    </h3>
-
-                                    <Descriptions size="small" column={{ xs: 1, sm: 3, md: 4 }} className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm mb-4" labelStyle={{ color: '#64748b' }}>
-                                        <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm || 0} x {orderDetail.product_width_mm || 0} x {orderDetail.product_height_mm || 0} mm</Text></Descriptions.Item>
-                                        <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
-                                        <Descriptions.Item label="Dự kiến" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
-                                        {orderDetail.delivery_date_change_reason && (
-                                            <Descriptions.Item label="Lý do đổi ngày" span={2}>
-                                                <Text strong className="text-amber-600 italic">{orderDetail.delivery_date_change_reason}</Text>
-                                            </Descriptions.Item>
-                                        )}
-                                        {orderDetail.product_name && <Descriptions.Item label="Kiểu hộp" span={1}><Text strong className="text-slate-800">{orderDetail.product_name}</Text></Descriptions.Item>}
-                                        {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
-                                        {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
-                                        {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
-                                        {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
-                                        {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
-                                            <Descriptions.Item label="Loại mực" span={2}>
-                                                <Space wrap size={[4, 4]}>
-                                                    {orderDetail.ink_type_names.map((ink, idx) => (
-                                                        <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2">{ink}</Tag>
-                                                    ))}
-                                                </Space>
-                                            </Descriptions.Item>
-                                        )}
-                                    </Descriptions>
-
-                                    {orderDetail.description && (
-                                        <div className="mt-4">
-                                            <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Mô tả yêu cầu</Text>
-                                            <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
-                                                {orderDetail.description}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </Card>
-                        </div>
-                                     <div className="lg:col-span-1">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    {orderDetail.consultant_note && (
-                                        <Card className="mt-4 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 flex items-center gap-2 m-0">
-                                                            <FileTextOutlined className="text-blue-500" />
-                                                            Ghi chú của tư vấn viên
-                                                        </h3>
-                                                    </div>
-                                                </div>
-                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
-                                                    {orderDetail.consultant_note}
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    )}
-
-                                    {orderDetail.process_status === 'Processing' && (
-                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
-                                                            <EditOutlined className="text-green-500" />
-                                                            Lời nhắn cho tư vấn viên
-                                                        </h3>
-                                                    </div>
-                                                </div>
-                                                <TextArea
-                                                    rows={2}
-                                                    placeholder="Nhập ghi chú cho tư vấn viên khi duyệt yêu cầu..."
-                                                    className="w-full text-sm rounded-lg border-green-200 focus:border-green-400 focus:ring-green-400"
-                                                    value={managerNote}
-                                                    onChange={(e) => setManagerNote(e.target.value)}
-                                                />
-                                            </div>
-                                        </Card>
-                                    )}
-
-                                    {orderDetail.process_status !== 'Processing' && orderDetail.note && (
-                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
-                                                            <FileTextOutlined className="text-green-500" />
-                                                            Ghi chú của Manager
-                                                        </h3>
-                                                    </div>
-                                                </div>
-                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-green-200 rounded-lg p-3 whitespace-pre-wrap">
-                                                    {orderDetail.note}
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ROW 2: Cost Estimates & Notes */}
+                    {/* ROW 1: Cost Estimates & Notes */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                         <div className="lg:col-span-2">
                             <Card className="h-full rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-accent">
@@ -501,6 +372,44 @@ export default function ManagerRequestDetailPage() {
                                                         <div key={estimate.estimate_id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                                                             <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
                                                                 <Tag className="m-0 border-0 bg-blue-50 text-blue-600 font-medium px-2 rounded">Báo giá #{index + 1}</Tag>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="text-slate-500 text-sm font-medium whitespace-nowrap">Tổng chi phí:</span>
+                                                                <div className="flex items-center justify-end gap-x-2 gap-y-1">
+                                                                    <span className={`font-bold text-lg text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
+                                                                        {renderDiff(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
+                                                                    </span>
+                                                                    {noteMode && (
+                                                                        <Popover
+                                                                            content={
+                                                                                <TextArea
+                                                                                    rows={3}
+                                                                                    placeholder="Ghi chú thay đổi..."
+                                                                                    className="w-64 text-xs font-normal"
+                                                                                    value={estimateNotes[index]?.final_total_cost || ''}
+                                                                                    onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value ? String(e.target.value) : '')}
+                                                                                />
+                                                                            }
+                                                                            title={<span className="text-xs">Chỉnh sửa tổng chi phí</span>}
+                                                                            trigger="click"
+                                                                        >
+                                                                            <Button
+                                                                                size="small"
+                                                                                type={estimateNotes[index]?.final_total_cost ? "primary" : "default"}
+                                                                                icon={<EditOutlined />}
+                                                                            />
+                                                                        </Popover>
+                                                                    )}
+                                                                </div>
+
+                                                            </div>
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="text-slate-500 text-sm whitespace-nowrap">Đặt cọc:</span>
+                                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                                                                    <span className={`font-semibold text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
+                                                                        {renderDiff(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                             <div className="flex justify-between items-center mb-2">
                                                                 <span className="text-slate-500 text-sm whitespace-nowrap">Loại giấy:</span>
@@ -560,43 +469,17 @@ export default function ManagerRequestDetailPage() {
                                                                     )}
                                                                 </div>
                                                             </div>
-                                                            <div className="flex justify-between items-center mb-2">
-                                                                <span className="text-slate-500 text-sm whitespace-nowrap">Đặt cọc:</span>
-                                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                                                                    <span className={`font-semibold text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
-                                                                        {renderDiff(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
-                                                                    </span>
+                                                            {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <span className="text-slate-500 text-sm whitespace-nowrap">Loại mực:</span>
+                                                                    <div className="flex flex-wrap items-center justify-end gap-1">
+                                                                        {estimate.ink_type_names.map((ink, idx) => (
+                                                                            <Tag key={idx} color="blue" className="m-0 border-0 rounded px-1.5 text-[11px] h-5 flex items-center">{ink}</Tag>
+                                                                        ))}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="flex justify-between items-center mb-3">
-                                                                <span className="text-slate-500 text-sm font-medium whitespace-nowrap">Tổng chi phí:</span>
-                                                                <div className="flex items-center justify-end gap-x-2 gap-y-1">
-                                                                    <span className={`font-bold text-lg text-accent-dark text-right ${noteMode ? 'opacity-50' : ''}`}>
-                                                                        {renderDiff(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
-                                                                    </span>
-                                                                    {noteMode && (
-                                                                        <Popover
-                                                                            content={
-                                                                                <TextArea
-                                                                                    rows={3}
-                                                                                    placeholder="Ghi chú thay đổi..."
-                                                                                    className="w-64 text-xs font-normal"
-                                                                                    value={estimateNotes[index]?.final_total_cost || ''}
-                                                                                    onChange={(e: any) => handleNoteChange(index, 'final_total_cost', e.target.value ? String(e.target.value) : '')}
-                                                                                />
-                                                                            }
-                                                                            title={<span className="text-xs">Chỉnh sửa tổng chi phí</span>}
-                                                                            trigger="click"
-                                                                        >
-                                                                            <Button
-                                                                                size="small"
-                                                                                type={estimateNotes[index]?.final_total_cost ? "primary" : "default"}
-                                                                                icon={<EditOutlined />}
-                                                                            />
-                                                                        </Popover>
-                                                                    )}
-                                                                </div>
-                                                            </div>
+                                                            )}
+
                                                             {/* Material Costs Block (if any exist) */}
                                                             {(estimate.paper_cost > 0 || estimate.ink_cost > 0 || estimate.coating_glue_cost > 0 || estimate.mounting_glue_cost > 0 || estimate.lamination_cost > 0) && (
                                                                 <Collapse ghost size="small" expandIconPosition="end" className="bg-white border border-slate-200 rounded-lg mb-2">
@@ -743,6 +626,12 @@ export default function ManagerRequestDetailPage() {
 
                                                                             <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-3">
                                                                                 <div className="flex justify-between items-center text-[11px]">
+                                                                                    <span className="text-slate-400 font-medium">Tổng phí:</span>
+                                                                                    <span className="text-accent-dark font-bold text-right">
+                                                                                        {renderDiffHistory(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center text-[11px]">
                                                                                     <span className="text-slate-400">Giấy:</span>
                                                                                     <span className="text-slate-700 font-medium text-right">
                                                                                         {renderDiffHistory(prevEstimate?.paper_name, estimate.paper_name, null, "N/A")}
@@ -755,15 +644,21 @@ export default function ManagerRequestDetailPage() {
                                                                                     </span>
                                                                                 </div>
                                                                                 <div className="flex justify-between items-center text-[11px]">
+                                                                                    <span className="text-slate-400">Mực:</span>
+                                                                                    <div className="flex flex-wrap items-center justify-end gap-1">
+                                                                                        {estimate.ink_type_names && estimate.ink_type_names.length > 0 ? (
+                                                                                            estimate.ink_type_names.map((ink, idx) => (
+                                                                                                <Tag key={idx} color="blue" className="m-0 border-0 rounded px-1 text-[9px] h-4 flex items-center leading-none">{ink}</Tag>
+                                                                                            ))
+                                                                                        ) : (
+                                                                                            <span className="text-slate-700 font-medium text-right">N/A</span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center text-[11px]">
                                                                                     <span className="text-slate-400">Đặt cọc:</span>
                                                                                     <span className="text-slate-700 font-semibold text-right">
                                                                                         {renderDiffHistory(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="flex justify-between items-center text-[11px]">
-                                                                                    <span className="text-slate-400 font-medium">Tổng phí:</span>
-                                                                                    <span className="text-accent-dark font-bold text-right">
-                                                                                        {renderDiffHistory(prevEstimate?.final_total_cost, estimate.final_total_cost, formatCurrency, "0")}
                                                                                     </span>
                                                                                 </div>
                                                                             </div>
@@ -829,7 +724,140 @@ export default function ManagerRequestDetailPage() {
                                 )}
                             </Card>
                         </div>
+                        <div className="lg:col-span-1">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    {orderDetail.consultant_note && (
+                                        <Card className="mt-4 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-blue-800 flex items-center gap-2 m-0">
+                                                            <FileTextOutlined className="text-blue-500" />
+                                                            Ghi chú của tư vấn viên
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
+                                                    {orderDetail.consultant_note}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+
+                                    {orderDetail.process_status === 'Processing' && (
+                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
+                                                            <EditOutlined className="text-green-500" />
+                                                            Lời nhắn cho tư vấn viên
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <TextArea
+                                                    rows={2}
+                                                    placeholder="Nhập ghi chú cho tư vấn viên khi duyệt yêu cầu..."
+                                                    className="w-full text-sm rounded-lg border-green-200 focus:border-green-400 focus:ring-green-400"
+                                                    value={managerNote}
+                                                    onChange={(e) => setManagerNote(e.target.value)}
+                                                />
+                                            </div>
+                                        </Card>
+                                    )}
+
+                                    {orderDetail.process_status !== 'Processing' && orderDetail.note && (
+                                        <Card className="mt-4 rounded-2xl border border-green-100 shadow-sm border-t-4 border-t-green-500 bg-green-50/30">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-green-800 flex items-center gap-2 m-0">
+                                                            <FileTextOutlined className="text-green-500" />
+                                                            Ghi chú của Manager
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-green-200 rounded-lg p-3 whitespace-pre-wrap">
+                                                    {orderDetail.note}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    {/* ROW 2: Summary & Design Files */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                        <div className="lg:col-span-2">
+                            <Card className="h-full rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
+                                {/* Customer Section */}
+                                <div className="mb-6">
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                        <UserOutlined />
+                                        Thông tin khách hàng
+                                    </h3>
+                                    <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} className="text-sm" labelStyle={{ color: '#64748b' }}>
+                                        <Descriptions.Item label="Họ tên"><Text strong className="text-slate-800">{orderDetail.customer_name}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Điện thoại"><Text strong className="text-slate-800">{maskPhone(orderDetail.customer_phone)}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Email"><Text strong className="text-slate-800 truncate" style={{ maxWidth: 180 }} title={maskEmail(orderDetail.email)}>{maskEmail(orderDetail.email)}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Địa chỉ giao hàng" span={3}>
+                                            <Text strong className="text-slate-800">{orderDetail.detail_address || <span className="font-normal italic text-slate-400">Chưa cập nhật</span>}</Text>
+                                        </Descriptions.Item>
+                                    </Descriptions>
+                                </div>
+
+                                <Divider className="my-0 mb-6 border-slate-100" />
+
+                                {/* Product Section */}
+                                <div>
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
+                                        <ShoppingOutlined />
+                                        Chi tiết sản phẩm: <span className="text-slate-800 normal-case font-semibold">{orderDetail.product_name}</span>
+                                    </h3>
+
+                                    <Descriptions size="small" column={{ xs: 1, sm: 3, md: 4 }} className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm mb-4" labelStyle={{ color: '#64748b' }}>
+                                        <Descriptions.Item label="Kích thước" span={1}><Text strong className="text-slate-800">{orderDetail.product_length_mm || 0} x {orderDetail.product_width_mm || 0} x {orderDetail.product_height_mm || 0} mm</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Số lượng" span={1}><Text strong className="text-slate-800 text-base">{orderDetail.quantity.toLocaleString("vi-VN")}</Text></Descriptions.Item>
+                                        <Descriptions.Item label="Dự kiến" span={1}><Text strong className="text-slate-800">{dayjs(orderDetail.delevery_date).isValid() ? dayjs(orderDetail.delevery_date).format("DD/MM/YYYY") : "Chưa xác định"}</Text></Descriptions.Item>
+                                        {orderDetail.delivery_date_change_reason && (
+                                            <Descriptions.Item label="Lý do đổi ngày" span={2}>
+                                                <Text strong className="text-amber-600 italic">{orderDetail.delivery_date_change_reason}</Text>
+                                            </Descriptions.Item>
+                                        )}
+                                        {orderDetail.product_name && <Descriptions.Item label="Kiểu hộp" span={1}><Text strong className="text-slate-800">{orderDetail.product_name}</Text></Descriptions.Item>}
+                                        {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
+                                        {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
+                                        {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
+                                        {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
+                                        {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
+                                            <Descriptions.Item label="Loại mực" span={2}>
+                                                <Space wrap size={[4, 4]}>
+                                                    {orderDetail.ink_type_names.map((ink, idx) => (
+                                                        <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2">{ink}</Tag>
+                                                    ))}
+                                                </Space>
+                                            </Descriptions.Item>
+                                        )}
+                                    </Descriptions>
+
+                                    {orderDetail.description && (
+                                        <div className="mt-4">
+                                            <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Mô tả yêu cầu</Text>
+                                            <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
+                                                {orderDetail.description}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </Card>
+                        </div>
+
+                    </div>
+
+
                 </div>
 
                 <style jsx global>{`

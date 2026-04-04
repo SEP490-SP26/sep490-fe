@@ -49,15 +49,37 @@ export interface ProductionStage {
 }
 
 export interface ProductionResponse {
+// --- Định danh và Mã số ---
   prod_id: number;
-  production_code: string;
-  production_status: string;
-  start_date: string;
+  production_code: string; // VD: "PROD-00095"
+  production_status: 'Finished' | 'InProcessing' | 'Cancelled' | string;
+  
+  // --- Liên kết Đơn hàng & Khách hàng ---
+  order_id: number;
   order_code: string;
-  delivery_date: string;
   customer_name: string;
   product_name: string;
   quantity: number;
+
+  // --- Thông số Kỹ thuật ---
+  length_mm: number;
+  width_mm: number;
+  height_mm: number;
+  
+  /** Danh sách các loại mực sử dụng (Dạng chuỗi ngăn cách bằng dấu phẩy) */
+  ink_type_names: string; // VD: "Mực trắng, Mực nhũ bạc..."
+  
+  /** Link file thiết kế đã bình bản sẵn sàng in */
+  ready_print_file: string;
+
+  // --- Theo dõi Thời gian ---
+  created_at: string;           // Ngày tạo lệnh
+  planned_start_date: string;   // Ngày dự kiến bắt đầu theo lịch xưởng
+  actual_start_date: string;    // Ngày thực tế máy bắt đầu chạy
+  start_date: string | null;    // Ngày bắt đầu (thường trùng actual_start_date)
+  end_date: string;             // Ngày thực tế hoàn thành sản xuất
+  delivery_date: string;        // Ngày hẹn giao hàng cho khách
+  
   stages: ProductionStage[];
 }
 
@@ -434,13 +456,27 @@ export default function ProductionDetailPage() {
 
       {/* HEADER */}
       <div className="bg-white rounded-xl border border-blue-200 p-6 mb-6">
-        <h1 className="text-xl font-bold text-blue-800 mb-1">
-          Lệnh sản xuất {production?.order_code}
-        </h1>
-        <p className="text-gray-600 text-sm">
-          Khách hàng: <b>{production?.customer_name}</b> – Sản phẩm:{" "}
-          <b>{production?.product_name}</b>
-        </p>
+        <div className="flex justify-between items-start flex-wrap gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-blue-800 mb-1">
+              Lệnh sản xuất {production?.order_code}
+            </h1>
+            <p className="text-gray-600 text-sm">
+              Khách hàng: <b>{production?.customer_name}</b> – Sản phẩm:{" "}
+              <b>{production?.product_name}</b>
+            </p>
+          </div>
+          {production?.ready_print_file && (
+            <a
+              href={production.ready_print_file}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition text-sm font-medium"
+            >
+              <BsPrinter /> Tải file in
+            </a>
+          )}
+        </div>
       </div>
 
       {/* TAB BAR */}

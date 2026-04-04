@@ -14,6 +14,7 @@ import {
     EditOutlined,
     FileImageOutlined,
     FileTextOutlined,
+    InfoCircleOutlined,
     PrinterOutlined,
     SendOutlined,
     ShoppingOutlined,
@@ -44,7 +45,8 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/lib/auth-context";
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -61,10 +63,13 @@ export default function ConsultantRequestDetailPage() {
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
     const [updateReason, setUpdateReason] = useState("");
     const [updateForm] = Form.useForm();
+    const { user } = useAuth();
 
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewData, setPreviewData] = useState<OrderRequestWithQuotes | null>(null);
+    const [scrolledContracts, setScrolledContracts] = useState<Set<number>>(new Set());
+    const isFullyScrolled = previewData && previewData.quotes.length > 0 && scrolledContracts.size === previewData.quotes.length;
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
@@ -196,6 +201,7 @@ export default function ConsultantRequestDetailPage() {
                 if (data && data.quotes && data.quotes.length > 0) {
                     setPreviewData(data);
                     setIsContractCommitted(false); // Reset before opening
+                    setScrolledContracts(new Set()); // Reset scroll tracking for contracts
                     setIsPreviewModalOpen(true);
                 } else {
                     message.warning("Không tìm thấy thông tin báo giá để xem trước.");
@@ -230,6 +236,21 @@ export default function ConsultantRequestDetailPage() {
             message.error("Không thể gửi báo giá. Vui lòng thử lại sau.");
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleContractScroll = (e: React.UIEvent<HTMLDivElement>, quoteId: number) => {
+        const target = e.currentTarget;
+        const scrollPosition = target.scrollTop + target.clientHeight;
+        const scrollHeight = target.scrollHeight;
+
+        if (scrollHeight > 0 && scrollPosition / scrollHeight >= 0.66) {
+            setScrolledContracts(prev => {
+                if (prev.has(quoteId)) return prev;
+                const next = new Set(prev);
+                next.add(quoteId);
+                return next;
+            });
         }
     };
 
@@ -512,7 +533,7 @@ export default function ConsultantRequestDetailPage() {
                                                     ))}
                                                 </Space>
                                             </Descriptions.Item>
-                                         )}
+                                        )}
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
@@ -755,22 +776,22 @@ export default function ConsultantRequestDetailPage() {
                                                         <span className="text-slate-500 text-sm">Loại phủ:</span>
                                                         <span className="font-medium text-slate-800 text-sm">{formatCoatingType(estimate.coating_type)}</span>
                                                     </div>
-                                                    
+
                                                     <div className="flex justify-between items-center mb-2">
                                                         <span className="text-slate-500 text-sm">Đặt cọc:</span>
                                                         <span className="font-semibold text-accent-dark">{formatCurrency(estimate.deposit_amount)}</span>
                                                     </div>
-                                                    
+
                                                     {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
-                                                         <div className="flex justify-between items-start mb-2">
-                                                             <span className="text-slate-500 text-sm">Loại mực:</span>
-                                                             <Space wrap size={[4, 4]} style={{ justifyContent: 'flex-end', maxWidth: '70%' }}>
-                                                                 {estimate.ink_type_names.map((ink: string, idx: number) => (
-                                                                     <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2 text-xs">{ink}</Tag>
-                                                                 ))}
-                                                             </Space>
-                                                         </div>
-                                                     )}
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <span className="text-slate-500 text-sm">Loại mực:</span>
+                                                            <Space wrap size={[4, 4]} style={{ justifyContent: 'flex-end', maxWidth: '70%' }}>
+                                                                {estimate.ink_type_names.map((ink: string, idx: number) => (
+                                                                    <Tag key={idx} color="blue" className="m-0 border-0 rounded px-2 text-xs">{ink}</Tag>
+                                                                ))}
+                                                            </Space>
+                                                        </div>
+                                                    )}
 
                                                     <div className="flex justify-between items-center mb-3">
                                                         <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
@@ -1143,8 +1164,17 @@ export default function ConsultantRequestDetailPage() {
                     bodyStyle={{ padding: 0, backgroundColor: '#f8fafc' }}
                 >
                     <div className="max-h-[90vh] overflow-y-auto p-4 md:p-8">
-                        <div className="mb-6 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-slate-800 m-0">Xem trước Báo giá</h2>
+                        <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                            <div className="flex flex-col">
+                                <h2 className="text-xl font-bold text-slate-800 m-0">Xem trước Báo giá</h2>
+                                {user && (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Tag color="cyan" icon={<UserOutlined />} className="m-0 px-2 py-0.5 rounded-md font-medium border-0">
+                                            Tư vấn viên: {user.full_name}
+                                        </Tag>
+                                    </div>
+                                )}
+                            </div>
                             <div className="flex gap-3">
                                 <Button onClick={() => setIsPreviewModalOpen(false)} className="rounded-lg">
                                     Đóng
@@ -1152,9 +1182,9 @@ export default function ConsultantRequestDetailPage() {
                                 <Button
                                     type="primary"
                                     icon={<SendOutlined />}
-                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${!isContractCommitted ? 'opacity-50 grayscale' : ''}`}
+                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${(!isContractCommitted || !isFullyScrolled) ? 'opacity-50 grayscale' : ''}`}
                                     loading={sending}
-                                    disabled={!isContractCommitted}
+                                    disabled={!isContractCommitted || !isFullyScrolled}
                                     onClick={handleSendQuote}
                                 >
                                     Xác nhận và Gửi cho khách
@@ -1162,16 +1192,22 @@ export default function ConsultantRequestDetailPage() {
                             </div>
                         </div>
 
-                        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-                            <Checkbox 
-                                checked={isContractCommitted} 
+                        <div className={`mb-6 bg-amber-50 border ${isFullyScrolled ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-4 flex items-center justify-between gap-3`}>
+                            <Checkbox
+                                checked={isContractCommitted}
                                 onChange={(e) => setIsContractCommitted(e.target.checked)}
                                 className="text-amber-800 font-medium"
+                            // disabled={!isFullyScrolled}
                             >
                                 <span className="text-sm">
                                     Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
                                 </span>
                             </Checkbox>
+                            {!isFullyScrolled && (
+                                <Tag color="warning" className="m-0 pulse-animation">
+                                    Vui lòng lướt xem hợp đồng (2/3) để xác nhận
+                                </Tag>
+                            )}
                         </div>
 
                         {customerMessage.trim() && (
@@ -1293,7 +1329,7 @@ export default function ConsultantRequestDetailPage() {
                                                             ))}
                                                         </div>
 
-                                                        {(quote.consultant_contract_path || quote.customer_signed_contract_path) && (
+                                                        {/* {(quote.consultant_contract_path || quote.customer_signed_contract_path) && (
                                                             <div className="mt-4">
                                                                 <h3 className="text-[11px] font-bold uppercase pb-1 mb-2 border-b-2 border-indigo-500 text-indigo-600 tracking-wide">
                                                                     Hợp đồng
@@ -1310,7 +1346,7 @@ export default function ConsultantRequestDetailPage() {
                                                                     </Button>
                                                                 </div>
                                                             </div>
-                                                        )}
+                                                        )} */}
                                                     </div>
 
                                                     {/* Right: Tổng thanh toán */}
@@ -1347,6 +1383,71 @@ export default function ConsultantRequestDetailPage() {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Bản xem trước Hợp đồng */}
+                                            <div className="mt-8 pt-6 border-t border-slate-100 px-6 pb-6 bg-slate-50 flex-1">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-sm font-bold uppercase text-slate-800 flex items-center gap-2 m-0 tracking-wide">
+                                                        <FileTextOutlined className="text-blue-600" />
+                                                        Bản Hợp đồng {previewData?.quotes && previewData.quotes.length > 1 ? index + 1 : ""}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2">
+                                                        {scrolledContracts.has(quote.quote_id) ? (
+                                                            <Tag color="success" className="m-0 border-0 rounded px-2 font-medium">
+                                                                Đã xem (2/3)
+                                                            </Tag>
+                                                        ) : (
+                                                            <Tag color="default" className="m-0 border-0 rounded px-2 font-medium">
+                                                                Chưa xem đủ
+                                                            </Tag>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    className="bg-white border-2 border-slate-200 rounded-xl max-h-[500px] overflow-y-auto shadow-inner relative"
+                                                    onScroll={(e) => handleContractScroll(e, quote.quote_id)}
+                                                >
+                                                    {(quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
+                                                        <div className="flex flex-col">
+                                                            {/* Hợp đồng Web Viewer - Cloudinary/Iframe */}
+                                                            <div className="w-full h-[600px] bg-slate-100 rounded-t-lg relative">
+                                                                <iframe
+                                                                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(quote.customer_signed_contract_path || quote.consultant_contract_path)}&embedded=true`}
+                                                                    className="w-full h-full border-0 rounded-t-lg shadow-sm"
+                                                                    title={`Hợp đồng #${index + 1}`}
+                                                                />
+                                                                {/* <div className="absolute top-2 right-2 flex gap-2">
+                                                                    <Tag color="blue" className="m-0 border-0 shadow-sm opacity-90 cursor-help" title="Bạn có thể lướt xem trực tiếp trên web">
+                                                                        Web View
+                                                                    </Tag>
+                                                                </div> */}
+                                                            </div>
+
+                                                            {/* Bản sao lưu HTML để đảm bảo scroll tracking (hoặc nội dung đi kèm) */}
+                                                            {quote.email_html && (
+                                                                <div className="p-8 border-t border-slate-100 bg-white">
+                                                                    <div className="mb-6 flex items-center gap-2 text-indigo-800 font-bold text-xs uppercase tracking-widest border-b border-indigo-100 pb-2">
+                                                                        <InfoCircleOutlined className="text-indigo-500" />
+                                                                        Nội dung chi tiết (Scrollable)
+                                                                    </div>
+                                                                    <div
+                                                                        className="contract-content prose prose-sm max-w-none text-slate-700 leading-relaxed font-serif"
+                                                                        dangerouslySetInnerHTML={{ __html: quote.email_html }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center py-20 bg-slate-50 text-slate-400 font-sans h-[400px]">
+                                                            <FileTextOutlined style={{ fontSize: 64 }} className="mb-4 opacity-10" />
+                                                            <p className="m-0 text-base font-medium">Đang chuẩn bị file Hợp đồng...</p>
+                                                            <p className="m-0 text-sm opacity-60">Dữ liệu hợp đồng chưa được Cloudinary xử lý xong</p>
+                                                        </div>
+                                                    )}
+
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -1374,6 +1475,15 @@ export default function ConsultantRequestDetailPage() {
                     }
                     .animate-fade-in-up {
                         animation: fadeInUp 0.4s ease-out forwards;
+                    }
+
+                    @keyframes pulse {
+                        0% { opacity: 0.6; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0.6; }
+                    }
+                    .pulse-animation {
+                        animation: pulse 2s infinite ease-in-out;
                     }
 
                     /* Custom Scrollbar for compact lists */
