@@ -84,6 +84,7 @@ export interface RequestDetailResponse {
   quantity: number;
   description: string;
   design_file_path: string; // URL Cloudinary
+  printer_ready_file_path: string; // URL Cloudinary
   detail_address: string;
   note: string;
   consultant_contract_path: string;
