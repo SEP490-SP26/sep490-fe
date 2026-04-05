@@ -2,7 +2,7 @@
 
 import axios from "@/apiRequests/axios";
 import { requestOrderApi } from "@/apiRequests/request";
-import { getSignalRConnection } from "@/lib/signalr";
+
 import { OrderRequest } from "@/schemaValidations/common.schema";
 import {
   CaretDownOutlined,
@@ -85,51 +85,7 @@ export default function ConsultantOrdersPage() {
     fetchAllOrders();
   }, [fetchAllOrders]);
 
-  //===signalr======
-  useEffect(() => {
-    let conn: Awaited<ReturnType<typeof getSignalRConnection>>;
 
-    getSignalRConnection().then((c) => {
-      conn = c;
-      conn.invoke("JoinRequestsAll").catch(console.error);
-
-      conn.on("request.changed", (evt: {
-        request_id: number;
-        old_status: string | null;
-        new_status: string;
-        action: string;
-      }) => {
-        if (evt.action === "created") {
-          fetchAllOrders();
-          message.info(` Đơn hàng mới #${evt.request_id} vừa được tạo`);
-        }
-        else if (evt.action === "manager_verified") {
-          fetchAllOrders();
-          setAllOrders((prev) =>
-            prev.map((o) =>
-              o.order_request_id === evt.request_id
-                ? { ...o, process_status: evt.new_status }
-                : o
-            )
-          );
-        }
-        else {
-          setAllOrders((prev) =>
-            prev.map((o) =>
-              o.order_request_id === evt.request_id
-                ? { ...o, process_status: evt.new_status }
-                : o
-            )
-          );
-        }
-      });
-    });
-
-    return () => {
-      conn?.off("request.changed");
-      conn?.invoke("LeaveRequestsAll").catch(() => { });
-    };
-  }, [fetchAllOrders]);
 
   // Cancel mutation
   const cancelMutation = useMutation({

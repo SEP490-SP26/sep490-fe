@@ -4,7 +4,7 @@ import React from "react";
 import { Avatar, Dropdown } from "antd";
 import { UserOutlined, SettingOutlined, LogoutOutlined } from "@ant-design/icons";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
-import { useNotifications, defaultGroupsForRole } from "@/hooks/useNotifications";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface RoleHeaderProps {
   userInfo?: {
@@ -45,7 +45,6 @@ export default function RoleHeader({
   } = useNotifications({
     hubUrl: HUB_URL,
     role:   userInfo?.role ?? "",          // ← bắt buộc, dùng để filter
-    groups: defaultGroupsForRole(userInfo?.role ?? ""),
     accessToken,
     onNewNotification: (n) => {
       // Tích hợp toast tại đây, ví dụ với sonner:

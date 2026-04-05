@@ -25,7 +25,6 @@ import {
   BsXLg,
 } from "react-icons/bs";
 
-import { getSignalRConnection } from "@/lib/signalr";
 
 /* =======================
    TYPES
@@ -461,30 +460,6 @@ export default function ProductionDetailPage() {
       enabled: !!id,
     });
 
-  /* =============================== SIGNALR ========================= */
-  useEffect(() => {
-    if (!production?.prod_id) return;
-
-    let conn: any;
-
-    getSignalRConnection().then((c) => {
-      conn = c;
-      conn.invoke("JoinProd", production.prod_id);
-
-      conn.on("ProdUpdated", () => {
-        queryClient.invalidateQueries({
-          queryKey: ["production-detail", id],
-        });
-      });
-    });
-
-    return () => {
-      if (conn) {
-        conn.off("ProdUpdated");
-        conn.invoke("LeaveProd", production.prod_id);
-      }
-    };
-  }, [production?.prod_id]);
 
   const sortedStages = useMemo(() => {
     return production?.stages

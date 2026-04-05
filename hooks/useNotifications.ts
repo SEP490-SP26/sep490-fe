@@ -3,35 +3,12 @@
 import { useEffect, useCallback, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 
-/* ================================================================
-   1. DOMAIN EVENTS
-   ================================================================ */
-
-export interface RequestChangedEvent {
-  order_id: number;
-  request_id: number;
-  old_status: string | null;
-  new_status: string | null;
-  action:
-    | "created"
-    | "updated"
-    | "deleted"
-    | "submitted_for_approval"
-    | "manager_verified"
-    | "manager_declined"
-    | "Payment"
-    | (string & {});
-  changed_at: string;
-  changed_by: string | null;
-}
-
-export interface RequestNoteChangedEvent {
-  request_id: number;
-  note_id?: number;
-  consultant_note?: string | null;
-  action: "added" | "updated" | "deleted" | (string & {});
-  changed_at: string;
-  changed_by: string | null;
+/**
+ * Event nhận từ backend qua các method role-based.
+ * Backend gọi: Clients.Group(ByRole("manager")).SendAsync("methodName", { message })
+ */
+export interface RoleNotificationEvent {
+  message: string;
 }
 
 /* ================================================================
@@ -40,58 +17,48 @@ export interface RequestNoteChangedEvent {
 
 export interface AppNotification {
   id: string;
-  type: "request_changed" | "request_note";
   title: string;
   message: string;
   timestamp: Date;
   read: boolean;
-  requestId: number;
   action: string;
-  oldStatus?: string | null;
-  newStatus?: string | null;
 }
 
+
 /* ================================================================
-   3. ROLE → ACTION FILTER MAP
+   3b. SIGNALR METHOD LIST
+
+   Backend gọi: Clients.Group(ByRole("manager")).SendAsync("processing", { message })
+   Backend đã tự route đúng role qua ByRole() group.
+   Frontend chỉ cần đăng ký listener cho các method name mà BE gọi.
    
-   Định nghĩa action nào sẽ được hiển thị cho role nào.
-   BE publish lên group "requests-all" và "requests-role-{role}",
-   nhưng vì dùng singleton connection (1 WebSocket), tất cả listener
-   đều nhận được event. Filter này là tầng bảo vệ ở client.
+   Khi BE thêm method mới, chỉ cần thêm tên method vào danh sách này.
    ================================================================ */
 
 /**
- * Các action mà role được phép nhận thông báo.
- * - undefined  → nhận tất cả (dùng cho role không xác định)
- * - string[]   → chỉ nhận các action trong danh sách
+ * Danh sách tất cả method name mà backend SendAsync() có thể gọi.
+ * Backend route đúng role qua ByRole() → frontend nhận được = hiển thị luôn.
+ *
+ * Khi BE thêm method mới cho role nào, thêm tên method vào đây.
  */
-const ROLE_ACTION_FILTER: Record<string, string[]> = {
-  consultant: [
-    "created",           // request mới được assign cho mình
-    "manager_verified",  // manager duyệt báo giá của mình
-    "manager_declined",  // manager từ chối báo giá
-    "Payment",           // khách hàng thanh toán
-  ],
-  manager: [
-    "submitted_for_approval", // consultant gửi lên để duyệt
-    "created",                // request mới tạo
-    "Payment",                // khách hàng thanh toán
-  ],
-  "production manager": [
-    "Payment",           // khách thanh toán → cần chuẩn bị sản xuất
-    "manager_verified",  // request được duyệt → có thể vào lịch
-  ],
-};
-
-/**
- * Kiểm tra xem role có được nhận action này không.
- * Role không nằm trong ROLE_ACTION_FILTER → nhận tất cả (fallback an toàn).
- */
-function isActionAllowedForRole(action: string, role: string): boolean {
-  const allowed = ROLE_ACTION_FILTER[role.toLowerCase()];
-  if (!allowed) return true; // role lạ → không filter
-  return allowed.includes(action);
-}
+export const SIGNALR_NOTIFICATION_METHODS: string[] = [
+  "processing",
+  "createOrder",
+  "Paid",
+  "waiting",
+  "deposited",
+  "scheduled",
+  "pending",
+  "consultantCreateRequest",
+  "verified",
+  "declined",
+  "finishedTask",
+  // Thêm method mới ở đây khi BE mở rộng, ví dụ:
+  // "approvedRequest",
+  // "rejectedRequest",
+  // "materialReady",
+  // "warehouseExport",
+];
 
 /* ================================================================
    4. SINGLETON CONNECTION + INTERNAL EVENT BUS
@@ -102,12 +69,10 @@ function isActionAllowedForRole(action: string, role: string): boolean {
      sau đó fan-out ra các subscriber qua event bus nội bộ.
    ================================================================ */
 
-type RequestChangedSubscriber = (evt: RequestChangedEvent) => void;
-type RequestNoteSubscriber    = (evt: RequestNoteChangedEvent) => void;
+type RoleNotificationSubscriber = (method: string, evt: RoleNotificationEvent) => void;
 
 const _subscribers = {
-  requestChanged: new Set<RequestChangedSubscriber>(),
-  requestNote:    new Set<RequestNoteSubscriber>(),
+  roleNotification: new Set<RoleNotificationSubscriber>(),
 };
 
 let _connection:        signalR.HubConnection | null = null;
@@ -147,13 +112,12 @@ export async function getHubConnection(
     if (!_listenersRegistered) {
       _listenersRegistered = true;
 
-      conn.on("request.changed", (evt: RequestChangedEvent) => {
-        _subscribers.requestChanged.forEach((cb) => cb(evt));
-      });
-
-      conn.on("request.noteChanged", (evt: RequestNoteChangedEvent) => {
-        _subscribers.requestNote.forEach((cb) => cb(evt));
-      });
+      // ─── Đăng ký listener cho tất cả notification methods ───
+      for (const method of SIGNALR_NOTIFICATION_METHODS) {
+        conn.on(method, (evt: RoleNotificationEvent) => {
+          _subscribers.roleNotification.forEach((cb) => cb(method, evt));
+        });
+      }
     }
 
     return conn;
@@ -166,52 +130,28 @@ export async function getHubConnection(
    5. HUB GROUP CONFIG
    ================================================================ */
 
-export interface HubGroupConfig {
-  joinMethod:   string;
-  leaveMethod?: string;
-  args?:        unknown[];
-}
+/** Tất cả role được hỗ trợ join group theo role */
+const SUPPORTED_ROLES = [
+  "manager",
+  "consultant",
+  "production manager",
+  "warehouse manager",
+  "material manager",
+];
 
 /**
  * Group config chuẩn theo role.
  *
- * | Role         | Groups                                               |
- * |--------------|------------------------------------------------------|
- * | consultant   | JoinRequestsAll + JoinRequestsByRole("consultant")   |
- * | manager      | JoinRequestsAll + JoinRequestsByRole("manager")      |
- * | production   | JoinRequestsAll + JoinRequestsByRole("production")   |
- * | other        | JoinRequestsAll                                      |
+ * | Role               | Groups                                                          |
+ * |--------------------|-----------------------------------------------------------------|
+ * | consultant         | JoinRequestsAll + JoinRequestsByRole("consultant")              |
+ * | manager            | JoinRequestsAll + JoinRequestsByRole("manager")                 |
+ * | production manager | JoinRequestsAll + JoinRequestsByRole("production manager")      |
+ * | warehouse manager  | JoinRequestsAll + JoinRequestsByRole("warehouse manager")       |
+ * | material manager   | JoinRequestsAll + JoinRequestsByRole("material manager")        |
+ * | other              | JoinRequestsAll                                                 |
  */
-export function defaultGroupsForRole(role: string): HubGroupConfig[] {
-  const base: HubGroupConfig[] = [
-    { joinMethod: "JoinRequestsAll", leaveMethod: "LeaveRequestsAll" },
-  ];
 
-  if (["manager", "consultant", "production manager", "warehouse manager"].includes(role.toLowerCase())) {
-    base.push({
-      joinMethod:  "JoinRequestsByRole",
-      leaveMethod: "LeaveRequestsByRole",
-      args:        [role],
-    });
-  }
-
-  return base;
-}
-
-/* ================================================================
-   6. LABEL / META MAPS
-   ================================================================ */
-
-export const ACTION_META: Record<string, { title: string; icon: string; color: string }> = {
-  created:                { title: "Yêu cầu mới",           icon: "plus",    color: "emerald" },
-  updated:                { title: "Cập nhật yêu cầu",      icon: "edit",    color: "blue"    },
-  deleted:                { title: "Yêu cầu bị xóa",        icon: "trash",   color: "red"     },
-  submitted_for_approval: { title: "Gửi duyệt báo giá",     icon: "send",    color: "violet"  },
-  manager_verified:       { title: "Manager đã duyệt",      icon: "check",   color: "green"   },
-  manager_declined:       { title: "Manager từ chối",       icon: "x",       color: "red"     },
-  Payment:                { title: "Khách hàng thanh toán", icon: "payment", color: "amber"   },
-  added:                  { title: "Ghi chú mới",           icon: "note",    color: "indigo"  },
-};
 
 export const STATUS_LABELS: Record<string, string> = {
   Pending:     "Chờ xử lý",
@@ -228,73 +168,25 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 /* ================================================================
-   7. NOTIFICATION BUILDERS
+   7. NOTIFICATION BUILDER
    ================================================================ */
 
 function genId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function labelStatus(s?: string | null) {
-  if (!s) return null;
-  return STATUS_LABELS[s] ?? s;
-}
-
-function buildRequestChangedNotification(evt: RequestChangedEvent): AppNotification {
-  const meta = ACTION_META[evt.action] ?? { title: "Thay đổi yêu cầu", icon: "bell", color: "gray" };
-  const newLabel = labelStatus(evt.new_status);
-  const oldLabel = labelStatus(evt.old_status);
-
-  let message = `Yêu cầu #${evt.request_id} - Đơn hàng:${evt.order_id}`;
-
-  switch (evt.action) {
-    case "created":
-      message += " vừa được tạo mới và giao cho bạn.";
-      break;
-    case "submitted_for_approval":
-      message += " đã được tư vấn viên gửi lên để duyệt báo giá.";
-      break;
-    case "manager_verified":
-      message += " đã được manager xác nhận, chờ khách hàng thanh toán.";
-      break;
-    case "manager_declined":
-      message += " đã bị manager từ chối. Vui lòng cập nhật lại báo giá.";
-      break;
-    case "Payment":
-      message += evt.new_status === "Full Paid"
-        ? " — khách hàng đã thanh toán toàn bộ."
-        : " — khách hàng đã đặt cọc thành công.";
-      break;
-    default:
-      if (newLabel && oldLabel) message += `: ${oldLabel} → ${newLabel}`;
-      else if (newLabel) message += ` chuyển sang "${newLabel}"`;
-  }
-
+/**
+ * Build notification từ role-based SignalR method.
+ * Backend gọi: SendAsync("processing", { message = "Có yêu cầu #123 cần duyệt" })
+ */
+function buildNotification(method: string, evt: RoleNotificationEvent): AppNotification {
   return {
     id: genId(),
-    type: "request_changed",
-    title: meta.title,
-    message,
-    timestamp: new Date(evt.changed_at),
+    title: "Thông báo",
+    message: evt.message,
+    timestamp: new Date(),
     read: false,
-    requestId: evt.request_id,
-    action: evt.action,
-    oldStatus: evt.old_status,
-    newStatus: evt.new_status,
-  };
-}
-
-function buildRequestNoteNotification(evt: RequestNoteChangedEvent): AppNotification {
-  const meta = ACTION_META[evt.action] ?? { title: "Cập nhật ghi chú", icon: "note", color: "indigo" };
-  return {
-    id: genId(),
-    type: "request_note",
-    title: meta.title,
-    message: `Ghi chú trong yêu cầu #${evt.request_id} vừa được cập nhật.`,
-    timestamp: new Date(evt.changed_at),
-    read: false,
-    requestId: evt.request_id,
-    action: evt.action,
+    action: method,
   };
 }
 
@@ -304,9 +196,7 @@ function buildRequestNoteNotification(evt: RequestNoteChangedEvent): AppNotifica
 
 export interface UseNotificationsOptions {
   hubUrl:              string;
-  /** Role của user hiện tại — dùng để filter action */
   role:                string;
-  groups?:             HubGroupConfig[];
   accessToken?:        string;
   onNewNotification?:  (n: AppNotification) => void;
   maxItems?:           number;
@@ -319,7 +209,6 @@ export interface UseNotificationsOptions {
 export function useNotifications({
   hubUrl,
   role,
-  groups,
   accessToken,
   onNewNotification,
   maxItems = 50,
@@ -350,30 +239,16 @@ export function useNotifications({
   useEffect(() => {
     let cancelled = false;
 
-    // ── Subscriber: request.changed ──────────────────────────────
-    const onRequestChanged: RequestChangedSubscriber = (evt) => {
-      // Filter theo role — đây là nơi quyết định role nào nhận gì
-      if (!isActionAllowedForRole(evt.action, roleRef.current)) return;
-
-      const notification = buildRequestChangedNotification(evt);
-      setNotifications((prev) => [notification, ...prev].slice(0, maxItems));
-      onNewNotificationRef.current?.(notification);
-    };
-
-    // ── Subscriber: request.noteChanged ─────────────────────────
-    const onRequestNote: RequestNoteSubscriber = (evt) => {
-      // Chỉ consultant và manager nhận ghi chú
-      const noteRoles = ["consultant", "manager", "warehouse manager", "production manager"];
-      if (!noteRoles.includes(roleRef.current.toLowerCase())) return;
-
-      const notification = buildRequestNoteNotification(evt);
+    // ── Subscriber: role-based SignalR methods ──────────────────
+    // Backend đã route đúng role qua ByRole() group → nhận được = hiển thị
+    const onRoleNotification: RoleNotificationSubscriber = (method, evt) => {
+      const notification = buildNotification(method, evt);
       setNotifications((prev) => [notification, ...prev].slice(0, maxItems));
       onNewNotificationRef.current?.(notification);
     };
 
     // ── Đăng ký subscriber vào event bus ─────────────────────────
-    _subscribers.requestChanged.add(onRequestChanged);
-    _subscribers.requestNote.add(onRequestNote);
+    _subscribers.roleNotification.add(onRoleNotification);
 
     // ── Khởi động connection + join groups ───────────────────────
     const init = async () => {
@@ -385,12 +260,12 @@ export function useNotifications({
 
         conn.onreconnected(async () => {
           setConnected(true);
-          await joinGroups(conn, groups ?? defaultGroupsForRole(roleRef.current));
+          await joinGroups(conn, roleRef.current);
         });
         conn.onreconnecting(() => setConnected(false));
         conn.onclose(() => setConnected(false));
 
-        await joinGroups(conn, groups ?? defaultGroupsForRole(roleRef.current));
+        await joinGroups(conn, roleRef.current);
       } catch (err) {
         console.error("[useNotifications] init error:", err);
         setConnected(false);
@@ -402,38 +277,17 @@ export function useNotifications({
     return () => {
       cancelled = true;
       // Chỉ xóa subscriber của hook instance này — không ảnh hưởng role khác
-      _subscribers.requestChanged.delete(onRequestChanged);
-      _subscribers.requestNote.delete(onRequestNote);
+      _subscribers.roleNotification.delete(onRoleNotification);
       // KHÔNG gọi conn.off() — singleton connection dùng chung
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hubUrl, accessToken, maxItems]);
 
-  /* ── Dynamic group join/leave ── */
-  const joinGroup = useCallback(async (config: HubGroupConfig) => {
-    const conn = await getHubConnection(hubUrl, accessToken);
-    if (conn.state !== signalR.HubConnectionState.Connected) return;
-    await conn.invoke(config.joinMethod, ...(config.args ?? [])).catch(console.error);
-  }, [hubUrl, accessToken]);
 
-  const leaveGroup = useCallback(async (config: HubGroupConfig) => {
-    const conn = await getHubConnection(hubUrl, accessToken);
-    if (conn.state !== signalR.HubConnectionState.Connected) return;
-    if (config.leaveMethod) {
-      await conn.invoke(config.leaveMethod, ...(config.args ?? [])).catch(console.error);
-    }
-  }, [hubUrl, accessToken]);
 
-  const joinRequest  = useCallback(
-    (id: number) => joinGroup({ joinMethod: "JoinRequest",  leaveMethod: "LeaveRequest",  args: [id] }),
-    [joinGroup]
-  );
+  
 
-  const leaveRequest = useCallback(
-    (id: number) => leaveGroup({ joinMethod: "JoinRequest", leaveMethod: "LeaveRequest",  args: [id] }),
-    [leaveGroup]
-  );
-
+ 
   return {
     notifications,
     unreadCount,
@@ -441,10 +295,6 @@ export function useNotifications({
     markAsRead,
     markAllAsRead,
     clearAll,
-    joinGroup,
-    leaveGroup,
-    joinRequest,
-    leaveRequest,
   };
 }
 
@@ -452,8 +302,6 @@ export function useNotifications({
    10. INTERNAL UTILS
    ================================================================ */
 
-async function joinGroups(conn: signalR.HubConnection, groups: HubGroupConfig[]) {
-  for (const g of groups) {
-    await conn.invoke(g.joinMethod, ...(g.args ?? [])).catch(console.error);
-  }
+async function joinGroups(conn: signalR.HubConnection, role: string) {
+  await conn.invoke("JoinByRole", role.toLowerCase()).catch(console.error);
 }

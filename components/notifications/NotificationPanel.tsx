@@ -6,16 +6,8 @@ import {
   BellOutlined,
   CheckOutlined,
   DeleteOutlined,
-  PlusCircleOutlined,
-  EditOutlined,
-  SendOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  CreditCardOutlined,
-  FileTextOutlined,
 } from "@ant-design/icons";
 import type { AppNotification } from "@/hooks/useNotifications";
-import { STATUS_LABELS } from "@/hooks/useNotifications";
 
 interface NotificationPanelProps {
   notifications: AppNotification[];
@@ -27,47 +19,7 @@ interface NotificationPanelProps {
   onNavigate?: (requestId: number, status?: string | null) => void;
 }
 
-/* ─── Action icon map ────────────────────────────────────────── */
-
-const ACTION_ICON: Record<string, React.ReactNode> = {
-  created:                <PlusCircleOutlined className="text-emerald-500" />,
-  updated:                <EditOutlined       className="text-blue-500"    />,
-  deleted:                <DeleteOutlined     className="text-red-500"     />,
-  submitted_for_approval: <SendOutlined       className="text-violet-500"  />,
-  manager_verified:       <CheckCircleOutlined className="text-green-500"  />,
-  manager_declined:       <CloseCircleOutlined className="text-red-500"    />,
-  Payment:                <CreditCardOutlined  className="text-amber-500"  />,
-  added:                  <FileTextOutlined    className="text-indigo-500"  />,
-};
-
-/* ─── Status pill ────────────────────────────────────────────── */
-
-const STATUS_COLOR: Record<string, string> = {
-  Pending:       "bg-yellow-100 text-yellow-700",
-  Processing:    "bg-blue-100 text-blue-700",
-  Completed:     "bg-green-100 text-green-700",
-  Cancelled:     "bg-red-100 text-red-700",
-  Approved:      "bg-emerald-100 text-emerald-700",
-  Rejected:      "bg-rose-100 text-rose-700",
-  Verified:      "bg-teal-100 text-teal-700",
-  Declined:      "bg-rose-100 text-rose-700",
-  Accepted:      "bg-sky-100 text-sky-700",
-  Deposited:     "bg-amber-100 text-amber-700",
-  "Full Paid":   "bg-green-100 text-green-700",
-};
-
-function StatusPill({ status }: { status?: string | null }) {
-  if (!status) return null;
-  const label = STATUS_LABELS[status] ?? status;
-  const cls = STATUS_COLOR[status] ?? "bg-gray-100 text-gray-600";
-  return (
-    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cls}`}>
-      {label}
-    </span>
-  );
-}
-
-/* ─── Time ago ───────────────────────────────────────────────── */
+/* ─── Time ago ─────────────────────────────────────────────────────── */
 
 function timeAgo(date: Date): string {
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -77,20 +29,17 @@ function timeAgo(date: Date): string {
   return date.toLocaleDateString("vi-VN");
 }
 
-/* ─── Single item ────────────────────────────────────────────── */
+/* ─── Single item ──────────────────────────────────────────────────── */
 
 function NotificationItem({
   notification,
   onMarkAsRead,
-  onNavigate,
 }: {
   notification: AppNotification;
   onMarkAsRead: (id: string) => void;
-  onNavigate?: (requestId: number, status?: string | null) => void;
 }) {
   const handleClick = () => {
     if (!notification.read) onMarkAsRead(notification.id);
-    onNavigate?.(notification.requestId, notification.newStatus);
   };
 
   return (
@@ -102,7 +51,7 @@ function NotificationItem({
     >
       {/* Icon */}
       <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-base">
-        {ACTION_ICON[notification.action] ?? <BellOutlined className="text-gray-400" />}
+        <BellOutlined className="text-blue-500" />
       </div>
 
       {/* Content */}
@@ -120,10 +69,7 @@ function NotificationItem({
           {notification.message}
         </p>
 
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          {notification.type === "request_changed" && notification.newStatus && (
-            <StatusPill status={notification.newStatus} />
-          )}
+        <div className="flex items-center gap-2 mt-1.5">
           <span className="text-[10px] text-gray-400">
             {timeAgo(notification.timestamp)}
           </span>
@@ -142,7 +88,6 @@ function Panel({
   onMarkAsRead,
   onMarkAllAsRead,
   onClearAll,
-  onNavigate,
 }: NotificationPanelProps) {
   return (
     <div className="w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
@@ -208,7 +153,6 @@ function Panel({
               key={n.id}
               notification={n}
               onMarkAsRead={onMarkAsRead}
-              onNavigate={onNavigate}
             />
           ))
         )}

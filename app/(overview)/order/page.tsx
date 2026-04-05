@@ -409,7 +409,7 @@ export default function GuestOrderPage() {
     setIsSubmitting(true);
     try {
       const res = await requestOrderApi.createRequestOrderByCustomer(formDataToSubmit);
-      //await axios.post("https://localhost:7109/api/Requests",formDataToSubmit);
+      //const res = await axios.post("https://localhost:7109/api/Requests",formDataToSubmit);
       message.success("Gửi yêu cầu thành công!");
       setSuccessResponse(res);
       setIsSuccess(true);
