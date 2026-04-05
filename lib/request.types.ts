@@ -77,6 +77,8 @@ export interface RequestDetailResponse {
   process_status: 'Rejected' | 'Declined' | string;
   reason: string; // VD: "Từ chối deal do quá hạn 24h"
   delivery_date_change_reason?: string;
+  is_check_contract: boolean;
+  contract_check_note?: string;
 
   // Thông tin sản phẩm & Quy cách
   product_name: string;

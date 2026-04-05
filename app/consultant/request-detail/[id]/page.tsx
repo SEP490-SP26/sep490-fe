@@ -80,6 +80,10 @@ export default function ConsultantRequestDetailPage() {
     const [confirmingLayout, setConfirmingLayout] = useState(false);
     const [isContractCommitted, setIsContractCommitted] = useState(false);
 
+    const [isResignModalOpen, setIsResignModalOpen] = useState(false);
+    const [resignMessage, setResignMessage] = useState("");
+    const [sendingResign, setSendingResign] = useState(false);
+
     const [alternativeModalOpen, setAlternativeModalOpen] = useState(false);
     const [submittingAlternative, setSubmittingAlternative] = useState(false);
     const [alternativeForm] = Form.useForm();
@@ -282,6 +286,28 @@ export default function ConsultantRequestDetailPage() {
         }
     };
 
+    const handleSendResignRequest = async () => {
+        if (!resignMessage.trim()) {
+            message.warning("Vui lòng nhập lời nhắn gửi cho khách hàng.");
+            return;
+        }
+        setSendingResign(true);
+        try {
+            await requestOrderApi.emailRequestResignContract({
+                request_id: Number(requestId),
+                custom_message: resignMessage
+            });
+            message.success("Đã gửi yêu cầu ký lại hợp đồng cho khách hàng!");
+            setIsResignModalOpen(false);
+            setResignMessage("");
+        } catch (error: any) {
+            console.error("Lỗi khi gửi yêu cầu ký lại:", error);
+            message.error(error.response?.data?.message || "Không thể gửi yêu cầu. Vui lòng thử lại.");
+        } finally {
+            setSendingResign(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -395,7 +421,7 @@ export default function ConsultantRequestDetailPage() {
 
                         )}
 
-                        {orderDetail.process_status === 'Accepted' && !orderDetail.printer_ready_file_path && (
+                        {orderDetail.process_status === 'Accepted' && orderDetail.is_check_contract && !orderDetail.printer_ready_file_path && (
                             <Popconfirm
                                 title={<span className="font-semibold text-lg">Xác nhận bố cục</span>}
                                 description={`Bạn có chắc chắn muốn xác nhận bố cục cho yêu cầu #${orderDetail.request_id}?`}
@@ -804,10 +830,17 @@ export default function ConsultantRequestDetailPage() {
                                                     {/* Hợp đồng của báo giá */}
                                                     <div className="mt-3 pt-3 border-t border-slate-200">
                                                         {orderDetail.process_status === 'Accepted' ? (
-                                                            <div className="flex items-center gap-2 py-2 text-green-600 font-semibold bg-green-50/50 rounded-lg px-3 border border-green-100">
-                                                                <CheckCircleOutlined />
-                                                                <span>Hợp đồng đã được ký</span>
-                                                            </div>
+                                                            orderDetail.is_check_contract === false ? (
+                                                                <div className="flex items-center gap-2 py-2 text-red-600 font-semibold bg-red-50/50 rounded-lg px-3 border border-red-100">
+                                                                    <InfoCircleOutlined />
+                                                                    <span>Hợp đồng bị từ chối</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 py-2 text-green-600 font-semibold bg-green-50/50 rounded-lg px-3 border border-green-100">
+                                                                    <CheckCircleOutlined />
+                                                                    <span>Hợp đồng đã được ký</span>
+                                                                </div>
+                                                            )
                                                         ) : (
                                                             <>
                                                                 <div className="flex items-center justify-between mb-2">
@@ -1006,6 +1039,42 @@ export default function ConsultantRequestDetailPage() {
                                                             <span className="font-medium text-slate-800">{line.trim()}</span>
                                                         </div>
                                                     ))}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+
+                                    {/* Hợp đồng bị từ chối */}
+                                    {orderDetail.is_check_contract === false && (
+                                        <Card className="mt-6 border-red-200 bg-red-50/30 shadow-sm border-t-4 border-t-red-500">
+                                            <div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-red-800 mb-4 flex items-center gap-2">
+                                                            <FileTextOutlined className="text-red-500" />
+                                                            Hợp đồng bị từ chối
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-700 text-sm leading-relaxed bg-white border border-red-200 rounded-lg p-3 space-y-4">
+                                                    <div className="flex gap-2">
+                                                        <span className="text-red-500 mt-0.5">•</span>
+                                                        <span className="font-medium text-slate-800">
+                                                            Lý do: <span className="text-red-600 font-bold">{orderDetail.contract_check_note || "Không có lý do cụ thể"}</span>
+                                                        </span>
+                                                    </div>
+                                                    <Button 
+                                                        type="primary" 
+                                                        danger 
+                                                        icon={<SendOutlined />} 
+                                                        className="w-full h-10 font-bold rounded-lg shadow-md hover:shadow-lg transition-all"
+                                                        onClick={() => {
+                                                            setResignMessage(`Chào Quý khách,\n\nHợp đồng cho yêu cầu #${orderDetail.request_id} cần được ký lại do một số điều chỉnh. Rất xin lỗi sự bất tiện này.\n\nLý do: ${orderDetail.contract_check_note || "Cần điều chỉnh nội dung"}\n\nVui lòng xem lại và ký lại hợp đồng mới. Trân trọng!`);
+                                                            setIsResignModalOpen(true);
+                                                        }}
+                                                    >
+                                                        Gửi yêu cầu ký lại cho KH
+                                                    </Button>
                                                 </div>
                                             </div>
                                         </Card>
@@ -1485,6 +1554,48 @@ export default function ConsultantRequestDetailPage() {
                         </div>
 
 
+                    </div>
+                </Modal>
+
+                {/* Resign Contract Modal */}
+                <Modal
+                    title={
+                        <div className="flex items-center gap-2 text-red-600">
+                            <SendOutlined />
+                            <span>Yêu cầu khách hàng ký lại hợp đồng</span>
+                        </div>
+                    }
+                    open={isResignModalOpen}
+                    onCancel={() => setIsResignModalOpen(false)}
+                    footer={[
+                        <Button key="back" onClick={() => setIsResignModalOpen(false)}>
+                            Hủy
+                        </Button>,
+                        <Button 
+                            key="submit" 
+                            type="primary" 
+                            danger 
+                            loading={sendingResign} 
+                            onClick={handleSendResignRequest}
+                            className="bg-red-600 hover:bg-red-500"
+                        >
+                            Gửi yêu cầu
+                        </Button>,
+                    ]}
+                    centered
+                >
+                    <div className="py-4">
+                        <p className="font-medium mb-2">Lời nhắn gửi khách hàng:</p>
+                        <Input.TextArea
+                            rows={6}
+                            value={resignMessage}
+                            onChange={(e) => setResignMessage(e.target.value)}
+                            placeholder="Nhập lời nhắn gửi khách hàng về việc ký lại hợp đồng..."
+                            className="rounded-lg"
+                        />
+                        <div className="mt-2 text-xs text-slate-400 italic">
+                            * Khách hàng sẽ nhận được email thông báo và liên kết để xem/ký lại hợp đồng.
+                        </div>
                     </div>
                 </Modal>
                 {/* Mobile Back Button */}

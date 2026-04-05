@@ -25,6 +25,7 @@ import {
     Empty,
     Input,
     message,
+    Modal,
     Popconfirm,
     Popover,
     Skeleton,
@@ -63,6 +64,9 @@ export default function ManagerRequestDetailPage() {
     const [loading, setLoading] = useState(true);
     const [orderDetail, setOrderDetail] = useState<RequestDetailResponse | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
+
+    const [isContractModalVisible, setIsContractModalVisible] = useState(false);
+    const [checkingContract, setCheckingContract] = useState(false);
 
     const [noteMode, setNoteMode] = useState(false);
     const [managerNote, setManagerNote] = useState("");
@@ -143,6 +147,36 @@ export default function ManagerRequestDetailPage() {
                 [field]: value
             }
         }));
+    };
+
+    const handleContractCheck = async (isCheck: boolean) => {
+        if (!requestId) return;
+
+        let note = "";
+        if (!isCheck) {
+            note = window.prompt("Nhập lý do từ chối hợp đồng:") || "";
+            if (!note) {
+                message.error("Vui lòng nhập lý do từ chối");
+                return;
+            }
+        }
+
+        setCheckingContract(true);
+        try {
+            await requestOrderApi.contractCheckStatus({
+                request_id: Number(requestId),
+                is_check_contract: isCheck,
+                note: note
+            });
+            message.success(isCheck ? "Đã duyệt hợp đồng thành công" : "Đã từ chối hợp đồng");
+            setIsContractModalVisible(false);
+            window.location.reload();
+        } catch (error) {
+            console.error("Error checking contract:", error);
+            message.error("Có lỗi xảy ra khi duyệt hợp đồng, vui lòng thử lại");
+        } finally {
+            setCheckingContract(false);
+        }
     };
 
     const handleApproval = async (status: 'Verified' | 'Declined') => {
@@ -275,6 +309,8 @@ export default function ManagerRequestDetailPage() {
         }
     };
 
+    const contractPath = orderDetail?.customer_signed_contract_path || orderDetail?.cost_estimate?.find(e => e.is_active)?.customer_signed_contract_path;
+
     return (
         <div className="min-h-screen pb-8 bg-slate-50/30">
             <div className="max-w-7xl mx-auto px-2  animate-fade-in-up">
@@ -289,6 +325,11 @@ export default function ManagerRequestDetailPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+                        {orderDetail.process_status === 'Accepted' && contractPath && (
+                            <Button icon={<FileTextOutlined />} type="primary" onClick={() => setIsContractModalVisible(true)} className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-medium h-auto py-2 shadow-none border-0">
+                                Xem hợp đồng khách ký
+                            </Button>
+                        )}
                         {orderDetail.process_status === 'Processing' && (
                             noteMode ? (
                                 <>
@@ -859,6 +900,36 @@ export default function ManagerRequestDetailPage() {
 
 
                 </div>
+
+                <Modal
+                    open={isContractModalVisible}
+                    onCancel={() => setIsContractModalVisible(false)}
+                    footer={[
+                        <Button key="reject" danger onClick={() => handleContractCheck(false)} disabled={checkingContract}>
+                            Từ chối
+                        </Button>,
+                        <Button key="approve" type="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handleContractCheck(true)} loading={checkingContract}>
+                            Duyệt hợp đồng
+                        </Button>
+                    ]}
+                    width={1000}
+                    title={<span className="text-lg font-bold text-slate-800">Hợp đồng khách hàng đã ký</span>}
+                    destroyOnClose
+                    centered
+                >
+                    <div className="py-2">
+                        {contractPath ? (
+                            <iframe 
+                                src={contractPath.endsWith('.pdf') ? contractPath : `https://docs.google.com/viewer?url=${encodeURIComponent(contractPath)}&embedded=true`} 
+                                className="w-full rounded-lg border border-slate-200"
+                                style={{ height: '75vh' }}
+                                title="Customer Signed Contract"
+                            />
+                        ) : (
+                            <Empty description="Không tìm thấy file hợp đồng" />
+                        )}
+                    </div>
+                </Modal>
 
                 <style jsx global>{`
                     @keyframes fadeInUp {

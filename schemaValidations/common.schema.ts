@@ -355,6 +355,8 @@ export interface OrderRequest {
   number_of_plates: number;
   coating_type: string;
   has_lamination: boolean;
+  is_check_contract?: boolean;
+  contract_check_note?: string;
 }
 
 export interface Material {

@@ -368,7 +368,19 @@ export default function ConsultantOrdersPage() {
       sortOrders(
         filterBySearch(
           allOrders.filter(
-            (o) => o.process_status?.toLowerCase() === "accepted"
+            (o) => o.process_status?.toLowerCase() === "accepted" && o.is_check_contract !== false
+          )
+        )
+      ),
+    [allOrders, sortOrders, filterBySearch]
+  );
+
+  const rejectedContractOrders = useMemo(
+    () =>
+      sortOrders(
+        filterBySearch(
+          allOrders.filter(
+            (o) => o.process_status?.toLowerCase() === "accepted" && o.is_check_contract === false
           )
         )
       ),
@@ -812,6 +824,37 @@ export default function ConsultantOrdersPage() {
           locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
           bordered
           size="middle"
+        />
+      ),
+    },
+    {
+      key: "rejected_contract",
+      label: (
+        <span>
+          Hợp đồng bị từ chối
+          {rejectedContractOrders.length > 0 && (
+            <Tag color="red" className="ml-2">
+              {rejectedContractOrders.length}
+            </Tag>
+          )}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columns}
+          dataSource={rejectedContractOrders}
+          rowKey="order_request_id"
+          pagination={{
+            pageSize: 5,
+            showTotal: (total) => `Tổng ${total} đơn`,
+          }}
+          locale={{ emptyText: <Empty description="Không có hợp đồng bị từ chối" /> }}
+          bordered
+          size="middle"
+          onRow={(record) => ({
+            onClick: () => router.push(`/consultant/request-detail/${record.order_request_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
         />
       ),
     },
