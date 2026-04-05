@@ -2,7 +2,7 @@
 
 import axios from "@/apiRequests/axios";
 import { requestOrderApi } from "@/apiRequests/request";
-import { getSignalRConnection } from "@/lib/signalr";
+
 import { OrderRequest } from "@/schemaValidations/common.schema";
 import {
   CaretDownOutlined,
@@ -75,34 +75,7 @@ export default function ManagerOrdersPage() {
     fetchAllOrders();
   }, [fetchAllOrders]);
 
-  // SignalR for real-time updates
-  useEffect(() => {
-    let conn: Awaited<ReturnType<typeof getSignalRConnection>>;
 
-    getSignalRConnection().then((c) => {
-      conn = c;
-      conn.invoke("JoinRequestsAll").catch(console.error);
-
-      conn.on("request.changed", (evt: {
-        request_id: number;
-        old_status: string | null;
-        new_status: string;
-        action: string;
-      }) => {
-        if (evt.action === "created") {
-          fetchAllOrders();
-          message.info(`Đơn hàng mới #${evt.request_id} vừa được tạo`);
-        } else {
-          fetchAllOrders();
-        }
-      });
-    });
-
-    return () => {
-      conn?.off("request.changed");
-      conn?.invoke("LeaveRequestsAll").catch(() => { });
-    };
-  }, [fetchAllOrders]);
 
   // Sorting function
   const sortOrders = useMemo(

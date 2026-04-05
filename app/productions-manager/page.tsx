@@ -15,6 +15,7 @@ import { BiPackage } from "react-icons/bi";
 import {
   BsBook,
   BsCalendar,
+  BsCheckCircleFill,
   BsEye,
   BsLayers,
   BsPlay,
@@ -22,9 +23,87 @@ import {
   BsScissors,
 } from "react-icons/bs";
 import { FiZap } from "react-icons/fi";
-import { getHubConnection } from "@/hooks/useNotifications";
+
 import { tasksApi } from "@/apiRequests/tasks";
 import Title from "antd/es/typography/Title";
+
+/* =======================
+   ProcessingStages Component
+   - Fetches detail API per order to get individual stage status
+   - Shows progress bar + Finished/Ready/InProcessing/Unassigned per stage
+======================= */
+function ProcessingStages({ orderId }: { orderId: number }) {
+  const { data: detail } = useQuery({
+    queryKey: ["production-detail", orderId.toString()],
+    queryFn: () => productionsApi.getProdyctionByOrderId(orderId.toString()),
+    staleTime: 30_000,
+  });
+
+  if (!detail?.stages || detail.stages.length === 0) {
+    return (
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        <span className="text-xs text-gray-400">Đang tải công đoạn...</span>
+      </div>
+    );
+  }
+
+  const sortedStages = [...detail.stages].sort(
+    (a: any, b: any) => a.seq_num - b.seq_num
+  );
+
+  const totalStages = sortedStages.length;
+  const finishedCount = sortedStages.filter(
+    (s: any) => s.status === "Finished"
+  ).length;
+  const progressPercent =
+    totalStages > 0 ? Math.round((finishedCount / totalStages) * 100) : 0;
+
+  return (
+    <>
+      {/* Progress bar */}
+      <div className="mb-4">
+        <div className="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Tiến độ</span>
+          <span className="font-medium text-gray-700">
+            {finishedCount}/{totalStages} công đoạn ({progressPercent}%)
+          </span>
+        </div>
+        <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stage badges */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {sortedStages.map((stage: any, index: number) => {
+          const isFinished = stage.status === "Finished";
+          const isActive =
+            stage.status === "Ready" || stage.status === "InProcessing";
+
+          return (
+            <span
+              key={stage.process_id ?? index}
+              className={`rounded-md px-2 py-0.5 text-xs border flex items-center gap-1 transition-all duration-300
+              ${
+                isFinished
+                  ? "bg-green-100 text-green-700 border-green-300"
+                  : isActive
+                  ? "bg-blue-100 text-blue-700 border-blue-300 animate-pulse"
+                  : "bg-gray-100 text-gray-500 border-gray-300"
+              }`}
+            >
+              {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
+              {stage.process_name}
+            </span>
+          );
+        })}
+      </div>
+    </>
+  );
+}
 
 export default function ProdutionManager() {
   const queryClient = useQueryClient();
@@ -44,6 +123,11 @@ export default function ProdutionManager() {
   } = useProduction();
 
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+
+  /* ================== TABS ================== */
+
+  const [activeTab, setActiveTab] = useState<"scheduled" | "processing">("scheduled");
+
   /*==================ScanQR ======================= */
   const callApi = async (token: string) => {
     setIsManualLoading(true);
@@ -135,60 +219,7 @@ export default function ProdutionManager() {
     },
   });
 
-  /* ================== SIGNALR ================== */
 
-  useEffect(() => {
-  let conn: any;
- 
-  const init = async () => {
-    conn = await getHubConnection(
-      process.env.NEXT_PUBLIC_SIGNALR_HUB_URL ?? "/hubs/realtime"
-    );
- 
-    conn.on("OrderUpdated", (data: any) => {
-      console.log("🔥 ORDER UPDATED:", data);
-      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
-    });
- 
-    conn.on("ProdUpdated", (data: any) => {
-      console.log("⚙️ PROD UPDATED:", data);
-      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
-    });
- 
-    // Lắng nghe thêm event thanh toán từ khách hàng
-    conn.on("request.changed", (data: any) => {
-      if (data.action === "Payment") {
-        queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
-      }
-    });
-  };
- 
-  init();
- 
-  return () => {
-    if (conn) {
-      conn.off("OrderUpdated");
-      conn.off("ProdUpdated");
-      conn.off("request.changed");
-    }
-  };
-}, []);
-
-  useEffect(() => {
-  if (!scheduledOrder.length) return;
- 
-  const joinGroups = async () => {
-    const conn = await getHubConnection(
-      process.env.NEXT_PUBLIC_SIGNALR_HUB_URL ?? "/hubs/realtime"
-    );
- 
-    for (const o of scheduledOrder) {
-      await conn.invoke("JoinOrder", o.order_id);
-    }
-  };
- 
-  joinGroups();
-}, [scheduledOrder]);
 
   /* ================== FILTER DATA ================== */
 
@@ -351,18 +382,54 @@ export default function ProdutionManager() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ================= TABS ================= */}
 
-        {/* ================= ĐÃ LÊN LỊCH ================= */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          onClick={() => setActiveTab("scheduled")}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors
+            ${
+              activeTab === "scheduled"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+        >
+          <BsCalendar className="w-4 h-4" />
+          Đã lên lịch
+          <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold
+            ${activeTab === "scheduled" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>
+            {scheduledList.length}
+          </span>
+        </button>
 
+        <button
+          onClick={() => setActiveTab("processing")}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors
+            ${
+              activeTab === "processing"
+                ? "border-yellow-500 text-yellow-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+        >
+          <BsPlay className="w-4 h-4" />
+          Đang sản xuất
+          <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold
+            ${activeTab === "processing" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-500"}`}>
+            {processingList.length}
+          </span>
+        </button>
+      </div>
+
+      {/* ================= TAB CONTENT ================= */}
+
+      {activeTab === "scheduled" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
 
-          <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-800">
-            <BsCalendar className="w-5 h-5 text-blue-600" />
-            Đã lên lịch
-          </h2>
-
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+
+            {scheduledPageData.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">Không có đơn nào đã lên lịch.</p>
+            )}
 
             {scheduledPageData.map((order: any) => (
               <div
@@ -459,17 +526,16 @@ export default function ProdutionManager() {
           </div>
 
         </div>
+      )}
 
-        {/* ================= ĐANG SẢN XUẤT ================= */}
-
+      {activeTab === "processing" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
 
-          <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-800">
-            <BsPlay className="w-5 h-5 text-yellow-500" />
-            Đang sản xuất
-          </h2>
-
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+
+            {processingPageData.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">Không có đơn nào đang sản xuất.</p>
+            )}
 
             {processingPageData.map((order: any, index: number) => (
               <div
@@ -499,50 +565,7 @@ export default function ProdutionManager() {
                   {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
                 </p>
 
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>Tiến độ</span>
-                    <span className="font-medium text-gray-700">
-                      {Math.round(order.progress_percent)}%
-                    </span>
-                  </div>
-
-                  <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 rounded-full transition-all duration-300"
-                      style={{ width: `${order.progress_percent}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {order.stages.map((stage: string, index: number) => {
-
-                    const currentIndex =
-                      order.stages.indexOf(order.current_stage);
-
-                    const isCompleted =
-                      currentIndex !== -1 && index < currentIndex;
-
-                    const isCurrent = stage === order.current_stage;
-
-                    return (
-                      <span
-                        key={index}
-                        className={`rounded-md px-2 py-0.5 text-xs border
-                        ${
-                          isCurrent
-                            ? "bg-blue-100 text-blue-700 border-blue-300"
-                            : isCompleted
-                            ? "bg-green-100 text-green-700 border-green-300"
-                            : "bg-gray-100 text-gray-500 border-gray-300"
-                        }`}
-                      >
-                        {stage}
-                      </span>
-                    );
-                  })}
-                </div>
+                <ProcessingStages orderId={order.order_id} />
 
                 <Link
                   href={`/productions-manager/production/${order.order_id}`}
@@ -575,8 +598,7 @@ export default function ProdutionManager() {
           </div>
 
         </div>
-
-      </div>
+      )}
 
       <LoadingOverlay isLoading={isLoading} />
     </div>
