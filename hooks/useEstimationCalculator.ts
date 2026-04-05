@@ -2,35 +2,22 @@
 import {
   getProductTypeCode,
   calculatePrintSize,
-  calculateNUp,
   calculateBaseSheets,
   calculateTotalWaste,
-  calculatePrintArea,
-  calculateTotalPrintArea,
-  calculatePaperCost,
-  calculateInkCost,
-  calculateCoatingGlueCost,
-  calculateMountingGlueCost,
-  calculateLaminationCost,
-  calculateOverheadCost,
   calculateProductionDays,
   calculateRushFee,
-  calculatePlateCost,
-  roundToThousands
+  calculateEstimateForSave,
+  calculateInkCost,
+  normalizeProcessCode
 } from '@/lib/estimationUtils';
 import { EstimationConfig, EstimationInputs, EstimationResult, UseEstimationCalculator } from '@/lib/estimation.types';
 
-
 export const useEstimationCalculator = (): UseEstimationCalculator => {
-
-
-  // Hàm tính toán tổng hợp
   const calculateAll = (
     inputs: EstimationInputs,
     config?: Partial<EstimationConfig>
   ): EstimationResult => {
     const {
-      // Input chính
       paper_code,
       sheet_width_mm,
       sheet_length_mm,
@@ -47,25 +34,19 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       coating_type = 'KEO_NUOC',
       wave_type,
       number_of_plates = 0,
-
-      // Config và dữ liệu bổ sung
       wasteRules,
       processCosts,
       designConfig,
       materials,
       machines,
-
-      // Thông tin đơn hàng
       desired_delivery_date,
       discount_percent = 0,
       is_send_design = false,
       has_design_file = false
     } = inputs;
 
-    // 1. Chuẩn hóa sản phẩm
     const productTypeCode = getProductTypeCode(product_type, form_product);
 
-    // 2. Tính kích thước bản in
     const printSize = calculatePrintSize(
       length_mm,
       width_mm,
@@ -76,213 +57,207 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
       productTypeCode
     );
 
-    // 3. Tính số con trên 1 tờ
-    const nUp = calculateNUp(sheet_width_mm, sheet_length_mm, printSize.print_width_mm, printSize.print_length_mm);
+    const processes = (production_processes || '')
+      .split(',')
+      .map(normalizeProcessCode)
+      .filter(Boolean);
 
-    // 4. Tính số tờ cơ bản
+    const nUp = Math.max(
+      0,
+      Math.floor(sheet_width_mm / printSize.print_width_mm) *
+        Math.floor(sheet_length_mm / printSize.print_length_mm),
+      Math.floor(sheet_width_mm / printSize.print_length_mm) *
+        Math.floor(sheet_length_mm / printSize.print_width_mm)
+    );
+
     const sheetsBase = calculateBaseSheets(quantity, nUp);
 
-    // 5. Phân tích công đoạn
-    const processes = production_processes
-      ? production_processes.split(',').map(p => p.trim().toUpperCase())
-      : [];
+    const wasteResult = calculateTotalWaste(
+      {
+        baseSheets: sheetsBase,
+        nUp,
+        productTypeCode,
+        numberOfPlates: number_of_plates,
+        processes,
+        coatingType: coating_type,
+        quantity
+      },
+      wasteRules || undefined
+    );
 
-    // 6. Tính hao hụt
-    const wasteParams = {
-      baseSheets: sheetsBase,
-      productTypeCode,
-      numberOfPlates: number_of_plates,
-      processes,
-      coatingType: coating_type,
-      quantity
-    };
+    const waveMaterial = wave_type
+      ? materials?.find(m => m.code === wave_type)
+      : undefined;
 
-    const wasteResult = calculateTotalWaste(wasteParams, wasteRules);
+    const inkMeta = calculateInkCost(productTypeCode, 1, config);
+    const defaultDesignCost = designConfig?.default_design_cost || 200000;
 
-    // 7. Tính chi phí vật liệu
-    const printArea = calculatePrintArea(printSize.print_width_mm, printSize.print_length_mm);
-    const totalPrintArea = calculateTotalPrintArea(printArea, quantity);
-
-    // Tìm thông tin vật tư
-    const material = materials?.find(m => m.code === paper_code);
-    const paperUnitPrice = material?.cost_price || 0;
-
-    // Tính các chi phí vật liệu
-    const paperCost = calculatePaperCost(wasteResult.sheetsWithWaste, paperUnitPrice);
-    const inkCost = calculateInkCost(productTypeCode, totalPrintArea, config);
-    const coatingGlueCost = calculateCoatingGlueCost(
-      processes.includes('PHU'),
+    const draft = calculateEstimateForSave({
+      quantity,
+      paper_code,
+      wave_type,
       coating_type,
-      totalPrintArea,
-      config
-    );
-    const mountingGlueCost = calculateMountingGlueCost(
-      processes.includes('BOI'),
-      totalPrintArea,
-      config
-    );
-    const laminationCost = calculateLaminationCost(
-      processes.includes('CAN'),
-      totalPrintArea,
-      config
-    );
-
-    const materialCost = paperCost + inkCost.cost + coatingGlueCost.cost + mountingGlueCost.cost + laminationCost.cost;
-
-    // 8. Tính chi phí công đoạn (Moved up)
-    let totalProcessCost = 0;
-    const processDetails: any[] = [];
-
-    if (processCosts && processes.length > 0) {
-      processes.forEach(processCode => {
-        const processConfig = processCosts[processCode];
-        if (processConfig) {
-          let qtyForProcess = 0;
-
-          if (['IN', 'PHU', 'CAN'].includes(processCode)) {
-            qtyForProcess = totalPrintArea;
-          } else if (['BE', 'BOI', 'RALO'].includes(processCode)) {
-            qtyForProcess = wasteResult.sheetsWithWaste;
-          } else if (['DAN', 'DOT'].includes(processCode)) {
-            qtyForProcess = quantity;
-          }
-          // DUT, CAT không tính tiền
-
-          if (qtyForProcess > 0) {
-            const cost = qtyForProcess * (processConfig.unit_price || 0);
-            totalProcessCost += cost;
-            processDetails.push({
-              process: processCode,
-              unit_price: processConfig.unit_price || 0,
-              quantity: qtyForProcess,
-              unit: processConfig.unit || '',
-              total_cost: cost,
-              note: processConfig.note || ''
-            });
-          }
-        }
-      });
-    }
-
-    // 8.5 Tính chi phí kẽm (không phải là công đoạn, mà là chi phí phụ trợ tính theo khổ giấy)
-    const plateCostResult = calculatePlateCost(
-      number_of_plates,
+      design_file_path: has_design_file ? 'HAS_FILE' : null,
+      is_send_design,
       sheet_width_mm,
       sheet_length_mm,
-      config
-    );
+      wave_sheet_width_mm: waveMaterial?.sheet_width_mm || 0,
+      wave_sheet_length_mm: waveMaterial?.sheet_length_mm || 0,
+      print_width_mm: printSize.print_width_mm,
+      print_length_mm: printSize.print_length_mm,
+      processesCsv: production_processes || '',
+      processCosts: processCosts as any,
+      materials,
+      ink_rate_per_m2: inkMeta.rate,
+      ink_price_per_kg: inkMeta.unitPrice,
+      coating_glue_price_per_kg:
+        coating_type === 'KEO_NUOC'
+          ? (config?.materialPrices?.coating_glue_keo_nuoc_per_kg || 70000)
+          : (config?.materialPrices?.coating_glue_keo_dau_per_kg || 80000),
+      mounting_glue_price_per_kg: config?.materialPrices?.mounting_glue_per_kg || 60000,
+      lamination_price_per_kg: config?.materialPrices?.lamination_per_kg || 200000,
+      default_design_cost: defaultDesignCost,
+      waste_printing: wasteResult.wastes.printing,
+      waste_die_cutting: wasteResult.wastes.dieCutting,
+      waste_mounting: wasteResult.wastes.mounting,
+      waste_coating: wasteResult.wastes.coating,
+      waste_lamination: wasteResult.wastes.lamination,
+      rush_amount: 0,
+      discount_percent
+    });
 
-    if (plateCostResult.cost > 0) {
-      totalProcessCost += plateCostResult.cost;
-      processDetails.push({
-        process: 'KEM',
-        unit_price: plateCostResult.pricePerPlate,
-        quantity: number_of_plates,
-        unit: 'bản',
-        total_cost: plateCostResult.cost,
-        note: `Khổ kẽm: ${plateCostResult.sizeText}`
-      });
-    }
-
-    // 9. Tính chi phí thiết kế (Moved up)
-    const defaultDesignCost = designConfig?.default_design_cost || 200000;
-    const designCost = (!is_send_design && !has_design_file)
-      ? defaultDesignCost
-      : 0;
-
-    // 10. Tính thời gian sản xuất và phí gấp
     const productionDays = calculateProductionDays(
-      wasteResult.sheetsWithWaste,
+      draft.sheets_total,
       quantity,
       processes,
       machines
     );
 
-    // Rush fee based on material cost (or base production cost)
-    // Previously it was based on (Material + old Overhead). 
-    // We will use materialCost to keep it simple and relatively consistent, 
-    // or we could use (materialCost + totalProcessCost).
-    // Let's use Material Cost as the driver for complexity for now.
     const rushResult = calculateRushFee(
       productionDays,
       desired_delivery_date,
-      materialCost,
+      draft.base_cost,
       config
     );
 
-    // 11. Tính tổng chi phí
-    // Base Cost = Material + Process + Design
-    const baseCost = materialCost + totalProcessCost + designCost;
-
-    const subtotal = baseCost + rushResult.rushAmount;
-
-    const validatedDiscount = Math.min(Math.max(discount_percent, 0), 100);
-    const discountAmount = subtotal * validatedDiscount / 100;
-
-    const priceAfterDiscount = subtotal - discountAmount;
-
-    // Overhead (VAT) calculated on the discounted price
-    const overheadCost = calculateOverheadCost(priceAfterDiscount, config?.systemParameters?.vat_percent);
-
-    const finalTotalCost = roundToThousands(priceAfterDiscount + overheadCost);
-    const finalTotalBase = priceAfterDiscount; // For compatibility if needed, though finalTotalBase usually implied before process/design in old logic. Here it's effectively PriceAfterDiscount.
+    const calc = calculateEstimateForSave({
+      quantity,
+      paper_code,
+      wave_type,
+      coating_type,
+      design_file_path: has_design_file ? 'HAS_FILE' : null,
+      is_send_design,
+      sheet_width_mm,
+      sheet_length_mm,
+      wave_sheet_width_mm: waveMaterial?.sheet_width_mm || 0,
+      wave_sheet_length_mm: waveMaterial?.sheet_length_mm || 0,
+      print_width_mm: printSize.print_width_mm,
+      print_length_mm: printSize.print_length_mm,
+      processesCsv: production_processes || '',
+      processCosts: processCosts as any,
+      materials,
+      ink_rate_per_m2: inkMeta.rate,
+      ink_price_per_kg: inkMeta.unitPrice,
+      coating_glue_price_per_kg:
+        coating_type === 'KEO_NUOC'
+          ? (config?.materialPrices?.coating_glue_keo_nuoc_per_kg || 70000)
+          : (config?.materialPrices?.coating_glue_keo_dau_per_kg || 80000),
+      mounting_glue_price_per_kg: config?.materialPrices?.mounting_glue_per_kg || 60000,
+      lamination_price_per_kg: config?.materialPrices?.lamination_per_kg || 200000,
+      default_design_cost: defaultDesignCost,
+      waste_printing: wasteResult.wastes.printing,
+      waste_die_cutting: wasteResult.wastes.dieCutting,
+      waste_mounting: wasteResult.wastes.mounting,
+      waste_coating: wasteResult.wastes.coating,
+      waste_lamination: wasteResult.wastes.lamination,
+      rush_amount: rushResult.rushAmount,
+      discount_percent
+    });
 
     return {
-      // Thông tin cơ bản
       productTypeCode,
       printSize,
-      nUp,
-      sheetsBase,
-
-      // Hao hụt
-      waste: wasteResult,
-
-      // Diện tích in
-      printArea: {
-        perUnit: printArea,
-        total: totalPrintArea
+      nUp: calc.n_up,
+      sheetsBase: calc.sheets_required,
+      waste: {
+        wastes: {
+          printing: wasteResult.wastes.printing,
+          dieCutting: wasteResult.wastes.dieCutting,
+          mounting: wasteResult.wastes.mounting,
+          coating: wasteResult.wastes.coating,
+          lamination: wasteResult.wastes.lamination,
+          gluing: calc.sheets_waste - (
+            wasteResult.wastes.printing +
+            wasteResult.wastes.dieCutting +
+            wasteResult.wastes.mounting +
+            wasteResult.wastes.coating +
+            wasteResult.wastes.lamination
+          )
+        },
+        totalWaste: calc.sheets_waste,
+        sheetsWithWaste: calc.sheets_total,
+        wastePercent: calc.sheets_required > 0
+          ? (calc.sheets_waste / calc.sheets_required) * 100
+          : 0
       },
-
-      // Chi phí
+      printArea: {
+        perUnit: (printSize.print_width_mm / 1000) * (printSize.print_length_mm / 1000),
+        total: Number(calc.total_area_m2)
+      },
       costs: {
         material: {
-          paper: paperCost,
-          ink: inkCost,
-          coatingGlue: coatingGlueCost,
-          mountingGlue: mountingGlueCost,
-          lamination: laminationCost,
-          total: materialCost
+          paper: Number(calc.paper_cost),
+          ink: {
+            cost: Number(calc.ink_cost),
+            weight: Number(calc.ink_weight_kg),
+            rate: Number(calc.ink_rate_per_m2),
+            unitPrice: inkMeta.unitPrice
+          },
+          coatingGlue: {
+            cost: Number(calc.coating_glue_cost),
+            weight: Number(calc.coating_glue_weight_kg),
+            rate: Number(calc.coating_glue_rate_per_m2),
+            unitPrice:
+              coating_type === 'KEO_NUOC'
+                ? (config?.materialPrices?.coating_glue_keo_nuoc_per_kg || 70000)
+                : (config?.materialPrices?.coating_glue_keo_dau_per_kg || 80000)
+          },
+          mountingGlue: {
+            cost: Number(calc.mounting_glue_cost),
+            weight: Number(calc.mounting_glue_weight_kg),
+            rate: Number(calc.mounting_glue_rate_per_m2),
+            unitPrice: config?.materialPrices?.mounting_glue_per_kg || 60000
+          },
+          lamination: {
+            cost: Number(calc.lamination_cost),
+            weight: Number(calc.lamination_weight_kg),
+            rate: Number(calc.lamination_rate_per_m2),
+            unitPrice: config?.materialPrices?.lamination_per_kg || 200000
+          },
+          total: Number(calc.material_cost)
         },
-        overhead: overheadCost,
-        base: baseCost,
-        process: totalProcessCost,
-        processDetails,
-        design: designCost
+        overhead: 0,
+        base: Number(calc.base_cost),
+        process: Number(calc.total_process_cost),
+        processDetails: calc.process_costs.map(p => ({ ...p, process: p.process_code, note: p.note || '' })),
+        design: Number(calc.design_cost)
       },
-
-      // Thời gian sản xuất
       production: {
         days: productionDays,
         rush: rushResult
       },
-
-      // Chiết khấu
       discount: {
         percent: discount_percent,
-        amount: discountAmount
+        amount: Number(calc.discount_amount)
       },
-
-      // Tổng
       totals: {
-        subtotal,
-        finalTotalBase,
-        finalTotalCost
+        subtotal: Number(calc.subtotal),
+        finalTotalBase: Number(calc.subtotal - calc.discount_amount),
+        finalTotalCost: Number(calc.final_total_cost)
       },
-
-      // Debug info
       debug: {
         processes,
-        materialInfo: material,
+        materialInfo: materials?.find(m => m.code === paper_code),
         configUsed: config
       }
     };
@@ -290,10 +265,13 @@ export const useEstimationCalculator = (): UseEstimationCalculator => {
 
   return {
     calculateAll,
-    // Export các hàm riêng lẻ nếu cần
     getProductTypeCode,
     calculatePrintSize,
-    calculateNUp,
+    calculateNUp: (sheetWidth, sheetHeight, printWidth, printHeight) =>
+      Math.max(
+        Math.floor(sheetWidth / printWidth) * Math.floor(sheetHeight / printHeight),
+        Math.floor(sheetWidth / printHeight) * Math.floor(sheetHeight / printWidth)
+      ),
     calculateBaseSheets
   };
 };

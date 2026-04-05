@@ -68,8 +68,8 @@ export default function ConsultantRequestDetailPage() {
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewData, setPreviewData] = useState<OrderRequestWithQuotes | null>(null);
-    const [scrolledContracts, setScrolledContracts] = useState<Set<number>>(new Set());
-    const isFullyScrolled = previewData && previewData.quotes.length > 0 && scrolledContracts.size === previewData.quotes.length;
+    const [reviewedContracts, setReviewedContracts] = useState<Set<number>>(new Set());
+    const isAllContractsReviewed = previewData && previewData.quotes.length > 0 && reviewedContracts.size === previewData.quotes.length;
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
@@ -201,7 +201,7 @@ export default function ConsultantRequestDetailPage() {
                 if (data && data.quotes && data.quotes.length > 0) {
                     setPreviewData(data);
                     setIsContractCommitted(false); // Reset before opening
-                    setScrolledContracts(new Set()); // Reset scroll tracking for contracts
+                    setReviewedContracts(new Set()); // Reset tracking for contracts
                     setIsPreviewModalOpen(true);
                 } else {
                     message.warning("Không tìm thấy thông tin báo giá để xem trước.");
@@ -239,20 +239,8 @@ export default function ConsultantRequestDetailPage() {
         }
     };
 
-    const handleContractScroll = (e: React.UIEvent<HTMLDivElement>, quoteId: number) => {
-        const target = e.currentTarget;
-        const scrollPosition = target.scrollTop + target.clientHeight;
-        const scrollHeight = target.scrollHeight;
-
-        if (scrollHeight > 0 && scrollPosition / scrollHeight >= 0.66) {
-            setScrolledContracts(prev => {
-                if (prev.has(quoteId)) return prev;
-                const next = new Set(prev);
-                next.add(quoteId);
-                return next;
-            });
-        }
-    };
+    // Scroll tracking removed because it doesn't work well with cross-origin iframes
+    // Replaced with explicit checkbox confirmation logic
 
     const handleSendMessageToCustomer = async () => {
         if (!customerMessage.trim()) {
@@ -1206,9 +1194,9 @@ export default function ConsultantRequestDetailPage() {
                                 <Button
                                     type="primary"
                                     icon={<SendOutlined />}
-                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${(!isContractCommitted || !isFullyScrolled) ? 'opacity-50 grayscale' : ''}`}
+                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${(!isContractCommitted || !isAllContractsReviewed) ? 'opacity-50 grayscale' : ''}`}
                                     loading={sending}
-                                    disabled={!isContractCommitted || !isFullyScrolled}
+                                    disabled={!isContractCommitted || !isAllContractsReviewed}
                                     onClick={handleSendQuote}
                                 >
                                     Xác nhận và Gửi cho khách
@@ -1216,20 +1204,20 @@ export default function ConsultantRequestDetailPage() {
                             </div>
                         </div>
 
-                        <div className={`mb-6 bg-amber-50 border ${isFullyScrolled ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-4 flex items-center justify-between gap-3`}>
+                        <div className={`mb-6 bg-amber-50 border ${isAllContractsReviewed ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-4 flex items-center justify-between gap-3`}>
                             <Checkbox
                                 checked={isContractCommitted}
                                 onChange={(e) => setIsContractCommitted(e.target.checked)}
                                 className="text-amber-800 font-medium"
-                            // disabled={!isFullyScrolled}
+                                disabled={!isAllContractsReviewed}
                             >
                                 <span className="text-sm">
                                     Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
                                 </span>
                             </Checkbox>
-                            {!isFullyScrolled && (
+                            {!isAllContractsReviewed && (
                                 <Tag color="warning" className="m-0 pulse-animation">
-                                    Vui lòng lướt xem hợp đồng (2/3) để xác nhận
+                                    Vui lòng xác nhận đã xem từng hợp đồng
                                 </Tag>
                             )}
                         </div>
@@ -1416,21 +1404,20 @@ export default function ConsultantRequestDetailPage() {
                                                         Bản Hợp đồng {previewData?.quotes && previewData.quotes.length > 1 ? index + 1 : ""}
                                                     </h3>
                                                     <div className="flex items-center gap-2">
-                                                        {scrolledContracts.has(quote.quote_id) ? (
+                                                        {reviewedContracts.has(quote.quote_id) ? (
                                                             <Tag color="success" className="m-0 border-0 rounded px-2 font-medium">
-                                                                Đã xem (2/3)
+                                                                Đã xác nhận
                                                             </Tag>
                                                         ) : (
                                                             <Tag color="default" className="m-0 border-0 rounded px-2 font-medium">
-                                                                Chưa xem đủ
+                                                                Chưa xác nhận
                                                             </Tag>
                                                         )}
                                                     </div>
                                                 </div>
 
                                                 <div
-                                                    className="bg-white border-2 border-slate-200 rounded-xl max-h-[500px] overflow-y-auto shadow-inner relative"
-                                                    onScroll={(e) => handleContractScroll(e, quote.quote_id)}
+                                                    className="bg-white border-2 border-slate-200 rounded-xl overflow-hidden shadow-inner relative flex flex-col"
                                                 >
                                                     {(quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
                                                         <div className="flex flex-col">
@@ -1461,6 +1448,25 @@ export default function ConsultantRequestDetailPage() {
                                                                     />
                                                                 </div>
                                                             )}
+
+                                                            {/* Nút xác nhận cho từng hợp đồng */}
+                                                            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                                                                <span className="text-sm text-slate-500 italic">Vui lòng lướt xem và kiểm tra kỹ hợp đồng.</span>
+                                                                <Checkbox 
+                                                                    checked={reviewedContracts.has(quote.quote_id)}
+                                                                    onChange={(e) => {
+                                                                        setReviewedContracts(prev => {
+                                                                            const next = new Set(prev);
+                                                                            if (e.target.checked) next.add(quote.quote_id);
+                                                                            else next.delete(quote.quote_id);
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                    className="font-bold text-blue-700"
+                                                                >
+                                                                    Tôi đã xem kỹ hợp đồng này
+                                                                </Checkbox>
+                                                            </div>
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col items-center justify-center py-20 bg-slate-50 text-slate-400 font-sans h-[400px]">

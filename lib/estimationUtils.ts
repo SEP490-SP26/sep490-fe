@@ -169,6 +169,7 @@ const calculateGluingWaste = (
 export const calculateTotalWaste = (
     params: {
         baseSheets: number;
+        nUp?: number;
         productTypeCode: string;
         numberOfPlates: number;
         processes: string[];
@@ -179,6 +180,7 @@ export const calculateTotalWaste = (
 ): WasteResult => {
     const {
         baseSheets,
+        nUp = 0,
         productTypeCode,
         numberOfPlates,
         processes,
@@ -186,15 +188,30 @@ export const calculateTotalWaste = (
         quantity
     } = params;
 
-    const processSet = new Set(processes?.map(p => p.trim().toUpperCase()) || []);
+    const processSet = new Set((processes || []).map(normalizeProcessCode));
+
+    const printing = calculatePrintingWaste(productTypeCode, numberOfPlates, wasteRules);
+    const dieCutting = calculateDieCuttingWaste(processSet.has('BE'), baseSheets, wasteRules);
+    const mounting = calculateMountingWaste(processSet.has('BOI'), baseSheets, wasteRules);
+    const coating = calculateCoatingWaste(processSet.has('PHU'), coatingType, baseSheets, wasteRules);
+    const lamination = calculateLaminationWaste(processSet.has('CAN'), baseSheets, wasteRules);
+
+    const gluingBoxes = calculateGluingWaste(processSet.has('DAN'), quantity, wasteRules);
+    const gluing =
+        !processSet.has('DAN') || !nUp || nUp <= 0
+            ? 0
+            : Math.max(
+                0,
+                Math.ceil((quantity + gluingBoxes) / nUp) - Math.ceil(quantity / nUp)
+            );
 
     const wastes = {
-        printing: calculatePrintingWaste(productTypeCode, numberOfPlates, wasteRules),
-        dieCutting: calculateDieCuttingWaste(processSet.has('BE'), baseSheets, wasteRules),
-        mounting: calculateMountingWaste(processSet.has('BOI'), baseSheets, wasteRules),
-        coating: calculateCoatingWaste(processSet.has('PHU'), coatingType, baseSheets, wasteRules),
-        lamination: calculateLaminationWaste(processSet.has('CAN_MANG'), baseSheets, wasteRules),
-        gluing: calculateGluingWaste(processSet.has('DAN'), quantity, wasteRules)
+        printing,
+        dieCutting,
+        mounting,
+        coating,
+        lamination,
+        gluing
     };
 
     const totalWaste = Object.values(wastes).reduce((sum, waste) => sum + waste, 0);
@@ -225,40 +242,47 @@ export const calculatePaperCost = (sheetsWithWaste: number, paperUnitPrice: numb
     return sheetsWithWaste * paperUnitPrice;
 };
 
+const resolveInkRate = (
+  productTypeCode: string,
+  config?: Partial<EstimationConfig>
+): number => {
+  const inkRates = config?.materialRates || {
+    ink_rate_gach_noi_dia: 0.02,
+    ink_rate_gach_xk_don_gian: 0.015,
+    ink_rate_hop_mau: 0.018,
+    ink_rate_gach_nhieu_mau: 0.025
+  };
+
+  if (productTypeCode === 'GACH_1MAU') {
+    return inkRates.ink_rate_gach_noi_dia;
+  }
+
+  if (productTypeCode === 'GACH_XUAT_KHAU_DON_GIAN') {
+    return inkRates.ink_rate_gach_xk_don_gian;
+  }
+
+  if (['GACH_XUAT_KHAU_TERACON', 'GACH_NOI_DIA_4SP', 'GACH_NOI_DIA_6SP'].includes(productTypeCode)) {
+    return inkRates.ink_rate_gach_nhieu_mau;
+  }
+
+  return inkRates.ink_rate_hop_mau;
+};
+
 export const calculateInkCost = (
-    productTypeCode: string,
-    totalPrintArea: number,
-    config?: Partial<EstimationConfig>
+  productTypeCode: string,
+  totalPrintArea: number,
+  config?: Partial<EstimationConfig>
 ): MaterialCostDetail => {
-    const inkRates = config?.materialRates || {
-        ink_rate_gach_noi_dia: 0.02,
-        ink_rate_gach_xk_don_gian: 0.015,
-        ink_rate_hop_mau: 0.018,
-        ink_rate_gach_nhieu_mau: 0.025
-    };
+  const inkRate = resolveInkRate(productTypeCode, config);
+  const inkPrice = config?.materialPrices?.ink_price_per_kg || 150000;
 
-    const inkPrice = config?.materialPrices?.ink_price_per_kg || 150000;
-
-    let inkRate: number;
-
-    // Xác định định mức mực theo loại sản phẩm
-    if (productTypeCode === 'GACH_1MAU') {
-        inkRate = inkRates.ink_rate_gach_noi_dia;
-    } else if (productTypeCode === 'GACH_XUAT_KHAU_DON_GIAN') {
-        inkRate = inkRates.ink_rate_gach_xk_don_gian;
-    } else if (['GACH_XUAT_KHAU_TERACON', 'GACH_NOI_DIA_4SP', 'GACH_NOI_DIA_6SP'].includes(productTypeCode)) {
-        inkRate = inkRates.ink_rate_gach_nhieu_mau;
-    } else {
-        inkRate = inkRates.ink_rate_hop_mau;
-    }
-
-    const inkWeight = totalPrintArea * inkRate;
-    return {
-        cost: inkWeight * inkPrice,
-        weight: inkWeight,
-        rate: inkRate,
-        unitPrice: inkPrice
-    };
+  const inkWeight = totalPrintArea * inkRate;
+  return {
+    cost: inkWeight * inkPrice,
+    weight: inkWeight,
+    rate: inkRate,
+    unitPrice: inkPrice
+  };
 };
 
 export const calculatePlateCost = (
@@ -635,9 +659,9 @@ export type CalculateInput = {
     discount_percent: number;
 };
 
-const normalizeProcessCode = (code?: string) => {
-    const x = (code || "").trim().toUpperCase();
-    return x === "CAN_MANG" ? "CAN" : x;
+export const normalizeProcessCode = (code?: string): string => {
+  const x = (code || '').trim().toUpperCase();
+  return x === 'CAN_MANG' ? 'CAN' : x;
 };
 
 export const calculateEstimateForSave = (input: CalculateInput) => {
