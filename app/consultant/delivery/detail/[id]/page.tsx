@@ -720,6 +720,13 @@ export default function OrderDetailPage() {
               label="Ghi chú cho KH"
               value={order.message_to_customer || <span className="text-gray-300 italic text-xs">—</span>}
             /> */}
+            {order.delivery_note && (
+              <InfoRow
+                icon={<FileTextOutlined />}
+                label="Ghi chú giao hàng"
+                value={order.delivery_note}
+              />
+            )}
             {isFinished && (
               <div className="pt-3 border-t border-gray-50 mt-1">
                 <label className="block text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">
@@ -733,9 +740,6 @@ export default function OrderDetailPage() {
                   className="rounded-xl"
                   style={{ resize: "none", fontSize: 13 }}
                 />
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Ghi chú này sẽ được hiển thị trong email thông báo thanh toán gửi đến khách hàng.
-                </p>
                 <div className="flex gap-3 pt-3">
                   <Button
                     type="primary"

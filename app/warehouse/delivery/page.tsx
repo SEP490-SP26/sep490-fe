@@ -21,6 +21,7 @@ import dayjs, { Dayjs } from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { productionsApi } from "@/apiRequests/productions";
+import { useRouter } from "next/navigation";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -86,6 +87,7 @@ const TAB_ITEMS = [
 ======================= */
 
 const FinishProduction: React.FC = () => {
+  const router = useRouter();
   const [data, setData] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
@@ -394,7 +396,10 @@ const FinishProduction: React.FC = () => {
           dataSource={filteredData}
           pagination={{ pageSize: 10 }}
           bordered
-          onRow={() => ({
+          onRow={(record) => ({
+            onClick: () => {
+              router.push(`/warehouse/delivery/detail/${record.order_id}`);
+            },
             style: {
               cursor: "pointer",
             },
