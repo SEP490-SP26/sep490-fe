@@ -631,9 +631,6 @@ export default function OrderDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge value={order.process_status} />
-          <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
-            In đơn
-          </Button>
         </div>
       </div>
 
@@ -685,11 +682,6 @@ export default function OrderDetailPage() {
               label="Kích thước in"
               value={`${order.print_width_mm} × ${order.print_length_mm} mm`}
             />
-            <InfoRow
-              icon={<span className="text-xs font-bold">N</span>}
-              label="N-up"
-              value={`${order.n_up}`}
-            />
             {order.note && (
               <InfoRow icon={<FileTextOutlined />} label="Ghi chú" value={order.note} />
             )}
@@ -699,7 +691,7 @@ export default function OrderDetailPage() {
           </Section>
 
           {/* Production timeline */}
-          <Section title="Tiến Độ Sản Xuất" icon={<PrinterOutlined />} accent="#8b5cf6">
+          {/* <Section title="Tiến Độ Sản Xuất" icon={<PrinterOutlined />} accent="#8b5cf6">
             <InfoRow icon={<CalendarOutlined />} label="Ngày đặt" value={fmtDate(order.order_request_date)} />
             <InfoRow icon={<CalendarOutlined />} label="Ngày xác nhận" value={fmtDate(order.verified_at)} />
             <InfoRow icon={<CalendarOutlined />} label="Hoàn thành dự kiến" value={fmtDate(order.estimated_finish_date)} />
@@ -719,19 +711,19 @@ export default function OrderDetailPage() {
               }
             />
             <InfoRow icon={<CalendarOutlined />} label="Mong muốn giao" value={fmtDateShort(order.desired_delivery_date)} />
-          </Section>
+          </Section> */}
 
           {/* Delivery Info */}
           <Section title="Thông Tin Giao Hàng" icon={<SendOutlined />} accent="#ec4899">
-            <InfoRow
+            {/* <InfoRow
               icon={<FileTextOutlined />}
               label="Ghi chú cho KH"
               value={order.message_to_customer || <span className="text-gray-300 italic text-xs">—</span>}
-            />
+            /> */}
             {isFinished && (
               <div className="pt-3 border-t border-gray-50 mt-1">
                 <label className="block text-xs text-gray-500 mb-1.5 font-medium uppercase tracking-wide">
-                  Cập nhật ghi chú giao hàng
+                  Ghi chú giao hàng
                 </label>
                 <Input.TextArea
                   rows={3}
@@ -765,53 +757,8 @@ export default function OrderDetailPage() {
               </div>
             )}
           </Section>
-
-          {/* Design file */}
-          {order.design_file_path && (
-            <Section title="File Thiết Kế" icon={<FileTextOutlined />} accent="#14b8a6">
-              <div className="flex gap-4 items-start pt-1">
-                <Image
-                  src={order.design_file_path}
-                  alt="Design file"
-                  width={140}
-                  height={140}
-                  style={{
-                    objectFit: "cover",
-                    borderRadius: 10,
-                    border: "1px solid #f0f0f0",
-                  }}
-                />
-                <div className="flex flex-col gap-2 pt-1">
-                  <p className="text-xs text-gray-400">File thiết kế đã upload</p>
-                  <a
-                    href={order.design_file_path}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-500 text-xs underline break-all"
-                  >
-                    Xem file gốc
-                  </a>
-                  <div className="flex gap-2 mt-1">
-                    <span
-                      style={{
-                        background: order.is_send_design ? "#dcfce7" : "#fee2e2",
-                        color: order.is_send_design ? "#16a34a" : "#dc2626",
-                        fontSize: 11,
-                        padding: "2px 8px",
-                        borderRadius: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {order.is_send_design ? "Đã gửi thiết kế" : "Chưa gửi thiết kế"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Section>
-          )}
-
           {/* Contract files */}
-          {(estimate?.consultant_contract_path || estimate?.customer_signed_contract_path) && (
+          {/* {(estimate?.consultant_contract_path || estimate?.customer_signed_contract_path) && (
             <Section title="Hợp Đồng" icon={<FileTextOutlined />} accent="#6366f1">
               {estimate.consultant_contract_path && (
                 <div className="py-2 border-b border-gray-50">
@@ -840,13 +787,13 @@ export default function OrderDetailPage() {
                 </div>
               )}
             </Section>
-          )}
+          )} */}
         </div>
 
         {/* Right column */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
           {/* Cost summary */}
-          <Section title="Chi Phí" icon={<DollarOutlined />} accent="#16a34a">
+          {/* <Section title="Chi Phí" icon={<DollarOutlined />} accent="#16a34a">
             <CostRow label="Chi phí vật liệu" value={estimate?.material_cost ?? order.material_cost} />
             <CostRow label="Chi phí giấy" value={estimate?.paper_cost ?? order.paper_cost} />
             <CostRow label="Chi phí mực" value={estimate?.ink_cost ?? order.ink_cost} />
@@ -869,6 +816,7 @@ export default function OrderDetailPage() {
             <CostRow label="Tổng cộng" value={finalTotal} bold />
 
             {/* Deposit progress */}
+            {/*
             <div className="mt-4 pt-3 border-t border-gray-100">
               <div className="flex justify-between text-xs text-gray-500 mb-2">
                 <span>Đã cọc ({depositPct}%)</span>
@@ -888,10 +836,10 @@ export default function OrderDetailPage() {
                 <span className="font-semibold text-red-500">{fmt(remaining)}</span>
               </div>
             </div>
-          </Section>
+           </Section> */}
 
           {/* Production material details */}
-          <Section title="Chi Tiết Vật Liệu" icon={<FileTextOutlined />} accent="#0891b2">
+          {/* <Section title="Chi Tiết Vật Liệu" icon={<FileTextOutlined />} accent="#0891b2">
             <InfoRow
               icon={<FileTextOutlined />}
               label="Tờ yêu cầu"
@@ -930,7 +878,7 @@ export default function OrderDetailPage() {
                 value={estimate.cost_note}
               />
             )}
-          </Section>
+          </Section> */}
 
           {/* Quick summary card */}
           <div
@@ -974,11 +922,44 @@ export default function OrderDetailPage() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
+                <span className="opacity-70">Đã cọc</span>
+                <span className="font-bold text-green-500">{fmt(depositAmt)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="opacity-70">Còn lại</span>
-                <span className="font-bold text-red-300">{fmt(remaining)}</span>
+                <span className="font-bold text-red-500">{fmt(remaining)}</span>
               </div>
             </div>
           </div>
+          {/* Design file */}
+          {order.design_file_path && (
+            <Section title="File Thiết Kế" icon={<FileTextOutlined />} accent="#14b8a6">
+              <div className="flex gap-4 items-start pt-1">
+                <Image
+                  src={order.design_file_path}
+                  alt="Design file"
+                  width={140}
+                  height={140}
+                  style={{
+                    objectFit: "cover",
+                    borderRadius: 10,
+                    border: "1px solid #f0f0f0",
+                  }}
+                />
+                <div className="flex flex-col gap-2 pt-1">
+                  <p className="text-xs text-gray-400">File thiết kế đã upload</p>
+                  <a
+                    href={order.design_file_path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-500 text-xs underline break-all"
+                  >
+                    Xem file gốc
+                  </a>
+                </div>
+              </div>
+            </Section>
+          )}
         </div>
       </div>
 

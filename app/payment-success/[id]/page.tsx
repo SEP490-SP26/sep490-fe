@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react';
 import { Check, Package, User, FileText, TrendingUp, Calendar, MapPin, Phone, Mail, Banknote } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface OrderDetail {
   order_id: number;
@@ -59,7 +60,8 @@ export default function PaymentSuccess() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const orderId = new URLSearchParams(window.location.search).get('orderId') || '87';
+  const params = useParams();
+  const orderId = params.id;
 
   const formatVND = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {

@@ -1028,7 +1028,7 @@ export default function ProductionDetailPage() {
                             {stage.logs.map((log, i) => (
                               <tr key={i} className="border-t">
                                 <td className="px-3 py-2.5">
-                                  {formatDateTime(log.scanned_at)}
+                                  {formatDateTime(stage.end_time)}
                                 </td>
                                 <td className="px-3 py-2.5 text-right text-green-600 font-medium">
                                   {log.qty_good}
