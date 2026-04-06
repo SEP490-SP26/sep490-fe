@@ -28,10 +28,17 @@ export default function RoleHeader({
   className = "",
 }: RoleHeaderProps) {
   const [isVisible, setIsVisible] = React.useState(true);
+  const [localUser, setLocalUser] = React.useState<any>(null);
 
   React.useEffect(() => {
     const handleScroll = () => setIsVisible(window.scrollY < 10);
     window.addEventListener("scroll", handleScroll, { passive: true });
+    
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) setLocalUser(JSON.parse(stored));
+    } catch (err) {}
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -45,6 +52,8 @@ export default function RoleHeader({
   } = useNotifications({
     hubUrl: HUB_URL,
     role:   userInfo?.role ?? "",          // ← bắt buộc, dùng để filter
+    roleId: localUser?.role_id,
+    userId: localUser?.user_id,
     accessToken,
     onNewNotification: (n) => {
       // Tích hợp toast tại đây, ví dụ với sonner:

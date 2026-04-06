@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
 
-export default function LayoutManager({
+export default function LayoutConsultant({
   children,
 }: {
   children: React.ReactNode;

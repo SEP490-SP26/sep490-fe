@@ -81,6 +81,21 @@ export default function PaymentSuccess() {
     });
   };
 
+  const maskPhone = (phone: string) => {
+    if (!phone) return "";
+    if (phone.length <= 4) return phone;
+    return "xxxx" + phone.slice(-4);
+  };
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const parts = email.split("@");
+    if (parts.length !== 2) return email;
+    const [name, domain] = parts;
+    if (name.length <= 3) return `xxx@${domain}`;
+    return `xxxx${name.slice(-3)}@${domain}`;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -159,6 +174,10 @@ export default function PaymentSuccess() {
               <Calendar className="w-4 h-4 inline mr-1" />
               Đặt hàng: {formatDate(order.order_date)}
             </p>
+            <p className="text-sm text-green-50 mt-2">
+              <Calendar className="w-4 h-4 inline mr-1" />
+              Ngày giao dự kiến: {formatDate(order.delivery_date)}
+            </p>
           </div>
         </div>
 
@@ -187,11 +206,11 @@ export default function PaymentSuccess() {
               </div>
               <div className="flex justify-between py-3 border-b border-slate-100">
                 <span className="text-slate-600">Sóng</span>
-                <span className="font-semibold text-slate-800 text-sm">{order.quote_fields.wave_type}</span>
+                <span className="font-semibold text-slate-800 text-sm">{order.quote_fields.wave_type === "N/A" ? "Không có" : order.quote_fields.wave_type}</span>
               </div>
               <div className="flex justify-between py-3 border-b border-slate-100">
                 <span className="text-slate-600">Phủ bề mặt</span>
-                <span className="font-semibold text-slate-800">{order.quote_fields.coating_type}</span>
+                <span className="font-semibold text-slate-800">{order.quote_fields.coating_type === "N/A" ? "Không có" : order.quote_fields.coating_type}</span>
               </div>
               <div className="flex justify-between py-3 border-b border-slate-100">
                 <span className="text-slate-600">Trạng thái</span>
@@ -200,7 +219,7 @@ export default function PaymentSuccess() {
                   order.status === 'Processing' ? 'bg-amber-100 text-amber-700' :
                   'bg-slate-100 text-slate-700'
                 }`}>
-                  {order.status}
+                  {order.status === "Delivery" ? "Đang giao hàng" : order.status === "Paid" ? "Chờ bàn giao vận chuyển" : order.status}
                 </span>
               </div>
             </div>
@@ -226,14 +245,14 @@ export default function PaymentSuccess() {
                 <Phone className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                 <div>
                   <p className="text-sm text-slate-600">Số điện thoại</p>
-                  <p className="font-semibold text-slate-800">{order.customer_phone}</p>
+                  <p className="font-semibold text-slate-800">{maskPhone(order.customer_phone)}</p>
                 </div>
               </div>
               <div className="flex items-start py-3 border-b border-slate-100">
                 <Mail className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                 <div>
                   <p className="text-sm text-slate-600">Email</p>
-                  <p className="font-semibold text-slate-800">{order.customer_email}</p>
+                  <p className="font-semibold text-slate-800">{maskEmail(order.customer_email)}</p>
                 </div>
               </div>
               <div className="flex items-start py-3">
@@ -243,59 +262,6 @@ export default function PaymentSuccess() {
                   <p className="font-semibold text-slate-800">{order.detail_address}</p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                <Calendar className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="font-bold text-slate-800">Sản xuất</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs text-slate-600">Bắt đầu</p>
-                <p className="font-semibold text-slate-800 text-sm">{formatDate(order.production_start_date)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-600">Hoàn thành</p>
-                <p className="font-semibold text-slate-800 text-sm">{formatDate(order.production_end_date)}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                <TrendingUp className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="font-bold text-slate-800">Giao hàng</h3>
-            </div>
-            <div>
-              <p className="text-xs text-slate-600">Ngày giao dự kiến</p>
-              <p className="font-semibold text-slate-800 text-sm">{formatDate(order.delivery_date)}</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                <FileText className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="font-bold text-slate-800">Thanh toán</h3>
-            </div>
-            <div>
-              <p className="text-xs text-slate-600">Trạng thái</p>
-              <p className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                order.payment_status === 'Deposited' ? 'bg-blue-100 text-blue-700' :
-                order.payment_status === 'Paid' ? 'bg-green-100 text-green-700' :
-                'bg-slate-100 text-slate-700'
-              }`}>
-                {order.payment_status}
-              </p>
             </div>
           </div>
         </div>

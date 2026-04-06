@@ -197,6 +197,8 @@ function buildNotification(method: string, evt: RoleNotificationEvent): AppNotif
 export interface UseNotificationsOptions {
   hubUrl:              string;
   role:                string;
+  roleId?:             number;
+  userId?:             number;
   accessToken?:        string;
   onNewNotification?:  (n: AppNotification) => void;
   maxItems?:           number;
@@ -209,6 +211,8 @@ export interface UseNotificationsOptions {
 export function useNotifications({
   hubUrl,
   role,
+  roleId,
+  userId,
   accessToken,
   onNewNotification,
   maxItems = 50,
@@ -285,9 +289,64 @@ export function useNotifications({
 
 
 
-  
+  /* ── Fetch initial notifications ── */
+  useEffect(() => {
+    let cancelled = false;
 
- 
+    const fetchInitialNotifications = async () => {
+      // Chỉ fetch nếu có roleId
+      if (!roleId) return;
+
+      try {
+        let url = `/Notification/get-noti-by-role-id?id=${roleId}`;
+        // Theo yêu cầu: chỉ áp dụng user_id cho trang consultant
+        if (userId && role?.toLowerCase() === "consultant") {
+          url += `&user_id=${userId}`;
+        }
+        
+        // Dùng tạm fetch bằng Axios vì UseNotificationsOptions không import axios
+        // Nhập khẩu động httpAxios để tránh circular dependency hoặc đơn giản dùng global fetch
+        const { default: http } = await import("@/lib/httpAxios");
+        const data: any = await http.get(url);
+        
+        if (cancelled) return;
+
+        if (Array.isArray(data)) {
+          const mapped: AppNotification[] = data.map((item: any) => ({
+             id: String(item.id ?? item.Id),
+             title: "Thông báo",
+             message: item.content ?? item.Content ?? "",
+             timestamp: new Date(item.time ?? item.Time),
+             read: item.isCheck ?? item.IsCheck ?? false,
+             action: item.status ?? item.Status ?? "",
+          }));
+          
+          setNotifications(prev => {
+             // Kết hợp thông báo hiện tại (event real-time) và initial data
+             // Lọc những cái trùng ID hoặc có thể ghi đè
+             const existingIds = new Set(prev.map(p => p.id));
+             const merged = [...prev];
+             for (const item of mapped) {
+                 if (!existingIds.has(item.id)) {
+                     merged.push(item);
+                 }
+             }
+             return merged.slice(0, maxItems);
+          });
+        }
+      } catch (err) {
+        console.error("[useNotifications] fetch initial error:", err);
+      }
+    };
+
+    fetchInitialNotifications();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roleId, userId, maxItems, role]);
+
+
   return {
     notifications,
     unreadCount,
