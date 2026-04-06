@@ -2,7 +2,7 @@
 
 import axios from "@/apiRequests/axios";
 import { requestOrderApi } from "@/apiRequests/request";
-
+import { getHubConnection } from "@/hooks/useNotifications";
 import { OrderRequest } from "@/schemaValidations/common.schema";
 import {
   CaretDownOutlined,
@@ -85,9 +85,42 @@ export default function ConsultantOrdersPage() {
     fetchAllOrders();
   }, [fetchAllOrders]);
 
+  // Lắng nghe SignalR để tự động cập nhật UI khi có thông báo mới
+  useEffect(() => {
+    let unmounted = false;
+    let removeListener: (() => void) | null = null;
 
+    const initSignalR = async () => {
+      try {
+        const hubUrl = "https://amms-juaa.onrender.com/hubs/realtime"; 
+        const conn = await getHubConnection(hubUrl);
+        
+        const handleServerEvent = () => {
+          if (!unmounted) {
+            fetchAllOrders();
+          }
+        };
 
-  // Cancel mutation
+        // Lắng nghe event "pending"
+        conn.on("pending", handleServerEvent);
+        // Bạn có thể thêm các method khác ở đây
+        // conn.on("accepted", handleServerEvent);
+
+        removeListener = () => {
+          conn.off("pending", handleServerEvent);
+        };
+      } catch (err) {
+        console.error("SignalR init error in requests page:", err);
+      }
+    };
+
+    initSignalR();
+
+    return () => {
+      unmounted = true;
+      if (removeListener) removeListener();
+    };
+  }, [fetchAllOrders]);  // Cancel mutation
   const cancelMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) => requestOrderApi.cancelRequest({ id, reason }),
     onSuccess: (data) => {
