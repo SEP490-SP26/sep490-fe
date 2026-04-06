@@ -70,7 +70,9 @@ export default function ConsultantRequestDetailPage() {
     const [previewData, setPreviewData] = useState<OrderRequestWithQuotes | null>(null);
     const [reviewedContracts, setReviewedContracts] = useState<Set<number>>(new Set());
     const isAllContractsReviewed = previewData && previewData.quotes.length > 0 && reviewedContracts.size === previewData.quotes.length;
-    const hasContract = orderDetail?.cost_estimate?.some(e => e.is_active && (e.consultant_contract_path || e.customer_signed_contract_path)) || (orderDetail as any)?.contract_file;
+    const hasContract = previewData 
+        ? previewData.quotes.every(q => q.consultant_contract_path || q.customer_signed_contract_path)
+        : (orderDetail?.cost_estimate?.some(e => e.is_active && (e.consultant_contract_path || e.customer_signed_contract_path)) || (orderDetail as any)?.contract_file);
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
@@ -657,7 +659,6 @@ export default function ConsultantRequestDetailPage() {
                                                 <div className="flex items-center gap-1.5 truncate">
                                                     <FileTextOutlined className="text-blue-400" style={{ fontSize: "12px" }} />
                                                     <span className="truncate text-blue-700">{pendingDesignFile.name}</span>
-                                                    <Tag color="blue" className="ml-2 text-[10px] m-0 border-0 leading-tight px-1 py-0.5">Chờ xác nhận</Tag>
                                                 </div>
                                                 <Button
                                                     type="text"
@@ -681,11 +682,9 @@ export default function ConsultantRequestDetailPage() {
                                                     <div>
                                                         <div className="font-medium text-sm">File in (Printer Ready)</div>
                                                         <div className="text-xs text-gray-500">
-                                                            {orderDetail.printer_ready_file_path || pendingPrintFile ? (
+                                                            {orderDetail.printer_ready_file_path || pendingPrintFile && (
                                                                 <span className="text-green-600 font-medium">Đã có file in</span>
-                                                            ) : (
-                                                                <span className="text-amber-600">Cần tải lên file để xác nhận bố cục</span>
-                                                            )}
+                                                            ) }
                                                         </div>
                                                     </div>
                                                 </div>
@@ -695,7 +694,7 @@ export default function ConsultantRequestDetailPage() {
                                                             size="small"
                                                             type="primary"
                                                             icon={<DownloadOutlined />}
-                                                            onClick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(orderDetail.printer_ready_file_path)}&embedded=true`, "_blank")}
+                                                            onClick={() => window.open(orderDetail.printer_ready_file_path, "_blank")}
                                                             className="bg-green-600 hover:bg-green-500"
                                                         >
                                                             Xem / Tải về
@@ -713,7 +712,7 @@ export default function ConsultantRequestDetailPage() {
                                                                 type={pendingPrintFile ? "default" : "primary"}
                                                                 icon={<UploadOutlined />}
                                                             >
-                                                                {pendingPrintFile ? "Thay đổi file" : "Chọn file in (Printer Ready)"}
+                                                                {pendingPrintFile ? "Thay đổi file" : ""}
                                                             </Button>
                                                         </Upload>
                                                     )}

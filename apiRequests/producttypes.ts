@@ -74,14 +74,6 @@ export const productTypesApi = {
   getAllTypeGeneral: () =>
     http.get<string[]>("/api/ProductTypes/get-all-type-general"),
 
-  // Lấy danh sách form type của Hộp màu
-  getAllFormTypeOfHopMau: () =>
-    http.get<string[]>("/api/ProductTypes/get-all-form-type-of-hop-mau"),
-
-  // Lấy danh sách loại gạch
-  getAllTypeOfGach: () =>
-    http.get<string[]>("/api/ProductTypes/get-all-type-of-gach"),
-
   getProductTemplete: (id: number) =>
     http.get<ProductTemplateList>(`/api/ProductTemplates/by-product-type/${id}`),
 };

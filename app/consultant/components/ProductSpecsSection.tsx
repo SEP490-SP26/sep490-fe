@@ -4,6 +4,7 @@ import { FloatingSelect } from "@/components/Input/FloatingSelect";
 import { Material } from "@/schemaValidations/common.schema";
 import { Checkbox, Col, Form, InputNumber, Row, Select, Tooltip } from "antd";
 import { useEffect } from "react";
+import { ALL_PROCESS_TYPES } from "@/utils/processConstants";
 
 interface ProductSpecsSectionProps {
   orderId: string | null;
@@ -585,10 +586,10 @@ export default function ProductSpecsSection({
               }
 
               // Sắp xếp đúng theo trình tự gia công chuẩn
-              const STANDARD_ORDER = ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"];
+              const STANDARD_ORDER = ALL_PROCESS_TYPES;
               updatedValues.sort((a, b) => {
-                const idxA = STANDARD_ORDER.indexOf(a);
-                const idxB = STANDARD_ORDER.indexOf(b);
+                const idxA = (STANDARD_ORDER as readonly string[]).indexOf(a);
+                const idxB = (STANDARD_ORDER as readonly string[]).indexOf(b);
                 if (idxA === -1 && idxB === -1) return 0;
                 if (idxA === -1) return 1;
                 if (idxB === -1) return -1;
@@ -626,7 +627,7 @@ export default function ProductSpecsSection({
                 {loadingProcessTypes ? (
                   <span className="text-gray-400 text-xs">Đang tải...</span>
                 ) : (
-                  ["RALO", "CAT", "IN", "PHU", "CAN", "BOI", "BE", "DUT", "DAN"].map((pt) => {
+                  ALL_PROCESS_TYPES.map((pt) => {
                     const rules = productTypeRules;
                     const isForbidden = rules.forbidden.includes(pt);
                     const isAlwaysDisabled = rules.alwaysDisabled.includes(pt);

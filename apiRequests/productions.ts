@@ -37,8 +37,6 @@ export const productionsApi = {
   getNearestDelivery: () =>
     http.get<NearestDeliveryResponse>("/api/productions/nearest-delivery"),
 
-  getAllProcessTypes: () =>
-    http.get<string[]>("/api/productions/get-all-process-type"),
   getAllProduction: () => http.get("/api/productions/get-all-production?page=1&pageSize=500"),
 
   getProdyctionByOrderId: (id: string) =>

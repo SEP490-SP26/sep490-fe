@@ -1,0 +1,15 @@
+export const HOP_MAU_FORM_TYPES = [
+  "HOP_MAU_1LUOT_DON_GIAN",
+  "HOP_MAU_1LUOT_THUONG",
+  "HOP_MAU_1LUOT_KHO",
+  "HOP_MAU_AQUA_DOI",
+  "HOP_MAU_2LUOT",
+] as const;
+
+export const GACH_FORM_TYPES = [
+  "GACH_1MAU",
+  "GACH_XUAT_KHAU_DON_GIAN",
+  "GACH_XUAT_KHAU_TERACON",
+  "GACH_NOI_DIA_4SP",
+  "GACH_NOI_DIA_6SP",
+] as const;

@@ -75,17 +75,8 @@ import { log } from "console";
 
 
 
-const PROCESS_TYPE_LABELS: Record<string, string> = {
-  RALO: "Ralo",
-  CAT: "Cắt",
-  IN: "In",
-  PHU: "Phủ",
-  CAN: "Cán",
-  BOI: "Bồi",
-  BE: "Bế",
-  DUT: "Dứt",
-  DAN: "Dán",
-};
+import { ALL_PROCESS_TYPES, PROCESS_TYPE_LABELS } from "@/utils/processConstants";
+import { GACH_FORM_TYPES, HOP_MAU_FORM_TYPES } from "@/utils/productConstants";
 
 function ConsultantForm() {
   const [form] = Form.useForm();
@@ -129,8 +120,7 @@ function ConsultantForm() {
   const [loadingFormTypes, setLoadingFormTypes] = useState(false);
   const [selectedProductTypeCode, setSelectedProductTypeCode] = useState<string>("");
   const [selectProductTypeId, setselectProductTypeId] = useState<number>();
-  const [processTypes, setProcessTypes] = useState<string[]>([]);
-  const [loadingProcessTypes, setLoadingProcessTypes] = useState(false);
+  const [processTypes, setProcessTypes] = useState<string[]>([...ALL_PROCESS_TYPES]);
   const [songTypes, setSongTypes] = useState<Material[]>([]);
   const [glueTypes, setGlueTypes] = useState<Material[]>([]);
   const [inkMaterials, setInkMaterials] = useState<Material[]>([]);
@@ -557,13 +547,9 @@ function ConsultantForm() {
       // Form Types
       setLoadingFormTypes(true);
       try {
-        const [hopMauResponse, gachResponse] = await Promise.all([
-          productTypesApi.getAllFormTypeOfHopMau(),
-          productTypesApi.getAllTypeOfGach(),
-        ]);
         const allFormTypes = [
-          ...(Array.isArray(hopMauResponse) ? hopMauResponse : []),
-          ...(Array.isArray(gachResponse) ? gachResponse : []),
+          ...HOP_MAU_FORM_TYPES,
+          ...GACH_FORM_TYPES,
         ];
         setFormTypes(allFormTypes);
       } catch (error) {
@@ -586,16 +572,6 @@ function ConsultantForm() {
         console.error("Error fetching machine data:", error);
       }
 
-      // Process Types
-      setLoadingProcessTypes(true);
-      try {
-        const response = await productionsApi.getAllProcessTypes();
-        if (Array.isArray(response)) setProcessTypes(response);
-      } catch (error) {
-        console.error("Error fetching process types:", error);
-      } finally {
-        setLoadingProcessTypes(false);
-      }
 
 
       // Product Suggestions
@@ -1755,7 +1731,7 @@ function ConsultantForm() {
     !(existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified" ||
       existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing");
 
-  const isPageLoading = loadingPaperTypes || loadingProductTypes || loadingFormTypes || loadingProcessTypes || configLoading || isFetchingOrder || loading;
+  const isPageLoading = loadingPaperTypes || loadingProductTypes || loadingFormTypes || configLoading || isFetchingOrder || loading;
 
   return (
     <>
@@ -1863,7 +1839,7 @@ function ConsultantForm() {
                             loadingProductTypes={loadingProductTypes}
                             loadingPaperTypes={loadingPaperTypes}
                             loadingFormTypes={loadingFormTypes}
-                            loadingProcessTypes={loadingProcessTypes}
+                            loadingProcessTypes={false}
                             processTypes={processTypes}
                             PROCESS_TYPE_LABELS={PROCESS_TYPE_LABELS}
                             songTypes={songTypes}
