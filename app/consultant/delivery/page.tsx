@@ -378,7 +378,7 @@ export default function DeliveryPage() {
       </Card>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      {/* <div className="grid grid-cols-4 gap-4 mb-6">
         {stats.map((stat) => (
           <div
             key={stat.label}
@@ -390,7 +390,7 @@ export default function DeliveryPage() {
             </p>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {/* Table */}
       <Card className="shadow-sm border-none">
