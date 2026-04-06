@@ -187,6 +187,8 @@ export default function RequestDetailPage() {
     );
   }
 
+  const selectedQuoteIndex = quotes.findIndex(q => q.quote_id === selectedQuote?.quote_id);
+
   return (
     <div className="min-h-screen  bg-slate-50 py-8 px-4 flex flex-col items-center">
       <div className={`grid grid-cols-1 ${quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-12 w-full max-w-7xl`}>
@@ -205,11 +207,11 @@ export default function RequestDetailPage() {
                       MES SYSTEM
                     </div>
                     <div className="text-white text-2xl font-extrabold mt-1">
-                      BÁO GIÁ {quote.quote_id}
+                      BÁO GIÁ {index + 1}
                     </div>
                   </div>
                   <div className="bg-white/15 text-white px-3 py-1.5 rounded text-sm font-bold">
-                    AM{quote.order_request_id.toString().padStart(6, '0')}
+                    AM{quote.quote_id.toString().padStart(6, '0')}
                   </div>
                 </div>
               </div>
@@ -389,7 +391,7 @@ export default function RequestDetailPage() {
 
       {/* Confirmation Modal */}
       <Modal
-        title={<div className="text-lg font-bold text-slate-800">Xác nhận hợp đồng & thanh toán {selectedQuote ? `- Báo giá ${selectedQuote.quote_id}` : ""}</div>}
+        title={<div className="text-lg font-bold text-slate-800">Xác nhận hợp đồng & thanh toán {selectedQuote ? `- Báo giá ${selectedQuoteIndex + 1}` : ""}</div>}
         open={isConfirmModalVisible}
         onCancel={() => setIsConfirmModalVisible(false)}
         footer={[
@@ -414,10 +416,10 @@ export default function RequestDetailPage() {
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
             <h4 className="text-blue-800 font-bold mb-2 flex items-center gap-2">
               <InfoCircleOutlined className="text-blue-500" />
-              Điều khoản hợp đồng {selectedQuote ? `- Báo giá ${selectedQuote.quote_id}` : ""}
+              Điều khoản hợp đồng {selectedQuote ? `- Báo giá ${selectedQuoteIndex + 1}` : ""}
             </h4>
             <p className="text-blue-700 text-sm m-0">
-              Bạn đang chọn <strong className="text-blue-800">Báo giá {selectedQuote ? selectedQuote.quote_id : ""}</strong>. Vui lòng kiểm tra lại thông tin và xem kỹ file hợp đồng đính kèm trước khi tiến hành thanh toán.
+              Bạn đang chọn <strong className="text-blue-800">Báo giá {selectedQuote ? selectedQuoteIndex + 1 : ""}</strong>. Vui lòng kiểm tra lại thông tin và xem kỹ file hợp đồng đính kèm trước khi tiến hành thanh toán.
             </p>
           </div>
 
@@ -520,8 +522,8 @@ export default function RequestDetailPage() {
                         }
                       }}
                     >
-                      <Button 
-                        icon={<UploadOutlined />} 
+                      <Button
+                        icon={<UploadOutlined />}
                         className={`rounded-lg ${hasUploadedContract ? 'border-emerald-500 text-emerald-600' : ''}`}
                         disabled={!hasDownloadedContract}
                         type={hasUploadedContract ? "default" : (hasDownloadedContract ? "primary" : "default")}
@@ -548,18 +550,17 @@ export default function RequestDetailPage() {
               </div>
             </div>
 
-            <p className="m-0 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+            {/* <p className="m-0 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
               <InfoCircleOutlined className="mr-1" />
               Lưu ý: Khi đã chọn xác nhận thanh toán này thì đồng nghĩa với việc các báo giá lựa chọn khác sẽ bị hủy.
-            </p>
+            </p> */}
 
             <div
               onClick={() => setHasConfirmedQuote((prev) => !prev)}
-              className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${
-                hasConfirmedQuote
+              className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${hasConfirmedQuote
                   ? "bg-emerald-50 border-emerald-400"
                   : "bg-white border-slate-200 hover:border-blue-300"
-              }`}
+                }`}
             >
               <Checkbox
                 checked={hasConfirmedQuote}
@@ -567,11 +568,10 @@ export default function RequestDetailPage() {
                 onClick={(e) => e.stopPropagation()}
                 className="mt-0.5 flex-shrink-0"
               />
-              <span className={`text-sm font-medium leading-relaxed ${
-                hasConfirmedQuote ? "text-emerald-700" : "text-slate-700"
-              }`}>
+              <span className={`text-sm font-medium leading-relaxed ${hasConfirmedQuote ? "text-emerald-700" : "text-slate-700"
+                }`}>
                 Tôi đã đọc kỹ và đồng ý với toàn bộ thông tin trong{" "}
-                <strong>Báo giá {selectedQuote?.quote_id}</strong>, bao gồm chi phí, điều khoản và thời gian giao hàng.
+                <strong>Báo giá {selectedQuoteIndex + 1}</strong>, bao gồm chi phí, điều khoản và thời gian giao hàng.
               </span>
             </div>
           </div>
