@@ -70,6 +70,7 @@ export default function ConsultantRequestDetailPage() {
     const [previewData, setPreviewData] = useState<OrderRequestWithQuotes | null>(null);
     const [reviewedContracts, setReviewedContracts] = useState<Set<number>>(new Set());
     const isAllContractsReviewed = previewData && previewData.quotes.length > 0 && reviewedContracts.size === previewData.quotes.length;
+    const hasContract = orderDetail?.cost_estimate?.some(e => e.is_active && (e.consultant_contract_path || e.customer_signed_contract_path)) || (orderDetail as any)?.contract_file;
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
@@ -79,6 +80,9 @@ export default function ConsultantRequestDetailPage() {
     const [uploadingPrint, setUploadingPrint] = useState(false);
     const [confirmingLayout, setConfirmingLayout] = useState(false);
     const [isContractCommitted, setIsContractCommitted] = useState(false);
+
+    const [pendingDesignFile, setPendingDesignFile] = useState<File | null>(null);
+    const [pendingPrintFile, setPendingPrintFile] = useState<File | null>(null);
 
     const [isResignModalOpen, setIsResignModalOpen] = useState(false);
     const [resignMessage, setResignMessage] = useState("");
@@ -189,13 +193,6 @@ export default function ConsultantRequestDetailPage() {
     const handleSendQuote = async () => {
         if (!orderDetail) return;
 
-        // Validate contract before sending
-        const hasContract = orderDetail.cost_estimate?.some(e => e.is_active && (e.consultant_contract_path || e.customer_signed_contract_path)) || (orderDetail as any).contract_file;
-        if (!hasContract) {
-            message.warning("Vui lòng tải lên hợp đồng trước khi gửi báo giá cho khách hàng!");
-            return;
-        }
-
         // If not in preview modal, open preview first
         if (!isPreviewModalOpen) {
             setPreviewLoading(true);
@@ -220,6 +217,10 @@ export default function ConsultantRequestDetailPage() {
         }
 
         // Processing send in modal
+        if (!hasContract) {
+            message.warning("Vui lòng tải lên hợp đồng trước khi gửi báo giá cho khách hàng!");
+            return;
+        }
         setSending(true);
         try {
             // Integrate message sending if present
@@ -269,14 +270,35 @@ export default function ConsultantRequestDetailPage() {
     };
 
     const handleConfirmLayout = async () => {
-        if (!orderDetail?.file_url) {
-            message.warning("Vui lòng tải lên file printer ready trước khi xác nhận bố cục!");
+        if (!orderDetail) return;
+        if (!orderDetail.file_url && !pendingPrintFile) {
+            message.warning("Vui lòng cần chọn file printer ready trước khi xác nhận bố cục!");
             return;
         }
         setConfirmingLayout(true);
         try {
+            // Upload Design file if selected
+            if (pendingDesignFile) {
+                await uploadApi.updateDesignFile(orderDetail.request_id, pendingDesignFile);
+            }
+            // Upload Print Ready file if selected
+            if (pendingPrintFile) {
+                const activeEstimate = orderDetail.cost_estimate?.find(e => e.is_active);
+                const estimateId = activeEstimate ? activeEstimate.estimate_id : 0;
+                await requestOrderApi.uploadPrintReadyFile(orderDetail.request_id, {
+                    estimate_id: estimateId,
+                    file: pendingPrintFile
+                });
+            }
+
+            // Confirm layout
             await requestOrderApi.designerConfirmLayout({ request_id: Number(requestId) });
             message.success("Đã xác nhận bố cục thành công!");
+
+            // Clear pending files
+            setPendingDesignFile(null);
+            setPendingPrintFile(null);
+
             fetchOrderDetail(false);
         } catch (error: any) {
             console.error("Lỗi khi xác nhận bố cục:", error);
@@ -421,24 +443,34 @@ export default function ConsultantRequestDetailPage() {
 
                         )}
 
-                        {orderDetail.process_status === 'Accepted' && orderDetail.is_check_contract && !orderDetail.printer_ready_file_path && (
-                            <Popconfirm
-                                title={<span className="font-semibold text-lg">Xác nhận bố cục</span>}
-                                description={`Bạn có chắc chắn muốn xác nhận bố cục cho yêu cầu #${orderDetail.request_id}?`}
-                                onConfirm={handleConfirmLayout}
-                                okText="Xác nhận"
-                                cancelText="Hủy"
-                                okButtonProps={{ className: "bg-blue-600 hover:bg-blue-500" }}
-                            >
-                                <Button
-                                    type="primary"
-                                    icon={<CheckCircleOutlined />}
-                                    loading={confirmingLayout}
-                                    className="bg-green-600 hover:bg-green-500 rounded-lg text-white border-0"
-                                >
-                                    Xác nhận bố cục
-                                </Button>
-                            </Popconfirm>
+                        {orderDetail.process_status === 'Accepted' && (
+                            <>
+                                {orderDetail.is_check_contract === null && (
+                                    <Tag color="warning" className="rounded-lg px-3 py-1 font-medium m-0 flex items-center gap-2 border-0 bg-amber-50 text-amber-700">
+                                        <Spin size="small" />
+                                        Đang chờ Quản Lý duyệt hợp đồng
+                                    </Tag>
+                                )}
+                                {orderDetail.is_check_contract === true && !orderDetail.printer_ready_file_path && (
+                                    <Popconfirm
+                                        title={<span className="font-semibold text-lg">Xác nhận bố cục</span>}
+                                        description={`Bạn có chắc chắn muốn xác nhận bố cục cho yêu cầu #${orderDetail.request_id}?`}
+                                        onConfirm={handleConfirmLayout}
+                                        okText="Xác nhận"
+                                        cancelText="Hủy"
+                                        okButtonProps={{ className: "bg-blue-600 hover:bg-blue-500" }}
+                                    >
+                                        <Button
+                                            type="primary"
+                                            icon={<CheckCircleOutlined />}
+                                            loading={confirmingLayout}
+                                            className="bg-green-600 hover:bg-green-500 rounded-lg text-white border-0"
+                                        >
+                                            Xác nhận bố cục
+                                        </Button>
+                                    </Popconfirm>
+                                )}
+                            </>
                         )}
 
                         {/* Confirm Update Modal */}
@@ -591,11 +623,13 @@ export default function ConsultantRequestDetailPage() {
                                                 <div>
                                                     <div className="font-medium text-sm">File mẫu</div>
                                                     <div className="text-xs text-gray-500">
-                                                        {orderDetail.design_file_path ? `${orderDetail.design_file_path.split(',').length} file thiết kế` : "Chưa tải lên"}
+                                                        {orderDetail.design_file_path ? (
+                                                            `${orderDetail.design_file_path.split(',').length} file thiết kế`
+                                                        ) : "Chưa tải lên"}
                                                     </div>
                                                 </div>
                                             </div>
-                                            {orderDetail.design_file_path ? (
+                                            {orderDetail.design_file_path && !pendingDesignFile ? (
                                                 <Button
                                                     size="small"
                                                     icon={<DownloadOutlined />}
@@ -606,28 +640,36 @@ export default function ConsultantRequestDetailPage() {
                                             ) : (
                                                 <Upload
                                                     showUploadList={false}
-                                                    customRequest={async (options) => {
-                                                        const { file, onSuccess, onError } = options;
-                                                        setUploadingDesign(true);
-                                                        try {
-                                                            await uploadApi.updateDesignFile(orderDetail.request_id, file as File);
-                                                            message.success("Tải file thiết kế thành công");
-                                                            fetchOrderDetail(false);
-                                                            if (onSuccess) onSuccess("ok");
-                                                        } catch (error) {
-                                                            message.error("Tải file thất bại");
-                                                            if (onError) onError(error as any);
-                                                        } finally {
-                                                            setUploadingDesign(false);
-                                                        }
+                                                    beforeUpload={(file) => {
+                                                        setPendingDesignFile(file);
+                                                        return false;
                                                     }}
                                                 >
-                                                    <Button size="small" icon={<UploadOutlined />} loading={uploadingDesign}>
-                                                        Tải lên
+                                                    <Button size="small" icon={<UploadOutlined />}>
+                                                        Chọn file
                                                     </Button>
                                                 </Upload>
                                             )}
                                         </div>
+                                        {/* NEW: DISPLAY THE PENDING DESIGN FILE HERE */}
+                                        {pendingDesignFile && (
+                                            <div className="mt-1 flex items-center justify-between p-1.5 bg-white border border-gray-200 rounded text-xs">
+                                                <div className="flex items-center gap-1.5 truncate">
+                                                    <FileTextOutlined className="text-blue-400" style={{ fontSize: "12px" }} />
+                                                    <span className="truncate text-blue-700">{pendingDesignFile.name}</span>
+                                                    <Tag color="blue" className="ml-2 text-[10px] m-0 border-0 leading-tight px-1 py-0.5">Chờ xác nhận</Tag>
+                                                </div>
+                                                <Button
+                                                    type="text"
+                                                    danger
+                                                    size="small"
+                                                    style={{ padding: 0, height: "auto" }}
+                                                    onClick={() => setPendingDesignFile(null)}
+                                                >
+                                                    Hủy
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* File in (Bản in) - Shown only when Accepted */}
@@ -639,8 +681,8 @@ export default function ConsultantRequestDetailPage() {
                                                     <div>
                                                         <div className="font-medium text-sm">File in (Printer Ready)</div>
                                                         <div className="text-xs text-gray-500">
-                                                            {orderDetail.file_url ? (
-                                                                <span className="text-green-600 font-medium">Đã sẵn sàng</span>
+                                                            {orderDetail.printer_ready_file_path || pendingPrintFile ? (
+                                                                <span className="text-green-600 font-medium">Đã có file in</span>
                                                             ) : (
                                                                 <span className="text-amber-600">Cần tải lên file để xác nhận bố cục</span>
                                                             )}
@@ -648,51 +690,54 @@ export default function ConsultantRequestDetailPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    {orderDetail.file_url && (
+                                                    {orderDetail.printer_ready_file_path ? (
                                                         <Button
                                                             size="small"
                                                             type="primary"
                                                             icon={<DownloadOutlined />}
-                                                            onClick={() => orderDetail.file_url && window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(orderDetail.file_url)}&embedded=true`, "_blank")}
+                                                            onClick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(orderDetail.printer_ready_file_path)}&embedded=true`, "_blank")}
                                                             className="bg-green-600 hover:bg-green-500"
                                                         >
                                                             Xem / Tải về
                                                         </Button>
-                                                    )}
-                                                    <Upload
-                                                        showUploadList={false}
-                                                        customRequest={async (options) => {
-                                                            const { file, onSuccess, onError } = options;
-                                                            setUploadingPrint(true);
-                                                            try {
-                                                                const activeEstimate = orderDetail.cost_estimate?.find(e => e.is_active);
-                                                                const estimateId = activeEstimate ? activeEstimate.estimate_id : 0;
-                                                                await requestOrderApi.uploadPrintReadyFile(orderDetail.request_id, {
-                                                                    estimate_id: estimateId,
-                                                                    file: file as File
-                                                                });
-                                                                message.success(orderDetail.file_url ? "Cập nhật file in thành công" : "Tải file in thành công");
-                                                                fetchOrderDetail(false);
-                                                                if (onSuccess) onSuccess("ok");
-                                                            } catch (error) {
-                                                                message.error("Tải file thất bại");
-                                                                if (onError) onError(error as any);
-                                                            } finally {
-                                                                setUploadingPrint(false);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Button
-                                                            size="small"
-                                                            type={orderDetail.file_url ? "default" : "primary"}
-                                                            icon={<UploadOutlined />}
-                                                            loading={uploadingPrint}
+                                                    ) : (
+                                                        <Upload
+                                                            showUploadList={false}
+                                                            beforeUpload={(file) => {
+                                                                setPendingPrintFile(file);
+                                                                return false;
+                                                            }}
                                                         >
-                                                            {orderDetail.file_url ? "Thay đổi file in" : "Tải lên file in (Printer Ready)"}
-                                                        </Button>
-                                                    </Upload>
+                                                            <Button
+                                                                size="small"
+                                                                type={pendingPrintFile ? "default" : "primary"}
+                                                                icon={<UploadOutlined />}
+                                                            >
+                                                                {pendingPrintFile ? "Thay đổi file" : "Chọn file in (Printer Ready)"}
+                                                            </Button>
+                                                        </Upload>
+                                                    )}
                                                 </div>
                                             </div>
+
+                                            {/* NEW: DISPLAY THE PENDING PRINT FILE HERE */}
+                                            {pendingPrintFile && (
+                                                <div className="mt-1 flex items-center justify-between p-1.5 bg-white border border-blue-200 rounded text-xs">
+                                                    <div className="flex items-center gap-1.5 truncate">
+                                                        <FileTextOutlined className="text-blue-400" style={{ fontSize: "12px" }} />
+                                                        <span className="truncate text-blue-700">{pendingPrintFile.name}</span>
+                                                    </div>
+                                                    <Button
+                                                        type="text"
+                                                        danger
+                                                        size="small"
+                                                        style={{ padding: 0, height: "auto" }}
+                                                        onClick={() => setPendingPrintFile(null)}
+                                                    >
+                                                        Hủy
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -1063,10 +1108,10 @@ export default function ConsultantRequestDetailPage() {
                                                             Lý do: <span className="text-red-600 font-bold">{orderDetail.contract_check_note || "Không có lý do cụ thể"}</span>
                                                         </span>
                                                     </div>
-                                                    <Button 
-                                                        type="primary" 
-                                                        danger 
-                                                        icon={<SendOutlined />} 
+                                                    <Button
+                                                        type="primary"
+                                                        danger
+                                                        icon={<SendOutlined />}
                                                         className="w-full h-10 font-bold rounded-lg shadow-md hover:shadow-lg transition-all"
                                                         onClick={() => {
                                                             setResignMessage(`Chào Quý khách,\n\nHợp đồng cho yêu cầu #${orderDetail.request_id} cần được ký lại do một số điều chỉnh. Rất xin lỗi sự bất tiện này.\n\nLý do: ${orderDetail.contract_check_note || "Cần điều chỉnh nội dung"}\n\nVui lòng xem lại và ký lại hợp đồng mới. Trân trọng!`);
@@ -1263,9 +1308,9 @@ export default function ConsultantRequestDetailPage() {
                                 <Button
                                     type="primary"
                                     icon={<SendOutlined />}
-                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${(!isContractCommitted || !isAllContractsReviewed) ? 'opacity-50 grayscale' : ''}`}
+                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${(!isContractCommitted || !isAllContractsReviewed || !hasContract) ? 'opacity-50 grayscale' : ''}`}
                                     loading={sending}
-                                    disabled={!isContractCommitted || !isAllContractsReviewed}
+                                    disabled={!isContractCommitted || !isAllContractsReviewed || !hasContract}
                                     onClick={handleSendQuote}
                                 >
                                     Xác nhận và Gửi cho khách
@@ -1291,6 +1336,16 @@ export default function ConsultantRequestDetailPage() {
                             )}
                         </div>
 
+                        {!hasContract && (
+                            <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 text-red-800 font-medium">
+                                    <InfoCircleOutlined className="text-red-500" />
+                                    <span className="text-sm">Vui lòng tải lên hợp đồng trước khi gửi báo giá cho khách hàng.</span>
+                                </div>
+                                <Tag color="error" className="m-0 pulse-animation">Yêu cầu hợp đồng</Tag>
+                            </div>
+                        )}
+
                         {customerMessage.trim() && (
                             <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                                 <h3 className="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-2">
@@ -1311,7 +1366,7 @@ export default function ConsultantRequestDetailPage() {
                                 const finalTotalValue = quote.final_total || 0;
 
                                 return (
-                                    <div key={quote.quote_id} className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col mx-auto w-full border border-slate-100">
+                                    <div key={quote.estimate_id} className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col mx-auto w-full border border-slate-100">
                                         <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4">
                                             <div className="flex justify-between items-center">
                                                 <div>
@@ -1473,7 +1528,7 @@ export default function ConsultantRequestDetailPage() {
                                                         Bản Hợp đồng {previewData?.quotes && previewData.quotes.length > 1 ? index + 1 : ""}
                                                     </h3>
                                                     <div className="flex items-center gap-2">
-                                                        {reviewedContracts.has(quote.quote_id) ? (
+                                                        {reviewedContracts.has(quote.estimate_id) ? (
                                                             <Tag color="success" className="m-0 border-0 rounded px-2 font-medium">
                                                                 Đã xác nhận
                                                             </Tag>
@@ -1521,13 +1576,13 @@ export default function ConsultantRequestDetailPage() {
                                                             {/* Nút xác nhận cho từng hợp đồng */}
                                                             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
                                                                 <span className="text-sm text-slate-500 italic">Vui lòng lướt xem và kiểm tra kỹ hợp đồng.</span>
-                                                                <Checkbox 
-                                                                    checked={reviewedContracts.has(quote.quote_id)}
+                                                                <Checkbox
+                                                                    checked={reviewedContracts.has(quote.estimate_id)}
                                                                     onChange={(e) => {
                                                                         setReviewedContracts(prev => {
                                                                             const next = new Set(prev);
-                                                                            if (e.target.checked) next.add(quote.quote_id);
-                                                                            else next.delete(quote.quote_id);
+                                                                            if (e.target.checked) next.add(quote.estimate_id);
+                                                                            else next.delete(quote.estimate_id);
                                                                             return next;
                                                                         });
                                                                     }}
@@ -1571,11 +1626,11 @@ export default function ConsultantRequestDetailPage() {
                         <Button key="back" onClick={() => setIsResignModalOpen(false)}>
                             Hủy
                         </Button>,
-                        <Button 
-                            key="submit" 
-                            type="primary" 
-                            danger 
-                            loading={sendingResign} 
+                        <Button
+                            key="submit"
+                            type="primary"
+                            danger
+                            loading={sendingResign}
                             onClick={handleSendResignRequest}
                             className="bg-red-600 hover:bg-red-500"
                         >

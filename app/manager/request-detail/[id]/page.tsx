@@ -904,12 +904,16 @@ export default function ManagerRequestDetailPage() {
                 <Modal
                     open={isContractModalVisible}
                     onCancel={() => setIsContractModalVisible(false)}
-                    footer={[
+                    footer={orderDetail.is_check_contract === null ? [
                         <Button key="reject" danger onClick={() => handleContractCheck(false)} disabled={checkingContract}>
                             Từ chối
                         </Button>,
                         <Button key="approve" type="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handleContractCheck(true)} loading={checkingContract}>
                             Duyệt hợp đồng
+                        </Button>
+                    ] : [
+                        <Button key="close" onClick={() => setIsContractModalVisible(false)}>
+                            Đóng
                         </Button>
                     ]}
                     width={1000}
