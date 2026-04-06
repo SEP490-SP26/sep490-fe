@@ -2,15 +2,15 @@ import { UploadOutlined, EyeOutlined, DeleteOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Col, Form, Modal, Row, Upload, UploadFile, Image as AntImage } from "antd";
 import { RcFile } from "antd/es/upload";
 import { useState } from "react";
+import { Vibrant } from 'node-vibrant/browser';
 
 interface DesignUploadSectionProps {
   designFilePath: string | null;
-  // setDesignFilePath: (url: string | null) => void;
-  // We keep the old props for compatibility if needed, but primarily we depend on fileList now for new files
   isSendDesign: boolean;
   setIsSendDesign: (val: boolean) => void;
   fileList: UploadFile[];
   setFileList: (files: UploadFile[] | ((prev: UploadFile[]) => UploadFile[])) => void;
+  onColorsExtracted?: (colors: string[]) => void;
 }
 
 
@@ -24,16 +24,17 @@ const getBase64 = (file: RcFile): Promise<string> =>
 
 export default function DesignUploadSection({
   designFilePath,
-  // setDesignFilePath,
   isSendDesign,
   setIsSendDesign,
   fileList,
   setFileList,
+  onColorsExtracted,
 }: DesignUploadSectionProps) {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [previewTitle, setPreviewTitle] = useState("");
+  const [extractedColors, setExtractedColors] = useState<string[]>([]);
 
   const handleCancel = () => setPreviewOpen(false);
 
@@ -47,12 +48,44 @@ export default function DesignUploadSection({
     setPreviewTitle(file.name || file.url!.substring(file.url!.lastIndexOf('/') + 1));
   };
 
+  const extractColors = (imageUrl: string) => {
+    try {
+        Vibrant.from(imageUrl).getPalette().then((palette: any) => {
+            if (palette) {
+                const colors: string[] = [];
+                const addColor = (swatch: any) => {
+                    if (swatch) colors.push(swatch.hex);
+                };
+                addColor(palette.Vibrant);
+                addColor(palette.LightVibrant);
+                addColor(palette.DarkVibrant);
+                addColor(palette.Muted);
+                addColor(palette.LightMuted);
+                addColor(palette.DarkMuted);
+                setExtractedColors(colors);
+                if (onColorsExtracted) {
+                    onColorsExtracted(colors);
+                }
+            }
+        }).catch((err: any) => {
+            console.error("Lỗi trích xuất màu:", err);
+        });
+    } catch (e) {
+      console.error("Lỗi khi trích xuất màu:", e);
+    }
+  };
+
   // Handle manual upload/removal logic in parent via fileList
   const handleBeforeUpload = (file: RcFile) => {
     // Add to list but don't upload yet
     // Generate a temporary thumbUrl for better UX immediately
     const newFile = file as UploadFile;
-    newFile.thumbUrl = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    newFile.thumbUrl = objectUrl;
+
+    if (file.type.startsWith('image/')) {
+        extractColors(objectUrl);
+    }
 
     setFileList((prev) => [...prev, newFile]);
     return false; // Prevent automatic upload
@@ -61,6 +94,9 @@ export default function DesignUploadSection({
   const handleRemove = (file: UploadFile) => {
     const newFileList = fileList.filter((item) => item.uid !== file.uid);
     setFileList(newFileList);
+    if (newFileList.filter(f => f.type?.startsWith('image/')).length === 0) {
+        setExtractedColors([]);
+    }
   };
 
   return (
@@ -133,19 +169,32 @@ export default function DesignUploadSection({
                       <div style={{ marginTop: 8 }}>Chọn file</div>
                     </button>
                   </Upload>
+                  
+                  {extractedColors.length > 0 && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded border border-gray-100">
+                        <div className="text-sm font-semibold mb-2 text-gray-700">Màu sắc nổi bật từ thiết kế (Gợi ý chọn mực):</div>
+                        <div className="flex flex-wrap gap-3">
+                        {extractedColors.map((hex, i) => {
+                            return (
+                            <div key={i} className="flex flex-col items-center gap-1 group">
+                                <div 
+                                className="w-8 h-8 rounded-full shadow-sm border border-gray-300 transition-transform group-hover:scale-110"
+                                style={{ backgroundColor: hex }}
+                                title={hex}
+                                />
+                                <span className="text-[10px] text-gray-500 uppercase">{hex}</span>
+                            </div>
+                            );
+                        })}
+                        </div>
+                    </div>
+                  )}
+
                   <Modal open={previewOpen} title={previewTitle} footer={null} onCancel={handleCancel}>
                     <img alt="example" style={{ width: '100%' }} src={previewImage} />
                   </Modal>
                 </>
               )}
-
-              {/* Show previously uploaded files if any (from API, usually passed via designFilePath string) */}
-              {/* {designFilePath && (
-              <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-500">
-                <div className="font-semibold">File đã có trên hệ thống:</div>
-                <div className="break-all">{designFilePath}</div>
-              </div>
-            )} */}
             </div>
           </Form.Item>
         )}

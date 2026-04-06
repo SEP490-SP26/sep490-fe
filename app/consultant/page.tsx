@@ -1733,6 +1733,83 @@ function ConsultantForm() {
 
   const isPageLoading = loadingPaperTypes || loadingProductTypes || loadingFormTypes || configLoading || isFetchingOrder || loading;
 
+  const handleColorsExtracted = useCallback((hexColors: string[]) => {
+    // Basic mapping matching closest Hex to our known ink palettes
+    // The predefined inks are mapped based on typical PMS/Hex
+    const knownInks = [
+      { name: "Mực Reflex Blue", r: 0, g: 20, b: 137 },
+      { name: "Mực Warm Red", r: 240, g: 78, b: 35 },
+      { name: "Mực Rubine Red", r: 224, g: 0, b: 77 },
+      { name: "Mực Rhodamine Red", r: 225, g: 0, b: 152 },
+      { name: "Mực trắng", r: 255, g: 255, b: 255 },
+      { name: "Mực nhũ bạc", r: 192, g: 192, b: 192 },
+      { name: "Mực nhũ vàng", r: 255, g: 215, b: 0 },
+      { name: "Mực huỳnh quang vàng", r: 232, g: 255, b: 0 },
+      { name: "Cyan", r: 0, g: 183, b: 235 },
+      { name: "Magenta", r: 255, g: 0, b: 255 },
+      { name: "Yellow", r: 255, g: 255, b: 0 },
+      { name: "Black", r: 0, g: 0, b: 0 }
+    ];
+
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+
+    const suggestedInks = new Set<string>();
+
+    hexColors.forEach(hex => {
+      const rgb = hexToRgb(hex);
+      if (!rgb) return;
+
+      let closestInk: { name: string; r: number; g: number; b: number } | null = null;
+      let minDistance = Infinity;
+
+      knownInks.forEach(ink => {
+        const distance = Math.sqrt(
+          Math.pow(rgb.r - ink.r, 2) +
+          Math.pow(rgb.g - ink.g, 2) +
+          Math.pow(rgb.b - ink.b, 2)
+        );
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestInk = ink;
+        }
+      });
+
+      // Threshold: euclidean distance < 120 for a reasonable color match
+      if (closestInk && minDistance < 120) {
+        suggestedInks.add((closestInk as any).name);
+      }
+    });
+
+    const results: string[] = [];
+    Array.from(suggestedInks).forEach(name => {
+         // Cross-reference with API inkMaterials
+         const matching = inkMaterials.find(ai => ai.name.toLowerCase().includes(name.toLowerCase()));
+         if (matching) results.push(matching.name);
+    });
+
+    if (results.length > 0) {
+        const currentInks = form.getFieldValue("ink_type_names") || [];
+        const combined = Array.from(new Set([...currentInks, ...results]));
+        
+        form.setFieldValue("ink_type_names", combined);
+        
+        // Trigger generic calculation handler with updated value
+        const formValues = form.getFieldsValue();
+        formValues.ink_type_names = combined;
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        handleCalculate({ ink_type_names: combined }, formValues);
+        
+        message.info(`Đã tự động chọn ${results.length} loại mực phù hợp với màu sắc thiết kế.`);
+    }
+  }, [inkMaterials, form]);
+
   return (
     <>
       <Spin spinning={isPageLoading} fullscreen tip="Đang xử lý dữ liệu..." />
@@ -1859,14 +1936,13 @@ function ConsultantForm() {
 
                   <DesignUploadSection
                     designFilePath={designFilePath}
-                    // setDesignFilePath={setDesignFilePath} // Removed
-                    // orderId={orderId}
                     isSendDesign={isSendDesign}
                     setIsSendDesign={(val) => {
                       setIsSendDesign(val);
                     }}
                     fileList={fileList}
                     setFileList={setFileList}
+                    onColorsExtracted={handleColorsExtracted}
                   />
 
                   <Row gutter={16}>
