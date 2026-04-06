@@ -202,12 +202,7 @@ export default function ManagerOrdersPage() {
       render: (text: string, record: OrderRequest) => (
         <div>
           <div className="font-medium text-gray-900">{text}</div>
-          {record.customer_phone && (
-            <div className="text-xs text-gray-500">{record.customer_phone}</div>
-          )}
-          {record.customer_email && (
-            <div className="text-xs text-gray-400">{record.customer_email}</div>
-          )}
+
         </div>
       ),
     },

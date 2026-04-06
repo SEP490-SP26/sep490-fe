@@ -59,7 +59,7 @@ export default function RejectDealSuccess() {
         </div>
 
         {/* Text content */}
-        <Title level={1} className="!text-gray-700 !mb-2 !text-4xl md:!text-5xl font-bold" style={{ color: '#EEBC21' }}>
+        <Title level={1} className="!mb-2 !text-4xl md:!text-5xl font-bold" style={{ color: '#EEBC21' }}>
           Bạn đã từ chối báo giá
         </Title>
 
