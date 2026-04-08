@@ -34,12 +34,18 @@ function timeAgo(date: Date): string {
 function NotificationItem({
   notification,
   onMarkAsRead,
+  onNavigate,            // ← thêm prop
 }: {
   notification: AppNotification;
   onMarkAsRead: (id: string) => void;
+  onNavigate?: (requestId: number, status?: string | null) => void;
 }) {
   const handleClick = () => {
     if (!notification.read) onMarkAsRead(notification.id);
+    // Navigate nếu có requestId
+    if (notification.requestId && onNavigate) {
+      onNavigate(notification.requestId, notification.action);
+    }
   };
 
   return (
@@ -88,6 +94,7 @@ function Panel({
   onMarkAsRead,
   onMarkAllAsRead,
   onClearAll,
+  onNavigate,
 }: NotificationPanelProps) {
   return (
     <div className="w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
@@ -153,6 +160,7 @@ function Panel({
               key={n.id}
               notification={n}
               onMarkAsRead={onMarkAsRead}
+              onNavigate={onNavigate}
             />
           ))
         )}
