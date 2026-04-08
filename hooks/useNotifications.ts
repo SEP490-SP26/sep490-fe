@@ -23,6 +23,13 @@ export interface AppNotification {
   timestamp: Date;
   read: boolean;
   action: string;
+  requestId?: number;
+}
+
+function extractRequestId(message: string): number | undefined {
+  const match = message.match(/#(\d+)|yêu cầu\s+(\d+)|request\s+(\d+)/i);
+  if (!match) return undefined;
+  return Number(match[1] ?? match[2] ?? match[3]);
 }
 
 
@@ -190,6 +197,7 @@ function buildNotification(method: string, evt: RoleNotificationEvent): AppNotif
     timestamp: new Date(),
     read: false,
     action: method,
+    requestId: extractRequestId(evt.message),
   };
 }
 
@@ -347,12 +355,13 @@ export function useNotifications({
 
         if (Array.isArray(data)) {
           const mapped: AppNotification[] = data.map((item: any) => ({
-             id: String(item.id ?? item.Id),
-             title: "Thông báo",
-             message: item.content ?? item.Content ?? "",
-             timestamp: new Date(item.time ?? item.Time),
-             read: item.isCheck ?? item.IsCheck ?? false,
-             action: item.status ?? item.Status ?? "",
+            id: String(item.id ?? item.Id),
+            title: "Thông báo",
+            message: item.content ?? item.Content ?? "",
+            timestamp: new Date(item.time ?? item.Time),
+            read: item.isCheck ?? item.IsCheck ?? false,
+            action: item.status ?? item.Status ?? "",
+            requestId: item.requestId ?? item.RequestId ?? extractRequestId(item.content ?? ""),
           }));
           
           setNotifications(prev => {
