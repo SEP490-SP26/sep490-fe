@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
+import { useRouter } from "next/navigation";
 
 /**
  * Event nhận từ backend qua các method role-based.
@@ -42,22 +43,17 @@ export interface AppNotification {
  * Khi BE thêm method mới cho role nào, thêm tên method vào đây.
  */
 export const SIGNALR_NOTIFICATION_METHODS: string[] = [
-  "processing",
-  "createOrder",
-  "Paid",
-  "waiting",
-  "deposited",
-  "scheduled",
-  "pending",
   "consultantCreateRequest",
+  "pending",
+  "clone-request",
   "verified",
   "declined",
-  "finishedTask",
-  // Thêm method mới ở đây khi BE mở rộng, ví dụ:
-  // "approvedRequest",
-  // "rejectedRequest",
-  // "materialReady",
-  // "warehouseExport",
+  "deposited",
+  "scheduled",
+  "waiting",
+  "rejected",
+  "processing",
+  "paid",
 ];
 
 /* ================================================================
@@ -70,9 +66,11 @@ export const SIGNALR_NOTIFICATION_METHODS: string[] = [
    ================================================================ */
 
 type RoleNotificationSubscriber = (method: string, evt: RoleNotificationEvent) => void;
+type UpdateUiSubscriber = () => void;
 
 const _subscribers = {
   roleNotification: new Set<RoleNotificationSubscriber>(),
+  updateUi: new Set<UpdateUiSubscriber>(),
 };
 
 let _connection:        signalR.HubConnection | null = null;
@@ -118,6 +116,11 @@ export async function getHubConnection(
           _subscribers.roleNotification.forEach((cb) => cb(method, evt));
         });
       }
+
+      // ─── Đăng ký listener cho event update-ui chung ───
+      conn.on("update-ui", () => {
+        _subscribers.updateUi.forEach((cb) => cb());
+      });
     }
 
     return conn;
@@ -217,6 +220,7 @@ export function useNotifications({
   onNewNotification,
   maxItems = 50,
 }: UseNotificationsOptions) {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [connected, setConnected]         = useState(false);
 
@@ -229,13 +233,36 @@ export function useNotifications({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   /* ── state helpers ── */
-  const markAsRead    = useCallback((id: string) => {
+  const markAsRead = useCallback(async (id: string, isLocalOnly: boolean = false) => {
+    // Nếu không truyền cờ isLocalOnly = true, ta sẽ gọi API xuống BE
+    if (!isLocalOnly) {
+      try {
+        const { default: http } = await import("@/lib/httpAxios");
+        await http.put(`/Notification/mark-as-read/${id}`, {});
+      } catch (err) {
+        console.error("[useNotifications] Error tracking read notification:", err);
+      }
+    }
+    // Cập nhật giao diện lập tức
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async (isLocalOnly: boolean = false) => {
+    if (!isLocalOnly && roleId) {
+      try {
+        const { default: http } = await import("@/lib/httpAxios");
+        let url = `/Notification/mark-all-read?role_id=${roleId}`;
+        // Áp dụng user_id nếu là consultant giống như logic fetch ban đầu
+        if (userId && roleRef.current?.toLowerCase() === "consultant") {
+          url += `&user_id=${userId}`;
+        }
+        await http.put(url, {});
+      } catch (err) {
+        console.error("[useNotifications] Error tracking mark all read:", err);
+      }
+    }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+  }, [roleId, userId]);
 
   const clearAll      = useCallback(() => setNotifications([]), []);
 
@@ -251,8 +278,14 @@ export function useNotifications({
       onNewNotificationRef.current?.(notification);
     };
 
+    const onUpdateUi: UpdateUiSubscriber = () => {
+      // Cập nhật giao diện (trigger refresh cache Next.js, reload data server components)
+      router.refresh();
+    };
+
     // ── Đăng ký subscriber vào event bus ─────────────────────────
     _subscribers.roleNotification.add(onRoleNotification);
+    _subscribers.updateUi.add(onUpdateUi);
 
     // ── Khởi động connection + join groups ───────────────────────
     const init = async () => {
@@ -282,10 +315,11 @@ export function useNotifications({
       cancelled = true;
       // Chỉ xóa subscriber của hook instance này — không ảnh hưởng role khác
       _subscribers.roleNotification.delete(onRoleNotification);
+      _subscribers.updateUi.delete(onUpdateUi);
       // KHÔNG gọi conn.off() — singleton connection dùng chung
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hubUrl, accessToken, maxItems]);
+  }, [hubUrl, accessToken, maxItems, router]);
 
 
 
