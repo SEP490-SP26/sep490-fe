@@ -223,9 +223,11 @@ function QrModal({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (hasScannedRef.current) return;
     if (e.key === "Enter") {
+      const scannedVal = e.currentTarget.value.trim();
+      if (!scannedVal) return;
       hasScannedRef.current = true;
       inputRef.current?.blur();
-      onConfirm(token);
+      onConfirm(scannedVal);
     }
   };
 
@@ -874,21 +876,13 @@ export default function ProductionDetailPage() {
                   </div>
 
                   {/* Quality Metrics */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <div className="bg-gray-50 rounded-xl p-3 text-center border">
                       <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">
-                        SL Tốt
+                        Thành phẩm
                       </p>
                       <p className="text-lg font-bold text-green-600">
                         {stage.qty_good.toLocaleString("vi-VN")}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3 text-center border">
-                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">
-                        SL Hỏng
-                      </p>
-                      <p className="text-lg font-bold text-red-500">
-                        {stage.qty_bad.toLocaleString("vi-VN")}
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-3 text-center border">
@@ -920,12 +914,12 @@ export default function ProductionDetailPage() {
                   {/* Materials I/O */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* Input Materials */}
-                    <div>
+                    <div className="flex flex-col">
                       <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
                         <BsArrowRight className="w-4 h-4 text-orange-500" />
                         Nguyên vật liệu đầu vào
                       </h4>
-                      <div className="border rounded-xl overflow-hidden">
+                      <div className="border rounded-xl overflow-hidden flex-1">
                         <table className="w-full text-sm">
                           <thead className="bg-orange-50">
                             <tr>
@@ -980,12 +974,12 @@ export default function ProductionDetailPage() {
                     </div>
 
                     {/* Output Product */}
-                    <div>
+                    <div className="flex flex-col">
                       <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
                         <BsBoxSeam className="w-4 h-4 text-green-500" />
                         Thành phẩm công đoạn
                       </h4>
-                      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col justify-center flex-1">
                         <p className="font-semibold text-green-800 mb-1">
                           {stage.output_product.name}
                         </p>
@@ -1044,13 +1038,28 @@ export default function ProductionDetailPage() {
                     </div>
                   )}
 
-                  {/* Last scan info */}
-                  {stage.last_scan_time && (
+                  {/* Last scan info & Actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">
                     <p className="text-xs text-gray-400">
-                      Lần scan cuối:{" "}
-                      {formatDateTime(stage.last_scan_time)}
+                      {stage.last_scan_time
+                        ? `Lần scan cuối: ${formatDateTime(stage.last_scan_time)}`
+                        : "Chưa có dữ liệu scan"}
                     </p>
-                  )}
+                    
+                    {["InProcessing", "Ready"].includes(stage.status) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQtyInputValue(stage.output_product?.quantity?.toString() || "");
+                          setQtyInputStage(stage);
+                        }}
+                        disabled={qrLoading}
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                      >
+                        <BsClipboardCheck className="w-4 h-4" /> Báo cáo hoàn thành (QR)
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
