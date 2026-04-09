@@ -5,7 +5,7 @@ import Loading from "@/app/(overview)/loading";
 import { useProduction } from "@/context/ProductionContext";
 import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
-import { Pagination, Spin } from "antd";
+import { Pagination, Spin, Tabs } from "antd";
 import { useState } from "react";
 import { BiPackage, BiTrendingDown, BiTrendingUp } from "react-icons/bi";
 import { BsTruck } from "react-icons/bs";
@@ -115,19 +115,23 @@ export default function InventoryManagement() {
     }
   };
 
-  return (
-    <div>
-      <h1 className="mb-8">Quản lý Kho & Cập nhật Trạng thái</h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* ===== Đơn hàng chờ nhập kho ===== */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 lg:col-span-1">
-          <h2 className="mb-4 flex items-center gap-2">
-            <BsTruck className="w-5 h-5 text-blue-500" />
-            Chờ nhập kho ({orderedPOs.length})
-          </h2>
-
-          <div className="space-y-3 w-full overflow-y-auto">
+  const tabItems = [
+    {
+      key: "1",
+      label: (
+        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
+          <BsTruck className="w-5 h-5 text-blue-500" />
+          Chờ nhập kho
+          {orderedPOs.length > 0 && (
+            <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold ml-1">
+              {orderedPOs.length}
+            </span>
+          )}
+        </span>
+      ),
+      children: (
+        <div className="pt-2">
+          <div className="space-y-4 w-full overflow-y-auto">
             {paginatedPOs.map((po: any) => (
               <div
                 key={po.purchaseId}
@@ -192,15 +196,41 @@ export default function InventoryManagement() {
             </div>
           )}
         </div>
-
-        {/* ===== Tồn kho hiện tại ===== */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 lg:col-span-2">
-          <h2 className="mb-4 flex items-center gap-2">
-            <BiPackage className="w-5 h-5 text-purple-500" />
-            Tồn kho Nguyên vật liệu
-          </h2>
-
-          <div className="overflow-x-auto">
+      ),
+    },
+    {
+      key: "2",
+      label: (
+        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
+          <BiPackage className="w-5 h-5 text-green-500" />
+          Nhập kho thành phẩm
+        </span>
+      ),
+      children: (
+        <div className="pt-2">
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+            <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
+              <BiPackage className="w-8 h-8" />
+            </div>
+            <h3 className="text-gray-900 font-medium text-lg mb-1">Chưa có dữ liệu nhập kho</h3>
+            <p className="text-gray-500 max-w-sm">
+              Khu vực này sẽ hiển thị thông tin các sản phẩm đã hoàn thành hiện đang chờ nhập kho.
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "3",
+      label: (
+        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
+          <BiPackage className="w-5 h-5 text-purple-500" />
+          Tồn kho Nguyên vật liệu
+        </span>
+      ),
+      children: (
+        <div className="pt-2">
+          <div className="overflow-x-auto rounded-lg border border-gray-100 shadow-sm">
             <Spin spinning={isRefetching} tip="Đang làm mới dữ liệu...">
               <table className="w-full">
                 <thead>
@@ -283,6 +313,23 @@ export default function InventoryManagement() {
             </Spin>
           </div>
         </div>
+      ),
+    },
+    
+  ];
+
+  return (
+    <div className="max-w-7xl mx-auto pb-12">
+      <h1 className="text-2xl font-bold text-gray-800 mb-8 tracking-tight">Quản lý Kho & Cập nhật Trạng thái</h1>
+      
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <Tabs 
+          defaultActiveKey="1" 
+          items={tabItems} 
+          size="large"
+          className="custom-inventory-tabs"
+          tabBarStyle={{ marginBottom: 0, padding: '0 16px', borderBottom: '1px solid #f3f4f6' }}
+        />
       </div>
     </div>
   );
