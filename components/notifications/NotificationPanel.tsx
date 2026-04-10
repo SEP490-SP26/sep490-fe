@@ -177,7 +177,7 @@ export default function NotificationPanel(props: NotificationPanelProps) {
       trigger={["click"]}
       placement="bottomRight"
       arrow={{ pointAtCenter: true }}
-      dropdownRender={() => <Panel {...props} />}
+      popupRender={() => <Panel {...props} />}
     >
       <Badge count={props.unreadCount} size="small" offset={[-2, 4]} overflowCount={99}>
         <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-primary">

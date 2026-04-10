@@ -61,6 +61,7 @@ export const SIGNALR_NOTIFICATION_METHODS: string[] = [
   "rejected",
   "processing",
   "paid",
+  "imported",
 ];
 
 /* ================================================================
@@ -246,7 +247,7 @@ export function useNotifications({
     if (!isLocalOnly) {
       try {
         const { default: http } = await import("@/lib/httpAxios");
-        await http.put(`/Notification/mark-as-read/${id}`, {});
+        await http.put(`api/Notification/mark-as-read/${id}`, {});
       } catch (err) {
         console.error("[useNotifications] Error tracking read notification:", err);
       }
@@ -259,7 +260,7 @@ export function useNotifications({
     if (!isLocalOnly && roleId) {
       try {
         const { default: http } = await import("@/lib/httpAxios");
-        let url = `/Notification/mark-all-read?role_id=${roleId}`;
+        let url = `api/Notification/mark-all-read?role_id=${roleId}`;
         // Áp dụng user_id nếu là consultant giống như logic fetch ban đầu
         if (userId && roleRef.current?.toLowerCase() === "consultant") {
           url += `&user_id=${userId}`;
@@ -340,7 +341,7 @@ export function useNotifications({
       if (!roleId) return;
 
       try {
-        let url = `/Notification/get-noti-by-role-id?id=${roleId}`;
+        let url = `api/Notification/get-noti-by-role-id?id=${roleId}`;
         // Theo yêu cầu: chỉ áp dụng user_id cho trang consultant
         if (userId && role?.toLowerCase() === "consultant") {
           url += `&user_id=${userId}`;

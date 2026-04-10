@@ -80,4 +80,7 @@ export const requestOrderApi = {
     formData.append("file", body.file);
     return http.post<CommonResType>(`/api/Requests/upload-print-ready-file/${requestId}`, formData);
   },
+
+  confirmImporting: (order_id: number) =>
+    http.put<CommonResType>('/api/Requests/confirm-importing', order_id),
 };

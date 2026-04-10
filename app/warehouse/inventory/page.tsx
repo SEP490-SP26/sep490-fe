@@ -1,6 +1,7 @@
 "use client";
 import { materialsApi } from "@/apiRequests/materials";
 import { purchasesApi } from "@/apiRequests/purchase";
+import { requestOrderApi } from "@/apiRequests/request";
 import Loading from "@/app/(overview)/loading";
 import { useProduction } from "@/context/ProductionContext";
 import { showErrorToast, showSuccessToast } from "@/utils/toastService";
@@ -29,6 +30,8 @@ export default function InventoryManagement() {
   // ===== Pagination UI state =====
   const ITEMS_PER_PAGE = 3;
   const [poPage, setPoPage] = useState(1);
+  const [finishedGoodPage, setFinishedGoodPage] = useState(1);
+  const [isConfirmingId, setIsConfirmingId] = useState<number | null>(null);
 
   const {
     data: purchaseRequests,
@@ -67,6 +70,24 @@ export default function InventoryManagement() {
     },
   });
 
+  const {
+    data: finishedGoodsRequests,
+    isPending: isFinishedGoodsPending,
+    refetch: refetchFinishedGoods,
+  } = useQuery({
+    queryKey: ["finished-goods"],
+    queryFn: async () => {
+      try {
+        const response = await requestOrderApi.getList(1, 500);
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching finished goods:", error);
+        return [];
+      }
+    },
+    initialData: [],
+  });
+
   if (isInvPending) {
     return <Loading />;
   }
@@ -76,12 +97,34 @@ export default function InventoryManagement() {
     return purchaseRequests.filter((po: any) => po.status === status);
   };
 
+
+
   // ===== Pagination computed data =====
   const orderedPOs = getPurchaseOrdersByStatus("Ordered");
   const paginatedPOs = orderedPOs.slice(
     (poPage - 1) * ITEMS_PER_PAGE,
     poPage * ITEMS_PER_PAGE
   );
+
+  const importingRequests = finishedGoodsRequests?.filter((req: any) => req.process_status === "Importing") || [];
+  const paginatedImportingRequests = importingRequests.slice(
+    (finishedGoodPage - 1) * ITEMS_PER_PAGE,
+    finishedGoodPage * ITEMS_PER_PAGE
+  );
+
+  const handleConfirmImporting = async (order_id: number) => {
+    try {
+      setIsConfirmingId(order_id);
+      await requestOrderApi.confirmImporting(order_id);
+      showSuccessToast("Nhập thành phẩm thành công!");
+      refetchFinishedGoods();
+    } catch (error) {
+      console.error("Error confirming importing:", error);
+      showErrorToast("Có lỗi xảy ra khi nhập kho thành phẩm");
+    } finally {
+      setIsConfirmingId(null);
+    }
+  };
 
   const handleReceive = async (poId: number) => {
     try {
@@ -208,15 +251,62 @@ export default function InventoryManagement() {
       ),
       children: (
         <div className="pt-2">
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-            <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
-              <BiPackage className="w-8 h-8" />
+          {importingRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+              <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                <BiPackage className="w-8 h-8" />
+              </div>
+              <h3 className="text-gray-900 font-medium text-lg mb-1">Chưa có dữ liệu nhập kho</h3>
+              <p className="text-gray-500 max-w-sm">
+                Không có đơn thành phẩm nào đang chờ nhập kho.
+              </p>
             </div>
-            <h3 className="text-gray-900 font-medium text-lg mb-1">Chưa có dữ liệu nhập kho</h3>
-            <p className="text-gray-500 max-w-sm">
-              Khu vực này sẽ hiển thị thông tin các sản phẩm đã hoàn thành hiện đang chờ nhập kho.
-            </p>
-          </div>
+          ) : (
+            <div className="space-y-4 w-full overflow-y-auto">
+              {paginatedImportingRequests.map((req: any) => (
+                <div
+                  key={req.order_request_id}
+                  className="border border-green-200 bg-green-50 rounded-lg p-4"
+                >
+                  <div className="mb-3">
+                    <div className="flex mb-1 justify-between items-center">
+                      <div className="text-gray-900 font-medium">#{req.order_request_id} - {req.product_name || "Chưa có tên SP"}</div>
+                      <div className="text-gray-500 text-sm">SL: {req.quantity || 0}</div>
+                    </div>
+                    <div className="text-gray-500 text-sm">Khách hàng: {req.customer_name}</div>
+                    <div className="text-gray-500 text-sm">SĐT: {req.customer_phone}</div>
+                    {(req.order_request_date || req.delivery_date) && (
+                      <div className="text-gray-500 text-sm">
+                        {req.order_request_date && `Ngày tạo: ${new Date(req.order_request_date).toLocaleDateString("vi-VN")}`}
+                        {req.order_request_date && req.delivery_date && " - "}
+                        {req.delivery_date && `Ngày giao: ${new Date(req.delivery_date).toLocaleDateString("vi-VN")}`}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => handleConfirmImporting(req.order_id)}
+                    disabled={isConfirmingId === req.order_id}
+                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <BiPackage className="w-4 h-4" />
+                    {isConfirmingId === req.order_id ? "Đang xử lý..." : "Nhập kho"}
+                  </button>
+                </div>
+              ))}
+              {importingRequests.length > ITEMS_PER_PAGE && (
+                <div className="mt-4 flex justify-center">
+                  <Pagination
+                    current={finishedGoodPage}
+                    pageSize={ITEMS_PER_PAGE}
+                    total={importingRequests.length}
+                    onChange={(page) => setFinishedGoodPage(page)}
+                    showSizeChanger={false}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ),
     },
