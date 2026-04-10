@@ -19,17 +19,20 @@ export default function LayoutConsultant({
   };
   const handleNavigate = (id: number, status?: string | null) => {
   if (!status) return;
-
-  switch (status) {
-    case "Pending":
+  switch (status.toLowerCase()) {
+    case "consultantcreaterequest":
+    case "clone-request":
+      router.push(`/consultant?orderId=${id}&mode=view`);
+      break;
+    case "pending":
+    case "declined":
       router.push(`/consultant?orderId=${id}&mode=negotiate`);
       break;
-    case "Verified":
+    case "verified":
       router.push(`/consultant/request-detail/${id}`);
       break;
-    case "Declined":
-      router.push(`/consultant?$orderId=${id}&mode=negotiate`);
-      break;
+    case "deposited":
+    case "paid":
     default:
       router.push(`/consultant/${id}`);
   }

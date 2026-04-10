@@ -81,6 +81,9 @@ export const requestOrderApi = {
     return http.post<CommonResType>(`/api/Requests/upload-print-ready-file/${requestId}`, formData);
   },
 
+  confirmImporting: (order_id: number) =>
+    http.put<CommonResType>('/api/Requests/confirm-importing', order_id),
+
   contractCheckStatus: (body: { request_id: number, is_check_contract: boolean, note?: string }) =>
     http.put<CommonResType>(`/api/Requests/contract-check-status`, body),
 

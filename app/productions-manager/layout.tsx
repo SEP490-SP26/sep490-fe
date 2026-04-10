@@ -26,6 +26,21 @@ export default function ProductionsManagerLayout({
     router.push("/management-login");
   };
 
+const handleNavigate = (id: number, status?: string | null) => {
+  if (!status) return;
+  switch (status.toLowerCase()) {
+    case "scheduled":
+      router.push(`/production/schedule/${id}`);
+      break;
+    case "waiting":
+    case "processing":
+      router.push(`/production/orders/${id}`);
+      break;
+    default:
+      break;
+  }
+};
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -40,6 +55,7 @@ export default function ProductionsManagerLayout({
         <RoleHeader
           userInfo={userInfo}
           onLogout={handleLogout}
+          onNavigateToRequest={handleNavigate}
         />
         {/* Main */}
         <main className="flex-1 p-4">{children}</main>

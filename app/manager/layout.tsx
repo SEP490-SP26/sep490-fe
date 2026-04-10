@@ -54,10 +54,13 @@ export default function LayoutManager({
 
     const handleNavigate = (id: number, status?: string | null) => {
   if (!status) return;
-
-  switch (status) {
-    case "Processing":
+  switch (status.toLowerCase()) {
+    case "processing":
       router.push(`/manager/request-detail/${id}`);
+      break;
+    case "deposited":
+    case "paid":
+      router.push(`/manager/orders/${id}`);
       break;
     default:
       break;
