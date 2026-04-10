@@ -183,6 +183,40 @@ export const materialsNavItems: NavItem[] = [
 ]
 ;
 
+// Preset cho General Manager
+export const generalManagerNavItems: NavItem[] = [
+  {
+    path: "/materials",
+    label: "Quản lý nguyên vật liệu",
+    icon: FaWarehouse,
+    basePath: "/general-manger",
+  },
+  {
+    path: "/machines",
+    label: "Quản lý máy móc",
+    icon: FiSettings,
+    basePath: "/general-manger",
+  },
+  {
+    path: "/production-approval",
+    label: "Duyệt lệnh sản xuất",
+    icon: FiList,
+    basePath: "/general-manger",
+  },
+  {
+    path: "/purchase",
+    label: "Mua nguyên vật liệu",
+    icon: FiShoppingCart,
+    basePath: "/general-manger",
+  },
+  {
+    path: "/",
+    label: "Đăng xuất",
+    icon: FiLogOut,
+    isLogout: true,
+  },
+];
+
 //Peset cho manager
 export const managerNavItems: NavItem[] = [
   {

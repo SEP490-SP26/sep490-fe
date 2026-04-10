@@ -97,6 +97,7 @@ export default function ConsultantRequestDetailPage() {
     const [alternativeForm] = Form.useForm();
     const [selectedEstimateForMaterial, setSelectedEstimateForMaterial] = useState<any>(null);
     const [materials, setMaterials] = useState<Material[]>([]);
+    const [isProduceModalOpen, setIsProduceModalOpen] = useState(false);
 
     const handleOpenAlternativeModal = (estimate: any) => {
         setSelectedEstimateForMaterial(estimate);
@@ -282,7 +283,7 @@ export default function ConsultantRequestDetailPage() {
     const handleConfirmLayout = async () => {
         if (!orderDetail) return;
         if (!orderDetail.file_url && !pendingPrintFile) {
-            message.warning("Vui lòng cần chọn file printer ready trước khi xác nhận bố cục!");
+            message.warning("Vui lòng cần chọn file printer ready trước khi Đưa vào sản xuất!");
             return;
         }
         setConfirmingLayout(true);
@@ -303,16 +304,17 @@ export default function ConsultantRequestDetailPage() {
 
             // Confirm layout
             await requestOrderApi.designerConfirmLayout({ request_id: Number(requestId) });
-            message.success("Đã xác nhận bố cục thành công!");
+            message.success("Đã Đưa vào sản xuất thành công!");
 
             // Clear pending files
             setPendingDesignFile(null);
             setPendingPrintFile(null);
+            setIsProduceModalOpen(false);
 
             fetchOrderDetail(false);
         } catch (error: any) {
-            console.error("Lỗi khi xác nhận bố cục:", error);
-            message.error(error.response?.data?.message || "Không thể xác nhận bố cục. Vui lòng thử lại.");
+            console.error("Lỗi khi Đưa vào sản xuất:", error);
+            message.error(error.response?.data?.message || "Không thể Đưa vào sản xuất. Vui lòng thử lại.");
         } finally {
             setConfirmingLayout(false);
         }
@@ -455,30 +457,47 @@ export default function ConsultantRequestDetailPage() {
 
                         {orderDetail.process_status === 'Accepted' && (
                             <>
-                                {orderDetail.is_check_contract === null && (
+                                {/* {orderDetail.is_check_contract === null && (
                                     <Tag color="warning" className="rounded-lg px-3 py-1 font-medium m-0 flex items-center gap-2 border-0 bg-amber-50 text-amber-700">
                                         <Spin size="small" />
                                         Đang chờ Quản Lý duyệt hợp đồng
                                     </Tag>
-                                )}
-                                {orderDetail.is_check_contract === true && !orderDetail.printer_ready_file_path && (
-                                    <Popconfirm
-                                        title={<span className="font-semibold text-lg">Xác nhận bố cục</span>}
-                                        description={`Bạn có chắc chắn muốn xác nhận bố cục cho yêu cầu #${orderDetail.request_id}?`}
-                                        onConfirm={handleConfirmLayout}
-                                        okText="Xác nhận"
-                                        cancelText="Hủy"
-                                        okButtonProps={{ className: "bg-blue-600 hover:bg-blue-500" }}
-                                    >
+                                )} */}
+                                { !orderDetail.printer_ready_file_path && (
+                                    <>
                                         <Button
                                             type="primary"
                                             icon={<CheckCircleOutlined />}
-                                            loading={confirmingLayout}
+                                            onClick={() => setIsProduceModalOpen(true)}
                                             className="bg-green-600 hover:bg-green-500 rounded-lg text-white border-0"
                                         >
-                                            Xác nhận bố cục
+                                            Đưa vào sản xuất
                                         </Button>
-                                    </Popconfirm>
+                                        <Modal
+                                            title={<span className="font-semibold text-lg">Xác nhận đưa vào sản xuất</span>}
+                                            open={isProduceModalOpen}
+                                            onCancel={() => setIsProduceModalOpen(false)}
+                                            footer={[
+                                                <Button key="cancel" onClick={() => setIsProduceModalOpen(false)}>
+                                                    Hủy
+                                                </Button>,
+                                                <Button
+                                                    key="confirm"
+                                                    type="primary"
+                                                    loading={confirmingLayout}
+                                                    onClick={handleConfirmLayout}
+                                                    className="bg-blue-600 hover:bg-blue-500"
+                                                >
+                                                    Xác nhận
+                                                </Button>
+                                            ]}
+                                        >
+                                            <p className="text-base text-slate-700">Bạn có chắc chắn muốn đưa vào sản xuất cho yêu cầu <strong>#{orderDetail.request_id}</strong>?</p>
+                                            <p className="text-red-500 font-medium mt-3 bg-red-50 p-3 rounded-md border border-red-100">
+                                                Lưu ý: Khi nhấn xác nhận thì tất cả thông tin yêu cầu sẽ không được thay đổi và bạn sẽ chịu trách nhiệm nếu có vấn đề gì xảy ra.
+                                            </p>
+                                        </Modal>
+                                    </>
                                 )}
                             </>
                         )}
@@ -1316,7 +1335,9 @@ export default function ConsultantRequestDetailPage() {
                     className="quote-preview-modal"
                     bodyStyle={{ padding: 0, backgroundColor: '#f8fafc' }}
                 >
-                    <div className="max-h-[90vh] overflow-y-auto p-4 md:p-8">
+                    <div
+                        className="max-h-[90vh] overflow-y-auto p-4 md:p-8"
+                    >
                         <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col">
                                 <h2 className="text-xl font-bold text-slate-800 m-0">Xem trước Báo giá</h2>
@@ -1344,26 +1365,6 @@ export default function ConsultantRequestDetailPage() {
                                 </Button>
                             </div>
                         </div>
-
-                        <div className={`mb-6 bg-amber-50 border ${isAllContractsReviewed ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-4 flex items-center justify-between gap-3`}>
-                            <Checkbox
-                                checked={isContractCommitted}
-                                onChange={(e) => setIsContractCommitted(e.target.checked)}
-                                className="text-amber-800 font-medium"
-                                disabled={!isAllContractsReviewed}
-                            >
-                                <span className="text-sm">
-                                    Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
-                                </span>
-                            </Checkbox>
-                            {!isAllContractsReviewed && (
-                                <Tag color="warning" className="m-0 pulse-animation">
-                                    Vui lòng xác nhận đã xem từng hợp đồng
-                                </Tag>
-                            )}
-                        </div>
-
-
 
                         {customerMessage.trim() && (
                             <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
@@ -1565,17 +1566,21 @@ export default function ConsultantRequestDetailPage() {
                                                     {(quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
                                                         <div className="flex flex-col">
                                                             {/* Hợp đồng Web Viewer - Cloudinary/Iframe */}
-                                                            <div className="w-full h-[600px] bg-slate-100 rounded-t-lg relative">
+                                                            <div
+                                                                className="w-full h-[600px] overflow-y-auto bg-slate-100 rounded-t-lg relative"
+                                                                onScroll={(e) => {
+                                                                    const el = e.currentTarget;
+                                                                    if (el.scrollHeight - el.scrollTop <= el.clientHeight + 50) {
+                                                                        setReviewedContracts(prev => new Set([...prev, quote.estimate_id]));
+                                                                    }
+                                                                }}
+                                                            >
                                                                 <iframe
                                                                     src={`https://docs.google.com/viewer?url=${encodeURIComponent(quote.customer_signed_contract_path || quote.consultant_contract_path)}&embedded=true`}
-                                                                    className="w-full h-full border-0 rounded-t-lg shadow-sm"
+                                                                    className="w-full border-0 rounded-t-lg shadow-sm"
+                                                                    style={{ height: '800px' }}
                                                                     title={`Hợp đồng #${index + 1}`}
                                                                 />
-                                                                {/* <div className="absolute top-2 right-2 flex gap-2">
-                                                                    <Tag color="blue" className="m-0 border-0 shadow-sm opacity-90 cursor-help" title="Bạn có thể lướt xem trực tiếp trên web">
-                                                                        Web View
-                                                                    </Tag>
-                                                                </div> */}
                                                             </div>
 
                                                             {/* Bản sao lưu HTML để đảm bảo scroll tracking (hoặc nội dung đi kèm) */}
@@ -1592,24 +1597,7 @@ export default function ConsultantRequestDetailPage() {
                                                                 </div>
                                                             )}
 
-                                                            {/* Nút xác nhận cho từng hợp đồng */}
-                                                            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-                                                                <span className="text-sm text-slate-500 italic">Vui lòng lướt xem và kiểm tra kỹ hợp đồng.</span>
-                                                                <Checkbox
-                                                                    checked={reviewedContracts.has(quote.estimate_id)}
-                                                                    onChange={(e) => {
-                                                                        setReviewedContracts(prev => {
-                                                                            const next = new Set(prev);
-                                                                            if (e.target.checked) next.add(quote.estimate_id);
-                                                                            else next.delete(quote.estimate_id);
-                                                                            return next;
-                                                                        });
-                                                                    }}
-                                                                    className="font-bold text-blue-700"
-                                                                >
-                                                                    Tôi đã xem kỹ hợp đồng này
-                                                                </Checkbox>
-                                                            </div>
+                                                            {/* Nút xác nhận cho từng hợp đồng đã được thay thế bằng scroll qua toàn bộ modal */}
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col items-center justify-center py-20 bg-slate-50 text-slate-400 font-sans h-[400px]">
@@ -1619,6 +1607,24 @@ export default function ConsultantRequestDetailPage() {
                                                         </div>
                                                     )}
 
+                                                </div>
+
+                                                <div className={`mb-6 bg-amber-50 border ${isAllContractsReviewed ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-4 flex items-center justify-between gap-3`}>
+                                                    <Checkbox
+                                                        checked={isContractCommitted}
+                                                        onChange={(e) => setIsContractCommitted(e.target.checked)}
+                                                        className="text-amber-800 font-medium"
+                                                        disabled={!isAllContractsReviewed}
+                                                    >
+                                                        <span className="text-sm">
+                                                            Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
+                                                        </span>
+                                                    </Checkbox>
+                                                    {!isAllContractsReviewed && (
+                                                        <Tag color="warning" className="m-0 pulse-animation">
+                                                            Vui lòng lướt hết để có thể xác nhận
+                                                        </Tag>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

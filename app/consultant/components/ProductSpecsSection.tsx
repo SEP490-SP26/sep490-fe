@@ -224,6 +224,9 @@ export default function ProductSpecsSection({
 
   return (
     <>
+      <Form.Item name="ink_type_names" hidden preserve={true}>
+        <input type="hidden" />
+      </Form.Item>
       <Row gutter={16}>
         <Col span={10}>
           <Form.Item
@@ -519,7 +522,7 @@ export default function ProductSpecsSection({
 
       </Row>
 
-      <Row gutter={16}>
+       <Row gutter={16} hidden>
         <Col span={24}>
           <Form.Item
             name="ink_type_names"

@@ -731,9 +731,9 @@ function ConsultantForm() {
                 // Ensure all necessary dependencies exist before calculating
                 if (materials.length > 0 && productTypes.length > 0) {
                   const result = calculateEstimateResult(tab.data, {
-                      isSendDesign: orderData.is_send_design,
-                      designFilePath: orderData.design_file_path,
-                      designCost: est?.design_cost
+                    isSendDesign: orderData.is_send_design,
+                    designFilePath: orderData.design_file_path,
+                    designCost: est?.design_cost
                   });
                   if (result) {
                     tab.calculations = {
@@ -758,9 +758,9 @@ function ConsultantForm() {
               // Either way, it ensures at least the active tab is calculated.
               const est = estimatesToLoad[0];
               calculateEstimates({
-                  isSendDesign: orderData.is_send_design,
-                  designFilePath: orderData.design_file_path,
-                  designCost: est?.design_cost
+                isSendDesign: orderData.is_send_design,
+                designFilePath: orderData.design_file_path,
+                designCost: est?.design_cost
               });
             }, 500);
 
@@ -873,7 +873,7 @@ function ConsultantForm() {
 
         // Use current if it exists, else follow profile
         number_of_plates: currentValues.number_of_plates !== undefined ? currentValues.number_of_plates : profile.number_of_plates,
-        coating_type: (profile.production_processes && profile.production_processes.includes("PHU")) 
+        coating_type: (profile.production_processes && profile.production_processes.includes("PHU"))
           ? ((currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : profile.coating_type)
           : "NONE",
         wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : profile.wave_type,
@@ -1426,11 +1426,11 @@ function ConsultantForm() {
           if (newUrls.length > 0) {
             const currentUrls = finalDesignPath ? finalDesignPath.split(",") : [];
             finalDesignPath = [...currentUrls, ...newUrls].join(",");
-            message.success({ content: "Tải file thành công!", key: "uploading" });
+            // message.success({ content: "Tải file thành công!", key: "uploading" });
           }
         } catch (uploadErr) {
           console.error("Upload failed", uploadErr);
-          message.error({ content: "Lỗi tải file, đơn hàng sẽ được lưu không kèm file mới.", key: "uploading" });
+          // message.error({ content: "Lỗi tải file, đơn hàng sẽ được lưu không kèm file mới.", key: "uploading" });
         }
       }
 
@@ -1783,30 +1783,33 @@ function ConsultantForm() {
 
       // Threshold: euclidean distance < 120 for a reasonable color match
       if (closestInk && minDistance < 120) {
-        suggestedInks.add((closestInk as any).name);
+        const inkName = (closestInk as any).name;
+        // Bỏ qua Mực Trắng do trong in offset màu trắng thường là màu của giấy, không tốn kẽm
+        if (inkName.toLowerCase() !== "mực trắng") {
+          suggestedInks.add(inkName);
+        }
       }
     });
 
     const results: string[] = [];
     Array.from(suggestedInks).forEach(name => {
-         // Cross-reference with API inkMaterials
-         const matching = inkMaterials.find(ai => ai.name.toLowerCase().includes(name.toLowerCase()));
-         if (matching) results.push(matching.name);
+      // Cross-reference with API inkMaterials
+      const matching = inkMaterials.find(ai => ai.name.toLowerCase().includes(name.toLowerCase()));
+      if (matching) results.push(matching.name);
     });
 
     if (results.length > 0) {
-        const currentInks = form.getFieldValue("ink_type_names") || [];
-        const combined = Array.from(new Set([...currentInks, ...results]));
-        
-        form.setFieldValue("ink_type_names", combined);
-        
-        // Trigger generic calculation handler with updated value
-        const formValues = form.getFieldsValue();
-        formValues.ink_type_names = combined;
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        handleCalculate({ ink_type_names: combined }, formValues);
-        
-        message.info(`Đã tự động chọn ${results.length} loại mực phù hợp với màu sắc thiết kế.`);
+      const currentInks = form.getFieldValue("ink_type_names") || [];
+      const combined = Array.from(new Set([...currentInks, ...results]));
+
+      form.setFieldValue("ink_type_names", combined);
+
+      // Trigger generic calculation handler with updated value
+      const formValues = form.getFieldsValue();
+      formValues.ink_type_names = combined;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      handleCalculate({ ink_type_names: combined }, formValues);
+
     }
   }, [inkMaterials, form]);
 

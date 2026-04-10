@@ -141,6 +141,12 @@ export default function ManagementLoginPage() {
                 case 6:
                     router.replace("/productions-manager");
                     break;
+                case 7:
+                    router.replace("/staff");
+                    break;
+                case 8:
+                    router.replace("/general-manger");
+                    break;
                 default:
                     router.replace("/management-login");
                     break;
@@ -245,6 +251,12 @@ export default function ManagementLoginPage() {
                     break;
                 case 6:
                     router.replace("/productions-manager");
+                    break;
+                case 7:
+                    router.replace("/staff");
+                    break;
+                case 8:
+                    router.replace("/general-manger");
                     break;
                 default:
                     router.replace("/management-login");

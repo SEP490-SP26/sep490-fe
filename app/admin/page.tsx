@@ -32,6 +32,7 @@ const ROLE_MAP: Record<number, string> = {
   5: "User",
   6: "Productions manager",
   7: "Staff",
+  8: "General Manager",
 };
 
 const ROLE_COLOR: Record<string, string> = {
@@ -40,6 +41,7 @@ const ROLE_COLOR: Record<string, string> = {
   Manager: "bg-purple-100 text-purple-700",
   Warehouse: "bg-orange-100 text-orange-700",
   Staff: "bg-green-100 text-green-700",
+  "General Manager": "bg-amber-100 text-amber-700",
 };
 
 const PAGE_SIZE = 7;

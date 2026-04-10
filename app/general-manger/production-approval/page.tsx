@@ -207,8 +207,8 @@ export default function ProductionApprovalPage() {
             type="primary"
             loading={approveMutation.isPending}
             onClick={() => selectedOrderId && approveMutation.mutate(selectedOrderId)}
-            disabled={!statusData?.is_production_ready}
-            className={statusData?.is_production_ready ? "bg-green-600 hover:bg-green-700" : ""}
+            disabled={!(statusData?.has_enough_material && statusData?.has_free_machine)}
+            className={(statusData?.has_enough_material && statusData?.has_free_machine) ? "bg-green-600 hover:bg-green-700" : ""}
           >
             Xác nhận đưa vào sản xuất
           </Button>,
@@ -241,7 +241,7 @@ export default function ProductionApprovalPage() {
                   </div>
                   <div className="border-t border-gray-200 my-2 pt-3 flex justify-between items-center font-semibold text-lg">
                     <span>Kết luận:</span>
-                    {statusData.is_production_ready ? (
+                    {(statusData.has_enough_material && statusData.has_free_machine) ? (
                       <span className="text-green-600">ĐỦ ĐIỀU KIỆN SẢN XUẤT</span>
                     ) : (
                       <span className="text-red-500">CHƯA ĐỦ ĐIỀU KIỆN</span>
@@ -249,7 +249,7 @@ export default function ProductionApprovalPage() {
                   </div>
                </div>
                
-               {!statusData.is_production_ready && (
+               {!(statusData.has_enough_material && statusData.has_free_machine) && (
                  <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded border border-amber-200">
                     Lưu ý: Không thể duyệt sản xuất khi chưa đáp ứng đủ các điều kiện. Vui lòng bổ sung vật tư hoặc chờ máy rảnh.
                  </div>

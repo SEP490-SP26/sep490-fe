@@ -33,6 +33,14 @@ interface ProductionInformationResponse {
   items: InventoryItem[];
 }
 
+interface ProductionStatusResponse {
+  order_id: number;
+  is_production_ready: boolean;
+  has_enough_material: boolean;
+  has_free_machine: boolean;
+
+}
+
 export const productionsApi = {
   getNearestDelivery: () =>
     http.get<NearestDeliveryResponse>("/api/productions/nearest-delivery"),
@@ -50,4 +58,10 @@ export const productionsApi = {
 
   transferToShipping: (orderId: number) =>
     http.put(`/api/Productions/delivery/${orderId}`, {}),
+
+  startReady: (orderId: number) =>
+    http.get<ProductionStatusResponse>(`/api/Productions/start-ready/${orderId}`),
+
+  updateProduction: (orderId: number, body: { is_production_ready: boolean }) =>
+    http.put(`/api/Productions/start-ready/${orderId}`, body),
 };

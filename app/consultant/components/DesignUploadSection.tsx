@@ -170,25 +170,7 @@ export default function DesignUploadSection({
                     </button>
                   </Upload>
                   
-                  {extractedColors.length > 0 && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded border border-gray-100">
-                        <div className="text-sm font-semibold mb-2 text-gray-700">Màu sắc nổi bật từ thiết kế (Gợi ý chọn mực):</div>
-                        <div className="flex flex-wrap gap-3">
-                        {extractedColors.map((hex, i) => {
-                            return (
-                            <div key={i} className="flex flex-col items-center gap-1 group">
-                                <div 
-                                className="w-8 h-8 rounded-full shadow-sm border border-gray-300 transition-transform group-hover:scale-110"
-                                style={{ backgroundColor: hex }}
-                                title={hex}
-                                />
-                                <span className="text-[10px] text-gray-500 uppercase">{hex}</span>
-                            </div>
-                            );
-                        })}
-                        </div>
-                    </div>
-                  )}
+                 
 
                   <Modal open={previewOpen} title={previewTitle} footer={null} onCancel={handleCancel}>
                     <img alt="example" style={{ width: '100%' }} src={previewImage} />

@@ -11,6 +11,7 @@ import {
     DollarOutlined,
     DownloadOutlined,
     EditOutlined,
+    EyeOutlined,
     FileImageOutlined,
     FileTextOutlined,
     ShoppingOutlined,
@@ -80,6 +81,7 @@ export default function ManagerRequestDetailPage() {
     }>>({});
 
     const [paperTypes, setPaperTypes] = useState<{ code: string; name: string; stock: number; value: string }[]>([]);
+    const [viewOnlyContract, setViewOnlyContract] = useState<{ path: string, title: string } | null>(null);
 
     // Fetch order detail from API
     useEffect(() => {
@@ -324,7 +326,7 @@ export default function ManagerRequestDetailPage() {
                             </Tag>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    {/* <div className="flex items-center gap-3">
                         {orderDetail.process_status === 'Accepted' && contractPath && (
                             <Button icon={<FileTextOutlined />} type="primary" onClick={() => setIsContractModalVisible(true)} className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-medium h-auto py-2 shadow-none border-0">
                                 Xem hợp đồng khách ký
@@ -368,7 +370,7 @@ export default function ManagerRequestDetailPage() {
                                 </>
                             )
                         )}
-                    </div>
+                    </div> */}
                 </div>
 
                 <div className="flex flex-col gap-6">
@@ -517,6 +519,25 @@ export default function ManagerRequestDetailPage() {
                                                                         {estimate.ink_type_names.map((ink, idx) => (
                                                                             <Tag key={idx} color="blue" className="m-0 border-0 rounded px-1.5 text-[11px] h-5 flex items-center">{ink}</Tag>
                                                                         ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {(estimate.customer_signed_contract_path || estimate.consultant_contract_path) && (
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <span className="text-slate-500 text-sm whitespace-nowrap">Hợp đồng:</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Tag color="cyan" className="m-0 border-0 rounded px-1.5 text-[11px] h-5 flex items-center">
+                                                                            {estimate.customer_signed_contract_path ? "Đã ký" : "Bản thảo"}
+                                                                        </Tag>
+                                                                        <Button 
+                                                                            size="small" 
+                                                                            icon={<EyeOutlined />} 
+                                                                            onClick={() => setViewOnlyContract({ 
+                                                                                path: estimate.customer_signed_contract_path || estimate.consultant_contract_path, 
+                                                                                title: `Hợp đồng báo giá #${index + 1}` 
+                                                                            })}
+                                                                        />
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -702,6 +723,26 @@ export default function ManagerRequestDetailPage() {
                                                                                         {renderDiffHistory(prevEstimate?.deposit_amount, estimate.deposit_amount, formatCurrency, "0")}
                                                                                     </span>
                                                                                 </div>
+                                                                                {(estimate.customer_signed_contract_path || estimate.consultant_contract_path) && (
+                                                                                    <div className="flex justify-between items-center text-[11px] mt-1">
+                                                                                        <span className="text-slate-400">Hợp đồng:</span>
+                                                                                        <div className="flex items-center gap-1">
+                                                                                            <Tag color="cyan" className="m-0 border-0 rounded px-1 text-[9px] h-4 flex items-center leading-none">
+                                                                                                {estimate.customer_signed_contract_path ? "Đã ký" : "Bản thảo"}
+                                                                                            </Tag>
+                                                                                            <Button 
+                                                                                                size="small" 
+                                                                                                type="text"
+                                                                                                icon={<EyeOutlined style={{ fontSize: '12px' }} />} 
+                                                                                                className="h-5 w-5 flex items-center justify-center p-0"
+                                                                                                onClick={() => setViewOnlyContract({ 
+                                                                                                    path: estimate.customer_signed_contract_path || estimate.consultant_contract_path, 
+                                                                                                    title: `Hợp đồng phiên bản #${estimate.estimate_id}` 
+                                                                                                })}
+                                                                                            />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
 
                                                                             <div className="space-y-2">
@@ -928,6 +969,33 @@ export default function ManagerRequestDetailPage() {
                                 className="w-full rounded-lg border border-slate-200"
                                 style={{ height: '75vh' }}
                                 title="Customer Signed Contract"
+                            />
+                        ) : (
+                            <Empty description="Không tìm thấy file hợp đồng" />
+                        )}
+                    </div>
+                </Modal>
+
+                <Modal
+                    open={!!viewOnlyContract}
+                    onCancel={() => setViewOnlyContract(null)}
+                    footer={[
+                        <Button key="close" onClick={() => setViewOnlyContract(null)}>
+                            Đóng
+                        </Button>
+                    ]}
+                    width={1000}
+                    title={<span className="text-lg font-bold text-slate-800">{viewOnlyContract?.title || "Xem hợp đồng"}</span>}
+                    destroyOnClose
+                    centered
+                >
+                    <div className="py-2">
+                        {viewOnlyContract?.path ? (
+                            <iframe 
+                                src={viewOnlyContract.path.endsWith('.pdf') ? viewOnlyContract.path : `https://docs.google.com/viewer?url=${encodeURIComponent(viewOnlyContract.path)}&embedded=true`} 
+                                className="w-full rounded-lg border border-slate-200"
+                                style={{ height: '75vh' }}
+                                title="Contract Viewer"
                             />
                         ) : (
                             <Empty description="Không tìm thấy file hợp đồng" />
