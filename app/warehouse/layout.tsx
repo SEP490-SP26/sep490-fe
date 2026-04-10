@@ -25,6 +25,17 @@ export default function LayoutWarehouse({
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
     router.push("/management-login");
   };
+  const handleNavigate = (id: number, status?: string | null) => {
+  if (!status) return;
+  switch (status.toLowerCase()) {
+    case "waiting":
+    case "processing":
+      router.push(`/warehouse/orders/${id}`);
+      break;
+    default:
+      break;
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -40,6 +51,7 @@ export default function LayoutWarehouse({
         <RoleHeader
           userInfo={userInfo}
           onLogout={handleLogout}
+          onNavigateToRequest={handleNavigate}
         />
         {/* Main */}
         <main className="flex-1 p-8">
