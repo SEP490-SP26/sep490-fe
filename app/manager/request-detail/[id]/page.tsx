@@ -326,12 +326,12 @@ export default function ManagerRequestDetailPage() {
                             </Tag>
                         </div>
                     </div>
-                    {/* <div className="flex items-center gap-3">
-                        {orderDetail.process_status === 'Accepted' && contractPath && (
+                    <div className="flex items-center gap-3">
+                        {/* {orderDetail.process_status === 'Accepted' && contractPath && (
                             <Button icon={<FileTextOutlined />} type="primary" onClick={() => setIsContractModalVisible(true)} className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-sm font-medium h-auto py-2 shadow-none border-0">
                                 Xem hợp đồng khách ký
                             </Button>
-                        )}
+                        )} */}
                         {orderDetail.process_status === 'Processing' && (
                             noteMode ? (
                                 <>
@@ -370,7 +370,7 @@ export default function ManagerRequestDetailPage() {
                                 </>
                             )
                         )}
-                    </div> */}
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-6">
