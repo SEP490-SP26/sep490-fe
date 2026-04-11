@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { BiArrowBack, BiCheckShield, BiCube, BiUser, BiCreditCard, BiFile, BiMap, BiCalendarCheck } from "react-icons/bi";
 import { Spin } from "antd";
 import { FiSettings } from "react-icons/fi";
-import { showSuccessToast } from "@/utils/toastService";
+import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 import { useState } from "react";
 
 export default function CustomerReceiveOrder() {
@@ -31,12 +31,16 @@ export default function CustomerReceiveOrder() {
 
   const handleReceiveOrder = async () => {
     setIsReceiving(true);
-    // TODO: User will integrate the actual receive API later
-    setTimeout(() => {
+    try {
+      await requestOrderApi.customerReceive(Number(id));
       showSuccessToast("Đã xác nhận nhận hàng thành công!");
-      setIsReceiving(false);
       router.push("/"); // Or whichever path is relevant later
-    }, 2000);
+    } catch (err: any) {
+      console.error("Error confirming receiving:", err);
+      showErrorToast(err.response?.data?.message || "Có lỗi xảy ra khi xác nhận nhận hàng!");
+    } finally {
+      setIsReceiving(false);
+    }
   };
 
   if (isPending) {

@@ -89,4 +89,7 @@ export const requestOrderApi = {
 
   emailRequestResignContract: (body: { request_id: number, custom_message: string }) =>
     http.post<CommonResType>(`/api/Requests/email-request-resign-contract`, body),
+
+  customerReceive: (request_id: number) =>
+    http.put<CommonResType>(`/api/Requests/customer-receive?request_id=${request_id}`, {}),
 };
