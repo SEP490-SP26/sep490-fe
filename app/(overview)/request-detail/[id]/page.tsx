@@ -5,6 +5,7 @@ import { uploadApi } from "@/apiRequests/uploads";
 import { paymentApi, PaymentResponse } from "@/apiRequests/payment";
 import { estimatesApi, QuoteOption } from "@/apiRequests/estimates";
 import { QRCodeCanvas } from "qrcode.react";
+import QuoteCard from "@/components/common/QuoteCard";
 import DesignFileDisplay from "@/app/consultant/components/DesignFileDisplay";
 import {
   AppstoreOutlined,
@@ -700,239 +701,77 @@ export default function RequestDetailPage() {
             {/* Quotes Sections */}
             {quotes.length > 0 && (
               <div className="space-y-6">
-
                 <div className="grid grid-cols-1 gap-8">
-                  {quotes.map((quote, index) => {
-                    const requestDateText = quote.request_date_text || dayjs(quote.order_request_date).format("DD/MM/YYYY");
-                    const deliveryText = quote.delivery_text || dayjs(quote.delivery_date).format("DD/MM/YYYY");
-                    const designTypeText = quote.design_type_text || (quote.is_send_design ? "Khách gửi file" : "Thuê thiết kế");
-                    const finalTotalValue = quote.final_total || 0;
-
-                    return (
-                      <div key={quote.quote_id} className="bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden flex flex-col mx-auto w-full">
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-6">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="text-blue-200 text-xs font-bold tracking-widest uppercase">
-                                MES SYSTEM
-                              </div>
-                              <div className="text-white text-2xl font-extrabold mt-1">
-                                BÁO GIÁ {quotes.length > 1 ? index + 1 : ""}
-                              </div>
-                            </div>
-                            <div className="bg-white/15 text-white px-3 py-1.5 rounded text-sm font-bold">
-                              AM{quote.order_request_id.toString().padStart(6, '0')}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="p-8 flex-1 flex flex-col">
-                          <div className="mb-6">
-                            <p className="text-[15px] m-0">
-                              Chào <b>{quote.customer_name}</b>,
-                            </p>
-                            <p className="text-slate-500 text-sm mt-1 mb-0">
-                              Dưới đây là chi tiết báo giá cho yêu cầu in ấn của bạn:
-                            </p>
-                          </div>
-
-                          <div className="flex-1 flex flex-col gap-8">
-                            {/* Row 1: Thông tin & Chi phí */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {/* Left: Thông tin đơn hàng */}
-                              <div>
-                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
-                                  Thông tin đơn hàng
-                                </h3>
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Ngày yêu cầu</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{requestDateText}</span>
+                  {quotes.map((quote, index) => (
+                    <QuoteCard
+                      key={quote.quote_id}
+                      quote={quote}
+                      index={index}
+                      totalQuotes={quotes.length}
+                      estimateFinishDate={estimate_finish_date}
+                      footer={
+                        (requestDetail.customer_signed_contract_path || requestDetail.consultant_contract_path || quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
+                          <>
+                            <h3 className="text-sm font-bold uppercase mb-4 text-blue-600 tracking-wide">Hợp đồng</h3>
+                            <div className="flex flex-col gap-2">
+                              {requestDetail.customer_signed_contract_path ? (
+                                <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-green-200 shadow-md">
+                                      <FileTextOutlined className="text-green-600" />
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-slate-800">Hợp đồng đã ký</div>
+                                      <div className="text-xs text-slate-500">Hợp đồng đã được ký và xác nhận</div>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Người yêu cầu</span>
-                                    <span className="text-slate-800 font-semibold text-[13px] uppercase">{quote.customer_name}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Số điện thoại</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{maskPhone(quote.customer_phone)}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Email</span>
-                                    <span className="text-blue-600 font-semibold text-[13px] break-all">{maskEmail(quote.customer_email)}</span>
-                                  </div>
+                                  <Button
+                                    type="primary"
+                                    ghost
+                                    icon={<DownloadOutlined />}
+                                    onClick={() => window.open(requestDetail.customer_signed_contract_path, '_blank')}
+                                    className="rounded-lg border-green-600 text-green-600 hover:text-green-700 hover:border-green-700 hover:bg-green-50"
+                                  >
+                                    Xem hợp đồng ký
+                                  </Button>
                                 </div>
-                              </div>
-
-                              {/* Right: Bảng kê chi phí */}
-                              <div>
-                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-orange-500 text-orange-600 tracking-wide">
-                                  Bảng kê chi phí
-                                </h3>
-                                <div className="rounded-lg p-2">
-                                  <div className="space-y-2">
-                                    {!!quote.material_cost && quote.material_cost > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Nguyên vật liệu</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.material_cost)}</span>
-                                      </div>
-                                    )}
-                                    {!!quote.labor_cost && quote.labor_cost > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Chi phí nhân công</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.labor_cost)}</span>
-                                      </div>
-                                    )}
-                                    {!!quote.other_fees && quote.other_fees > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Chi phí khác</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.other_fees)}</span>
-                                      </div>
-                                    )}
-                                    {!!quote.rush_amount && quote.rush_amount > 0 && (
-                                      <div className="flex justify-between items-center py-1.5">
-                                        <span className="text-slate-600 text-[13px]">Phụ thu giao gấp</span>
-                                        <span className="text-slate-800 font-bold text-[13px]">{formatVND(quote.rush_amount)}</span>
-                                      </div>
-                                    )}
-                                    {(!quote.material_cost && !quote.labor_cost && !quote.other_fees && !quote.rush_amount) && (
-                                      <div className="text-slate-400 text-[13px] italic py-2">Liên hệ để biết thêm chi tiết</div>
-                                    )}
+                              ) : (requestDetail.consultant_contract_path || quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
+                                      <FileTextOutlined className="text-blue-600" />
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-slate-800">File Hợp đồng</div>
+                                      <div className="text-xs text-slate-500">Sẵn sàng để xem</div>
+                                    </div>
                                   </div>
+                                  <Button
+                                    type="primary"
+                                    ghost
+                                    icon={<DownloadOutlined />}
+                                    onClick={() => window.open(requestDetail.consultant_contract_path || quote.customer_signed_contract_path || quote.consultant_contract_path || '', '_blank')}
+                                    className="rounded-lg"
+                                  >
+                                    Tải / Xem hợp đồng
+                                  </Button>
                                 </div>
-                              </div>
+                              ) : null}
                             </div>
-
-                            {/* Row 2: Sản phẩm & Tổng thanh toán */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {/* Left: Chi tiết sản phẩm */}
-                              <div>
-                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-blue-500 text-blue-600 tracking-wide">
-                                  Chi tiết sản phẩm
-                                </h3>
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Sản phẩm</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.product_name}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Số lượng</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{quote.quantity.toLocaleString('vi-VN')}</span>
-                                  </div>
-                                  {quote.paper_name && (
-                                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                      <span className="text-slate-500 text-[13px]">Loại giấy</span>
-                                      <span className="text-slate-800 font-semibold text-[13px]">{quote.paper_name}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Thiết kế</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{designTypeText}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                    <span className="text-slate-500 text-[13px]">Ngày hoàn thành dự kiến</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{estimate_finish_date}</span>
-                                  </div>
-                                  {deliveryText && (
-                                    <div className="flex justify-between items-center py-2">
-                                      <span className="text-slate-500 text-[13px]">Giao dự kiến</span>
-                                      <span className="text-slate-800 font-semibold text-[13px]">{deliveryText}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Right: Tổng thanh toán */}
-                              <div>
-                                <h3 className="text-sm font-bold uppercase pb-2 mb-4 border-b-2 border-green-500 text-green-600 tracking-wide">
-                                  Tổng thanh toán
-                                </h3>
-                                <div className="space-y-2">
-                                  <div className={`flex justify-between items-center py-2 ${!quote.discount_amount ? "border-b border-dashed border-slate-300" : ""}`}>
-                                    <span className="text-slate-500 text-[13px]">Tạm tính</span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">{formatVND(quote.subtotal || 0)}</span>
-                                  </div>
-                                  {!!quote.discount_amount && (
-                                    <div className="flex justify-between items-center py-2 border-b border-dashed border-slate-300">
-                                      <span className="text-slate-500 text-[13px]">Giảm giá ({quote.discount_percent || 0}%)</span>
-                                      <span className="text-red-500 font-semibold text-[13px]">- {formatVND(quote.discount_amount)}</span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between items-center pt-3">
-                                    <span className="text-slate-800 font-bold text-[15px]">THÀNH TIỀN</span>
-                                    <span className="text-blue-700 font-extrabold text-lg">{formatVND(finalTotalValue)}</span>
-                                  </div>
-                                  <div className="text-right">
-                                    <span className="text-red-500 text-[11px]">(Đã bao gồm VAT)</span>
-                                  </div>
-                                </div>
-
-                                {quote.deposit && quote.deposit > 0 ? (
-                                  <div className="mt-5 bg-green-50 border border-green-300 rounded-lg p-4">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-green-800 font-bold text-[13px]">Đã Thanh toán:</span>
-                                      <span className="text-green-700 font-extrabold text-base">{formatVND(quote.deposit || 0)}</span>
-                                    </div>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-
-                          {(requestDetail.customer_signed_contract_path || requestDetail.consultant_contract_path || quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
-                            <div className="mt-8 pt-6 border-t border-slate-100">
-                              <h3 className="text-sm font-bold uppercase mb-4 text-blue-600 tracking-wide">Hợp đồng</h3>
-                              <div className="flex flex-col gap-2">
-                                {requestDetail.customer_signed_contract_path ? (
-                                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-green-200 shadow-md">
-                                        <FileTextOutlined className="text-green-600" />
-                                      </div>
-                                      <div>
-                                        <div className="font-bold text-slate-800">Hợp đồng đã ký</div>
-                                        <div className="text-xs text-slate-500">Hợp đồng đã được ký và xác nhận</div>
-                                      </div>
-                                    </div>
-                                    <Button
-                                      type="primary"
-                                      ghost
-                                      icon={<DownloadOutlined />}
-                                      onClick={() => window.open(requestDetail.customer_signed_contract_path, '_blank')}
-                                      className="rounded-lg border-green-600 text-green-600 hover:text-green-700 hover:border-green-700 hover:bg-green-50"
-                                    >
-                                      Xem hợp đồng ký
-                                    </Button>
-                                  </div>
-                                ) : (requestDetail.consultant_contract_path || quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
-                                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
-                                        <FileTextOutlined className="text-blue-600" />
-                                      </div>
-                                      <div>
-                                        <div className="font-bold text-slate-800">File Hợp đồng</div>
-                                        <div className="text-xs text-slate-500">Sẵn sàng để xem</div>
-                                      </div>
-                                    </div>
-                                    <Button
-                                      type="primary"
-                                      ghost
-                                      icon={<DownloadOutlined />}
-                                      onClick={() => window.open(requestDetail.consultant_contract_path || quote.customer_signed_contract_path || quote.consultant_contract_path || '', '_blank')}
-                                      className="rounded-lg"
-                                    >
-                                      Tải / Xem hợp đồng
-                                    </Button>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
+                          </>
+                        ) : null
+                      }
+                      actions={
+                        <Button
+                          type="primary"
+                          className="h-10 px-8 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 w-full sm:w-auto mt-2 sm:mt-0"
+                          onClick={() => handlePayClick(quote)}
+                        >
+                          Thanh toán
+                        </Button>
+                      }
+                    />
+                  ))}
                 </div>
               </div>
             )}
