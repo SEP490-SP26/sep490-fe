@@ -147,6 +147,12 @@ export const warehouseNavItems: NavItem[] = [
     icon: FaWarehouse,
     basePath: "/warehouse",
   },
+  {
+    path: "/stock",
+    label: "Tồn kho NVL",
+    icon: FiPackage,
+    basePath: "/warehouse",
+  },
   // {
   //   path: "/purchase",
   //   label: "Đặt nguyên vật liệu",
