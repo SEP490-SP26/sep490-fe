@@ -60,15 +60,15 @@ export default function ProductionApprovalPage() {
 
   // Lọc hiển thị đơn hàng (ở đây có thể lọc theo trạng thái chờ duyệt, ví dụ: "Scheduled" hoặc "InProcessing")
   const filteredOrders = (apiData || []).filter((order: any) => {
-    // Tùy theo logic nghiệp vụ, có thể ưu tiên hiển thị những đơn đang ở trạng thái cần duyệt,
-    // Ở đây ta lọc thêm theo từ khóa search
+    // Chỉ hiện những order có status LayoutPending và Scheduled mới được hiện
+    const statusMatch = order.status === "LayoutPending" || order.status === "Scheduled";
+    
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.code?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.product_name?.toLowerCase().includes(searchText.toLowerCase());
     
-    // Ví dụ: chỉ hiện các đơn ở trạng thái InProcessing hoặc Scheduled để kiểm tra
-    return searchMatch;
+    return statusMatch && searchMatch;
   });
 
   const handleCheckConditions = (orderId: number) => {
@@ -79,6 +79,7 @@ export default function ProductionApprovalPage() {
   const getStatusTag = (status: string) => {
     switch (status) {
       case "Scheduled": return <Tag color="orange">Đã lên lịch</Tag>;
+      case "LayoutPending": return <Tag color="orange">Đang chờ duyệt layout</Tag>;
       case "InProcessing": return <Tag color="blue">Đang sản xuất</Tag>;
       case "Finished": return <Tag color="green">Hoàn thành</Tag>;
       case "Delivered": return <Tag color="cyan">Đã giao</Tag>;
