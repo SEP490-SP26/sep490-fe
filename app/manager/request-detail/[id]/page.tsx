@@ -512,7 +512,7 @@ export default function ManagerRequestDetailPage() {
                                                                     )}
                                                                 </div>
                                                             </div>
-                                                            {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
+                                                            {/* {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
                                                                 <div className="flex justify-between items-center mb-2">
                                                                     <span className="text-slate-500 text-sm whitespace-nowrap">Loại mực:</span>
                                                                     <div className="flex flex-wrap items-center justify-end gap-1">
@@ -521,7 +521,7 @@ export default function ManagerRequestDetailPage() {
                                                                         ))}
                                                                     </div>
                                                                 </div>
-                                                            )}
+                                                            )} */}
 
                                                             {(estimate.customer_signed_contract_path || estimate.consultant_contract_path) && (
                                                                 <div className="flex justify-between items-center mb-2">
@@ -914,7 +914,7 @@ export default function ManagerRequestDetailPage() {
                                         {orderDetail.glue_tab_mm > 0 && <Descriptions.Item label="Lề dán" span={1}><Text strong className="text-slate-800">{orderDetail.glue_tab_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.bleed_mm > 0 && <Descriptions.Item label="Tràn lề" span={1}><Text strong className="text-slate-800">{orderDetail.bleed_mm} mm</Text></Descriptions.Item>}
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
-                                        {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
+                                        {/* {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
                                             <Descriptions.Item label="Loại mực" span={2}>
                                                 <Space wrap size={[4, 4]}>
                                                     {orderDetail.ink_type_names.map((ink, idx) => (
@@ -922,7 +922,7 @@ export default function ManagerRequestDetailPage() {
                                                     ))}
                                                 </Space>
                                             </Descriptions.Item>
-                                        )}
+                                        )} */}
                                     </Descriptions>
 
                                     {orderDetail.description && (

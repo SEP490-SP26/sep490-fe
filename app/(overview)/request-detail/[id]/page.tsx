@@ -648,7 +648,7 @@ export default function RequestDetailPage() {
                                 </div>
                               )}
 
-                              {requestDetail.ink_type_names && requestDetail.ink_type_names.length > 0 && (
+                              {/* {requestDetail.ink_type_names && requestDetail.ink_type_names.length > 0 && (
                                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors md:col-span-2">
                                   <Text className="text-slate-500 text-sm font-medium">Loại mực:</Text>
                                   <Space wrap size={[4, 4]}>
@@ -657,7 +657,7 @@ export default function RequestDetailPage() {
                                     ))}
                                   </Space>
                                 </div>
-                              )}
+                              )} */}
                             </div>
                           </div>
                         </Panel>
@@ -762,13 +762,15 @@ export default function RequestDetailPage() {
                         ) : null
                       }
                       actions={
-                        <Button
-                          type="primary"
-                          className="h-10 px-8 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 w-full sm:w-auto mt-2 sm:mt-0"
-                          onClick={() => handlePayClick(quote)}
-                        >
-                          Thanh toán
-                        </Button>
+                        !["PAID", "COMPLETED", "ACCEPTED"].includes(requestDetail?.process_status?.toUpperCase() || "") && (
+                          <Button
+                            type="primary"
+                            className="h-10 px-8 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 w-full sm:w-auto mt-2 sm:mt-0"
+                            onClick={() => handlePayClick(quote)}
+                          >
+                            Thanh toán
+                          </Button>
+                        )
                       }
                     />
                   ))}

@@ -3,6 +3,7 @@ import { materialsApi } from "@/apiRequests/materials";
 import { purchasesApi } from "@/apiRequests/purchase";
 import { supplierApi } from "@/apiRequests/supplier";
 import SupplierQuoteCard from "@/components/Card/SupplierQuoteCard ";
+import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { useProduction } from "@/context/ProductionContext";
 import { Material } from "@/lib/estimation.types";
@@ -37,6 +38,15 @@ export default function PurchaseManagement() {
   const [showDirectPO, setShowDirectPO] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { materials } = useProduction();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+
+  useEffect(() => {
+    if (needsRefresh) {
+      window.location.reload();
+    }
+  }, [needsRefresh]);
 
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
   // const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
@@ -332,6 +342,7 @@ export default function PurchaseManagement() {
 
     console.log("Request body:", requestBody);
 
+    setIsSubmitting(true);
     try {
       const response = await purchasesApi.createPO(requestBody);
       // console.log("Create PO response:", response);
@@ -353,14 +364,16 @@ export default function PurchaseManagement() {
         setIsDataInitialized(false);
         refetchMissingMaterials();
 
-        // Có thể refetch data nếu cần
-        // refetchMissingMaterials();
+        // Kích hoạt làm mới trang thông qua useEffect
+        setNeedsRefresh(true);
       } else {
         showErrorToast(response.message || "Tạo đơn hàng thất bại!");
       }
     } catch (error) {
       console.error("Error creating PO:", error);
       showErrorToast("Đã xảy ra lỗi khi tạo đơn hàng");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1024,9 +1037,6 @@ export default function PurchaseManagement() {
                       Nhà cung cấp
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Người đặt
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ngày đặt
                     </th>
                     {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1052,9 +1062,7 @@ export default function PurchaseManagement() {
                             {orderGroup.supplierName}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {orderGroup.createdByName}
-                        </td>
+
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(orderGroup.createdAt).toLocaleDateString(
                             "vi-VN"
@@ -1298,6 +1306,7 @@ export default function PurchaseManagement() {
                         return;
                       }
                       const materialIdNum = Number(material.id.replace("m", ""));
+                      setIsSubmitting(true);
                       try {
                         const payload = {
                           supplier_id: Number(directSupplierId),
@@ -1319,9 +1328,13 @@ export default function PurchaseManagement() {
 
                         showSuccessToast("Tạo đơn đặt hàng trực tiếp thành công");
                         setShowDirectPO(false);
+                        // Kích hoạt làm mới trang
+                        setNeedsRefresh(true);
                       } catch (error: any) {
                         console.error("Create PO error:", error);
                         showErrorToast("Tạo đơn đặt hàng thất bại");
+                      } finally {
+                        setIsSubmitting(false);
                       }
                     }}
                     className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
@@ -1340,6 +1353,7 @@ export default function PurchaseManagement() {
           </div>
         </div>
       )}
+      <LoadingOverlay isLoading={isSubmitting} />
     </div>
   );
 }
