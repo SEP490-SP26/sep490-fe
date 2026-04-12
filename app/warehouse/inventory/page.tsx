@@ -8,6 +8,7 @@ import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
 import { Pagination, Spin, Tabs } from "antd";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { BiPackage, BiTrendingDown, BiTrendingUp } from "react-icons/bi";
 import { BsTruck } from "react-icons/bs";
 import { FiAlertTriangle } from "react-icons/fi";
@@ -19,6 +20,8 @@ export default function InventoryManagement() {
     receiveInventory,
     updateInventory,
   } = useProduction();
+
+  const router = useRouter();
 
   const [editingMaterial, setEditingMaterial] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
@@ -165,11 +168,6 @@ export default function InventoryManagement() {
         <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
           <BsTruck className="w-5 h-5 text-blue-500" />
           Chờ nhập kho
-          {orderedPOs.length > 0 && (
-            <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold ml-1">
-              {orderedPOs.length}
-            </span>
-          )}
         </span>
       ),
       children: (
@@ -266,7 +264,8 @@ export default function InventoryManagement() {
               {paginatedImportingRequests.map((req: any) => (
                 <div
                   key={req.order_request_id}
-                  className="border border-green-200 bg-green-50 rounded-lg p-4"
+                  className="border border-green-200 bg-green-50 rounded-lg p-4 cursor-pointer hover:shadow-md transition-all hover:border-green-300"
+                  onClick={() => router.push(`/warehouse/detail/${req.order_id}`)}
                 >
                   <div className="mb-3">
                     <div className="flex mb-1 justify-between items-center">
@@ -285,7 +284,10 @@ export default function InventoryManagement() {
                   </div>
                   
                   <button
-                    onClick={() => handleConfirmImporting(req.order_id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleConfirmImporting(req.order_id);
+                    }}
                     disabled={isConfirmingId === req.order_id}
                     className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -326,10 +328,9 @@ export default function InventoryManagement() {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4">Nguyên vật liệu</th>
-                    <th className="text-left py-3 px-4">Loại sản phẩm</th>
                     <th className="text-end py-3 px-4">Tồn kho</th>
                     <th className="text-left py-3 px-4">Đơn vị</th>
-                    <th className="text-center py-3 px-4">Thao tác</th>
+                    <th className="text-center py-3 px-4">Mô tả</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -347,53 +348,12 @@ export default function InventoryManagement() {
                             Mã: {inv.code}
                           </div>
                         </td>
-                        <td className="py-3 px-4">
-                          {inv.main_material_type}
-                        </td>
                         <td className="text-end py-3 px-4">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              value={editForm.reserved}
-                              onChange={(e) =>
-                                setEditForm({
-                                  ...editForm,
-                                  reserved: Number(e.target.value) || 0,
-                                })
-                              }
-                              className="w-20 border rounded px-2 py-1"
-                            />
-                          ) : (
-                            inv.stock_qty
-                          )}
+                            {inv.stock_qty}
                         </td>
                         <td className="py-3 px-4">{inv.unit}</td>
                         <td className="text-center py-3 px-4">
-                          {isEditing ? (
-                            <div className="flex gap-2 justify-center">
-                              <button
-                                onClick={handleSaveInventory}
-                                className="text-green-600"
-                              >
-                                Lưu
-                              </button>
-                              <button
-                                onClick={() => setEditingMaterial(null)}
-                                className="text-gray-600"
-                              >
-                                Hủy
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                handleEditInventory(inv.material_id)
-                              }
-                              className="text-blue-600"
-                            >
-                              Sửa
-                            </button>
-                          )}
+                          {inv.description}
                         </td>
                       </tr>
                     );
