@@ -2,15 +2,26 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Table, Input, Button, Tag, Progress } from "antd";
-import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
-import { machineApi } from "@/apiRequests/machine";
+import { Table, Input, Button, Tag, Tooltip } from "antd";
+import { SearchOutlined, ReloadOutlined, ClockCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { machineApi, MachineLaneStatus } from "@/apiRequests/machine";
 import { Machine } from "@/lib/estimation.types";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+
+dayjs.locale("vi");
+
+function formatDatetime(iso: string | undefined | null): string {
+  if (!iso) return "—";
+  const d = dayjs(iso);
+  if (!d.isValid()) return "—";
+  return d.format("HH:mm DD/MM/YYYY");
+}
 
 export default function MachinesManagementPage() {
   const [searchText, setSearchText] = useState("");
 
-  const { data: machines, isLoading, refetch } = useQuery({
+  const { data: machines, isLoading: loadingMachines, refetch: refetchMachines } = useQuery({
     queryKey: ["machines-all"],
     queryFn: async () => {
       try {
@@ -24,6 +35,39 @@ export default function MachinesManagementPage() {
     },
   });
 
+  const { data: snapshot, isLoading: loadingSnapshot, refetch: refetchSnapshot } = useQuery({
+    queryKey: ["machines-availability-snapshot"],
+    queryFn: async () => {
+      try {
+        const res: any = await machineApi.getAvailabilitySnapshot();
+        return res?.data ?? res ?? null;
+      } catch (error) {
+        console.error("Failed to fetch availability snapshot:", error);
+        return null;
+      }
+    },
+  });
+
+  // Build a lookup map from process_code -> MachineLaneStatus
+  const availabilityMap = React.useMemo(() => {
+    const map: Record<string, MachineLaneStatus> = {};
+    if (snapshot?.machines && Array.isArray(snapshot.machines)) {
+      for (const lane of snapshot.machines as MachineLaneStatus[]) {
+        if (lane.process_code) {
+          map[lane.process_code] = lane;
+        }
+      }
+    }
+    return map;
+  }, [snapshot]);
+
+  const isLoading = loadingMachines || loadingSnapshot;
+
+  const handleRefetch = () => {
+    refetchMachines();
+    refetchSnapshot();
+  };
+
   // Filter based on search
   const filteredMachines = (machines || []).filter((m: Machine) => {
     return (
@@ -34,78 +78,79 @@ export default function MachinesManagementPage() {
 
   const columns = [
     {
-      title: "Mã CĐ",
+      title: "Mã máy",
       dataIndex: "process_code",
       key: "process_code",
       width: 120,
       render: (text: string) => <Tag color="geekblue" className="font-medium px-2 py-1">{text || "N/A"}</Tag>,
     },
     {
-      title: "Tên máy / Công đoạn",
+      title: "Tên máy",
       dataIndex: "process_name",
       key: "process_name",
       render: (text: string) => <span className="font-semibold text-gray-800">{text}</span>,
     },
     {
-      title: "Trạng thái",
-      dataIndex: "is_active",
-      key: "is_active",
-      width: 150,
-      render: (isActive: boolean) => (
-        <Tag color={isActive ? "success" : "error"} className="px-2 py-1">
-          {isActive ? "Đang hoạt động" : "Tạm ngưng"}
-        </Tag>
-      ),
-      filters: [
-        { text: 'Đang hoạt động', value: true },
-        { text: 'Tạm ngưng', value: false },
-      ],
-      onFilter: (value: boolean | React.Key, record: Machine) => record.is_active === value,
-    },
-    {
       title: "Số lượng",
       dataIndex: "quantity",
       key: "quantity",
-      width: 120,
-      align: 'center' as const,
+      width: 110,
+      align: "center" as const,
       sorter: (a: Machine, b: Machine) => (a.quantity || 0) - (b.quantity || 0),
-      render: (val: number) => <span className="font-medium">{val ? val : 1}</span>,
+      render: (val: number) => <span className="font-medium">{val ?? 1}</span>,
     },
     {
       title: "Công suất / Ngày",
       dataIndex: "daily_capacity",
       key: "daily_capacity",
       width: 160,
-      align: 'right' as const,
-      render: (val: number) => <span className="font-medium text-blue-700">{val ? val.toLocaleString("vi-VN") : "0"}</span>,
+      align: "right" as const,
+      render: (val: number) => (
+        <span className="font-medium text-blue-700">
+          {val ? val.toLocaleString("vi-VN") : "0"}
+        </span>
+      ),
       sorter: (a: Machine, b: Machine) => (a.daily_capacity || 0) - (b.daily_capacity || 0),
     },
     {
-      title: "Hiệu suất dự kiến (%)",
-      dataIndex: "efficiency_percent",
-      key: "efficiency_percent",
-      width: 180,
-      render: (val: number) => (
-         <Progress 
-           percent={val || 0} 
-           size="small" 
-           status={val > 80 ? 'success' : val < 50 ? 'exception' : 'active'}
-           className="m-0"
-         />
+      title: (
+        <Tooltip title="Thời điểm sớm nhất có ít nhất 1 máy rảnh">
+          <span><ClockCircleOutlined className="mr-1 text-orange-500" />Rảnh sớm nhất</span>
+        </Tooltip>
       ),
-      sorter: (a: Machine, b: Machine) => (a.efficiency_percent || 0) - (b.efficiency_percent || 0),
+      key: "earliest_free",
+      width: 200,
+      render: (_: any, record: Machine) => {
+        const lane = availabilityMap[record.process_code || ""];
+        if (!lane) return <span className="text-gray-400">—</span>;
+        const dt = formatDatetime(lane.earliest_any_lane_free_at);
+        const freeNow = lane.free_now > 0;
+        return (
+          <span className={freeNow ? "text-green-600 font-medium" : "text-orange-600 font-medium"}>
+            {freeNow ? `Đang rảnh (${lane.free_now}/${lane.quantity})` : dt}
+          </span>
+        );
+      },
     },
     {
-      title: "Giờ làm / Ngày",
-      dataIndex: "working_hours_per_day",
-      key: "working_hours_per_day",
-      width: 140,
-      align: 'center' as const,
-      render: (val: number) => (
-        <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded">
-          {val || 8} h
-        </span>
+      title: (
+        <Tooltip title="Thời điểm tất cả các máy cùng loại đều rảnh">
+          <span><CheckCircleOutlined className="mr-1 text-green-500" />Tất cả máy rảnh</span>
+        </Tooltip>
       ),
+      key: "all_free",
+      width: 200,
+      render: (_: any, record: Machine) => {
+        const lane = availabilityMap[record.process_code || ""];
+        if (!lane) return <span className="text-gray-400">—</span>;
+        const allFree = lane.free_now === lane.quantity;
+        const dt = formatDatetime(lane.all_lanes_free_at);
+        return (
+          <span className={allFree ? "text-green-600 font-medium" : "text-gray-700"}>
+            {allFree ? "Tất cả đang rảnh" : dt}
+          </span>
+        );
+      },
     },
   ];
 
@@ -113,20 +158,28 @@ export default function MachinesManagementPage() {
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Quản lý máy móc thiết bị</h1>
-        <Button 
-          type="primary" 
-          icon={<ReloadOutlined />} 
-          onClick={() => refetch()}
-          className="bg-blue-600 shadow-sm"
-        >
-          Cập nhật
-        </Button>
+        <div className="flex items-center gap-3">
+          {snapshot?.generated_at && (
+            <span className="text-xs text-gray-400">
+              Cập nhật: {formatDatetime(snapshot.generated_at)}
+            </span>
+          )}
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            onClick={handleRefetch}
+            loading={isLoading}
+            className="bg-blue-600 shadow-sm"
+          >
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <div className="p-6">
         <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <Input
-            placeholder="Tìm theo mã hoặc tên máy / công đoạn..."
+            placeholder="Tìm theo mã hoặc tên máy..."
             prefix={<SearchOutlined className="text-gray-400" />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -139,12 +192,12 @@ export default function MachinesManagementPage() {
           </div>
         </div>
 
-        <Table 
-          columns={columns} 
-          dataSource={filteredMachines} 
+        <Table
+          columns={columns}
+          dataSource={filteredMachines}
           rowKey={(record) => record.machine_id || record.process_code}
           loading={isLoading}
-          pagination={{ pageSize: 12, showSizeChanger: true, pageSizeOptions: ['12', '24', '50'] }}
+          pagination={{ pageSize: 12, showSizeChanger: true, pageSizeOptions: ["12", "24", "50"] }}
           bordered
           size="middle"
           scroll={{ x: 900 }}
