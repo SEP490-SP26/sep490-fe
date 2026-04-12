@@ -942,6 +942,7 @@ export default function ConsultantRequestDetailPage() {
                                                                     </div>
                                                                     <Upload
                                                                         showUploadList={false}
+                                                                        accept="image/*,.pdf,.doc,.docx"
                                                                         customRequest={async (options) => {
                                                                             const { file, onSuccess, onError } = options;
                                                                             setUploadingContract(true);

@@ -326,11 +326,11 @@ export default function RequestDetailPage() {
                     </Button>
                     <Upload
                       showUploadList={false}
-                      accept=".pdf"
+                      accept="image/*,.pdf"
                       beforeUpload={(file) => {
-                        const isPdf = file.type === 'application/pdf';
-                        if (!isPdf) {
-                          message.error(`${file.name} không phải là file PDF`);
+                        const isValidFormat = file.type === 'application/pdf' || file.type === 'image/jpeg' || file.type === 'image/png';
+                        if (!isValidFormat) {
+                          message.error(`${file.name} không phải là file PDF hoặc hình ảnh`);
                           return Upload.LIST_IGNORE;
                         }
                         return true;
