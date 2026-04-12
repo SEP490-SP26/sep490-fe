@@ -903,7 +903,7 @@ export default function ConsultantRequestDetailPage() {
 
 
 
-                                                    {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
+                                                    {/* {estimate.ink_type_names && estimate.ink_type_names.length > 0 && (
                                                         <div className="flex justify-between items-start mb-2">
                                                             <span className="text-slate-500 text-sm">Loại mực:</span>
                                                             <Space wrap size={[4, 4]} style={{ justifyContent: 'flex-end', maxWidth: '70%' }}>
@@ -912,7 +912,7 @@ export default function ConsultantRequestDetailPage() {
                                                                 ))}
                                                             </Space>
                                                         </div>
-                                                    )}
+                                                    )} */}
 
                                                     {/* <div className="flex justify-between items-center mb-3">
                                                         <span className="text-slate-500 text-sm font-medium">Tổng chi phí:</span>
@@ -1459,27 +1459,28 @@ export default function ConsultantRequestDetailPage() {
 
                                                 </div>
 
-                                                <div className={`mb-6 bg-amber-50 border ${isAllContractsReviewed ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-4 flex items-center justify-between gap-3`}>
-                                                    <Checkbox
-                                                        checked={isContractCommitted}
-                                                        onChange={(e) => setIsContractCommitted(e.target.checked)}
-                                                        className="text-amber-800 font-medium"
-                                                        disabled={!isAllContractsReviewed}
-                                                    >
-                                                        <span className="text-sm">
-                                                            Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
-                                                        </span>
-                                                    </Checkbox>
-                                                    {!isAllContractsReviewed && (
-                                                        <Tag color="warning" className="m-0 pulse-animation">
-                                                            Vui lòng lướt hết để có thể xác nhận
-                                                        </Tag>
-                                                    )}
-                                                </div>
                                             </div>
                                         </div>
                                 );
                             })}
+                        </div>
+
+                        <div className={`mt-8 bg-amber-50 border ${isAllContractsReviewed ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-6 flex items-center justify-between gap-4 shadow-sm`}>
+                            <Checkbox
+                                checked={isContractCommitted}
+                                onChange={(e) => setIsContractCommitted(e.target.checked)}
+                                className="text-amber-800 font-semibold"
+                                disabled={!isAllContractsReviewed}
+                            >
+                                <span className="text-base">
+                                    Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
+                                </span>
+                            </Checkbox>
+                            {!isAllContractsReviewed && (
+                                <Tag color="warning" className="m-0 px-3 py-1 rounded-full font-medium pulse-animation">
+                                    Vui lòng lướt hết tất cả các hợp đồng để có thể xác nhận
+                                </Tag>
+                            )}
                         </div>
 
 

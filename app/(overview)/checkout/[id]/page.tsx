@@ -377,7 +377,7 @@ export default function RequestDetailPage() {
 
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
               <div className="flex justify-between items-center">
-                <span className="text-amber-800 font-medium">Số tiền cần thanh toán:</span>
+                <span className="text-amber-800 font-medium">Số tiền đã cọc:</span>
                 <span className="text-amber-700 font-extrabold text-lg">
                   {selectedQuote ? formatVND(selectedQuote.deposit) : "0 đ"}
                 </span>

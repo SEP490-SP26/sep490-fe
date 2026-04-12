@@ -67,7 +67,7 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
   const headerPadding = compact ? "px-6 py-4" : "px-8 py-6";
   const headerTitleSize = compact ? "text-lg" : "text-2xl";
   const headerSubtitleSize = compact ? "text-[10px]" : "text-xs";
-  
+
   // Content styles based on compact mode
   const contentPadding = compact ? "p-6" : "p-8";
   const labelSize = compact ? "text-[11px]" : "text-[13px]";
@@ -137,9 +137,8 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
                   <div key={idx} className="flex justify-between items-center py-1 border-b border-slate-50">
                     <span className={`text-slate-500 ${labelSize}`}>{item.label}</span>
                     <span
-                      className={`text-slate-800 font-semibold ${valueSize} ${
-                        item.uppercase ? "uppercase" : ""
-                      } ${item.blue ? "text-blue-600 break-all" : ""}`}
+                      className={`text-slate-800 font-semibold ${valueSize} ${item.uppercase ? "uppercase" : ""
+                        } ${item.blue ? "text-blue-600 break-all" : ""}`}
                     >
                       {item.value || "---"}
                     </span>
@@ -187,7 +186,7 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
                   </div>
                 )}
                 {!quote.material_cost && !quote.labor_cost && !quote.other_fees && !quote.rush_amount && (
-                   <div className="text-slate-400 text-[11px] italic py-2">Liên hệ để biết thêm chi tiết</div>
+                  <div className="text-slate-400 text-[11px] italic py-2">Liên hệ để biết thêm chi tiết</div>
                 )}
               </div>
             </div>
@@ -226,9 +225,8 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
               </h3>
               <div className="space-y-1 flex-1">
                 <div
-                  className={`flex justify-between items-center py-1 ${
-                    !quote.discount_amount ? "border-b border-dashed border-slate-200" : ""
-                  }`}
+                  className={`flex justify-between items-center py-1 ${!quote.discount_amount ? "border-b border-dashed border-slate-200" : ""
+                    }`}
                 >
                   <span className={`text-slate-500 ${labelSize}`}>Tạm tính</span>
                   <span className={`text-slate-800 font-semibold ${valueSize}`}>
@@ -263,7 +261,7 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
               <div className={`mt-auto bg-green-50 border border-green-200 rounded-lg ${compact ? 'p-3' : 'p-4'}`}>
                 <div className="flex justify-between items-center">
                   <span className={`text-green-800 font-bold ${compact ? 'text-[11px]' : 'text-[13px]'}`}>
-                    Cần đặt cọc/Thanh toán:
+                    Đặt cọc/Thanh toán:
                   </span>
                   <span className={`text-green-700 font-extrabold ${compact ? 'text-sm' : 'text-base'}`}>
                     {formatVND(quote.deposit || 0)}
