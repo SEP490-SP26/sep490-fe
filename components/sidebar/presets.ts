@@ -155,8 +155,8 @@ export const warehouseNavItems: NavItem[] = [
   // },
   {
     path: "/delivery",
-    label: "Thành phẩm",
-    icon: FiList,
+    label: "Vận chuyển",
+    icon: TbTruckDelivery,
     basePath: "/warehouse",
   },
   {
