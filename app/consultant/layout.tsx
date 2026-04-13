@@ -22,9 +22,11 @@ export default function LayoutConsultant({
   switch (status.toLowerCase()) {
     case "consultantcreaterequest":
     case "clone-request":
-      router.push(`/consultant?orderId=${id}&mode=view`);
+      router.push(`/consultant?orderId=${id}&mode=negotiate`);
       break;
     case "pending":
+      router.push(`/consultant?orderId=${id}&mode=negotiate`);
+      break;
     case "declined":
       router.push(`/consultant?orderId=${id}&mode=negotiate`);
       break;
@@ -32,9 +34,14 @@ export default function LayoutConsultant({
       router.push(`/consultant/request-detail/${id}`);
       break;
     case "deposited":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     case "paid":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     default:
-      router.push(`/consultant/${id}`);
+      router.push(`/consultant/request-detail/${id}`);
+      break;
   }
 };
 
