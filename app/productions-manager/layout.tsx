@@ -27,14 +27,20 @@ export default function ProductionsManagerLayout({
   };
 
 const handleNavigate = (id: number, status?: string | null) => {
+  console.log(id, status);
   if (!status) return;
   switch (status.toLowerCase()) {
+    case "active":
+      router.push(`/productions-manager/production/${id}`);
+      break;
     case "scheduled":
-      router.push(`/production/schedule/${id}`);
+      router.push(`/productions-manager/production/${id}`);
       break;
     case "waiting":
+      router.push(`/productions-manager/production/${id}`);
+      break;
     case "processing":
-      router.push(`/production/orders/${id}`);
+      router.push(`/productions-manager/production/${id}`);
       break;
     default:
       break;

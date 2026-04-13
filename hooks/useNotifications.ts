@@ -27,9 +27,14 @@ export interface AppNotification {
 }
 
 function extractRequestId(message: string): number | undefined {
-  const match = message.match(/#(\d+)|yêu cầu\s+(\d+)|request\s+(\d+)/i);
-  if (!match) return undefined;
-  return Number(match[1] ?? match[2] ?? match[3]);
+  // Tìm các pattern phổ biến: #123, yêu cầu 123, request 123, đơn hàng 123, mã đơn 123, ID 123
+  const match = message.match(/#(\d+)|yêu cầu\s+(\d+)|request\s+(\d+)|đơn hàng\s+(\d+)|đơn\s+(\d+)|mã đơn\s+(\d+)|ID\s*(\d+)/i);
+  if (!match) {
+    // Fallback: tìm bất kỳ số nào trong message
+    const numMatch = message.match(/(\d+)/);
+    return numMatch ? Number(numMatch[1]) : undefined;
+  }
+  return Number(match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? match[6] ?? match[7]);
 }
 
 
@@ -355,15 +360,22 @@ export function useNotifications({
         if (cancelled) return;
 
         if (Array.isArray(data)) {
-          const mapped: AppNotification[] = data.map((item: any) => ({
-            id: String(item.id ?? item.Id),
-            title: "Thông báo",
-            message: item.content ?? item.Content ?? "",
-            timestamp: new Date(item.time ?? item.Time),
-            read: item.isCheck ?? item.IsCheck ?? false,
-            action: item.status ?? item.Status ?? "",
-            requestId: item.requestId ?? item.RequestId ?? extractRequestId(item.content ?? ""),
-          }));
+          const mapped: AppNotification[] = data
+            // Lọc bỏ những thông báo đã check (is_check = true)
+            .filter((item: any) => !(item.isCheck ?? item.IsCheck ?? item.is_check ?? false))
+            .map((item: any) => ({
+              id: String(item.id ?? item.Id),
+              title: "Thông báo",
+              message: item.content ?? item.Content ?? "",
+              timestamp: new Date(item.time ?? item.Time),
+              read: false,
+              action: item.status ?? item.Status ?? "",
+              requestId: item.requestId ?? item.RequestId 
+                ?? item.order_request_id ?? item.OrderRequestId
+                ?? item.order_id ?? item.OrderId
+                ?? item.orderId
+                ?? extractRequestId(item.content ?? ""),
+            }));
           
           setNotifications(prev => {
              // Kết hợp thông báo hiện tại (event real-time) và initial data
