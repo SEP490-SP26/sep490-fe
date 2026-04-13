@@ -136,7 +136,7 @@ export default function ManagementLoginPage() {
                     router.replace("/warehouse");
                     break;
                 case 5:
-                    router.replace("/user");
+                    router.replace("/customer");
                     break;
                 case 6:
                     router.replace("/productions-manager");
@@ -144,13 +144,14 @@ export default function ManagementLoginPage() {
                 case 7:
                     router.replace("/staff");
                     break;
-                case 8:
-                    router.replace("/general-manger");
+                case 18:
+                    router.replace("/general-manager");
                     break;
                 default:
                     router.replace("/management-login");
                     break;
             }
+
         } catch (err: any) {
             console.error("Login error:", err);
             setIsLoading(false);
@@ -247,7 +248,7 @@ export default function ManagementLoginPage() {
                     router.replace("/warehouse");
                     break;
                 case 5:
-                    router.replace("/user");
+                    router.replace("/customer");
                     break;
                 case 6:
                     router.replace("/productions-manager");
@@ -255,13 +256,14 @@ export default function ManagementLoginPage() {
                 case 7:
                     router.replace("/staff");
                     break;
-                case 8:
-                    router.replace("/general-manger");
+                case 18:
+                    router.replace("/general-manager");
                     break;
                 default:
                     router.replace("/management-login");
                     break;
             }
+
         } catch (err) {
             console.error("Google login error:", err);
             setError("Đăng nhập Google thất bại");

@@ -86,7 +86,7 @@ export default function MaterialsManagementPage() {
       render: (val: number) => <span className="text-gray-600">{val ? val.toLocaleString("vi-VN") : "0"}</span>,
     },
     {
-      title: "Giá vốn (VNĐ)",
+      title: "Giá/Đơn vị (VNĐ)",
       dataIndex: "cost_price",
       key: "cost_price",
       width: 150,

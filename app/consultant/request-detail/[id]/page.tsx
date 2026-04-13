@@ -74,6 +74,7 @@ export default function ConsultantRequestDetailPage() {
         : (orderDetail?.cost_estimate && orderDetail.cost_estimate.filter(e => e.is_active).length > 0
             ? orderDetail.cost_estimate.filter(e => e.is_active).every(e => e.consultant_contract_path || e.customer_signed_contract_path)
             : !!((orderDetail as any)?.contract_file || orderDetail?.consultant_contract_path));
+    const isContractLocked = orderDetail && ["Waiting", "Accepted", "Processing", "Rejected"].includes(orderDetail.process_status);
 
     const [uploadingDesign, setUploadingDesign] = useState(false);
     const [uploadingContract, setUploadingContract] = useState(false);
@@ -83,6 +84,8 @@ export default function ConsultantRequestDetailPage() {
     const [uploadingPrint, setUploadingPrint] = useState(false);
     const [confirmingLayout, setConfirmingLayout] = useState(false);
     const [isContractCommitted, setIsContractCommitted] = useState(false);
+    const [isPrintFileViewed, setIsPrintFileViewed] = useState(false);
+    const [isProduceCheckCommitted, setIsProduceCheckCommitted] = useState(false);
 
     const [pendingDesignFile, setPendingDesignFile] = useState<File | null>(null);
     const [pendingPrintFile, setPendingPrintFile] = useState<File | null>(null);
@@ -412,6 +415,24 @@ export default function ConsultantRequestDetailPage() {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
+    const handleViewLocalFile = (file: File) => {
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        const viewableExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+        
+        const url = URL.createObjectURL(file);
+        if (fileExtension && viewableExtensions.includes(fileExtension)) {
+            window.open(url, '_blank');
+        } else {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    };
+
     // Download all design files
     const downloadAllDesignFiles = () => {
         if (!orderDetail.design_file_path) return;
@@ -500,7 +521,11 @@ export default function ConsultantRequestDetailPage() {
                                         <Button
                                             type="primary"
                                             icon={<CheckCircleOutlined />}
-                                            onClick={() => setIsProduceModalOpen(true)}
+                                            onClick={() => {
+                                                setIsPrintFileViewed(false);
+                                                setIsProduceCheckCommitted(false);
+                                                setIsProduceModalOpen(true);
+                                            }}
                                             className="bg-green-600 hover:bg-green-500 rounded-lg text-white border-0"
                                         >
                                             Đưa vào sản xuất
@@ -517,6 +542,7 @@ export default function ConsultantRequestDetailPage() {
                                                     key="confirm"
                                                     type="primary"
                                                     loading={confirmingLayout}
+                                                    disabled={!isPrintFileViewed || !isProduceCheckCommitted}
                                                     onClick={handleConfirmLayout}
                                                     className="bg-blue-600 hover:bg-blue-500"
                                                 >
@@ -524,7 +550,39 @@ export default function ConsultantRequestDetailPage() {
                                                 </Button>
                                             ]}
                                         >
-                                            <p className="text-base text-slate-700">Bạn có chắc chắn muốn đưa vào sản xuất cho yêu cầu <strong>#{orderDetail.request_id}</strong>?</p>
+                                            <p className="text-base text-slate-700 mb-4">Bạn có chắc chắn muốn đưa vào sản xuất cho yêu cầu <strong>#{orderDetail.request_id}</strong>?</p>
+                                            
+                                            <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <span className="font-medium text-slate-700">File in (Printer Ready):</span>
+                                                    {orderDetail.printer_ready_file_path || pendingPrintFile ? (
+                                                        <Button 
+                                                            type="primary" 
+                                                            size="small" 
+                                                            onClick={() => {
+                                                                if (pendingPrintFile) {
+                                                                    handleViewLocalFile(pendingPrintFile);
+                                                                } else if (orderDetail.printer_ready_file_path) {
+                                                                    window.open(orderDetail.printer_ready_file_path, '_blank');
+                                                                }
+                                                                setIsPrintFileViewed(true);
+                                                            }}
+                                                        >
+                                                            Xem File In
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="text-red-500 text-sm">Chưa có file in</span>
+                                                    )}
+                                                </div>
+                                                <Checkbox 
+                                                    checked={isProduceCheckCommitted}
+                                                    onChange={(e) => setIsProduceCheckCommitted(e.target.checked)}
+                                                    disabled={!isPrintFileViewed}
+                                                >
+                                                    Tôi đã kiểm tra kỹ file in và xác nhận file in hợp lệ để bắt đầu đưa vào sản xuất
+                                                </Checkbox>
+                                            </div>
+
                                             <p className="text-red-500 font-medium mt-3 bg-red-50 p-3 rounded-md border border-red-100">
                                                 Lưu ý: Khi nhấn xác nhận thì tất cả thông tin yêu cầu sẽ không được thay đổi và bạn sẽ chịu trách nhiệm nếu có vấn đề gì xảy ra.
                                             </p>
@@ -701,6 +759,7 @@ export default function ConsultantRequestDetailPage() {
                                             ) : (
                                                 <Upload
                                                     showUploadList={false}
+                                                    accept=".ai,.eps,.pdf,.png,.jpg,.jpeg,.zip,.rar,.cdr"
                                                     beforeUpload={(file) => {
                                                         setPendingDesignFile(file);
                                                         return false;
@@ -719,10 +778,7 @@ export default function ConsultantRequestDetailPage() {
                                                     <FileTextOutlined className="text-blue-400" style={{ fontSize: "12px" }} />
                                                     <span
                                                         className="truncate text-blue-700 cursor-pointer hover:underline font-medium"
-                                                        onClick={() => {
-                                                            const url = URL.createObjectURL(pendingDesignFile);
-                                                            window.open(url, '_blank');
-                                                        }}
+                                                        onClick={() => handleViewLocalFile(pendingDesignFile)}
                                                         title="Click để xem file cục bộ"
                                                     >
                                                         {pendingDesignFile.name}
@@ -772,6 +828,7 @@ export default function ConsultantRequestDetailPage() {
                                                     ) : (
                                                         <Upload
                                                             showUploadList={false}
+                                                            accept=".ai,.eps,.pdf,.png,.jpg,.jpeg,.zip,.rar,.cdr"
                                                             beforeUpload={(file) => {
                                                                 setPendingPrintFile(file);
                                                                 return false;
@@ -796,10 +853,7 @@ export default function ConsultantRequestDetailPage() {
                                                         <FileTextOutlined className="text-blue-400" style={{ fontSize: "12px" }} />
                                                         <span
                                                             className="truncate text-blue-700 cursor-pointer hover:underline font-medium"
-                                                            onClick={() => {
-                                                                const url = URL.createObjectURL(pendingPrintFile);
-                                                                window.open(url, '_blank');
-                                                            }}
+                                                            onClick={() => handleViewLocalFile(pendingPrintFile)}
                                                             title="Click để xem file cục bộ"
                                                         >
                                                             {pendingPrintFile.name}
@@ -967,7 +1021,7 @@ export default function ConsultantRequestDetailPage() {
                                                         ) : (
                                                             <>
                                                                 {/* Nút tạo hợp đồng tự động */}
-                                                                {!estimate.consultant_contract_path && (
+                                                                {!estimate.consultant_contract_path && !isContractLocked && (
                                                                     <div className="mb-3">
                                                                         <Button
                                                                             type="primary"
@@ -987,46 +1041,47 @@ export default function ConsultantRequestDetailPage() {
                                                                 )}
 
                                                                 {/* Upload thủ công - Dùng API uploadConsultantContract */}
-                                                                <div className="flex items-center justify-between mb-2">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <FileTextOutlined className="text-blue-500" />
-                                                                        <span className="text-sm font-medium text-slate-800">
-                                                                            {estimate.consultant_contract_path ? "Hợp đồng hiện tại" : "Tải lên hợp đồng (thủ công)"}
-                                                                        </span>
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <FileTextOutlined className="text-blue-500" />
+                                                                            <span className="text-sm font-medium text-slate-800">
+                                                                                {estimate.consultant_contract_path ? "Hợp đồng hiện tại" : "Tải lên hợp đồng (thủ công)"}
+                                                                            </span>
+                                                                        </div>
+                                                                        {!isContractLocked && (
+                                                                            <Upload
+                                                                                showUploadList={false}
+                                                                                accept="image/*,.pdf,.doc,.docx"
+                                                                                customRequest={async (options) => {
+                                                                                    const { file, onSuccess, onError } = options;
+                                                                                    setUploadingContract(true);
+                                                                                    try {
+                                                                                        await estimatesApi.uploadConsultantContract({
+                                                                                            request_id: Number(requestId),
+                                                                                            estimate_id: estimate.estimate_id,
+                                                                                            file: file as File
+                                                                                        });
+                                                                                        message.success("Tải hợp đồng thành công");
+                                                                                        fetchOrderDetail(false);
+                                                                                        if (onSuccess) onSuccess("ok");
+                                                                                    } catch (error) {
+                                                                                        console.error("Upload error:", error);
+                                                                                        message.error("Tải hợp đồng thất bại");
+                                                                                        if (onError) onError(error as any);
+                                                                                    } finally {
+                                                                                        setUploadingContract(false);
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <Button
+                                                                                    size="small"
+                                                                                    icon={<UploadOutlined />}
+                                                                                >
+                                                                                    {estimate.consultant_contract_path ? "Đổi file" : "Chọn file"}
+                                                                                </Button>
+                                                                            </Upload>
+                                                                        )}
                                                                     </div>
-                                                                    <Upload
-                                                                        showUploadList={false}
-                                                                        accept="image/*,.pdf,.doc,.docx"
-                                                                        customRequest={async (options) => {
-                                                                            const { file, onSuccess, onError } = options;
-                                                                            setUploadingContract(true);
-                                                                            try {
-                                                                                // Gọi trực tiếp API uploadConsultantContract
-                                                                                await estimatesApi.uploadConsultantContract({
-                                                                                    request_id: Number(requestId),
-                                                                                    estimate_id: estimate.estimate_id,
-                                                                                    file: file as File
-                                                                                });
-                                                                                message.success("Tải hợp đồng thành công");
-                                                                                fetchOrderDetail(false); // Refresh để hiển thị hợp đồng mới
-                                                                                if (onSuccess) onSuccess("ok");
-                                                                            } catch (error) {
-                                                                                console.error("Upload error:", error);
-                                                                                message.error("Tải hợp đồng thất bại");
-                                                                                if (onError) onError(error as any);
-                                                                            } finally {
-                                                                                setUploadingContract(false);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <Button
-                                                                            size="small"
-                                                                            icon={<UploadOutlined />}
-                                                                        >
-                                                                            {estimate.consultant_contract_path ? "Đổi file" : "Chọn file"}
-                                                                        </Button>
-                                                                    </Upload>
-                                                                </div>
 
                                                                 {/* Hiển thị hợp đồng đã có */}
                                                                 {estimate.consultant_contract_path && (

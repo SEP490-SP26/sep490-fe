@@ -22,6 +22,7 @@ import {
   Skeleton,
   Modal,
   Upload,
+  Result,
 } from "antd";
 import dayjs from "dayjs";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -47,6 +48,7 @@ export default function RequestDetailPage() {
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [hasUploadedContract, setHasUploadedContract] = useState(false);
   const [hasConfirmedQuote, setHasConfirmedQuote] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
 
 
   useEffect(() => {
@@ -121,7 +123,7 @@ export default function RequestDetailPage() {
   };
 
   useEffect(() => {
-    if (!requestId || !selectedQuote) return;
+    if (!requestId || !selectedQuote || isPaid) return;
 
     const checkPaymentStatus = async () => {
       try {
@@ -137,8 +139,8 @@ export default function RequestDetailPage() {
               }
             );
 
-            // message.success('Thanh toán thành công!');
-            router.push(`/request-detail/${requestId}`);
+            setIsPaid(true);
+            setIsPaymentModalVisible(false);
           } catch (error) {
             console.error('Call API notify failed:', error);
           }
@@ -151,7 +153,7 @@ export default function RequestDetailPage() {
     const intervalId = setInterval(checkPaymentStatus, 2000);
 
     return () => clearInterval(intervalId);
-  }, [requestId, router, selectedQuote]);
+  }, [requestId, router, selectedQuote, isPaid]);
 
   const formatVND = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -190,6 +192,51 @@ export default function RequestDetailPage() {
 
   const selectedQuoteIndex = quotes.findIndex(q => q.quote_id === selectedQuote?.quote_id);
 
+  if (isPaid) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center">
+        <div className="bg-white p-12 rounded-3xl shadow-2xl max-w-2xl w-full border border-slate-100 animate-fade-in">
+          <Result
+            status="success"
+            title={<span className="text-3xl font-bold text-slate-800">Thanh toán thành công!</span>}
+            subTitle={
+              <div className="space-y-4 mt-4">
+                <p className="text-lg text-slate-600">
+                  Yêu cầu <strong>AM{selectedQuote?.order_request_id.toString().padStart(6, '0')}</strong> đã hoàn tất đặt cọc.
+                </p>
+                <div className="inline-block px-6 py-2 bg-emerald-50 text-emerald-700 rounded-full font-semibold border border-emerald-100">
+                  Số tiền đã nhận: {formatVND(selectedQuote?.deposit || 0)}
+                </div>
+                <p className="text-slate-500">
+                  Hệ thống đang xử lý đơn hàng của bạn. Bạn có thể theo dõi tiến độ chi tiết tại trang quản lý yêu cầu.
+                </p>
+              </div>
+            }
+            extra={[
+              <Button
+                type="primary"
+                key="detail"
+                size="large"
+                className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-xl h-14 px-10 text-lg font-bold shadow-lg shadow-emerald-200"
+                onClick={() => router.push(`/request-detail/${requestId}`)}
+              >
+                Xem chi tiết yêu cầu
+              </Button>,
+              <Button 
+                key="home" 
+                size="large"
+                className="h-14 px-10 text-lg font-semibold rounded-xl border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-600"
+                onClick={() => router.push('/')}
+              >
+                Về trang chủ
+              </Button>
+            ]}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen  bg-slate-50 py-8 px-4 flex flex-col items-center">
       <div className={`grid grid-cols-1 ${quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-12 w-full max-w-7xl`}>
@@ -207,7 +254,7 @@ export default function RequestDetailPage() {
                 className="h-10 px-8 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 w-full sm:w-auto mt-2 sm:mt-0"
                 onClick={() => handlePayClick(quote)}
               >
-                Xem hợp đồng 
+                Đồng ý
               </Button>
             }
           />
@@ -228,6 +275,8 @@ export default function RequestDetailPage() {
         title={<div className="text-lg font-bold text-slate-800">Xác nhận hợp đồng & thanh toán {selectedQuote ? `- Báo giá ${selectedQuoteIndex + 1}` : ""}</div>}
         open={isConfirmModalVisible}
         onCancel={() => setIsConfirmModalVisible(false)}
+        maskClosable={false}
+        keyboard={false}
         footer={[
           <Button key="cancel" onClick={() => setIsConfirmModalVisible(false)} className="rounded-lg">
             Hủy
@@ -417,6 +466,8 @@ export default function RequestDetailPage() {
         title={null}
         open={isPaymentModalVisible}
         onCancel={() => { setIsPaymentModalVisible(false); setPaymentInfo(null); }}
+        maskClosable={false}
+        keyboard={false}
         footer={null}
         width={500}
         centered

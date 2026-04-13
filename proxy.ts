@@ -25,9 +25,8 @@ const MANAGEMENT_ROUTES = [
   '/staff',
   '/warehouse',
   '/productions-manager',
-  '/materials-manager',
   '/inventory',
-  '/designer'
+  '/general-manager'
 ]
 
 const ROLE_DASHBOARDS: Record<number, string> = {
@@ -35,10 +34,10 @@ const ROLE_DASHBOARDS: Record<number, string> = {
   2: '/consultant',
   3: '/manager',
   4: '/warehouse',
-  5: '/staff',
+  5: '/customer',
   6: '/productions-manager',
-  16: '/designer',
-  17: '/materials-manager'
+  7: '/staff',
+  18: '/general-manager'
 }
 
 export function proxy(request: NextRequest) {
@@ -126,12 +125,16 @@ export function proxy(request: NextRequest) {
     if (pathname.startsWith('/warehouse') && roleId !== 4) {
       return NextResponse.redirect(new URL('/403', request.url))
     }
-    if (pathname.startsWith('/staff') && roleId !== 5) {
+    if (pathname.startsWith('/staff') && roleId !== 7) {
       return NextResponse.redirect(new URL('/403', request.url))
     }
     if (pathname.startsWith('/productions-manager') && roleId !== 6) {
       return NextResponse.redirect(new URL('/403', request.url))
     }
+    if (pathname.startsWith('/general-manager') && roleId !== 18) {
+      return NextResponse.redirect(new URL('/403', request.url))
+    }
+
 
     return NextResponse.next()
   } catch (err) {

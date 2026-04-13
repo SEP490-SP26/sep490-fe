@@ -61,7 +61,7 @@ export default function ProductionApprovalPage() {
   // Lọc hiển thị đơn hàng (ở đây có thể lọc theo trạng thái chờ duyệt, ví dụ: "Scheduled" hoặc "InProcessing")
   const filteredOrders = (apiData || []).filter((order: any) => {
     // Chỉ hiện những order có status LayoutPending và Scheduled mới được hiện
-    const statusMatch = order.status === "LayoutPending" || order.status === "Scheduled";
+    const statusMatch = order.status === "LayoutPending" || order.status === "Scheduled" ;
     
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -89,6 +89,13 @@ export default function ProductionApprovalPage() {
   };
 
   const columns = [
+    {
+      title: "STT",
+      key: "stt",
+      width: 60,
+      align: 'center' as const,
+      render: (_: any, __: any, index: number) => index + 1,
+    },
     {
       title: "Mã đơn",
       dataIndex: "code",

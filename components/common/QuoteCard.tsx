@@ -91,7 +91,7 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
             </div>
           </div>
           <div className="bg-white/15 text-white px-2 py-1 rounded text-xs font-bold">
-            AM{quote.order_request_id.toString().padStart(6, "0")}
+            AM{quote.estimate_id.toString().padStart(6, "0")}
           </div>
         </div>
       </div>
