@@ -12,6 +12,7 @@ import LoadingOverlay from "@/components/common/LoadingOverlay";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { BiPackage } from "react-icons/bi";
+import { useRouter } from "next/navigation";
 import {
   BsBook,
   BsCalendar,
@@ -26,6 +27,7 @@ import { FiZap } from "react-icons/fi";
 
 import { tasksApi } from "@/apiRequests/tasks";
 import Title from "antd/es/typography/Title";
+import { getSignalRConnection } from "@/lib/signalr";
 
 /* =======================
    ProcessingStages Component
@@ -57,7 +59,6 @@ function ProcessingStages({ orderId }: { orderId: number }) {
   ).length;
   const progressPercent =
     totalStages > 0 ? Math.round((finishedCount / totalStages) * 100) : 0;
-
   return (
     <>
       {/* Progress bar */}
@@ -106,8 +107,9 @@ function ProcessingStages({ orderId }: { orderId: number }) {
 }
 
 export default function ProdutionManager() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-    const bufferRef = useRef("");
+  const bufferRef = useRef("");
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
   const [isManualLoading, setIsManualLoading] = useState(false);
@@ -326,6 +328,29 @@ export default function ProdutionManager() {
     if (diffDays < 7) return "bg-yellow-100 text-yellow-700 border-yellow-300";
     return "bg-green-100 text-green-700 border-green-300";
   };
+
+  //signalr
+  useEffect(() => {
+  let conn: any;
+
+  const init = async () => {
+    conn = await getSignalRConnection();
+
+    conn.on("update-ui", () => {
+      console.log("🔥 nhận update-ui");
+
+      // ✅ QUAN TRỌNG: refresh React Query
+      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["production-detail"] });
+    });
+  };
+
+  init();
+
+  return () => {
+    if (conn) conn.off("update-ui");
+  };
+}, [queryClient]);
 
   /* ================== UI ================== */
 
