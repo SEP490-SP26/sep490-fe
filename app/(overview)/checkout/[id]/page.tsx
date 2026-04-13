@@ -207,7 +207,7 @@ export default function RequestDetailPage() {
                 className="h-10 px-8 rounded-lg font-medium bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 w-full sm:w-auto mt-2 sm:mt-0"
                 onClick={() => handlePayClick(quote)}
               >
-                Thanh toán
+                Xem hợp đồng 
               </Button>
             }
           />
@@ -239,7 +239,7 @@ export default function RequestDetailPage() {
             className={`rounded-lg ${(!hasUploadedContract || !hasConfirmedQuote) ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
             onClick={proceedToPayment}
           >
-            Xác nhận & Thanh toán
+           Thanh toán
           </Button>
 
         ]}

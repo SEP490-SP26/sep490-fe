@@ -166,6 +166,39 @@ export interface OrderRequestWithQuotes {
     quotes: QuoteOption[];
 }
 
+export interface ConsultantContractResponse {
+  /** ID yêu cầu báo giá gốc */
+  request_id: number;
+
+  /** ID bản dự toán được chốt để làm hợp đồng */
+  estimate_id: number;
+
+  // --- Chi tiết Tài chính ---
+  /** Phần trăm thuế VAT (VD: 8) */
+  vat_percent: number;
+
+  /** Tổng tiền trước thuế */
+  subtotal_before_vat: number;
+
+  /** Tiền thuế VAT */
+  vat_amount: number;
+
+  /** Tổng giá trị đơn hàng (đã bao gồm VAT) */
+  final_total_cost: number;
+
+  /** Số tiền cần đặt cọc (Thường là 30%) */
+  deposit_amount: number;
+
+  /** Số tiền còn lại khách phải thanh toán sau này */
+  remaining_amount: number;
+
+  // --- Tài liệu & Trạng thái ---
+  /** Link tải/xem file hợp đồng mẫu (docx) được hệ thống tự động tạo */
+  consultant_contract_path: string;
+
+  /** Thông báo từ hệ thống */
+  message: string;
+}
 /** Kiểu dữ liệu mảng các báo giá yêu cầu */
 export type RequestQuotationList = RequestQuotationItem[];
 
@@ -226,5 +259,14 @@ export const estimatesApi = {
     }) => {
         return http.put<void>(`/api/Estimates/alternative-materials`, body);
     },
+    
+    generateConsultantContract: (body: { request_id: number, estimate_id: number }) => {
+        return http.post<ConsultantContractResponse>(`/api/Estimates/generate-consultant-contract`, body);
+    },
+
+    saveConsultantContractPath: (body: { request_id: number, estimate_id: number, consultant_contract_path: string }) => {
+        return http.put<void>(`/api/Estimates/save-consultant-contract-path`, body);
+    },
+
     
 };
