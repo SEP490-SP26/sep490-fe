@@ -6,12 +6,12 @@ import Loading from "@/app/(overview)/loading";
 import { useProduction } from "@/context/ProductionContext";
 import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 import { useQuery } from "@tanstack/react-query";
-import { Pagination, Spin, Tabs } from "antd";
+import { Pagination, Tabs } from "antd";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BiPackage, BiTrendingDown, BiTrendingUp } from "react-icons/bi";
+import { BiPackage } from "react-icons/bi";
 import { BsTruck } from "react-icons/bs";
-import { FiAlertTriangle } from "react-icons/fi";
+
 
 export default function InventoryManagement() {
   const {
@@ -312,60 +312,6 @@ export default function InventoryManagement() {
         </div>
       ),
     },
-    {
-      key: "3",
-      label: (
-        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
-          <BiPackage className="w-5 h-5 text-purple-500" />
-          Tồn kho Nguyên vật liệu
-        </span>
-      ),
-      children: (
-        <div className="pt-2">
-          <div className="overflow-x-auto rounded-lg border border-gray-100 shadow-sm">
-            <Spin spinning={isRefetching} tip="Đang làm mới dữ liệu...">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4">Nguyên vật liệu</th>
-                    <th className="text-end py-3 px-4">Tồn kho</th>
-                    <th className="text-left py-3 px-4">Đơn vị</th>
-                    <th className="text-center py-3 px-4">Mô tả</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inventory.map((inv: any) => {
-                    const isEditing = editingMaterial === inv.material_id;
-
-                    return (
-                      <tr
-                        key={inv.material_id}
-                        className="border-b hover:bg-gray-50"
-                      >
-                        <td className="py-3 px-4">
-                          <div>{inv.name}</div>
-                          <div className="text-sm text-gray-500">
-                            Mã: {inv.code}
-                          </div>
-                        </td>
-                        <td className="text-end py-3 px-4">
-                            {inv.stock_qty}
-                        </td>
-                        <td className="py-3 px-4">{inv.unit}</td>
-                        <td className="text-center py-3 px-4">
-                          {inv.description}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </Spin>
-          </div>
-        </div>
-      ),
-    },
-    
   ];
 
   return (

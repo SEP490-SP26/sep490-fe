@@ -1,10 +1,11 @@
 "use client";
 
 import { productionsApi } from "@/apiRequests/productions";
+import { tasksApi } from "@/apiRequests/tasks";
 import Loading from "@/app/manager/loading";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { BiPackage } from "react-icons/bi";
 import {
@@ -216,10 +217,20 @@ function QrModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasScannedRef = useRef(false);
 
+  // Keep focus on the hidden input so barcode scanner input is captured
+  const focusInput = useCallback(() => {
+    if (!hasScannedRef.current && !showManualInput && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [showManualInput]);
+
   useEffect(() => {
     hasScannedRef.current = false;
-    inputRef.current?.focus();
-  }, [token]);
+    focusInput();
+    // Re-focus every 500ms in case focus is lost
+    const interval = setInterval(focusInput, 500);
+    return () => clearInterval(interval);
+  }, [token, focusInput]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (hasScannedRef.current) return;
@@ -233,7 +244,10 @@ function QrModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      onClick={focusInput}
+    >
       {showManualInput && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] shadow-lg">
@@ -253,6 +267,7 @@ function QrModal({
               onChange={(e) => setManualToken(e.target.value)}
               placeholder="Nhập token..."
               className="w-full border rounded-lg px-3 py-2 mb-4"
+              autoFocus
             />
             <div className="flex gap-3">
               <button
@@ -287,6 +302,8 @@ function QrModal({
           onKeyDown={handleKeyDown}
           autoFocus
           className="absolute opacity-0 size-1"
+          // Reset value khi blur để sẵn sàng cho lần scan tiếp
+          onBlur={(e) => { e.currentTarget.value = ""; }}
         />
         <button
           onClick={onClose}
@@ -499,21 +516,19 @@ export default function ProductionDetailPage() {
       const finalQty =
         qtyOverride && qtyOverride > 0 ? qtyOverride : defaultQty;
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/qr`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task_id: stage.task_id,
-            ttl_minutes: 30,
-            qty_good: finalQty,
-          }),
-        }
-      );
+      const data = await tasksApi.createQRByStageId({
+        task_id: stage.task_id,
+        ttl_minutes: 30,
+        qty_good: finalQty,
+      });
 
-      const data = await res.json();
-      setQrToken(data.token);
+      setQrToken((data as any)?.token ?? (data as any)?.data?.token);
+    } catch (err: any) {
+      setPopup({
+        open: true,
+        type: "error",
+        message: err.message || "Lỗi khi tạo QR",
+      });
     } finally {
       setQrLoading(false);
     }
@@ -522,16 +537,7 @@ export default function ProductionDetailPage() {
   const handleQrScanned = async (scannedToken: string) => {
     try {
       setQrLoading(true);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/finish`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: scannedToken }),
-        }
-      );
-
-      if (!res.ok) throw new Error(await res.text());
+      await tasksApi.finishTask({ token: scannedToken });
 
       setQrToken(null);
       setPopup({
