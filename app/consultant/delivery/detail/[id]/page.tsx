@@ -233,18 +233,20 @@ function Section({
   icon,
   children,
   accent,
+  fullHeight,
 }: {
   title: string;
   icon?: React.ReactNode;
   children: React.ReactNode;
   accent?: string;
+  fullHeight?: boolean;
 }) {
   return (
     <div
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+      className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${fullHeight ? "h-full flex flex-col" : ""}`}
       style={{ borderTop: `3px solid ${accent ?? "#e5e7eb"}` }}
     >
-      <div className="px-5 py-4 flex items-center gap-2 border-b border-gray-50">
+      <div className="px-5 py-4 flex items-center gap-2 border-b border-gray-50 flex-shrink-0">
         {icon && (
           <span style={{ color: accent ?? "#6b7280" }} className="text-base">
             {icon}
@@ -254,7 +256,7 @@ function Section({
           {title}
         </span>
       </div>
-      <div className="px-5 py-3">{children}</div>
+      <div className={`px-5 py-3 ${fullHeight ? "flex-1 flex flex-col justify-around" : ""}`}>{children}</div>
     </div>
   );
 }
@@ -642,18 +644,75 @@ export default function OrderDetailPage() {
         </p>
       </div>
 
-      {/* Main grid */}
-      <div className="px-6 grid grid-cols-12 gap-4">
-        {/* Left column */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-4">
-          {/* Customer */}
-          <Section title="Thông Tin Khách Hàng" icon={<UserOutlined />} accent="#3b82f6">
+      {/* Top grid for Customer Info & Summary to ensure equal height */}
+      <div className="px-6 grid grid-cols-12 gap-4 mb-4">
+        <div className="col-span-12 lg:col-span-8">
+          <Section title="Thông Tin Khách Hàng" icon={<UserOutlined />} accent="#3b82f6" fullHeight={true}>
             <InfoRow icon={<UserOutlined />} label="Họ tên" value={order.customer_name} />
             <InfoRow icon={<PhoneOutlined />} label="Điện thoại" value={order.customer_phone} mono />
             <InfoRow icon={<MailOutlined />} label="Email" value={order.customer_email} mono />
             <InfoRow icon={<EnvironmentOutlined />} label="Địa chỉ giao" value={order.detail_address} />
           </Section>
+        </div>
+        <div className="col-span-12 lg:col-span-4">
+          {/* Quick summary card */}
+          <div
+            className="rounded-2xl p-4 sm:p-5 flex flex-col h-full"
+            style={{
+              background: "linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)",
+              color: "#fff",
+            }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-widest opacity-60 mb-2 flex-shrink-0">
+              Tóm tắt đơn
+            </p>
+            <div className="flex flex-col justify-between flex-1 gap-1">
+              <div className="flex justify-between text-[13px]">
+                <span className="opacity-70">Mã request</span>
+                <span className="font-mono font-semibold">
+                  AM{String(order.order_request_id).padStart(6, "0")}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[13px]">
+                <span className="opacity-70 flex-shrink-0 mr-2">Sản phẩm</span>
+                <span className="font-medium text-right text-xs max-w-[65%] leading-tight truncate">
+                  {order.product_name}
+                </span>
+              </div>
+              <div className="flex justify-between text-[13px]">
+                <span className="opacity-70">Số lượng</span>
+                <span className="font-bold">{order.quantity.toLocaleString("vi-VN")} SP</span>
+              </div>
+              <div className="flex justify-between text-[13px]">
+                <span className="opacity-70">Ngày giao</span>
+                <span className="font-medium">{fmtDateShort(order.delivery_date)}</span>
+              </div>
+              <div
+                className="flex justify-between text-[13px] pt-1.5 mt-0.5"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <span className="opacity-70 mt-0.5">Tổng tiền</span>
+                <span className="font-bold text-yellow-300 text-[15px]">
+                  {fmt(finalTotal)}
+                </span>
+              </div>
+              <div className="flex justify-between text-[13px]">
+                <span className="opacity-70">Đã cọc</span>
+                <span className="font-bold text-green-400">{fmt(depositAmt)}</span>
+              </div>
+              <div className="flex justify-between text-[13px]">
+                <span className="opacity-70">Còn lại</span>
+                <span className="font-bold text-red-400">{fmt(remaining)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      {/* Main grid */}
+      <div className="px-6 grid grid-cols-12 gap-4">
+        {/* Left column */}
+        <div className="col-span-12 lg:col-span-8 flex flex-col gap-4">
           {/* Product */}
           <Section title="Thông Tin Sản Phẩm" icon={<BoxPlotOutlined />} accent="#f59e0b">
             <InfoRow icon={<BoxPlotOutlined />} label="Sản phẩm" value={order.product_name} />
@@ -884,57 +943,6 @@ export default function OrderDetailPage() {
             )}
           </Section> */}
 
-          {/* Quick summary card */}
-          <div
-            className="rounded-2xl p-5"
-            style={{
-              background: "linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)",
-              color: "#fff",
-            }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest opacity-60 mb-3">
-              Tóm tắt đơn
-            </p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="opacity-70">Mã request</span>
-                <span className="font-mono font-semibold">
-                  AM{String(order.order_request_id).padStart(6, "0")}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="opacity-70">Sản phẩm</span>
-                <span className="font-medium text-right text-xs max-w-[60%]">
-                  {order.product_name}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="opacity-70">Số lượng</span>
-                <span className="font-bold">{order.quantity.toLocaleString("vi-VN")} SP</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="opacity-70">Ngày giao</span>
-                <span className="font-medium">{fmtDateShort(order.delivery_date)}</span>
-              </div>
-              <div
-                className="flex justify-between text-sm pt-2 mt-2"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}
-              >
-                <span className="opacity-70">Tổng tiền</span>
-                <span className="font-bold text-yellow-300 text-base">
-                  {fmt(finalTotal)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="opacity-70">Đã cọc</span>
-                <span className="font-bold text-green-500">{fmt(depositAmt)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="opacity-70">Còn lại</span>
-                <span className="font-bold text-red-500">{fmt(remaining)}</span>
-              </div>
-            </div>
-          </div>
           {/* Design file */}
           {order.design_file_path && (
             <Section title="File Thiết Kế" icon={<FileTextOutlined />} accent="#14b8a6">
