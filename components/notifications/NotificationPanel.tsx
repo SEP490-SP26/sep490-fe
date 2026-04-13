@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Badge, Dropdown, Empty, Tooltip } from "antd";
 import {
   BellOutlined,
@@ -8,6 +8,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import type { AppNotification } from "@/hooks/useNotifications";
+import { useRouter, usePathname } from "next/navigation";
 
 interface NotificationPanelProps {
   notifications: AppNotification[];
@@ -34,17 +35,24 @@ function timeAgo(date: Date): string {
 function NotificationItem({
   notification,
   onMarkAsRead,
-  onNavigate,            // ← thêm prop
+  onNavigate,
+  onCloseDropdown,
 }: {
   notification: AppNotification;
   onMarkAsRead: (id: string) => void;
   onNavigate?: (requestId: number, status?: string | null) => void;
+  onCloseDropdown?: () => void;
 }) {
   const handleClick = () => {
     if (!notification.read) onMarkAsRead(notification.id);
-    // Navigate nếu có requestId
-    if (notification.requestId && onNavigate) {
-      onNavigate(notification.requestId, notification.action);
+    // Always call onNavigate when available
+    if (onNavigate) {
+      onCloseDropdown?.();
+      const navId = notification.requestId ?? (Number(notification.id) || 0);
+      // Small delay to let dropdown close before navigation
+      setTimeout(() => {
+        onNavigate(navId, notification.action);
+      }, 100);
     }
   };
 
@@ -95,7 +103,8 @@ function Panel({
   onMarkAllAsRead,
   onClearAll,
   onNavigate,
-}: NotificationPanelProps) {
+  onCloseDropdown,
+}: NotificationPanelProps & { onCloseDropdown?: () => void }) {
   return (
     <div className="w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
       {/* Header */}
@@ -161,6 +170,7 @@ function Panel({
               notification={n}
               onMarkAsRead={onMarkAsRead}
               onNavigate={onNavigate}
+              onCloseDropdown={onCloseDropdown}
             />
           ))
         )}
@@ -172,12 +182,16 @@ function Panel({
 /* ─── Exported bell button ───────────────────────────────────── */
 
 export default function NotificationPanel(props: NotificationPanelProps) {
+  const [open, setOpen] = useState(false);
+
   return (
     <Dropdown
+      open={open}
+      onOpenChange={setOpen}
       trigger={["click"]}
       placement="bottomRight"
       arrow={{ pointAtCenter: true }}
-      popupRender={() => <Panel {...props} />}
+      popupRender={() => <Panel {...props} onCloseDropdown={() => setOpen(false)} />}
     >
       <Badge count={props.unreadCount} size="small" offset={[-2, 4]} overflowCount={99}>
         <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-primary">

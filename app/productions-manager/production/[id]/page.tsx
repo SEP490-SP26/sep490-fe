@@ -801,7 +801,7 @@ export default function ProductionDetailPage() {
                     <h3 className="font-bold text-gray-800 text-base">
                       {stage.process_name}
                       <span className="text-gray-400 font-normal text-sm ml-2">
-                        ({stage.process_code})
+                        (Phụ trách: Nhân viên {stage.process_name})
                       </span>
                     </h3>
                     <div className="flex items-center gap-3 mt-1">
@@ -823,11 +823,6 @@ export default function ProductionDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {totalProcessed > 0 && (
-                    <span className="text-xs font-semibold text-gray-600 bg-white px-3 py-1 rounded-lg border">
-                      {stage.qty_good} ✓ / {stage.qty_bad} ✗
-                    </span>
-                  )}
                   {isCollapsed ? (
                     <BsChevronDown className="w-5 h-5 text-gray-400" />
                   ) : (
