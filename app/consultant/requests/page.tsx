@@ -105,9 +105,10 @@ export default function ConsultantOrdersPage() {
         conn.on("pending", handleServerEvent);
         // Bạn có thể thêm các method khác ở đây
         // conn.on("accepted", handleServerEvent);
-
+        conn.on("update-ui", handleServerEvent);
         removeListener = () => {
           conn.off("pending", handleServerEvent);
+          conn.off("update-ui", handleServerEvent);
         };
       } catch (err) {
         console.error("SignalR init error in requests page:", err);
