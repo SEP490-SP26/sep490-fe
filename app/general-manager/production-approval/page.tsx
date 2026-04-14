@@ -60,7 +60,7 @@ export default function ProductionApprovalPage() {
 
   // Lọc hiển thị đơn hàng (chỉ hiện những order có status LayoutPending hoặc Scheduled VÀ đã sẵn sàng sản xuất)
   const filteredOrders = (apiData || []).filter((order: any) => {
-    const statusMatch = (order.status === "LayoutPending" || order.status === "Scheduled") && order.is_production_ready === true;
+    const statusMatch = (order.status === "LayoutPending" || order.status === "Scheduled") && order.is_production_ready === false;
     
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
