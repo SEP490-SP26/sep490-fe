@@ -162,8 +162,6 @@ function formatDateTime(dateStr?: string | null) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 }
 
@@ -175,6 +173,13 @@ function formatDate(dateStr?: string | null) {
     year: "numeric",
   });
 }
+
+const subtractDays = (date?: string | null, days?: number) => {
+  if (!date) return "";
+  const d = new Date(date);
+  d.setDate(d.getDate() - (days ?? 0));
+  return d.toISOString();
+};
 
 function getDeliveryUrgency(dateStr: string) {
   const today = new Date();
@@ -673,8 +678,8 @@ export default function ProductionDetailPage() {
         />
         <InfoCard
           icon={<BsCalendar className="w-5 h-5" />}
-          label="Ngày tạo lệnh"
-          value={formatDateTime(production?.created_at)}
+          label="Hạn hoàn thành dự kiến"
+          value={formatDateTime(subtractDays(production?.delivery_date, 3))}
         />
         <InfoCard
           icon={<BsClock className="w-5 h-5" />}
@@ -792,14 +797,7 @@ export default function ProductionDetailPage() {
 
         {sortedStages?.map((stage, index) => {
           const isCollapsed = collapsedStages[stage.process_id] ?? true;
-          const statusInfo = STATUS_MAP[stage.status];
-          const totalProcessed = stage.qty_good + stage.qty_bad;
-          const qualityRate =
-            totalProcessed > 0
-              ? Math.round((stage.qty_good / totalProcessed) * 100)
-              : 0;
-
-          return (
+          const statusInfo = STATUS_MAP[stage.status];          return (
             <div
               key={stage.process_id}
               className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}
@@ -827,27 +825,31 @@ export default function ProductionDetailPage() {
                     )}
                   </div>
 
-                  <div>
-                    <h3 className="font-bold text-gray-800 text-base">
+                  <div className="flex flex-col gap-1.5">
+                    <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
                       {stage.process_name}
-                      <span className="text-gray-400 font-normal text-sm ml-2">
-                        (Phụ trách: Nhân viên {stage.process_name})
+                      <span className="text-gray-400 font-normal text-sm">
+                        (Phụ trách: Phòng {stage.process_name})
                       </span>
                     </h3>
-                    <div className="flex items-center gap-3 mt-1">
+                    <div className="flex items-center flex-wrap gap-2">
                       <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-md ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}
                       >
                         {production?.production_status === "Scheduled"
                           ? "Chưa bắt đầu sản xuất"
                           : statusInfo.label}
                       </span>
                       {stage.assigned_to_name && (
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <BsPerson className="w-3 h-3" />
+                        <span className="text-xs text-gray-600 font-medium flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md border border-gray-200">
+                          <BsPerson className="w-3.5 h-3.5" />
                           {stage.assigned_to_name}
                         </span>
                       )}
+                      <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-md border border-blue-300 shadow-sm">
+                        <BsClock className="w-3.5 h-3.5" />
+                        Dự kiến: {formatDateTime(stage.planned_start_time)} - {formatDateTime(stage.planned_end_time)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -864,82 +866,27 @@ export default function ProductionDetailPage() {
               {/* Stage Body */}
               {!isCollapsed && (
                 <div className="p-5 space-y-5">
-                  {/* Time Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                      <p className="text-xs text-blue-500 font-semibold mb-2 uppercase tracking-wide">
-                        Thời gian dự kiến
-                      </p>
-                      <div className="space-y-1.5 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Bắt đầu:</span>
-                          <span className="font-medium text-gray-800">
-                            {formatDateTime(stage.planned_start_time)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Kết thúc:</span>
-                          <span className="font-medium text-gray-800">
-                            {formatDateTime(stage.planned_end_time)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
+                  {/* Time Info - Actual Time */}
+                  <div className="w-full">
                     <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                      <p className="text-xs text-green-500 font-semibold mb-2 uppercase tracking-wide">
+                      <p className="text-xs text-green-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                        <BsClock className="w-3.5 h-3.5" />
                         Thời gian thực tế
                       </p>
                       <div className="space-y-1.5 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Bắt đầu:</span>
-                          <span className="font-medium text-gray-800">
+                        <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                          <span className="text-gray-500 font-medium">Bắt đầu:</span>
+                          <span className="font-bold text-gray-800">
                             {formatDateTime(stage.start_time)}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Kết thúc:</span>
-                          <span className="font-medium text-gray-800">
+                        <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                          <span className="text-gray-500 font-medium">Kết thúc:</span>
+                          <span className="font-bold text-gray-800">
                             {formatDateTime(stage.end_time)}
                           </span>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Quality Metrics */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <div className="bg-gray-50 rounded-xl p-3 text-center border">
-                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">
-                        Thành phẩm
-                      </p>
-                      <p className="text-lg font-bold text-green-600">
-                        {stage.qty_good.toLocaleString("vi-VN")}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3 text-center border">
-                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">
-                        Tỷ lệ hao hụt
-                      </p>
-                      <p className="text-lg font-bold text-yellow-600">
-                        {stage.waste_percent}%
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3 text-center border">
-                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">
-                        Chất lượng
-                      </p>
-                      <p
-                        className={`text-lg font-bold ${
-                          qualityRate >= 90
-                            ? "text-green-600"
-                            : qualityRate >= 70
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {totalProcessed > 0 ? `${qualityRate}%` : "—"}
-                      </p>
                     </div>
                   </div>
 
@@ -1043,10 +990,7 @@ export default function ProductionDetailPage() {
                                 Thời gian
                               </th>
                               <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                                SL Tốt
-                              </th>
-                              <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                                SL Hỏng
+                                Số lượng thành phẩm
                               </th>
                             </tr>
                           </thead>
@@ -1056,11 +1000,8 @@ export default function ProductionDetailPage() {
                                 <td className="px-3 py-2.5">
                                   {formatDateTime(stage.end_time)}
                                 </td>
-                                <td className="px-3 py-2.5 text-right text-green-600 font-medium">
+                                <td className="px-3 py-2.5 text-right text-green-600 font-bold">
                                   {log.qty_good}
-                                </td>
-                                <td className="px-3 py-2.5 text-right text-red-500 font-medium">
-                                  {log.qty_bad}
                                 </td>
                               </tr>
                             ))}

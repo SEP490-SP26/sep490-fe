@@ -22,21 +22,37 @@ export default function LayoutConsultant({
   switch (status.toLowerCase()) {
     case "consultantcreaterequest":
     case "clone-request":
-      router.push(`/consultant?orderId=${id}&mode=negotiate`);
-      break;
     case "pending":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
+    case "cancel":
       router.push(`/consultant?orderId=${id}&mode=negotiate`);
       break;
-    case "declined":
-      router.push(`/consultant?orderId=${id}&mode=negotiate`);
-      break;
+    case "processing":
     case "verified":
       router.push(`/consultant/request-detail/${id}`);
       break;
-    case "deposited":
+    case "declined":
       router.push(`/consultant/request-detail/${id}`);
       break;
+    case "waiting":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
+    case "accepted":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
+    case "rejected":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
+    case "finished":
+    case "pendingpaid":
     case "paid":
+      router.push(`/consultant/delivery/detail/${id}`);
+      break;
+    case "delivery":
+      router.push(`/consultant/delivery/detail/${id}`);
+      break;
+    case "completed":
       router.push(`/consultant/request-detail/${id}`);
       break;
     default:

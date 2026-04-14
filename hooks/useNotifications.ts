@@ -244,6 +244,43 @@ export function useNotifications({
   roleRef.current              = role;
   onNewNotificationRef.current = onNewNotification;
 
+  /* ── Hàm fetch API (gọi khi init và khi nhận SignalR) ── */
+  const fetchNotificationsRef = useRef<() => Promise<void>>(async () => {});
+  fetchNotificationsRef.current = async () => {
+    if (!roleId) return;
+    try {
+      let url = `api/Notification/get-noti-by-role-id?id=${roleId}`;
+      if (userId && role?.toLowerCase() === "consultant") {
+        url += `&user_id=${userId}`;
+      }
+      
+      const { default: http } = await import("@/lib/httpAxios");
+      const data: any = await http.get(url);
+      
+      if (Array.isArray(data)) {
+        const mapped: AppNotification[] = data
+          .filter((item: any) => !(item.isCheck ?? item.IsCheck ?? item.is_check ?? false))
+          .map((item: any) => ({
+             id: String(item.id ?? item.Id),
+             title: "Thông báo",
+             message: item.content ?? item.Content ?? "",
+             timestamp: new Date(item.time ?? item.Time),
+             read: false,
+             action: item.status ?? item.Status ?? "",
+             requestId: item.requestId ?? item.RequestId 
+               ?? item.order_request_id ?? item.OrderRequestId
+               ?? item.order_id ?? item.OrderId
+               ?? item.orderId
+               ?? extractRequestId(item.content ?? ""),
+          }));
+        
+        setNotifications(mapped.slice(0, maxItems));
+      }
+    } catch (err) {
+      console.error("[useNotifications] fetch error:", err);
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   /* ── state helpers ── */
@@ -287,8 +324,11 @@ export function useNotifications({
     // ── Subscriber: role-based SignalR methods ──────────────────
     // Backend đã route đúng role qua ByRole() group → nhận được = hiển thị
     const onRoleNotification: RoleNotificationSubscriber = (method, evt) => {
+      // Khi nhận được signalR, ta gọi lại hàm fetch API để lấy danh sách mới nhất
+      fetchNotificationsRef.current?.();
+
+      // Vẫn trigger onNewNotification để hiển thị toast (nếu có)
       const notification = buildNotification(method, evt);
-      setNotifications((prev) => [notification, ...prev].slice(0, maxItems));
       onNewNotificationRef.current?.(notification);
     };
 
@@ -339,69 +379,8 @@ export function useNotifications({
 
   /* ── Fetch initial notifications ── */
   useEffect(() => {
-    let cancelled = false;
-
-    const fetchInitialNotifications = async () => {
-      // Chỉ fetch nếu có roleId
-      if (!roleId) return;
-
-      try {
-        let url = `api/Notification/get-noti-by-role-id?id=${roleId}`;
-        // Theo yêu cầu: chỉ áp dụng user_id cho trang consultant
-        if (userId && role?.toLowerCase() === "consultant") {
-          url += `&user_id=${userId}`;
-        }
-        
-        // Dùng tạm fetch bằng Axios vì UseNotificationsOptions không import axios
-        // Nhập khẩu động httpAxios để tránh circular dependency hoặc đơn giản dùng global fetch
-        const { default: http } = await import("@/lib/httpAxios");
-        const data: any = await http.get(url);
-        
-        if (cancelled) return;
-
-        if (Array.isArray(data)) {
-          const mapped: AppNotification[] = data
-            // Lọc bỏ những thông báo đã check (is_check = true)
-            .filter((item: any) => !(item.isCheck ?? item.IsCheck ?? item.is_check ?? false))
-            .map((item: any) => ({
-              id: String(item.id ?? item.Id),
-              title: "Thông báo",
-              message: item.content ?? item.Content ?? "",
-              timestamp: new Date(item.time ?? item.Time),
-              read: false,
-              action: item.status ?? item.Status ?? "",
-              requestId: item.requestId ?? item.RequestId 
-                ?? item.order_request_id ?? item.OrderRequestId
-                ?? item.order_id ?? item.OrderId
-                ?? item.orderId
-                ?? extractRequestId(item.content ?? ""),
-            }));
-          
-          setNotifications(prev => {
-             // Kết hợp thông báo hiện tại (event real-time) và initial data
-             // Lọc những cái trùng ID hoặc có thể ghi đè
-             const existingIds = new Set(prev.map(p => p.id));
-             const merged = [...prev];
-             for (const item of mapped) {
-                 if (!existingIds.has(item.id)) {
-                     merged.push(item);
-                 }
-             }
-             return merged.slice(0, maxItems);
-          });
-        }
-      } catch (err) {
-        console.error("[useNotifications] fetch initial error:", err);
-      }
-    };
-
-    fetchInitialNotifications();
-
-    return () => {
-      cancelled = true;
-    };
+    fetchNotificationsRef.current?.();
   }, [roleId, userId, maxItems, role]);
-
 
   return {
     notifications,
