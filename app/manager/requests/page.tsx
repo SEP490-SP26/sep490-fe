@@ -222,7 +222,7 @@ export default function ManagerOrdersPage() {
       dataIndex: "assigned_consultant_name",
       key: "assigned_consultant_name",
       render: (name: string) => (
-        <span className="text-gray-600">{name || <span className="text-gray-400 italic">Chưa phân công</span>}</span>
+        <span className="text-gray-600">{name || <span className="text-gray-400 italic">-</span>}</span>
       ),
     },
     {
