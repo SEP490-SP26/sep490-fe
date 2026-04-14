@@ -39,7 +39,11 @@ export default function LayoutConsultant({
       router.push(`/consultant/request-detail/${id}`);
       break;
     case "accepted":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     case "rejected":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     case "finished":
     case "pendingpaid":
     case "paid":

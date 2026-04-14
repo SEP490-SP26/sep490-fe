@@ -10,6 +10,7 @@ import {
   FileTextOutlined,
   LoadingOutlined,
   MailOutlined,
+  NumberOutlined,
   PhoneOutlined,
   PrinterOutlined,
   SendOutlined,
@@ -717,20 +718,15 @@ export default function OrderDetailPage() {
           <Section title="Thông Tin Sản Phẩm" icon={<BoxPlotOutlined />} accent="#f59e0b">
             <InfoRow icon={<BoxPlotOutlined />} label="Sản phẩm" value={order.product_name} />
             <InfoRow
-              icon={<span className="text-xs font-bold">#</span>}
+              icon={<NumberOutlined />}
               label="Số lượng"
-              value={
-                <span className="text-blue-600 font-bold">
-                  {order.quantity.toLocaleString("vi-VN")} SP
-                </span>
-              }
+              value={`${order.quantity.toLocaleString("vi-VN")} SP`}
             />
             <InfoRow icon={<FileTextOutlined />} label="Loại giấy" value={order.paper_name} />
             <InfoRow icon={<FileTextOutlined />} label="Tráng phủ" value={order.coating_type} />
             {order.wave_type && (
               <InfoRow icon={<FileTextOutlined />} label="Sóng" value={order.wave_type} />
             )}
-            <InfoRow icon={<PrinterOutlined />} label="Quy trình" value={order.production_processes} />
             <InfoRow
               icon={<FileTextOutlined />}
               label="Kích thước"
