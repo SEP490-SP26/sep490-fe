@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { BiPackage } from "react-icons/bi";
+import { getSignalRConnection } from "@/lib/signalr";
 import {
   BsArrowLeft,
   BsClock,
@@ -486,6 +487,35 @@ export default function ProductionDetailPage() {
       ?.slice()
       .sort((a, b) => a.seq_num - b.seq_num);
   }, [production]);
+
+  //signalr
+  useEffect(() => {
+  let conn: any;
+
+  const init = async () => {
+    conn = await getSignalRConnection();
+
+    const handler = () => {
+      console.log("🔥 nhận update-ui");
+
+      // ✅ Refetch lại data
+      queryClient.invalidateQueries({
+        queryKey: ["production-detail", id],
+      });
+    };
+
+    conn.on("update-ui", handler);
+
+    // cleanup đúng chuẩn
+    return () => {
+      if (conn) {
+        conn.off("update-ui", handler);
+      }
+    };
+  };
+
+  init();
+}, [queryClient, id]);
 
   /* ===== COMPUTED ===== */
   const finishedStages =
