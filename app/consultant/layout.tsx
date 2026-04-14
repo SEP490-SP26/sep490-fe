@@ -23,19 +23,31 @@ export default function LayoutConsultant({
     case "consultantcreaterequest":
     case "clone-request":
     case "pending":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     case "cancel":
       router.push(`/consultant?orderId=${id}&mode=negotiate`);
       break;
     case "processing":
     case "verified":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     case "declined":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     case "waiting":
+      router.push(`/consultant/request-detail/${id}`);
+      break;
     case "accepted":
     case "rejected":
     case "finished":
     case "pendingpaid":
     case "paid":
+      router.push(`/consultant/delivery/detail/${id}`);
+      break;
     case "delivery":
+      router.push(`/consultant/delivery/detail/${id}`);
+      break;
     case "completed":
       router.push(`/consultant/request-detail/${id}`);
       break;
