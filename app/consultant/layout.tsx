@@ -89,7 +89,10 @@ export default function LayoutConsultant({
               </span>
             </p>
             <div className="flex gap-6">
-              <button className="text-primary hover:text-primary-dark transition-colors">
+              <p className="text-secondary">
+                copyright © 2026
+              </p>
+              {/* <button className="text-primary hover:text-primary-dark transition-colors">
                 Trợ giúp
               </button>
               <button className="text-primary hover:text-primary-dark transition-colors">
@@ -97,7 +100,7 @@ export default function LayoutConsultant({
               </button>
               <button className="text-accent hover:text-accent-dark transition-colors font-medium">
                 Báo cáo sự cố
-              </button>
+              </button> */}
             </div>
           </div>
         </footer>
