@@ -514,7 +514,7 @@ export default function RequestDetailPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-500">Nội dung CK</span>
-                    <span className="font-mono font-semibold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200">{paymentInfo.order_code}</span>
+                    <span className="font-mono font-semibold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200">{paymentInfo.description}</span>
                   </div>
                 </div>
 

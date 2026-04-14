@@ -78,6 +78,13 @@ export default function MachinesManagementPage() {
 
   const columns = [
     {
+      title: "STT",
+      key: "stt",
+      width: 60,
+      align: 'center' as const,
+      render: (_: any, __: any, index: number) => index + 1,
+    },
+    {
       title: "Mã máy",
       dataIndex: "process_code",
       key: "process_code",

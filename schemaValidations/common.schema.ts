@@ -357,7 +357,9 @@ export interface OrderRequest {
   has_lamination: boolean;
   is_check_contract?: boolean;
   contract_check_note?: string;
+  assigned_consultant_name?: string | null;
 }
+
 
 export interface Material {
   material_id: number;

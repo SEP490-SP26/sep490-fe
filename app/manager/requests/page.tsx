@@ -41,6 +41,7 @@ type SortField =
   | "quantity"
   | "delivery_date"
   | "order_request_date"
+  | "assigned_consultant_name"
   | null;
 type SortOrder = "asc" | "desc";
 
@@ -170,6 +171,8 @@ export default function ManagerOrdersPage() {
           if (formattedDate.includes(search)) return true;
         }
         if (order.quantity?.toString().includes(search)) return true;
+        // Find by consultant name
+        if (order.assigned_consultant_name?.toLowerCase().includes(search)) return true;
         return false;
       });
     },
@@ -212,6 +215,14 @@ export default function ManagerOrdersPage() {
       key: "product_name",
       render: (text: string) => (
         <span className="font-medium">{text || "Sản phẩm tùy chỉnh"}</span>
+      ),
+    },
+    {
+      title: <SortableHeader field="assigned_consultant_name" title="Tư vấn viên" />,
+      dataIndex: "assigned_consultant_name",
+      key: "assigned_consultant_name",
+      render: (name: string) => (
+        <span className="text-gray-600">{name || <span className="text-gray-400 italic">Chưa phân công</span>}</span>
       ),
     },
     {
