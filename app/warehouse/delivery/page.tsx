@@ -70,7 +70,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
   PendingPaid: { label: "Chờ thanh toán", color: "purple" },
-  Paid: { label: "Đã thanh toán", color: "cyan" },
+  Paid: { label: "Sẵn sàng giao", color: "cyan" },
   LayoutPending: { label: "Chờ duyệt layout", color: "gold" },
   Delivery: { label: "Đang vận chuyển", color: "volcano" },
 };
@@ -81,7 +81,7 @@ const TAB_ITEMS = [
   { key: "all", label: "Tất cả" },
   { key: "Finished", label: "Chờ liên hệ" },
   { key: "PendingPaid", label: "Chờ thanh toán" },
-  { key: "Paid", label: "Đã thanh toán" },
+  { key: "Paid", label: "Sẵn sàng giao" },
   { key: "Delivery", label: "Đang vận chuyển" },
 ];
 
