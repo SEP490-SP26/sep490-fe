@@ -28,7 +28,9 @@ export default function LayoutWarehouse({
   const handleNavigate = (id: number, status?: string | null) => {
   if (!status) return;
   switch (status.toLowerCase()) {
-    case "waiting":
+    case "importing":
+      router.push(`/warehouse/detail/${id}`);
+      break;
     case "processing":
       router.push(`/warehouse/orders/${id}`);
       break;

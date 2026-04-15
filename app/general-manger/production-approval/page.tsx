@@ -6,9 +6,13 @@ import { Table, Input, Button, Tag, Modal, Spin, message } from "antd";
 import { SearchOutlined, ReloadOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { orderApi } from "@/apiRequests/order";
 import { productionsApi } from "@/apiRequests/productions";
+import { useSearchParams } from "next/navigation";
+import {useEffect} from 'react'
 
 export default function ProductionApprovalPage() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
   const [searchText, setSearchText] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -141,6 +145,13 @@ export default function ProductionApprovalPage() {
       ),
     },
   ];
+  useEffect(() => {
+  const orderId = searchParams.get("orderId");
+  if (orderId) {
+    setSelectedOrderId(Number(orderId));
+    setIsModalVisible(true);
+  }
+}, [searchParams]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">

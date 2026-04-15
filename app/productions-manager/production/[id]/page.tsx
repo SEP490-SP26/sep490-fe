@@ -25,6 +25,7 @@ import {
   BsClipboardCheck,
   BsEye,
   BsXLg,
+  BsLayers,
 } from "react-icons/bs";
 
 
@@ -93,6 +94,11 @@ export interface ProductionResponse {
   height_mm: number;
   ready_print_file: string;
   ink_type_names: string;
+  paper_name?: string | null;
+  wave_type?: string | null;
+  coating_type?: string | null;
+  paper_alternative?: string | null;
+  wave_alternative?: string | null;
   created_at: string;
   planned_start_date: string;
   actual_start_date: string | null;
@@ -454,6 +460,7 @@ export default function ProductionDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  
 
   const [qtyInputStage, setQtyInputStage] =
     useState<ProductionStage | null>(null);
@@ -613,7 +620,17 @@ export default function ProductionDetailPage() {
   const inkTypes = production?.ink_type_names
     ? production.ink_type_names.split(",").map((s) => s.trim())
     : [];
-
+    //=================
+    const lastStage = sortedStages?.[sortedStages.length - 1];
+    const addDays = (date?: string | null, days: number = 0) => {
+      if (!date) return "";
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d.toISOString();
+    };
+    const finalDeadline = lastStage?.planned_end_time
+  ? addDays(lastStage.planned_end_time, 1)
+  : null;
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* BACK BUTTON */}
@@ -679,7 +696,7 @@ export default function ProductionDetailPage() {
         <InfoCard
           icon={<BsCalendar className="w-5 h-5" />}
           label="Hạn hoàn thành dự kiến"
-          value={formatDateTime(subtractDays(production?.delivery_date, 3))}
+          value={formatDateTime(finalDeadline)}
         />
         <InfoCard
           icon={<BsClock className="w-5 h-5" />}
@@ -695,23 +712,47 @@ export default function ProductionDetailPage() {
 
       {/* =================== INK TYPES & PRINT FILE =================== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <BsPrinter className="w-4 h-4 text-blue-600" />
-            Loại mực sử dụng
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {inkTypes.length > 0 ? (
-              inkTypes.map((ink, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700"
-                >
-                  {ink}
-                </span>
-              ))
-            ) : (
-              <span className="text-sm text-gray-400">Không có dữ liệu</span>
+        <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <BsPrinter className="w-4 h-4 text-blue-600" />
+              Mực in & Phụ liệu
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">Mực tiêu chuẩn</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-8 gap-y-4 pt-4 border-t border-gray-100">
+            {production?.paper_name && (
+              <div className="min-w-[120px]">
+                <span className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">Loại giấy</span>
+                <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">{production.paper_name}</span>
+              </div>
+            )}
+            {production?.paper_alternative && (
+              <div className="min-w-[120px]">
+                <span className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">Giấy thay thế</span>
+                <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">{production.paper_alternative}</span>
+              </div>
+            )}
+            {production?.wave_type && (
+              <div className="min-w-[120px]">
+                <span className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">Loại sóng</span>
+                <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">{production.wave_type}</span>
+              </div>
+            )}
+            {production?.wave_alternative && (
+              <div className="min-w-[120px]">
+                <span className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">Sóng thay thế</span>
+                <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">{production.wave_alternative}</span>
+              </div>
+            )}
+            {production?.coating_type && (
+              <div className="min-w-[120px]">
+                <span className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">Loại phủ</span>
+                <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">{production.coating_type}</span>
+              </div>
             )}
           </div>
         </div>
