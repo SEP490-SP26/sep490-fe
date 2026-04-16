@@ -302,7 +302,7 @@ function EmailPreview({
   remaining: number;
   depositAmt: number;
 }) {
-  const feBase = "https://sep490-fe.vercel.app";
+  const feBase = "https://daiphuchai.vercel.app";
   const paymentPageUrl = `${feBase}/payment/${order.order_id}`;
 
   return (
