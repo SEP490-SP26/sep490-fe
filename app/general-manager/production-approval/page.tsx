@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, Input, Button, Tag, Modal, Spin, message } from "antd";
 import { SearchOutlined, ReloadOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { orderApi } from "@/apiRequests/order";
 import { productionsApi } from "@/apiRequests/productions";
 import { useSearchParams } from "next/navigation";
-import {useEffect} from 'react'
 
-export default function ProductionApprovalPage() {
+function ProductionApprovalContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
@@ -17,7 +16,6 @@ export default function ProductionApprovalPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // Lấy danh sách đơn hàng
   const { data: apiData, isLoading, refetch } = useQuery({
     queryKey: ["orders", "approval-list"],
     queryFn: async () => {
@@ -31,8 +29,7 @@ export default function ProductionApprovalPage() {
     },
   });
 
-  // Lấy thông tin kiểm tra điều kiện SX
-  const { data: statusData, isLoading: isChecking, refetch: refetchStatus } = useQuery({
+  const { data: statusData, isLoading: isChecking } = useQuery({
     queryKey: ["production-status", selectedOrderId],
     queryFn: async () => {
       if (!selectedOrderId) return null;
@@ -47,7 +44,6 @@ export default function ProductionApprovalPage() {
     enabled: !!selectedOrderId && isModalVisible,
   });
 
-  // Mutation duyệt đơn
   const approveMutation = useMutation({
     mutationFn: async (orderId: number) => {
       return await productionsApi.updateProduction(orderId, { is_production_ready: true });
@@ -55,7 +51,7 @@ export default function ProductionApprovalPage() {
     onSuccess: () => {
       message.success("Đã duyệt đơn đưa vào sản xuất thành công!");
       setIsModalVisible(false);
-      refetch(); // Cập nhật lại danh sách
+      refetch();
     },
     onError: () => {
       message.error("Có lỗi xảy ra khi duyệt đơn.");
@@ -107,16 +103,8 @@ export default function ProductionApprovalPage() {
       width: 120,
       render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>,
     },
-    {
-      title: "Khách hàng",
-      dataIndex: "customer_name",
-      key: "customer_name",
-    },
-    {
-      title: "Sản phẩm",
-      dataIndex: "product_name",
-      key: "product_name",
-    },
+    { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
+    { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
     {
       title: "Số lượng",
       dataIndex: "quantity",
@@ -142,8 +130,8 @@ export default function ProductionApprovalPage() {
       width: 180,
       align: 'center' as const,
       render: (_: any, record: any) => (
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           ghost
           onClick={() => handleCheckConditions(record.order_id || record._id)}
           disabled={record.status === 'Finished' || record.status === 'Delivered'}
@@ -153,21 +141,22 @@ export default function ProductionApprovalPage() {
       ),
     },
   ];
+
   useEffect(() => {
-  const orderId = searchParams.get("orderId");
-  if (orderId) {
-    setSelectedOrderId(Number(orderId));
-    setIsModalVisible(true);
-  }
-}, [searchParams]);
+    const orderId = searchParams.get("orderId");
+    if (orderId) {
+      setSelectedOrderId(Number(orderId));
+      setIsModalVisible(true);
+    }
+  }, [searchParams]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Duyệt lệnh sản xuất</h1>
-        <Button 
-          type="primary" 
-          icon={<ReloadOutlined />} 
+        <Button
+          type="primary"
+          icon={<ReloadOutlined />}
           onClick={() => refetch()}
           className="bg-blue-600 shadow-sm"
         >
@@ -191,9 +180,9 @@ export default function ProductionApprovalPage() {
           </div>
         </div>
 
-        <Table 
-          columns={columns} 
-          dataSource={filteredOrders} 
+        <Table
+          columns={columns}
+          dataSource={filteredOrders}
           rowKey={(record) => record.order_id || record._id || record.code}
           loading={isLoading}
           pagination={{ pageSize: 12, showSizeChanger: true }}
@@ -204,7 +193,6 @@ export default function ProductionApprovalPage() {
         />
       </div>
 
-      {/* Modal Kiểm tra & Duyệt */}
       <Modal
         title={
           <div className="flex items-center gap-2">
@@ -218,11 +206,9 @@ export default function ProductionApprovalPage() {
           setSelectedOrderId(null);
         }}
         footer={[
-          <Button key="cancel" onClick={() => setIsModalVisible(false)}>
-            Hủy bỏ
-          </Button>,
-          <Button 
-            key="submit" 
+          <Button key="cancel" onClick={() => setIsModalVisible(false)}>Hủy bỏ</Button>,
+          <Button
+            key="submit"
             type="primary"
             loading={approveMutation.isPending}
             onClick={() => selectedOrderId && approveMutation.mutate(selectedOrderId)}
@@ -241,46 +227,51 @@ export default function ProductionApprovalPage() {
             </div>
           ) : statusData ? (
             <div className="space-y-4 text-base">
-               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-                  <div className="flex justify-between items-center whitespace-nowrap">
-                    <span className="text-gray-600">Nguyên vật liệu:</span>
-                    {statusData.has_enough_material ? (
-                      <Tag color="success" className="mr-0 text-sm py-1 px-3">Đã đủ NVL</Tag>
-                    ) : (
-                      <Tag color="error" className="mr-0 text-sm py-1 px-3">Thiếu NVL</Tag>
-                    )}
-                  </div>
-                  <div className="flex justify-between items-center whitespace-nowrap">
-                    <span className="text-gray-600">Máy móc thiết bị:</span>
-                    {statusData.has_free_machine ? (
-                      <Tag color="success" className="mr-0 text-sm py-1 px-3">Có máy sẵn sàng</Tag>
-                    ) : (
-                      <Tag color="error" className="mr-0 text-sm py-1 px-3">Máy đang bận</Tag>
-                    )}
-                  </div>
-                  <div className="border-t border-gray-200 my-2 pt-3 flex justify-between items-center font-semibold text-lg">
-                    <span>Kết luận:</span>
-                    {(statusData.has_enough_material && statusData.has_free_machine) ? (
-                      <span className="text-green-600">ĐỦ ĐIỀU KIỆN SẢN XUẤT</span>
-                    ) : (
-                      <span className="text-red-500">CHƯA ĐỦ ĐIỀU KIỆN</span>
-                    )}
-                  </div>
-               </div>
-               
-               {!(statusData.has_enough_material && statusData.has_free_machine) && (
-                 <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded border border-amber-200">
-                    Lưu ý: Không thể duyệt sản xuất khi chưa đáp ứng đủ các điều kiện. Vui lòng bổ sung vật tư hoặc chờ máy rảnh.
-                 </div>
-               )}
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                <div className="flex justify-between items-center whitespace-nowrap">
+                  <span className="text-gray-600">Nguyên vật liệu:</span>
+                  {statusData.has_enough_material
+                    ? <Tag color="success" className="mr-0 text-sm py-1 px-3">Đã đủ NVL</Tag>
+                    : <Tag color="error" className="mr-0 text-sm py-1 px-3">Thiếu NVL</Tag>}
+                </div>
+                <div className="flex justify-between items-center whitespace-nowrap">
+                  <span className="text-gray-600">Máy móc thiết bị:</span>
+                  {statusData.has_free_machine
+                    ? <Tag color="success" className="mr-0 text-sm py-1 px-3">Có máy sẵn sàng</Tag>
+                    : <Tag color="error" className="mr-0 text-sm py-1 px-3">Máy đang bận</Tag>}
+                </div>
+                <div className="border-t border-gray-200 my-2 pt-3 flex justify-between items-center font-semibold text-lg">
+                  <span>Kết luận:</span>
+                  {(statusData.has_enough_material && statusData.has_free_machine)
+                    ? <span className="text-green-600">ĐỦ ĐIỀU KIỆN SẢN XUẤT</span>
+                    : <span className="text-red-500">CHƯA ĐỦ ĐIỀU KIỆN</span>}
+                </div>
+              </div>
+              {!(statusData.has_enough_material && statusData.has_free_machine) && (
+                <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded border border-amber-200">
+                  Lưu ý: Không thể duyệt sản xuất khi chưa đáp ứng đủ các điều kiện. Vui lòng bổ sung vật tư hoặc chờ máy rảnh.
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center text-red-500 p-4">
-               Không thể lấy thông tin trạng thái sản xuất cho đơn hàng này.
+              Không thể lấy thông tin trạng thái sản xuất cho đơn hàng này.
             </div>
           )}
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function ProductionApprovalPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-[80vh]">
+        <Spin size="large" />
+      </div>
+    }>
+      <ProductionApprovalContent />
+    </Suspense>
   );
 }
