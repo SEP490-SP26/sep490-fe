@@ -1,19 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, Input, Button, Tag, Modal, Spin, message } from "antd";
 import { SearchOutlined, ReloadOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { orderApi } from "@/apiRequests/order";
 import { productionsApi } from "@/apiRequests/productions";
+import { useSearchParams } from "next/navigation";
 
-export default function ProductionApprovalPage() {
+function ProductionApprovalContent() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
   const [searchText, setSearchText] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // Lấy danh sách đơn hàng
   const { data: apiData, isLoading, refetch } = useQuery({
     queryKey: ["orders", "approval-list"],
     queryFn: async () => {
@@ -27,8 +29,7 @@ export default function ProductionApprovalPage() {
     },
   });
 
-  // Lấy thông tin kiểm tra điều kiện SX
-  const { data: statusData, isLoading: isChecking, refetch: refetchStatus } = useQuery({
+  const { data: statusData, isLoading: isChecking } = useQuery({
     queryKey: ["production-status", selectedOrderId],
     queryFn: async () => {
       if (!selectedOrderId) return null;
@@ -43,7 +44,6 @@ export default function ProductionApprovalPage() {
     enabled: !!selectedOrderId && isModalVisible,
   });
 
-  // Mutation duyệt đơn
   const approveMutation = useMutation({
     mutationFn: async (orderId: number) => {
       return await productionsApi.updateProduction(orderId, { is_production_ready: true });
@@ -51,7 +51,7 @@ export default function ProductionApprovalPage() {
     onSuccess: () => {
       message.success("Đã duyệt đơn đưa vào sản xuất thành công!");
       setIsModalVisible(false);
-      refetch(); // Cập nhật lại danh sách
+      refetch();
     },
     onError: () => {
       message.error("Có lỗi xảy ra khi duyệt đơn.");
@@ -103,16 +103,8 @@ export default function ProductionApprovalPage() {
       width: 120,
       render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>,
     },
-    {
-      title: "Khách hàng",
-      dataIndex: "customer_name",
-      key: "customer_name",
-    },
-    {
-      title: "Sản phẩm",
-      dataIndex: "product_name",
-      key: "product_name",
-    },
+    { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
+    { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
     {
       title: "Số lượng",
       dataIndex: "quantity",
@@ -138,8 +130,8 @@ export default function ProductionApprovalPage() {
       width: 180,
       align: 'center' as const,
       render: (_: any, record: any) => (
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           ghost
           onClick={() => handleCheckConditions(record.order_id || record._id)}
           disabled={record.status === 'Finished' || record.status === 'Delivered'}
@@ -150,13 +142,21 @@ export default function ProductionApprovalPage() {
     },
   ];
 
+  useEffect(() => {
+    const orderId = searchParams.get("orderId");
+    if (orderId) {
+      setSelectedOrderId(Number(orderId));
+      setIsModalVisible(true);
+    }
+  }, [searchParams]);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Duyệt lệnh sản xuất</h1>
-        <Button 
-          type="primary" 
-          icon={<ReloadOutlined />} 
+        <Button
+          type="primary"
+          icon={<ReloadOutlined />}
           onClick={() => refetch()}
           className="bg-blue-600 shadow-sm"
         >
@@ -180,9 +180,9 @@ export default function ProductionApprovalPage() {
           </div>
         </div>
 
-        <Table 
-          columns={columns} 
-          dataSource={filteredOrders} 
+        <Table
+          columns={columns}
+          dataSource={filteredOrders}
           rowKey={(record) => record.order_id || record._id || record.code}
           loading={isLoading}
           pagination={{ pageSize: 12, showSizeChanger: true }}
@@ -193,7 +193,6 @@ export default function ProductionApprovalPage() {
         />
       </div>
 
-      {/* Modal Kiểm tra & Duyệt */}
       <Modal
         title={
           <div className="flex items-center gap-2">
@@ -209,11 +208,9 @@ export default function ProductionApprovalPage() {
         width={1000}
         style={{ top: 20 }}
         footer={[
-          <Button key="cancel" onClick={() => setIsModalVisible(false)}>
-            Hủy bỏ
-          </Button>,
-          <Button 
-            key="submit" 
+          <Button key="cancel" onClick={() => setIsModalVisible(false)}>Hủy bỏ</Button>,
+          <Button
+            key="submit"
             type="primary"
             loading={approveMutation.isPending}
             onClick={() => selectedOrderId && approveMutation.mutate(selectedOrderId)}
@@ -348,5 +345,17 @@ export default function ProductionApprovalPage() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function ProductionApprovalPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-[80vh]">
+        <Spin size="large" />
+      </div>
+    }>
+      <ProductionApprovalContent />
+    </Suspense>
   );
 }

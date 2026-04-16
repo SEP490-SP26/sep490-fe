@@ -45,6 +45,8 @@ export default function LayoutConsultant({
       router.push(`/consultant/request-detail/${id}`);
       break;
     case "finished":
+      router.push(`/consultant/delivery/detail/${id}`);
+      break;
     case "pendingpaid":
     case "paid":
       router.push(`/consultant/delivery/detail/${id}`);

@@ -196,10 +196,6 @@ export default function ProductionDetail() {
           </h2>
           <div className="space-y-4">
             <div className="flex justify-between items-start">
-              <span className="text-gray-500 text-sm">Ngày tạo đơn</span>
-              <span className="font-medium">{new Date(detailData.created_at).toLocaleDateString("vi-VN")}</span>
-            </div>
-            <div className="flex justify-between items-start">
               <span className="text-gray-500 text-sm">Bắt đầu sản xuất</span>
               <span className="font-medium text-emerald-600">
                 {detailData.actual_start_date ? new Date(detailData.actual_start_date).toLocaleDateString("vi-VN") : "Chưa BĐ"}
