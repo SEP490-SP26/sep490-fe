@@ -39,6 +39,7 @@ type ProductionStatus =
   | "PendingPaid"
   | "Paid"
   | "LayoutPending"
+  | "Delivery"
   | string;
 
 interface RequestItem {
@@ -65,21 +66,23 @@ interface PagedResponse {
 ======================= */
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  Finished: { label: "Sẵn sàng giao", color: "green" },
+  Finished: { label: "Chờ liên hệ khách hàng", color: "green" },
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
   PendingPaid: { label: "Chờ thanh toán", color: "purple" },
-  Paid: { label: "Đã thanh toán", color: "cyan" },
+  Paid: { label: "Sẵn sàng giao", color: "cyan" },
   LayoutPending: { label: "Chờ duyệt layout", color: "gold" },
+  Delivery: { label: "Đang vận chuyển", color: "volcano" },
 };
 
-const DISPLAY_STATUSES: ProductionStatus[] = ["Finished", "PendingPaid", "Paid"];
+const DISPLAY_STATUSES: ProductionStatus[] = ["Finished", "PendingPaid", "Paid", "Delivery"];
 
 const TAB_ITEMS = [
   { key: "all", label: "Tất cả" },
-  { key: "Finished", label: "Sẵn sàng giao" },
+  { key: "Finished", label: "Chờ liên hệ" },
   { key: "PendingPaid", label: "Chờ thanh toán" },
-  { key: "Paid", label: "Đã thanh toán" },
+  { key: "Paid", label: "Sẵn sàng giao" },
+  { key: "Delivery", label: "Đang vận chuyển" },
 ];
 
 /* =======================
@@ -115,6 +118,7 @@ const FinishProduction: React.FC = () => {
     if (upper === "FINISHED" || upper === "DONE") return "Finished";
     if (upper === "PENDINGPAID") return "PendingPaid";
     if (upper === "PAID") return "Paid";
+    if (upper === "DELIVERY" || upper === "SHIPPING") return "Delivery";
 
     return s;
   };
@@ -209,7 +213,11 @@ const FinishProduction: React.FC = () => {
     try {
       await productionsApi.transferToShipping(Number(orderId));
       setData((prev) =>
-        prev.filter((item) => item.order_id !== orderId)
+        prev.map((item) =>
+          item.order_id === orderId
+            ? { ...item, process_status: "Delivery" }
+            : item
+        )
       );
       message.success("Đã bàn giao cho đơn vị vận chuyển");
     } catch (err) {
@@ -301,6 +309,9 @@ const FinishProduction: React.FC = () => {
         } else if (status === "Paid") {
           text = "Bàn giao cho đơn vị vận chuyển";
           disabled = false;
+        } else if (status === "Delivery") {
+          text = "Đang vận chuyển";
+          disabled = true;
         } else {
           text = "Không khả dụng";
           disabled = true;

@@ -10,6 +10,8 @@ import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 import { useState } from "react";
 
 export default function CustomerReceiveOrder() {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+const [showThankYouModal, setShowThankYouModal] = useState(false);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -29,19 +31,19 @@ export default function CustomerReceiveOrder() {
     enabled: !!id,
   });
 
-  const handleReceiveOrder = async () => {
-    setIsReceiving(true);
-    try {
-      await requestOrderApi.customerReceive(Number(id));
-      showSuccessToast("Đã xác nhận nhận hàng thành công!");
-      router.push("/"); // Or whichever path is relevant later
-    } catch (err: any) {
-      console.error("Error confirming receiving:", err);
-      showErrorToast(err.response?.data?.message || "Có lỗi xảy ra khi xác nhận nhận hàng!");
-    } finally {
-      setIsReceiving(false);
-    }
-  };
+const handleReceiveOrder = async () => {
+  setShowConfirmModal(false);
+  setIsReceiving(true);
+  try {
+    await requestOrderApi.customerReceive(Number(id));
+    showSuccessToast("Đã xác nhận nhận hàng thành công!");
+    setShowThankYouModal(true); // Mở thank you, không chuyển trang
+  } catch (err: any) {
+    showErrorToast(err.response?.data?.message || "Có lỗi xảy ra!");
+  } finally {
+    setIsReceiving(false);
+  }
+};
 
   if (isPending) {
     return (
@@ -86,7 +88,7 @@ export default function CustomerReceiveOrder() {
             <p className="text-gray-500 mt-1">Mã Yêu Cầu: #{requestData.order_request_id} • Trạng thái: {requestData.process_status}</p>
           </div>
           <button
-            onClick={handleReceiveOrder}
+            onClick={() => setShowConfirmModal(true)}
             disabled={isReceiving}
             className="bg-emerald-600 text-white px-8 py-3 rounded-lg hover:bg-emerald-700 transition-all font-bold flex items-center gap-2 shadow-md shadow-emerald-200 disabled:opacity-70 disabled:cursor-not-allowed w-fit hover:scale-105 active:scale-95"
           >
@@ -201,6 +203,60 @@ export default function CustomerReceiveOrder() {
           </div>
         </div>
       </div>
+      {/* Confirm Popup */}
+{showConfirmModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+      <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+        <BiCheckShield className="w-7 h-7 text-emerald-600" />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900 mb-2">Xác nhận nhận hàng?</h3>
+      <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+        Bạn có chắc chắn đã nhận được hàng và muốn xác nhận hoàn tất đơn hàng này không?
+      </p>
+      <div className="flex gap-3 justify-center">
+        <button
+          onClick={() => setShowConfirmModal(false)}
+          className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+        >
+          Huỷ
+        </button>
+        <button
+          onClick={handleReceiveOrder}
+          disabled={isReceiving}
+          className="px-6 py-2.5 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors disabled:opacity-70"
+        >
+          {isReceiving ? "Đang xử lý..." : "Xác nhận"}
+        </button>
+      </div>
     </div>
+  </div>
+)}
+
+{/* Thank You Modal */}
+{showThankYouModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+      <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
+        <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h3 className="text-2xl font-bold text-gray-900 mb-2">Cảm ơn bạn!</h3>
+      <p className="text-gray-600 text-sm mb-1">Đã xác nhận nhận hàng thành công.</p>
+      <p className="text-gray-500 text-sm mb-7 leading-relaxed">
+        Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi. Hy vọng sẽ được phục vụ bạn trong những lần tiếp theo!
+      </p>
+      <button
+        onClick={() => setShowThankYouModal(false)}
+        className="px-8 py-2.5 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition-colors"
+      >
+        Đóng
+      </button>
+    </div>
+  </div>
+)}
+    </div>
+    
   );
 }

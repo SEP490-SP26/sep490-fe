@@ -269,7 +269,7 @@ export default function InventoryManagement() {
                 >
                   <div className="mb-3">
                     <div className="flex mb-1 justify-between items-center">
-                      <div className="text-gray-900 font-medium">#{req.order_request_id} - {req.product_name || "Chưa có tên SP"}</div>
+                      <div className="text-gray-900 font-medium">#{req.code} - {req.product_name || "Chưa có tên SP"}</div>
                       <div className="text-gray-500 text-sm">SL: {req.quantity || 0}</div>
                     </div>
                     <div className="text-gray-500 text-sm">Khách hàng: {req.customer_name}</div>

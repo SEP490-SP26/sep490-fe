@@ -66,7 +66,8 @@ export const SIGNALR_NOTIFICATION_METHODS: string[] = [
   "rejected",
   "processing",
   "paid",
-  "imported",
+  "importing",
+  "confirm-layout"
 ];
 
 /* ================================================================
@@ -152,7 +153,7 @@ const SUPPORTED_ROLES = [
   "consultant",
   "production manager",
   "warehouse manager",
-  "material manager",
+  "general manager",
 ];
 
 /**

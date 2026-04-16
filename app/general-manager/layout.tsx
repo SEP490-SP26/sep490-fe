@@ -19,6 +19,18 @@ export default function LayoutWarehouse({
     role: "General Manager",
   };
 
+    const handleNavigate = (id: number, status?: string | null) => {
+  if (!status) return;
+  switch (status.toLowerCase()) {
+    case "scheduled":
+      router.push(`/general-manager/production-approval?orderId=${id}`);
+      break;
+    default:
+      router.push(`/general-manager/production-approval`);
+      break;
+  }
+};
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -40,6 +52,7 @@ export default function LayoutWarehouse({
         <RoleHeader
           userInfo={userInfo}
           onLogout={handleLogout}
+          onNavigateToRequest={handleNavigate}
         />
         {/* Main */}
         <main className="flex-1 p-8">
