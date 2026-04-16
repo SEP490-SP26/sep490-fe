@@ -91,6 +91,7 @@ interface OrderDetail {
   customer_signed_contract_path?: string;
   delivery_date_change_reason?: string;
   ink_type_names?: string[];
+  order_code?: number;
 }
 
 export default function RequestDetailPage() {
@@ -252,6 +253,7 @@ export default function RequestDetailPage() {
             customer_signed_contract_path: orderData.customer_signed_contract_path,
             delivery_date_change_reason: orderData.delivery_date_change_reason,
             ink_type_names: orderData.ink_type_names || [],
+            order_code: orderData.order_code,
           });
         }
       } catch (error) {
@@ -746,10 +748,35 @@ export default function RequestDetailPage() {
                 <Button
                   type="primary"
                   icon={<DownloadOutlined />}
-                  // onClick={() => window.open(requestDetail.receipt_path, '_blank')}
+                  onClick={async () => {
+                    if (!requestDetail.order_code) {
+                      message.error("Không tìm thấy mã đơn hàng để tải phiếu thu");
+                      return;
+                    }
+                    const hide = message.loading("Đang tải phiếu thu...", 0);
+                    try {
+                      const res = await paymentApi.getPaymentReceipt(String(requestDetail.order_code));
+                      
+                      const url = window.URL.createObjectURL(new Blob([res.data]));
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.setAttribute('download', `Phieu_Thu_${requestDetail.order_code}.docx`);
+                      document.body.appendChild(link);
+                      link.click();
+                      link.parentNode?.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+                      
+                      message.success("Tải phiếu thu thành công!");
+                    } catch (error) {
+                      console.error(error);
+                      message.error("Lỗi khi tải phiếu thu");
+                    } finally {
+                      hide();
+                    }
+                  }}
                   className="w-full rounded-lg bg-green-600 hover:bg-green-700 border-none shadow-sm h-10 font-medium"
                 >
-                  Xem hóa đơn
+                  Tải phiếu thu
                 </Button>
               </div>
             )}

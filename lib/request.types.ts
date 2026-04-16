@@ -91,6 +91,7 @@ export interface RequestDetailResponse {
   note: string;
   consultant_contract_path: string;
   customer_signed_contract_path: string;
+  order_code: number;
 
   // Thông số kỹ thuật chung
   number_of_plates: number;
