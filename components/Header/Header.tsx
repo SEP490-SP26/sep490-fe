@@ -28,11 +28,9 @@ export default function Header() {
           <div className="text-xl font-bold">
             <Link href="/">
               {/* <span className="text-primary uppercase ">In Ấn Đại Phúc Hải</span> */}
-              <img src="/assets/images/logo.png" alt="" />
+              <img src="/assets/images/newlogo.jpg" alt="Logo" className="h-12 w-auto object-contain" />
             </Link>
           </div>
-
-
         </div>
 
         {/* Center Section: Navigation or Search Input */}

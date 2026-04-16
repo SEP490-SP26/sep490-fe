@@ -23,6 +23,7 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
   consultantNote,
   estimateFinishDate,
   actions,
+  footer,
   compact = false,
   className = "",
 }) => {
@@ -272,11 +273,11 @@ const QuoteCard: React.FC<QuoteCardProps> = ({
           </div>
         </div>
 
-        {/* {footer && (
+        {footer && (
           <div className="mt-8 pt-6 border-t border-slate-100">
             {footer}
           </div>
-        )} */}
+        )}
 
         {actions && (
           <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3 flex-wrap">
