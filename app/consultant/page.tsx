@@ -671,8 +671,8 @@ function ConsultantForm() {
                 detail_address: orderData.detail_address,
                 description: orderData.description,
                 number_of_plates: est.number_of_plates || orderData.number_of_plates || 1,
-                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : "NONE"),
-                wave_type: est.wave_type && est.wave_type !== "NONE" ? est.wave_type : (orderData.wave_type && orderData.wave_type !== "NONE" ? orderData.wave_type : "NONE"),
+                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : undefined),
+                wave_type: est.wave_type && est.wave_type !== "NONE" ? est.wave_type : (orderData.wave_type && orderData.wave_type !== "NONE" ? orderData.wave_type : undefined),
                 length: orderData.product_length_mm,
                 width: orderData.product_width_mm,
                 height: orderData.product_height_mm,
@@ -875,7 +875,7 @@ function ConsultantForm() {
         number_of_plates: currentValues.number_of_plates !== undefined ? currentValues.number_of_plates : profile.number_of_plates,
         coating_type: (profile.production_processes && profile.production_processes.includes("PHU"))
           ? ((currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : profile.coating_type)
-          : "NONE",
+          : undefined,
         wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : profile.wave_type,
         glue_tab: currentValues.glue_tab !== undefined ? currentValues.glue_tab : profile.glue_tab_mm,
         is_one_side_box: currentValues.is_one_side_box !== undefined ? currentValues.is_one_side_box : profile.is_one_side_box,
@@ -938,7 +938,7 @@ function ConsultantForm() {
       wave_type
     } = values;
 
-    const effectiveWaveType = wave_type && wave_type !== "NONE" ? wave_type : "NONE";
+    const effectiveWaveType = wave_type && wave_type !== "NONE" ? wave_type : undefined;
 
     if (!paper_code || !quantity || !length || !width || !height || !product_type || configLoading) {
       return null;
@@ -998,7 +998,7 @@ function ConsultantForm() {
         form_product: form_product || "",
         is_one_side_box,
         production_processes: Array.isArray(production_processes) ? production_processes.join(",") : (production_processes || ""),
-        coating_type: (Array.isArray(production_processes) ? production_processes.includes("PHU") : (production_processes || "").includes("PHU")) ? (coating_type || "NONE") : "NONE",
+        coating_type: (Array.isArray(production_processes) ? production_processes.includes("PHU") : (production_processes || "").includes("PHU")) ? (coating_type && coating_type !== "NONE" ? coating_type : undefined) : undefined,
         wave_type: effectiveWaveType,
         number_of_plates: number_of_plates || 1,
 
@@ -1040,7 +1040,7 @@ function ConsultantForm() {
         quantity: quantity,
         paper_code: paper_code,
         wave_type: effectiveWaveType,
-        coating_type: (Array.isArray(production_processes) ? production_processes.includes("PHU") : (production_processes || "").includes("PHU")) ? (coating_type || "NONE") : "NONE",
+        coating_type: (Array.isArray(production_processes) ? production_processes.includes("PHU") : (production_processes || "").includes("PHU")) ? (coating_type && coating_type !== "NONE" ? coating_type : undefined) : undefined,
         design_file_path: explicitConfig?.designFilePath !== undefined ? explicitConfig.designFilePath : designFilePath,
         is_send_design: explicitConfig?.isSendDesign !== undefined ? explicitConfig.isSendDesign : isSendDesign,
         ink_type_names: values.ink_type_names || [],
@@ -1135,7 +1135,7 @@ function ConsultantForm() {
       const costEstimateObj = {
         cost: {
           ...savedEstimate,
-          coating_type: savedEstimate.coating_type || "NONE",
+          coating_type: savedEstimate.coating_type && savedEstimate.coating_type !== "NONE" ? savedEstimate.coating_type : "NONE",
           ink_unit_price: 150000,
           coating_glue_unit_price: (calcInput.coating_type && calcInput.coating_type !== 'NONE') ? (calcInput.coating_type === 'Keo phủ nước' ? 80000 : 120000) : 0,
           mounting_glue_unit_price: 90000,
@@ -1222,8 +1222,8 @@ function ConsultantForm() {
           })
           .join(",")
         : (values.production_processes || ""),
-      coating_type: (values.production_processes && values.production_processes.includes("PHU")) ? (values.coating_type || "NONE") : "NONE",
-      wave_type: (values.production_processes && values.production_processes.includes("BOI")) ? (values.wave_type || "NONE") : "NONE",
+      coating_type: (values.production_processes && values.production_processes.includes("PHU")) ? (values.coating_type && values.coating_type !== "NONE" ? values.coating_type : undefined) : undefined,
+      wave_type: (values.production_processes && values.production_processes.includes("BOI")) ? (values.wave_type && values.wave_type !== "NONE" ? values.wave_type : undefined) : undefined,
       is_one_side_box: !!values.is_one_side_box,
       glue_tab: Number(values.glue_tab) || 0,
       bleed: Number(values.bleed) || 0,

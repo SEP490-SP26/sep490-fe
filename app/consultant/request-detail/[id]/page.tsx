@@ -40,6 +40,7 @@ import {
     Space,
     Spin,
     Tag,
+    Tooltip,
     Typography,
     Upload
 } from "antd";
@@ -518,18 +519,21 @@ export default function ConsultantRequestDetailPage() {
                                 )} */}
                                 {!orderDetail.printer_ready_file_path && (
                                     <>
-                                        <Button
-                                            type="primary"
-                                            icon={<CheckCircleOutlined />}
-                                            onClick={() => {
-                                                setIsPrintFileViewed(false);
-                                                setIsProduceCheckCommitted(false);
-                                                setIsProduceModalOpen(true);
-                                            }}
-                                            className="bg-green-600 hover:bg-green-500 rounded-lg text-white border-0"
-                                        >
-                                            Đưa vào sản xuất
-                                        </Button>
+                                        <Tooltip title={(!orderDetail.printer_ready_file_path && !pendingPrintFile) ? "Vui lòng tải lên file in (Printer Ready) trước khi đưa vào sản xuất" : ""}>
+                                            <Button
+                                                type="primary"
+                                                icon={<CheckCircleOutlined />}
+                                                disabled={!orderDetail.printer_ready_file_path && !pendingPrintFile}
+                                                onClick={() => {
+                                                    setIsPrintFileViewed(false);
+                                                    setIsProduceCheckCommitted(false);
+                                                    setIsProduceModalOpen(true);
+                                                }}
+                                                className={`rounded-lg text-white border-0 ${(!orderDetail.printer_ready_file_path && !pendingPrintFile) ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'}`}
+                                            >
+                                                Đưa vào sản xuất
+                                            </Button>
+                                        </Tooltip>
                                         <Modal
                                             title={<span className="font-semibold text-lg">Xác nhận đưa vào sản xuất</span>}
                                             open={isProduceModalOpen}
@@ -740,7 +744,7 @@ export default function ConsultantRequestDetailPage() {
                                             <div className="flex items-center gap-2">
                                                 <FileTextOutlined className="text-gray-400 text-sm" />
                                                 <div>
-                                                    <div className="font-medium text-sm">File mẫu</div>
+                                                    <div className="font-medium text-sm">Mẫu thiết kế</div>
                                                     <div className="text-xs text-gray-500">
                                                         {orderDetail.design_file_path ? (
                                                             `${orderDetail.design_file_path.split(',').length} file thiết kế`

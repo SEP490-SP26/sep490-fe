@@ -227,8 +227,8 @@ const request = async <Response>(
       } else if (status === STATUS_CODES.SERVER_ERROR) {
         throw new HttpError({
           status: STATUS_CODES.SERVER_ERROR,
-          message:
-            "Ôi không! Máy chủ đang cập nhật hoặc gặp sự cố. Vui lòng thử lại sau.",
+          message: data.message ||
+            "Máy chủ đang cập nhật hoặc gặp sự cố. Vui lòng thử lại sau.",
           data: data.data,
         });
       } else if (status === STATUS_CODES.AUTHENTICATION_ERROR) {
@@ -263,7 +263,7 @@ const request = async <Response>(
       } else if (status === STATUS_CODES.BAD_REQUEST) {
         throw new HttpError({
           status: STATUS_CODES.BAD_REQUEST,
-          message: "Lỗi logic khi tạo dữ liệu",
+          message: data.message || "Lỗi logic khi tạo dữ liệu",
           data: data.data,
         });
       }

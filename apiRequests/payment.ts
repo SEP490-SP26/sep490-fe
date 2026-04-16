@@ -1,4 +1,6 @@
 import http from "@/lib/httpAxios";
+import axios from "axios";
+import envConfig from "@/lib/config";
 
 export interface PaymentResponse {
     quote_id: number;
@@ -24,6 +26,14 @@ export interface PaymentStatusResponse {
 export const paymentApi = {
     getPaymentQR: (request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos-deposit/${request_id}?quote_id=${quote_id}&estimate_id=${estimate_id}`),
 
-    getStatusPayment: (request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos/status-by-request-id?request_id=${request_id}&estimate_id=${estimate_id}&quote_id=${quote_id}`)
+    getStatusPayment: (request_id: string, quote_id: number, estimate_id: number) => http.get<PaymentResponse>(`/api/Requests/payos/status-by-request-id?request_id=${request_id}&estimate_id=${estimate_id}&quote_id=${quote_id}`),
+
+    getPaymentReceipt: (orderCode: string) => 
+        axios.get(`${envConfig.NEXT_API_ENDPOINT}/api/Payments/payment-receipt-docx/${orderCode}`, {
+            responseType: 'blob',
+            // headers: {
+            //     Authorization: `Bearer ${localStorage.getItem("token")}`
+            // }
+        })
 }
 

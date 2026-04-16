@@ -202,6 +202,26 @@ export interface ConsultantContractResponse {
 /** Kiểu dữ liệu mảng các báo giá yêu cầu */
 export type RequestQuotationList = RequestQuotationItem[];
 
+
+interface MessageResponse {
+    message: string;
+    data: {
+        request_id: number;
+        estimate_id: number;
+        customer_signed_contract_path: string | null;
+        compare_result: {
+            request_id: number;
+            estimate_id: number;
+            similarity_percent: number;
+            is_match: boolean;
+            consultant_text_length: number;
+            customer_text_length: number;
+            exact_text_match: boolean
+        },
+        compare_warning: string
+    }
+}
+
 export const estimatesApi = {
     // POST /api/Estimates/paper - Calculate paper parameters
     estimatePaper: (body: EstimatePaperRequest) =>
@@ -247,7 +267,7 @@ export const estimatesApi = {
         formData.append("request_id", body.request_id.toString());
         formData.append("estimate_id", body.estimate_id.toString());
         formData.append("file", body.file);
-        return http.post<void>(`/api/Estimates/upload-customer-signed-contract`, formData);
+        return http.post<MessageResponse>(`/api/Estimates/upload-customer-signed-contract`, formData);
     },
 
     alternativeMaterials: (body: {

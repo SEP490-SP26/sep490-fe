@@ -68,6 +68,7 @@ export default function ProductSpecsSection({
   const currentPaperCode = Form.useWatch("paper_code", form);
   const currentProcesses = Form.useWatch("production_processes", form) || [];
   const currentInkTypes = Form.useWatch("ink_type_names", form) || [];
+  const currentCoatingType = Form.useWatch("coating_type", form);
   const hasPHU = currentProcesses.includes("PHU");
   const hasCAN = currentProcesses.includes("CAN");
   const hasBOI = currentProcesses.includes("BOI");
@@ -194,15 +195,15 @@ export default function ProductSpecsSection({
   useEffect(() => {
     if (prevHasPHURef.current && !hasPHU) {
       const currentCoating = form.getFieldValue("coating_type");
-      if (currentCoating && currentCoating !== "NONE") {
-        form.setFieldValue("coating_type", "NONE");
+      if (currentCoating) {
+        form.setFieldValue("coating_type", undefined);
       }
     }
     
     if (prevHasBOIRef.current && !hasBOI) {
       const currentWave = form.getFieldValue("wave_type");
-      if (currentWave && currentWave !== "NONE") {
-        form.setFieldValue("wave_type", "NONE");
+      if (currentWave) {
+        form.setFieldValue("wave_type", undefined);
       }
     }
 
@@ -344,23 +345,35 @@ export default function ProductSpecsSection({
           </Form.Item>
         </Col>
         <Col span={6}>
-          {hasPHU && (
-            <Tooltip title={highlightFields['coating_type'] || ""} color="orange" placement="topLeft" trigger={['hover', 'focus']}>
-              <div className="w-full">
-                <Form.Item name="coating_type" className="mb-0">
-                  <FloatingSelect
-                    label="Loại keo phủ"
-                    options={glueTypes.map((gt) => ({
-                      label: gt.name,
-                      value: gt.code,
-                    }))}
-                    className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-                    disabled={isDeclined && !highlightFields['coating_type']}
-                  />
-                </Form.Item>
-              </div>
-            </Tooltip>
-          )}
+          {hasPHU && (() => {
+            const isKeoDauWarning = selectedProductTypeCode === "THE_MAU" && currentCoatingType === "KEO_DAU";
+            const tooltipTitle = isKeoDauWarning
+              ? "Cảnh báo: Phủ keo dầu có thể gây sai lệch màu in thực tế."
+              : highlightFields['coating_type'] || "";
+              
+            return (
+              <Tooltip 
+                title={tooltipTitle} 
+                color={isKeoDauWarning ? "volcano" : "orange"} 
+                placement="topLeft" 
+                trigger={['hover', 'focus']}
+              >
+                <div className="w-full">
+                  <Form.Item name="coating_type" className="mb-0" validateStatus={isKeoDauWarning ? "warning" : undefined}>
+                    <FloatingSelect
+                      label="Loại keo phủ"
+                      options={glueTypes.map((gt) => ({
+                        label: gt.name,
+                        value: gt.code,
+                      }))}
+                      className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                      disabled={isDeclined && !highlightFields['coating_type']}
+                    />
+                  </Form.Item>
+                </div>
+              </Tooltip>
+            );
+          })()}
         </Col>
       </Row>
 
@@ -573,7 +586,7 @@ export default function ProductSpecsSection({
                 if (!updatedValues.includes("BOI")) updatedValues.push("BOI");
                 if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
                 if (!updatedValues.includes("DAN")) updatedValues.push("DAN");
-              } else {
+              } else if (selectedProductTypeCode !== "THE_MAU") {
                 if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
               }
 
@@ -613,10 +626,10 @@ export default function ProductSpecsSection({
                   form.setFieldValue("wave_type", "SONG_B_NAU");
                 }
                 if (!checkedValues.includes("BOI")) {
-                  form.setFieldValue("wave_type", "NONE");
+                  form.setFieldValue("wave_type", undefined);
                 }
                 if (!checkedValues.includes("PHU")) {
-                  form.setFieldValue("coating_type", "NONE");
+                  form.setFieldValue("coating_type", undefined);
                 }
 
                 // Trigger form re-calculation manually if needed because some hidden constraints updated

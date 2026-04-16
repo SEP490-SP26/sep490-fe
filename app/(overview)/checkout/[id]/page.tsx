@@ -214,18 +214,53 @@ export default function RequestDetailPage() {
             }
             extra={[
               <Button
+                key="receipt"
+                size="large"
+                className="bg-blue-600 hover:bg-blue-500 border-none rounded-xl h-14 px-10 text-lg font-bold shadow-lg shadow-blue-200 text-white mb-3 w-full sm:w-auto mt-3"
+                icon={<DownloadOutlined />}
+                onClick={async () => {
+                  if (!paymentInfo?.order_code) {
+                    message.error("Không tìm thấy mã đơn hàng để tải phiếu thu");
+                    return;
+                  }
+                  const hide = message.loading("Đang tải phiếu thu...", 0);
+                  try {
+                    const res = await paymentApi.getPaymentReceipt(String(paymentInfo.order_code));
+                    
+                    // The server returns a docx file Blob
+                    const url = window.URL.createObjectURL(new Blob([res.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `Phieu_Thu_${paymentInfo.order_code}.docx`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.parentNode?.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                    
+                    message.success("Tải phiếu thu thành công!");
+                  } catch (error) {
+                    console.error(error);
+                    message.error("Lỗi khi tải phiếu thu");
+                  } finally {
+                    hide();
+                  }
+                }}
+              >
+                Tải phiếu thu
+              </Button>,
+              <Button
                 type="primary"
                 key="detail"
                 size="large"
-                className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-xl h-14 px-10 text-lg font-bold shadow-lg shadow-emerald-200"
+                className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-xl h-14 px-10 text-lg font-bold shadow-lg shadow-emerald-200 mt-3"
                 onClick={() => router.push(`/request-detail/${requestId}`)}
               >
                 Xem chi tiết yêu cầu
               </Button>,
-              <Button 
-                key="home" 
+              <Button
+                key="home"
                 size="large"
-                className="h-14 px-10 text-lg font-semibold rounded-xl border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-600"
+                className="h-14 px-10 text-lg font-semibold rounded-xl border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-600 mt-3"
                 onClick={() => router.push('/')}
               >
                 Về trang chủ
@@ -288,7 +323,7 @@ export default function RequestDetailPage() {
             className={`rounded-lg ${(!hasUploadedContract || !hasConfirmedQuote) ? 'bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500'} border-none`}
             onClick={proceedToPayment}
           >
-           Thanh toán
+            Thanh toán
           </Button>
 
         ]}
@@ -397,8 +432,9 @@ export default function RequestDetailPage() {
                           message.success("Tải bản hợp đồng đã ký thành công!");
                           setHasUploadedContract(true);
                           if (onSuccess) onSuccess("ok");
-                        } catch (error) {
-                          message.error("Tải hợp đồng thất bại");
+                        } catch (error: any) {
+                          const errorMsg = error.response?.data?.message || error.message || "Tải hợp đồng không thành công, vui lòng kiểm tra lại";
+                          message.error(errorMsg);
                           if (onError) onError(error as any);
                         } finally {
                           hide();
@@ -441,8 +477,8 @@ export default function RequestDetailPage() {
             <div
               onClick={() => setHasConfirmedQuote((prev) => !prev)}
               className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none ${hasConfirmedQuote
-                  ? "bg-emerald-50 border-emerald-400"
-                  : "bg-white border-slate-200 hover:border-blue-300"
+                ? "bg-emerald-50 border-emerald-400"
+                : "bg-white border-slate-200 hover:border-blue-300"
                 }`}
             >
               <Checkbox
