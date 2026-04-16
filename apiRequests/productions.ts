@@ -38,7 +38,34 @@ interface ProductionStatusResponse {
   is_production_ready: boolean;
   has_enough_material: boolean;
   has_free_machine: boolean;
-
+  materials: [
+    {
+      material_id: number;
+      material_code: string;
+      material_name: string;
+      unit: string;
+      required_qty: number;
+      available_qty: number;
+      missing_qty: number;
+      is_enough: boolean;
+      status: string;
+    }
+  ],
+  machines: [
+    {
+      process_id: number;
+      seq_num: number;
+      process_code: string;
+      process_name: string;
+      machine_code: string;
+      machine_found: boolean;
+      is_available: boolean;
+      total_quantity: number;
+      busy_quantity: number;
+      free_quantity: number;
+      status: string;
+    }
+  ]
 }
 
 export const productionsApi = {

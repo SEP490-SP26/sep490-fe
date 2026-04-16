@@ -49,7 +49,7 @@ type SortField =
   | "quantity"
   | "delivery_date"
   | "order_request_date"
-  | "assigned_consultant_name"
+  | "assign_name"
   | null;
 type SortOrder = "asc" | "desc";
 
@@ -93,9 +93,9 @@ export default function ConsultantOrdersPage() {
 
     const initSignalR = async () => {
       try {
-        const hubUrl = "https://amms-juaa.onrender.com/hubs/realtime"; 
+        const hubUrl = "https://amms-juaa.onrender.com/hubs/realtime";
         const conn = await getHubConnection(hubUrl);
-        
+
         const handleServerEvent = () => {
           if (!unmounted) {
             fetchAllOrders();
@@ -297,7 +297,7 @@ export default function ConsultantOrdersPage() {
         // Tìm theo số lượng
         if (order.quantity?.toString().includes(search)) return true;
         // Tìm theo tên tư vấn viên
-        if (order.assigned_consultant_name?.toLowerCase().includes(search)) return true;
+        if (order.assign_name?.toLowerCase().includes(search)) return true;
 
         return false;
       });
@@ -588,9 +588,9 @@ export default function ConsultantOrdersPage() {
       ),
     },
     {
-      title: <SortableHeader field="assigned_consultant_name" title="Tư vấn viên" />,
-      dataIndex: "assigned_consultant_name",
-      key: "assigned_consultant_name",
+      title: <SortableHeader field="assign_name" title="Tư vấn viên" />,
+      dataIndex: "assign_name",
+      key: "assign_name",
       render: (name: string) => (
         <span className="text-gray-600">{name || <span className="text-gray-400 italic">-</span>}</span>
       ),

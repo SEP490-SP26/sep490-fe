@@ -206,6 +206,8 @@ export default function ProductionApprovalPage() {
           setIsModalVisible(false);
           setSelectedOrderId(null);
         }}
+        width={1000}
+        style={{ top: 20 }}
         footer={[
           <Button key="cancel" onClick={() => setIsModalVisible(false)}>
             Hủy bỏ
@@ -226,47 +228,122 @@ export default function ProductionApprovalPage() {
           {isChecking ? (
             <div className="flex flex-col items-center justify-center p-6 space-y-4">
               <Spin size="large" />
-              <div className="text-gray-500">Đang kiểm tra hệ thống máy móc và vật tư...</div>
+              <div className="text-gray-500">Đang kiểm tra dữ liệu hệ thống kho và máy móc...</div>
             </div>
           ) : statusData ? (
-            <div className="space-y-4 text-base">
-               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-                  <div className="flex justify-between items-center whitespace-nowrap">
-                    <span className="text-gray-600">Nguyên vật liệu:</span>
-                    {statusData.has_enough_material ? (
-                      <Tag color="success" className="mr-0 text-sm py-1 px-3">Đã đủ NVL</Tag>
-                    ) : (
-                      <Tag color="error" className="mr-0 text-sm py-1 px-3">Thiếu NVL</Tag>
-                    )}
+            <div className="space-y-6 text-base">
+               {/* 1. Tổng quan */}
+               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center justify-between p-3 bg-white rounded shadow-sm border border-gray-100">
+                      <span className="text-gray-600 font-medium">Trạng thái Nguyên vật liệu:</span>
+                      {statusData.has_enough_material ? (
+                        <Tag color="success" className="mr-0 text-base py-1 px-3 rounded-full">Đã Đủ Vật Tư</Tag>
+                      ) : (
+                        <Tag color="error" className="mr-0 text-base py-1 px-3 rounded-full">Thiếu Vật Tư</Tag>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-white rounded shadow-sm border border-gray-100">
+                      <span className="text-gray-600 font-medium">Tính khả dụng Máy móc:</span>
+                      {statusData.has_free_machine ? (
+                        <Tag color="success" className="mr-0 text-base py-1 px-3 rounded-full">Sẵn Sàng Sản Xuất</Tag>
+                      ) : (
+                        <Tag color="error" className="mr-0 text-base py-1 px-3 rounded-full">Máy Chưa Sẵn Sàng</Tag>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center whitespace-nowrap">
-                    <span className="text-gray-600">Máy móc thiết bị:</span>
-                    {statusData.has_free_machine ? (
-                      <Tag color="success" className="mr-0 text-sm py-1 px-3">Có máy sẵn sàng</Tag>
-                    ) : (
-                      <Tag color="error" className="mr-0 text-sm py-1 px-3">Máy đang bận</Tag>
-                    )}
-                  </div>
-                  <div className="border-t border-gray-200 my-2 pt-3 flex justify-between items-center font-semibold text-lg">
-                    <span>Kết luận:</span>
+                  <div className="border-t border-gray-200 pt-3 flex justify-between items-center font-bold text-lg">
+                    <span className="text-gray-700">Kết luận kiểm tra:</span>
                     {(statusData.has_enough_material && statusData.has_free_machine) ? (
-                      <span className="text-green-600">ĐỦ ĐIỀU KIỆN SẢN XUẤT</span>
+                      <span className="text-green-600">ĐỦ ĐIỀU KIỆN ĐƯA VÀO SẢN XUẤT</span>
                     ) : (
-                      <span className="text-red-500">CHƯA ĐỦ ĐIỀU KIỆN</span>
+                      <span className="text-red-500">CHƯA ĐỦ TÀI NGUYÊN ĐỂ SẢN XUẤT</span>
                     )}
                   </div>
                </div>
+
+               {/* 2. Chi tiết vật tư */}
+               <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 border-l-4 border-blue-500 pl-2">Bảng Phân bổ Nguyên Vật Liệu</h3>
+                  <Table
+                    dataSource={statusData.materials || []}
+                    rowKey="material_code"
+                    pagination={false}
+                    size="small"
+                    bordered
+                    columns={[
+                      { title: 'Mã VT', dataIndex: 'material_code', key: 'material_code', width: 100 },
+                      { title: 'Tên vật tư', dataIndex: 'material_name', key: 'material_name' },
+                      { title: 'ĐV', dataIndex: 'unit', key: 'unit', width: 60, align: 'center' },
+                      { title: 'Yêu cầu', dataIndex: 'required_qty', key: 'required_qty', align: 'right', render: (v: number) => <span className="font-semibold">{v.toLocaleString('vi-VN')}</span> },
+                      { title: 'Hiện có', dataIndex: 'available_qty', key: 'available_qty', align: 'right', render: (v: number) => v.toLocaleString('vi-VN') },
+                      { 
+                        title: 'Còn thiếu', 
+                        dataIndex: 'missing_qty', 
+                        key: 'missing_qty', 
+                        align: 'right', 
+                        render: (v: number) => v > 0 ? <span className="text-red-500 font-bold">{v.toLocaleString('vi-VN')}</span> : '-' 
+                      },
+                      { title: 'Trạng thái lệnh', key: 'status', align: 'center', width: 120, render: (_: any, r: any) => r.is_enough ? <Tag color="success" className="mr-0 font-medium">Đủ cấp</Tag> : <Tag color="error" className="mr-0 font-medium">Chờ nhập kho</Tag> }
+                    ]}
+                  />
+               </div>
+
+               {/* 3. Chi tiết máy móc */}
+               <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 border-l-4 border-blue-500 pl-2">Lộ trình Máy Móc thiết bị</h3>
+                  <Table
+                    dataSource={statusData.machines || []}
+                    rowKey={(r) => `${r.process_id}-${r.seq_num}`}
+                    pagination={false}
+                    size="small"
+                    bordered
+                    columns={[
+                      { title: 'Bước', dataIndex: 'seq_num', key: 'seq_num', width: 60, align: 'center', render: (v: number) => <span className="font-bold text-gray-500">{v}</span> },
+                      { title: 'Quy trình', dataIndex: 'process_name', key: 'process_name' },
+                      { title: 'Mã máy gắn', dataIndex: 'machine_code', key: 'machine_code', render: (v: string) => v ? <Tag color="blue" className="font-mono text-sm mr-0">{v}</Tag> : <span className="italic text-gray-400">Không tìm thấy</span> },
+                      { 
+                        title: 'Tải công việc / Năng lực', 
+                        key: 'capacity', 
+                        align: 'center',
+                        render: (_: any, r: any) => r.machine_found ? (
+                          <span>
+                            <span className={r.free_quantity > 0 ? "text-green-600 font-bold" : "text-red-500 font-bold"}>{r.free_quantity}</span>
+                            <span className="text-gray-300 mx-2">/</span>
+                            <span className="font-medium">{r.total_quantity}</span>
+                          </span>
+                        ) : '-'
+                      },
+                      { 
+                        title: 'Đánh giá khả dụng', 
+                        key: 'status', 
+                        align: 'center',
+                        width: 160,
+                        render: (_: any, r: any) => {
+                          if (!r.machine_found) return <Tag color="error" className="mr-0 w-full text-center">Lỗi cấu hình máy</Tag>;
+                          if (!r.is_available) return <Tag color="warning" className="mr-0 w-full text-center">Quá tải (Bottleneck)</Tag>;
+                          return <Tag color="success" className="mr-0 w-full text-center">Sẵn sàng nhận lệnh</Tag>;
+                        }
+                      }
+                    ]}
+                  />
+               </div>
                
                {!(statusData.has_enough_material && statusData.has_free_machine) && (
-                 <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded border border-amber-200">
-                    Lưu ý: Không thể duyệt sản xuất khi chưa đáp ứng đủ các điều kiện. Vui lòng bổ sung vật tư hoặc chờ máy rảnh.
+                 <div className="text-sm text-orange-700 bg-orange-50 p-4 rounded-xl border border-orange-200 mt-2 flex items-start gap-3">
+                    <CheckCircleOutlined className="mt-0.5 text-lg" />
+                    <div>
+                      <strong>Cảnh báo:</strong> Lệnh sản xuất này hiện tại chưa đủ điều kiện triển khai tối ưu. 
+                      Hệ thống sẽ bị đình trệ nếu duyệt ngay. Đề nghị bổ sung thêm vật tư vào kho hoặc đợi dây chuyền máy hoàn tất lịch trình cũ trước khi đưa vào sản xuất.
+                    </div>
                  </div>
                )}
             </div>
           ) : (
-            <div className="text-center text-red-500 p-4">
-               Không thể lấy thông tin trạng thái sản xuất cho đơn hàng này.
+            <div className="text-center text-red-500 p-8 font-bold border border-red-200 bg-red-50 rounded-xl">
+               Đã xảy ra lỗi, Không thể lấy thông tin trạng thái sản xuất. Xin vui lòng thử lại sau.
             </div>
+
           )}
         </div>
       </Modal>

@@ -41,7 +41,7 @@ type SortField =
   | "quantity"
   | "delivery_date"
   | "order_request_date"
-  | "assigned_consultant_name"
+  | "assign_name"
   | null;
 type SortOrder = "asc" | "desc";
 
@@ -172,7 +172,7 @@ export default function ManagerOrdersPage() {
         }
         if (order.quantity?.toString().includes(search)) return true;
         // Find by consultant name
-        if (order.assigned_consultant_name?.toLowerCase().includes(search)) return true;
+        if (order.assign_name?.toLowerCase().includes(search)) return true;
         return false;
       });
     },
@@ -218,9 +218,9 @@ export default function ManagerOrdersPage() {
       ),
     },
     {
-      title: <SortableHeader field="assigned_consultant_name" title="Tư vấn viên" />,
-      dataIndex: "assigned_consultant_name",
-      key: "assigned_consultant_name",
+      title: <SortableHeader field="assign_name" title="Tư vấn viên" />,
+      dataIndex: "assign_name",
+      key: "assign_name",
       render: (name: string) => (
         <span className="text-gray-600">{name || <span className="text-gray-400 italic">-</span>}</span>
       ),

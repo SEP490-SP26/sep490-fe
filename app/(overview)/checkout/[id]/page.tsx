@@ -162,6 +162,21 @@ export default function RequestDetailPage() {
     }).format(amount).replace('₫', 'đ');
   };
 
+  const maskPhone = (phone: string) => {
+    if (!phone) return "";
+    const p = phone.trim();
+    if (p.length < 6) return p;
+    return p.substring(0, 3) + "****" + p.substring(p.length - 3);
+  };
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [user, domain] = email.split("@");
+    if (!domain) return email;
+    if (user.length <= 2) return "*".repeat(user.length) + "@" + domain;
+    return user[0] + "****" + user[user.length - 1] + "@" + domain;
+  };
+
   const ExpiryNote = () => (
     <p className="mt-6 text-sm text-slate-500 italic leading-relaxed border-t border-slate-200 pt-4">
       (*) Báo giá có hiệu lực đến <b>{paymentInfo?.expired_at ? dayjs(paymentInfo.expired_at).format("HH:mm DD/MM/YYYY") : "..."}</b>. Sau thời gian này, mọi thông tin về đơn giá và chi phí có thể thay đổi.
@@ -226,7 +241,7 @@ export default function RequestDetailPage() {
                   const hide = message.loading("Đang tải phiếu thu...", 0);
                   try {
                     const res = await paymentApi.getPaymentReceipt(String(paymentInfo.order_code));
-                    
+
                     // The server returns a docx file Blob
                     const url = window.URL.createObjectURL(new Blob([res.data]));
                     const link = document.createElement('a');
@@ -236,7 +251,7 @@ export default function RequestDetailPage() {
                     link.click();
                     link.parentNode?.removeChild(link);
                     window.URL.revokeObjectURL(url);
-                    
+
                     message.success("Tải phiếu thu thành công!");
                   } catch (error) {
                     console.error(error);
@@ -275,10 +290,14 @@ export default function RequestDetailPage() {
   return (
     <div className="min-h-screen  bg-slate-50 py-8 px-4 flex flex-col items-center">
       <div className={`grid grid-cols-1 ${quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-12 w-full max-w-7xl`}>
-        {quotes.map((quote, index) => (
+        {[...quotes].sort((a, b) => a.estimate_id - b.estimate_id).map((quote, index) => (
           <QuoteCard
             key={quote.quote_id}
-            quote={quote}
+            quote={{
+              ...quote,
+              customer_phone: maskPhone(quote.customer_phone),
+              customer_email: maskEmail(quote.customer_email),
+            }}
             index={index}
             totalQuotes={quotes.length}
             consultantNote={fullRequestDetail?.consultant_note}

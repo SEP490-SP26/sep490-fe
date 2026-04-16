@@ -34,7 +34,7 @@ export interface OrderRequestDetailItem {
   accepted_estimate_id: number | null;
   previous_estimate_id: number | null;
   assigned_consultant: number | null;
-  assigned_consultant_name: string | null;
+  assign_name: string | null;
   actual_consultant_user_id: number | null;
 
   // --- Thông tin Khách hàng ---
@@ -183,7 +183,7 @@ export const requestOrderApi = {
 
   cloneRequest: (body: { request_id: number }) =>
     http.post<CommonResType>('/api/Requests/clone-request', body),
-  
+
   consultantMessageToCustomer: (body: { request_id: number, message: string }) =>
     http.put<CommonResType>('/api/Requests/consultant-message-to-customer', body),
 

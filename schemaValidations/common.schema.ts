@@ -297,7 +297,7 @@ export interface EstimateCostData {
 
   // Material details
   material_cost_details: MaterialCostDetail[];
-  
+
   // Potential new calculation fields
   wave_sheets_used?: number;
   paper_alternative?: string;
@@ -357,7 +357,7 @@ export interface OrderRequest {
   has_lamination: boolean;
   is_check_contract?: boolean;
   contract_check_note?: string;
-  assigned_consultant_name?: string | null;
+  assign_name?: string | null;
 }
 
 
