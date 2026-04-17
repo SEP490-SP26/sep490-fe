@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react';
-import { Check, Package, User, FileText, TrendingUp, Calendar, MapPin, Phone, Mail, Banknote } from 'lucide-react';
+import { Check, Package, User, FileText, TrendingUp, Calendar, MapPin, Phone, Mail, Banknote, Download, Eye, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
 interface OrderDetail {
@@ -59,6 +59,9 @@ export default function PaymentSuccess() {
   const [estimate, setEstimate] = useState<CostEstimate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [payosData, setPayosData] = useState<any>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const params = useParams();
   const orderId = params.id;
@@ -115,6 +118,19 @@ export default function PaymentSuccess() {
 
         setOrder(orderData);
         setEstimate(estimateData);
+        
+        try {
+          const payosRes = await fetch(`https://amms-juaa.onrender.com/api/Orders/create-payos-remaining-link/${orderId}`);
+          if (payosRes.ok) {
+            const pData = await payosRes.json();
+            setPayosData(pData);
+            if (pData.order_code) {
+              setReceiptUrl(`https://amms-juaa.onrender.com/api/Payments/payment-receipt-docx/${pData.order_code}`);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch payos remaining link", e);
+        }
       } catch (err) {
         setError('Không thể tải thông tin đơn hàng');
         console.error(err);
@@ -337,6 +353,40 @@ export default function PaymentSuccess() {
             </div>
           </div>
         </div>
+
+        {receiptUrl && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 transform transition-all duration-300 hover:shadow-xl border border-indigo-50">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mr-4 shadow-sm">
+                  <FileText className="w-6 h-6 text-indigo-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Biên lai thanh toán</h2>
+                  <p className="text-sm text-slate-500">Mã giao dịch: {payosData?.order_code}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setIsPreviewOpen(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-colors font-medium border border-indigo-100 shadow-sm"
+                >
+                  <Eye className="w-4 h-4" />
+                  Xem trước
+                </button>
+                <a
+                  href={receiptUrl}
+                  download
+                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-md hover:shadow-lg"
+                >
+                  <Download className="w-4 h-4" />
+                  Tải xuống
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center">
           <button
             onClick={() => window.location.href = '/'}
@@ -347,6 +397,34 @@ export default function PaymentSuccess() {
         </div>
 
       </div>
+
+      {/* Preview Modal */}
+{isPreviewOpen && receiptUrl && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+        <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+          <FileText className="w-5 h-5 text-indigo-600" />
+          Xem trước biên lai
+        </h3>
+        <button 
+          onClick={() => setIsPreviewOpen(false)}
+          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <iframe
+          src={`https://docs.google.com/gview?url=${encodeURIComponent(receiptUrl)}&embedded=true`}
+          className="w-full h-full border-0"
+          title="Biên lai thanh toán"
+        />
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
