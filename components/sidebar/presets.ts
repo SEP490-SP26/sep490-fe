@@ -153,6 +153,12 @@ export const warehouseNavItems: NavItem[] = [
     icon: FiPackage,
     basePath: "/warehouse",
   },
+  {
+    path: "/subproducts",
+    label: "Tồn kho bán thành phẩm",
+    icon: FiPackage,
+    basePath: "/warehouse",
+  },
   // {
   //   path: "/purchase",
   //   label: "Đặt nguyên vật liệu",
