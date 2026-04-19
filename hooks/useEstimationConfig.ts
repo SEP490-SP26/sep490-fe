@@ -7,7 +7,10 @@ import {
   Material,
   Machine,
   EstimationConfig,
-  PlatePriceConfig
+  PlatePriceConfig,
+  PaymentTerms,
+  MaterialPrices,
+  MaterialRates
 } from '@/lib/estimation.types';
 import { estimatesApi } from '@/apiRequests/estimates';
 import { materialsApi } from '@/apiRequests/materials';
@@ -52,6 +55,9 @@ export const useEstimationConfig = (): UseEstimationConfig => {
   const [processCosts, setProcessCosts] = useState<ProcessCosts | null>(null);
   const [designConfig, setDesignConfig] = useState<DesignConfig | null>(null);
   const [systemParameters, setSystemParameters] = useState<any | null>(null);
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTerms | null>(null);
+  const [materialPrices, setMaterialPrices] = useState<MaterialPrices | null>(null);
+  const [materialRates, setMaterialRates] = useState<MaterialRates | null>(null);
   const [platePrices, setPlatePrices] = useState<PlatePriceConfig | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -92,6 +98,18 @@ export const useEstimationConfig = (): UseEstimationConfig => {
 
         if (baseConfig.systemParameters) {
           setSystemParameters(baseConfig.systemParameters);
+        }
+
+        if (baseConfig.paymentTerms) {
+          setPaymentTerms(baseConfig.paymentTerms);
+        }
+
+        if (baseConfig.materialPrices) {
+          setMaterialPrices(baseConfig.materialPrices);
+        }
+
+        if (baseConfig.materialRates) {
+          setMaterialRates(baseConfig.materialRates);
         }
       }
 
@@ -141,6 +159,9 @@ export const useEstimationConfig = (): UseEstimationConfig => {
     processCosts,
     designConfig,
     systemParameters,
+    paymentTerms,
+    materialPrices,
+    materialRates,
     platePrices,
     materials,
     machines,

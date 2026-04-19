@@ -296,9 +296,9 @@ export default function ManagementLoginPage() {
                 <div className="flex-1 flex items-center justify-center p-8">
                     <div className="w-full max-w-md bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-100">
                         <img
-                            src="/assets/images/newicon.png"
+                            src="/assets/images/logo_removed.png"
                             alt="Logo"
-                            className="w-24 h-24 object-contain mx-auto mb-4"
+                            className="w-32 h-32 object-contain mx-auto mb-4 drop-shadow-md"
                         />
                         <div className="text-center mb-8">
 

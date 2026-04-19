@@ -16,7 +16,7 @@ export default function ProductionsManagerLayout({
 
   const userInfo = {
     name: "Quản lý sản xuất",
-    role: "Production Manager",
+    role: "Quản lý sản xuất",
   };
 
   const handleLogout = () => {

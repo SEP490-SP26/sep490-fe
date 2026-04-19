@@ -131,10 +131,10 @@ export default function Sidebar({
         <Link href="/" className="flex items-center gap-3 group transition-all duration-300">
           <div className="relative w-16 h-16 overflow-hidden rounded-xl bg-white/10 p-2 flex items-center justify-center group-hover:bg-white/20 transition-colors border border-white/5 shadow-inner">
             <Image
-              src="/assets/images/newicon.png"
+              src="/assets/images/logo_removed.png"
               alt="Logo"
-              width={56}
-              height={56}
+              width={64}
+              height={64}
               className="object-contain w-full h-full"
             />
           </div>

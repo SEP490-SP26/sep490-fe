@@ -52,12 +52,12 @@ export default function OverviewSidebar() {
             </button>
 
             {/* Header / Logo */}
-            <div className={`flex items-center ${collapsed ? "justify-center" : "px-6"} border-b border-gray-100 h-16 transition-all duration-300`}>
-                <Link href="/" className="flex items-center justify-center w-full overflow-hidden whitespace-nowrap">
+            <div className={`flex items-center ${collapsed ? "justify-center" : "justify-start px-4"} border-b border-gray-100 h-20 transition-all duration-300`}>
+                <Link href="/" className="flex items-center justify-start w-full overflow-hidden whitespace-nowrap">
                     {!collapsed ? (
-                        <img src="/assets/images/newlogo.jpg" alt="Logo" className="h-10 w-auto object-contain transition-all duration-300" />
+                        <img src="/assets/images/logo_removed.png" alt="Logo" className="h-[60px] w-auto object-contain transition-all duration-300" />
                     ) : (
-                        <img src="/assets/images/newicon.png" alt="Icon" className="w-10 h-10 object-contain transition-all duration-300" />
+                        <img src="/assets/images/logo_removed.png" alt="Icon" className="w-[44px] h-[44px] object-contain transition-all duration-300" />
                     )}
                 </Link>
             </div>

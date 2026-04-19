@@ -15,53 +15,53 @@ export default function LayoutConsultant({
 
   const userInfo = {
     name: "Tư vấn viên",
-    role: "Consultant",
+    role: "Tư vấn viên",
   };
   const handleNavigate = (id: number, status?: string | null) => {
-  if (!status) return;
-  switch (status.toLowerCase()) {
-    case "consultantcreaterequest":
-    case "clone-request":
-    case "pending":
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-    case "cancel":
-      router.push(`/consultant?orderId=${id}&mode=negotiate`);
-      break;
-    case "processing":
-    case "verified":
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-    case "declined":
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-    case "waiting":
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-    case "accepted":
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-    case "rejected":
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-    case "finished":
-      router.push(`/consultant/delivery/detail/${id}`);
-      break;
-    case "pendingpaid":
-    case "paid":
-      router.push(`/consultant/delivery/detail/${id}`);
-      break;
-    case "delivery":
-      router.push(`/consultant/delivery/detail/${id}`);
-      break;
-    case "completed":
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-    default:
-      router.push(`/consultant/request-detail/${id}`);
-      break;
-  }
-};
+    if (!status) return;
+    switch (status.toLowerCase()) {
+      case "consultantcreaterequest":
+      case "clone-request":
+      case "pending":
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+      case "cancel":
+        router.push(`/consultant?orderId=${id}&mode=negotiate`);
+        break;
+      case "processing":
+      case "verified":
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+      case "declined":
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+      case "waiting":
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+      case "accepted":
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+      case "rejected":
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+      case "finished":
+        router.push(`/consultant/delivery/detail/${id}`);
+        break;
+      case "pendingpaid":
+      case "paid":
+        router.push(`/consultant/delivery/detail/${id}`);
+        break;
+      case "delivery":
+        router.push(`/consultant/delivery/detail/${id}`);
+        break;
+      case "completed":
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+      default:
+        router.push(`/consultant/request-detail/${id}`);
+        break;
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");

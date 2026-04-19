@@ -481,7 +481,11 @@ function ConsultantForm() {
     systemParameters,
     materials,
     machines,
-    loading: configLoading
+    loading: configLoading,
+    paymentTerms,
+    materialPrices,
+    materialRates,
+    platePrices,
   } = useEstimationConfig();
 
   const createRequestOrder = useMutation({
@@ -1031,10 +1035,10 @@ function ConsultantForm() {
       const printSizeResult = calculatePrintSize(length, width, height, glue_tab, 5, is_one_side_box, productTypeCode);
 
       // Now we construct the new Calculator payload
-      let ink_rate = 0.018; // Default to HOP_MAU
-      if (productTypeCode === 'GACH_1MAU') ink_rate = 0.02;
-      else if (productTypeCode === 'GACH_XUAT_KHAU_DON_GIAN') ink_rate = 0.015;
-      else if (['GACH_XUAT_KHAU_TERACON', 'GACH_NOI_DIA_4SP', 'GACH_NOI_DIA_6SP'].includes(productTypeCode)) ink_rate = 0.025;
+      let ink_rate = materialRates?.ink_rate_hop_mau ?? 0.018; // Default to HOP_MAU
+      if (productTypeCode === 'GACH_1MAU') ink_rate = materialRates?.ink_rate_gach_noi_dia ?? 0.02;
+      else if (productTypeCode === 'GACH_XUAT_KHAU_DON_GIAN') ink_rate = materialRates?.ink_rate_gach_xk_don_gian ?? 0.015;
+      else if (['GACH_XUAT_KHAU_TERACON', 'GACH_NOI_DIA_4SP', 'GACH_NOI_DIA_6SP'].includes(productTypeCode)) ink_rate = materialRates?.ink_rate_gach_nhieu_mau ?? 0.025;
 
       const calcInput: CalculateInput = {
         quantity: quantity,
@@ -1054,15 +1058,20 @@ function ConsultantForm() {
         print_width_mm: printSizeResult.print_width_mm,
         print_length_mm: printSizeResult.print_length_mm,
 
+        number_of_plates: number_of_plates || 1,
+        platePrices: platePrices || undefined,
+
         processesCsv: inputs.production_processes || "",
         processCosts: processCosts as any,
         materials: materials,
 
         ink_rate_per_m2: ink_rate,
-        ink_price_per_kg: 150000,
-        coating_glue_price_per_kg: coating_type === 'Keo phủ nước' ? 80000 : 120000,
-        mounting_glue_price_per_kg: 90000,
-        lamination_price_per_kg: 150000,
+        ink_price_per_kg: materialPrices?.ink_price_per_kg ?? 150000,
+        coating_glue_price_per_kg: coating_type === 'Keo phủ nước' 
+          ? (materialPrices?.coating_glue_keo_nuoc_per_kg ?? 80000) 
+          : (materialPrices?.coating_glue_keo_dau_per_kg ?? 120000),
+        mounting_glue_price_per_kg: materialPrices?.mounting_glue_per_kg ?? 90000,
+        lamination_price_per_kg: materialPrices?.lamination_per_kg ?? 150000,
         default_design_cost: designConfig?.default_design_cost || 0,
         override_design_cost: explicitConfig?.designCost,
 
@@ -1136,10 +1145,12 @@ function ConsultantForm() {
         cost: {
           ...savedEstimate,
           coating_type: savedEstimate.coating_type && savedEstimate.coating_type !== "NONE" ? savedEstimate.coating_type : "NONE",
-          ink_unit_price: 150000,
-          coating_glue_unit_price: (calcInput.coating_type && calcInput.coating_type !== 'NONE') ? (calcInput.coating_type === 'Keo phủ nước' ? 80000 : 120000) : 0,
-          mounting_glue_unit_price: 90000,
-          lamination_unit_price: 150000,
+          ink_unit_price: materialPrices?.ink_price_per_kg ?? 150000,
+          coating_glue_unit_price: (calcInput.coating_type && calcInput.coating_type !== 'NONE') 
+            ? (calcInput.coating_type === 'Keo phủ nước' ? (materialPrices?.coating_glue_keo_nuoc_per_kg ?? 80000) : (materialPrices?.coating_glue_keo_dau_per_kg ?? 120000)) 
+            : 0,
+          mounting_glue_unit_price: materialPrices?.mounting_glue_per_kg ?? 90000,
+          lamination_unit_price: materialPrices?.lamination_per_kg ?? 150000,
           overhead_percent: systemParameters?.vat_percent || 10,
           overhead_cost: 0, // Not used strictly anymore since there's no overhead in the new calculation
           is_rush: rushResult.isRush,
@@ -2095,6 +2106,7 @@ function ConsultantForm() {
                   orderId={orderId}
                   isSavingCost={isSavingCost}
                   systemParameters={systemParameters}
+                  paymentTerms={paymentTerms}
                   highlightFields={highlightFieldsByTabIndex[quoteTabs.findIndex(t => t.key === activeTabKey)] || {}}
                   isDeclined={orderStatus === 'Declined'}
                 />
@@ -2259,7 +2271,8 @@ function ConsultantForm() {
                     const subtotal = Math.round(calc?.subtotal || 0);
                     const discountAmt = Math.round((subtotal * quoteDiscountPercent) / 100) || 0;
                     const finalTotal = Math.round(calc?.final_total_cost || 0);
-                    const depositRequired = Math.round((finalTotal * 0.3) / 1000) * 1000;
+                    const depositPercent = paymentTerms?.deposit_percent ?? 30;
+                    const depositRequired = Math.round((finalTotal * depositPercent / 100) / 1000) * 1000;
 
                     // Calculate default rounded price (same logic as in EstimatesCard)
                     const defaultAutoPrice = Math.round(finalTotal / 1000) * 1000;
@@ -2352,7 +2365,7 @@ function ConsultantForm() {
                                 )}
 
                                 <div className="flex justify-between items-center text-sm text-orange-600 mt-1">
-                                  <span>Cọc (30%):</span>
+                                  <span>Cọc ({depositPercent}%):</span>
                                   <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
                                 </div>
                               </>

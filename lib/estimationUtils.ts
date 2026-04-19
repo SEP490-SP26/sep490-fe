@@ -628,6 +628,9 @@ export type CalculateInput = {
     is_send_design?: boolean;
     ink_type_names?: string[];
 
+    number_of_plates?: number;
+    platePrices?: any;
+
     sheet_width_mm: number;
     sheet_length_mm: number;
 
@@ -681,6 +684,9 @@ export const calculateEstimateForSave = (input: CalculateInput) => {
 
         print_width_mm,
         print_length_mm,
+
+        number_of_plates = 1,
+        platePrices,
 
         processesCsv,
         processCosts,
@@ -885,7 +891,15 @@ export const calculateEstimateForSave = (input: CalculateInput) => {
         });
     }
 
-    const base_cost = material_cost;
+    const plateResult = calculatePlateCost(
+        number_of_plates,
+        print_width_mm,
+        print_length_mm,
+        { platePrices } as Partial<EstimationConfig>
+    );
+    const plate_cost = plateResult.cost;
+
+    const base_cost = material_cost + plate_cost;
     const subtotal = base_cost + rush_amount;
     const discount_amount = subtotal * (Math.max(0, Math.min(discount_percent, 100)) / 100);
     const final_total_base = subtotal - discount_amount;
@@ -949,6 +963,7 @@ export const calculateEstimateForSave = (input: CalculateInput) => {
         lamination_rate_per_m2,
 
         material_cost,
+        plate_cost,
         base_cost,
 
         total_process_cost: totalProcessCost,

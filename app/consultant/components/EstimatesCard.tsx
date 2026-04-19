@@ -1,5 +1,5 @@
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
-import { SystemParameters } from "@/lib/estimation.types";
+import { SystemParameters, PaymentTerms } from "@/lib/estimation.types";
 import {
   EstimateCostResponse,
   EstimatePaperResponse,
@@ -41,6 +41,7 @@ interface EstimatesCardProps {
   orderId: string | null;
   isSavingCost?: boolean;
   systemParameters: SystemParameters | null;
+  paymentTerms?: PaymentTerms | null;
   highlightFields?: Record<string, string>;
   isDeclined?: boolean;
 }
@@ -65,6 +66,7 @@ export default function EstimatesCard({
   orderId,
   isSavingCost = false,
   systemParameters,
+  paymentTerms,
   highlightFields = {},
   isDeclined = false,
 }: EstimatesCardProps) {
@@ -268,11 +270,12 @@ export default function EstimatesCard({
                   >
                     {({ getFieldValue }) => {
                       const currentFinalPrice = getFieldValue("final_price") || costEstimate?.cost?.final_total_cost || 0;
-                      const calculatedDeposit = Math.round((currentFinalPrice * 0.3) / 1000) * 1000;
+                      const depositPercent = paymentTerms?.deposit_percent ?? 30;
+                      const calculatedDeposit = Math.round((currentFinalPrice * depositPercent / 100) / 1000) * 1000;
 
                       return (
                         <div className="flex justify-between items-center text-blue-900 mt-2 p-2 bg-blue-100/50 rounded-md border border-blue-100">
-                          <span className="font-medium text-sm">Tiền cọc (30%):</span>
+                          <span className="font-medium text-sm">Tiền cọc ({depositPercent}%):</span>
                           <span className="font-bold text-lg">
                             {formatVietnameseNumber(calculatedDeposit)} ₫
                           </span>

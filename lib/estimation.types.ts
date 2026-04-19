@@ -49,6 +49,11 @@ export interface SystemParameters {
   rush_percent_by_days_early: Record<string, number>;
 }
 
+export interface PaymentTerms {
+  deposit_percent: number;
+  remaining_percent: number;
+}
+
 // 6. Root Interface
 export interface EstimationConfig {
   materialPrices: MaterialPrices;
@@ -65,6 +70,7 @@ export interface EstimationConfig {
   design: {
     default_design_cost: number;
   };
+  paymentTerms: PaymentTerms;
   platePrices: PlatePriceConfig;
 }
 
@@ -416,6 +422,9 @@ export interface UseEstimationConfig {
   processCosts: ProcessCosts | null;
   designConfig: DesignConfig | null;
   systemParameters: SystemParameters | null; // Added systemParameters
+  paymentTerms: PaymentTerms | null;
+  materialPrices: MaterialPrices | null;
+  materialRates: MaterialRates | null;
   platePrices: PlatePriceConfig | null;
   materials: Material[];
   machines: Machine[];

@@ -94,7 +94,7 @@ export default function RoleHeader({
           <div className="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 py-1 px-2 rounded-lg transition-all duration-200">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-gray-800 leading-tight group-hover:text-primary transition-colors">
-                {userInfo?.name || "Người dùng"}
+                {localUser?.full_name || userInfo?.name || "Người dùng"}
               </p>
               <p className="text-[11px] text-gray-400 uppercase tracking-wider font-medium mt-0.5">
                 {userInfo?.role || "Công ty in ấn"}

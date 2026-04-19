@@ -17,7 +17,7 @@ export default function LayoutManager({
 
   const userInfo = {
     name: "Quản lý",
-    role: "Manager",
+    role: "Quản lý",
   };
 
   const handleLogout = () => {
@@ -52,20 +52,20 @@ export default function LayoutManager({
     },
   ];
 
-    const handleNavigate = (id: number, status?: string | null) => {
-  if (!status) return;
-  switch (status.toLowerCase()) {
-    case "processing":
-      router.push(`/manager/request-detail/${id}`);
-      break;
-    case "deposited":
-    case "paid":
-      router.push(`/manager/orders/${id}`);
-      break;
-    default:
-      break;
-  }
-};
+  const handleNavigate = (id: number, status?: string | null) => {
+    if (!status) return;
+    switch (status.toLowerCase()) {
+      case "processing":
+        router.push(`/manager/request-detail/${id}`);
+        break;
+      case "deposited":
+      case "paid":
+        router.push(`/manager/orders/${id}`);
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div className="bg-gray-50">
