@@ -11,9 +11,11 @@ import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { RequestDetailResponse } from "@/lib/request.types";
 import {
     CheckCircleOutlined,
+    CreditCardOutlined,
     DollarOutlined,
     DownloadOutlined,
     EditOutlined,
+    EyeOutlined,
     FileImageOutlined,
     FileTextOutlined,
     InfoCircleOutlined,
@@ -90,6 +92,7 @@ export default function ConsultantRequestDetailPage() {
 
     const [pendingDesignFile, setPendingDesignFile] = useState<File | null>(null);
     const [pendingPrintFile, setPendingPrintFile] = useState<File | null>(null);
+    const [iframeLoadedMap, setIframeLoadedMap] = useState<Record<number, boolean>>({});
 
     const [isResignModalOpen, setIsResignModalOpen] = useState(false);
     const [resignMessage, setResignMessage] = useState("");
@@ -122,6 +125,20 @@ export default function ConsultantRequestDetailPage() {
         });
         setAlternativeModalOpen(true);
     };
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (isPreviewModalOpen) {
+            timer = setTimeout(() => {
+                setIframeLoadedMap(prev => {
+                    const newMap = { ...prev };
+                    Object.keys(newMap).forEach(k => newMap[Number(k)] = true);
+                    return newMap;
+                });
+            }, 5000); // 5 seconds maximum
+        }
+        return () => clearTimeout(timer);
+    }, [isPreviewModalOpen]);
 
     const handleAlternativeSubmit = async (values: any) => {
         if (!selectedEstimateForMaterial) return;
@@ -229,6 +246,15 @@ export default function ConsultantRequestDetailPage() {
                     setPreviewData(data);
                     setIsContractCommitted(false); // Reset before opening
                     setReviewedContracts(new Set()); // Reset tracking for contracts
+
+                    const initialIframeMap: Record<number, boolean> = {};
+                    data.quotes.forEach((q: any) => {
+                        if (q.customer_signed_contract_path || q.consultant_contract_path) {
+                            initialIframeMap[q.estimate_id] = false;
+                        }
+                    });
+                    setIframeLoadedMap(initialIframeMap);
+
                     setIsPreviewModalOpen(true);
                 } else {
                     message.warning("Không tìm thấy thông tin báo giá để xem trước.");
@@ -480,6 +506,11 @@ export default function ConsultantRequestDetailPage() {
             default: return 'Chưa xác nhận';
         }
     };
+
+    const allContractsLoaded = previewData?.quotes.every(q => {
+        if (!q.customer_signed_contract_path && !q.consultant_contract_path) return true;
+        return iframeLoadedMap[q.estimate_id] === true;
+    }) ?? false;
 
     return (
         <div className="min-h-screen pb-8 bg-primary">
@@ -926,6 +957,42 @@ export default function ConsultantRequestDetailPage() {
                                     )}
                                 </div>
                             </Card>
+
+                            {/* Payment Receipts Section */}
+                            {(orderDetail.deposit_receipt_path || orderDetail.remaining_receipt_path) && (
+                                <Card className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-orange-100 border-t-4 border-t-orange-500 mt-4 h-auto flex flex-col">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-sm uppercase tracking-wider font-bold text-orange-600 mb-0 flex items-center gap-2">
+                                                <CreditCardOutlined />
+                                                Biên lai thanh toán
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {orderDetail.deposit_receipt_path && (
+                                            <Button
+                                                type="primary"
+                                                icon={<EyeOutlined />}
+                                                onClick={() => window.open(orderDetail.deposit_receipt_path as string, '_blank')}
+                                                className="w-full rounded-lg bg-orange-500 hover:bg-orange-600 border-none shadow-sm h-10 font-medium"
+                                            >
+                                                Xem biên lai đặt cọc
+                                            </Button>
+                                        )}
+                                        {orderDetail.remaining_receipt_path && (
+                                            <Button
+                                                type="primary"
+                                                icon={<EyeOutlined />}
+                                                onClick={() => window.open(orderDetail.remaining_receipt_path as string, '_blank')}
+                                                className="w-full rounded-lg bg-orange-500 hover:bg-orange-600 border-none shadow-sm h-10 font-medium"
+                                            >
+                                                Xem biên lai còn lại
+                                            </Button>
+                                        )}
+                                    </div>
+                                </Card>
+                            )}
                         </div>
                     </div>
 
@@ -1483,8 +1550,13 @@ export default function ConsultantRequestDetailPage() {
                     className="quote-preview-modal"
                     bodyStyle={{ padding: 0, backgroundColor: '#f8fafc' }}
                 >
+                    {!allContractsLoaded && (
+                        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white rounded-lg min-h-[400px]">
+                            <Spin size="large" tip="Đang tải dữ liệu Hợp đồng..." />
+                        </div>
+                    )}
                     <div
-                        className="max-h-[90vh] overflow-y-auto p-4 md:p-8"
+                        className={!allContractsLoaded ? "invisible h-[60vh] overflow-hidden" : "max-h-[90vh] overflow-y-auto p-4 md:p-8"}
                     >
                         <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col">
@@ -1583,6 +1655,7 @@ export default function ConsultantRequestDetailPage() {
                                                                             src={contractUrl} 
                                                                             alt={`Hợp đồng #${index + 1}`} 
                                                                             className="max-w-full h-auto object-contain bg-white shadow-sm"
+                                                                            onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
                                                                         />
                                                                     </div>
                                                                 ) : (
@@ -1591,6 +1664,7 @@ export default function ConsultantRequestDetailPage() {
                                                                         className="w-full border-0 rounded-t-lg shadow-sm"
                                                                         style={{ height: '800px' }}
                                                                         title={`Hợp đồng #${index + 1}`}
+                                                                        onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
                                                                     />
                                                                 );
                                                             })()}

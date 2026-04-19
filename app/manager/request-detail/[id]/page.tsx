@@ -8,6 +8,7 @@ import { formatCoatingType, formatProcess } from "@/lib/estimationUtils";
 import { RequestDetailResponse } from "@/lib/request.types";
 import {
     CheckOutlined,
+    CreditCardOutlined,
     DollarOutlined,
     DownloadOutlined,
     EditOutlined,
@@ -809,6 +810,44 @@ export default function ManagerRequestDetailPage() {
                         <div className="lg:col-span-1">
                             <div className="space-y-4">
                                 <div className="space-y-2">
+                                    {/* Payment Receipts Section */}
+                                    {(orderDetail.deposit_receipt_path || orderDetail.remaining_receipt_path) && (
+                                        <Card className="mt-0 rounded-2xl border border-orange-100 shadow-sm border-t-4 border-t-orange-500">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm uppercase tracking-wider font-bold text-orange-600 mb-0 flex items-center gap-2">
+                                                            <CreditCardOutlined />
+                                                            Biên lai thanh toán
+                                                        </h3>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {orderDetail.deposit_receipt_path && (
+                                                        <Button
+                                                            type="primary"
+                                                            icon={<EyeOutlined />}
+                                                            onClick={() => window.open(orderDetail.deposit_receipt_path as string, '_blank')}
+                                                            className="w-full rounded-lg bg-orange-500 hover:bg-orange-600 border-none shadow-sm h-10 font-medium"
+                                                        >
+                                                            Xem biên lai đặt cọc
+                                                        </Button>
+                                                    )}
+                                                    {orderDetail.remaining_receipt_path && (
+                                                        <Button
+                                                            type="primary"
+                                                            icon={<EyeOutlined />}
+                                                            onClick={() => window.open(orderDetail.remaining_receipt_path as string, '_blank')}
+                                                            className="w-full rounded-lg bg-orange-500 hover:bg-orange-600 border-none shadow-sm h-10 font-medium"
+                                                        >
+                                                            Xem biên lai còn lại
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+
                                     {orderDetail.consultant_note && (
                                         <Card className="mt-4 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
                                             <div>

@@ -132,6 +132,8 @@ export interface OrderRequestDetailItem {
   contract_check_note: string | null;
   delivery_note: string | null;
   is_active: boolean;
+  deposit_receipt_path: string | null;
+  remaining_receipt_path: string | null;
 }
 
 export interface OrderRequestPaginationResponse {

@@ -22,6 +22,7 @@ import {
   DeploymentUnitOutlined,
   DownloadOutlined,
   EnvironmentOutlined,
+  EyeOutlined,
   FileTextOutlined,
   FormatPainterOutlined,
   HomeOutlined,
@@ -89,6 +90,8 @@ interface OrderDetail {
   preliminary_estimated_price?: number;
   consultant_contract_path?: string;
   customer_signed_contract_path?: string;
+  deposit_receipt_path?: string | null;
+  remaining_receipt_path?: string | null;
   delivery_date_change_reason?: string;
   ink_type_names?: string[];
   order_code?: number;
@@ -251,6 +254,8 @@ export default function RequestDetailPage() {
             preliminary_estimated_price: (orderData as any).preliminary_estimated_price,
             consultant_contract_path: orderData.consultant_contract_path,
             customer_signed_contract_path: orderData.customer_signed_contract_path,
+            deposit_receipt_path: orderData.deposit_receipt_path,
+            remaining_receipt_path: orderData.remaining_receipt_path,
             delivery_date_change_reason: orderData.delivery_date_change_reason,
             ink_type_names: orderData.ink_type_names || [],
             order_code: orderData.order_code,
@@ -732,6 +737,41 @@ export default function RequestDetailPage() {
           {/* Sidebar - Design Files */}
           <div className="lg:col-span-4 space-y-2">
             <DesignFileDisplay designFilePath={requestDetail.design_file_path} requestId={requestDetail.order_request_id} />
+
+            {/* Payment Receipts Section */}
+            {(requestDetail.deposit_receipt_path || requestDetail.remaining_receipt_path) && (
+              <div className="flex flex-col gap-3 p-4 bg-orange-50 rounded-xl border border-orange-200 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-orange-200 shadow-md">
+                    <CreditCardOutlined className="text-orange-600" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-800">Biên lai thanh toán</div>
+                    <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Chứng từ</div>
+                  </div>
+                </div>
+                {requestDetail.deposit_receipt_path && (
+                  <Button
+                    type="primary"
+                    icon={<EyeOutlined />}
+                    onClick={() => window.open(requestDetail.deposit_receipt_path as string, '_blank')}
+                    className="w-full rounded-lg bg-orange-600 hover:bg-orange-700 border-none shadow-sm h-10 font-medium"
+                  >
+                    Xem biên lai đặt cọc
+                  </Button>
+                )}
+                {requestDetail.remaining_receipt_path && (
+                   <Button
+                    type="primary"
+                    icon={<EyeOutlined />}
+                    onClick={() => window.open(requestDetail.remaining_receipt_path as string, '_blank')}
+                    className="w-full rounded-lg bg-orange-600 hover:bg-orange-700 border-none shadow-sm h-10 font-medium"
+                  >
+                    Xem biên lai thanh toán còn lại
+                  </Button>
+                )}
+              </div>
+            )}
 
             {/* Receipt Secion */}
             {requestDetail.customer_signed_contract_path  && (

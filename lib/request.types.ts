@@ -91,6 +91,8 @@ export interface RequestDetailResponse {
   note: string;
   consultant_contract_path: string;
   customer_signed_contract_path: string;
+  deposit_receipt_path?: string | null;
+  remaining_receipt_path?: string | null;
   order_code: number;
 
   // Thông số kỹ thuật chung

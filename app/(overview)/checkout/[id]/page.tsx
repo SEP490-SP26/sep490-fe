@@ -228,41 +228,41 @@ export default function RequestDetailPage() {
               </div>
             }
             extra={[
-              <Button
-                key="receipt"
-                size="large"
-                className="bg-blue-600 hover:bg-blue-500 border-none rounded-xl h-14 px-10 text-lg font-bold shadow-lg shadow-blue-200 text-white mb-3 w-full sm:w-auto mt-3"
-                icon={<DownloadOutlined />}
-                onClick={async () => {
-                  if (!paymentInfo?.order_code) {
-                    message.error("Không tìm thấy mã đơn hàng để tải phiếu thu");
-                    return;
-                  }
-                  const hide = message.loading("Đang tải phiếu thu...", 0);
-                  try {
-                    const res = await paymentApi.getPaymentReceipt(String(paymentInfo.order_code));
+              // <Button
+              //   key="receipt"
+              //   size="large"
+              //   className="bg-blue-600 hover:bg-blue-500 border-none rounded-xl h-14 px-10 text-lg font-bold shadow-lg shadow-blue-200 text-white mb-3 w-full sm:w-auto mt-3"
+              //   icon={<DownloadOutlined />}
+              //   onClick={async () => {
+              //     if (!paymentInfo?.order_code) {
+              //       message.error("Không tìm thấy mã đơn hàng để tải phiếu thu");
+              //       return;
+              //     }
+              //     const hide = message.loading("Đang tải phiếu thu...", 0);
+              //     try {
+              //       const res = await paymentApi.getPaymentReceipt(String(paymentInfo.order_code));
 
-                    // The server returns a docx file Blob
-                    const url = window.URL.createObjectURL(new Blob([res.data]));
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', `Phieu_Thu_${paymentInfo.order_code}.docx`);
-                    document.body.appendChild(link);
-                    link.click();
-                    link.parentNode?.removeChild(link);
-                    window.URL.revokeObjectURL(url);
+              //       // The server returns a docx file Blob
+              //       const url = window.URL.createObjectURL(new Blob([res.data]));
+              //       const link = document.createElement('a');
+              //       link.href = url;
+              //       link.setAttribute('download', `Phieu_Thu_${paymentInfo.order_code}.docx`);
+              //       document.body.appendChild(link);
+              //       link.click();
+              //       link.parentNode?.removeChild(link);
+              //       window.URL.revokeObjectURL(url);
 
-                    message.success("Tải phiếu thu thành công!");
-                  } catch (error) {
-                    console.error(error);
-                    message.error("Lỗi khi tải phiếu thu");
-                  } finally {
-                    hide();
-                  }
-                }}
-              >
-                Tải phiếu thu
-              </Button>,
+              //       message.success("Tải phiếu thu thành công!");
+              //     } catch (error) {
+              //       console.error(error);
+              //       message.error("Lỗi khi tải phiếu thu");
+              //     } finally {
+              //       hide();
+              //     }
+              //   }}
+              // >
+              //   Tải phiếu thu
+              // </Button>,
               <Button
                 type="primary"
                 key="detail"
