@@ -143,6 +143,9 @@ export default function LoginPage() {
         case 6:
           router.replace("/productions-manager");
           break;
+        case 18:
+          router.replace("/general-manager");
+          break;
         default:
           router.replace("/");
           break;

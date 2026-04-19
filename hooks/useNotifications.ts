@@ -273,7 +273,8 @@ export function useNotifications({
                ?? item.order_id ?? item.OrderId
                ?? item.orderId
                ?? extractRequestId(item.content ?? ""),
-          }));
+          }))
+          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         
         setNotifications(mapped.slice(0, maxItems));
       }
