@@ -15,7 +15,8 @@ const PUBLIC_ROUTES = [
   '/order-detail',
   '/request-detail',
   '/reject-deal',
-  '/payment'
+  '/payment',
+  '/customer-receive'
 ]
 
 const MANAGEMENT_ROUTES = [
