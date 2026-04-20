@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "Đại Phúc Hải",
   description: "Đại Phúc Hải",
   icons: {
-    icon: '/assets/images/logo_removed.png',
+    icon: '/assets/images/logo1.png',
   },
 };
 

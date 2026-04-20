@@ -127,17 +127,9 @@ export default function Sidebar({
       className={`fixed left-0 top-0 h-full ${width} border-r border-white/10 shadow-sm flex flex-col ${className || "bg-slate-900"}`}
     >
       {/* Logo */}
-      <div className="p-6 pb-2">
+      <div className="pt-4 pb-2">
         <Link href="/" className="flex items-center gap-3 group transition-all duration-300">
-          <div className="relative w-16 h-16 overflow-hidden rounded-xl bg-white/10 p-2 flex items-center justify-center group-hover:bg-white/20 transition-colors border border-white/5 shadow-inner">
-            <Image
-              src="/assets/images/logo_removed.png"
-              alt="Logo"
-              width={64}
-              height={64}
-              className="object-contain w-full h-full"
-            />
-          </div>
+          <img src="/assets/images/logo_removed.png" alt="Logo" className="h-[80px] w-auto object-contain transition-all duration-300" />
         </Link>
       </div>
 
