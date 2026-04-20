@@ -75,12 +75,18 @@ export const adminNavItems: NavItem[] = [
     basePath: "/admin",
     // exact: true,
   },
-  // {
-  //   path: "/admin-create-account",
-  //   label: "Tạo mới tài khoản",
-  //   icon: FaUserPlus,
-  //   basePath: "/admin",
-  // },
+  {
+    path: "/base-configs",
+    label: "Cấu hình nguyên liệu",
+    icon: FiSettings,
+    basePath: "/admin",
+  },
+  {
+    path: "/production-calendars",
+    label: "Cấu hình ngày nghỉ",
+    icon: FiCalendar,
+    basePath: "/admin",
+  },
   {
     path: "/",
     label: "Đăng xuất",
