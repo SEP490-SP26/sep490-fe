@@ -103,8 +103,8 @@ export default function PaymentSuccess() {
     const fetchData = async () => {
       try {
         const [orderRes, estimateRes] = await Promise.all([
-          fetch(`https://amms-juaa.onrender.com/api/Orders/detail/${orderId}`),
-          fetch(`https://amms-juaa.onrender.com/api/Requests/get-cost-estimate/${orderId}`),
+          fetch(`https://mmes-sep490-84gr.onrender.com/api/Orders/detail/${orderId}`),
+          fetch(`https://mmes-sep490-84gr.onrender.com/api/Requests/get-cost-estimate/${orderId}`),
           //fetch(`https://localhost:7109/api/Orders/detail/${orderId}`),
           //fetch(`https://localhost:7109/api/Requests/get-cost-estimate/${orderId}`)
         ]);
@@ -118,14 +118,14 @@ export default function PaymentSuccess() {
 
         setOrder(orderData);
         setEstimate(estimateData);
-        
+
         try {
-          const payosRes = await fetch(`https://amms-juaa.onrender.com/api/Orders/create-payos-remaining-link/${orderId}`);
+          const payosRes = await fetch(`https://mmes-sep490-84gr.onrender.com/api/Orders/create-payos-remaining-link/${orderId}`);
           if (payosRes.ok) {
             const pData = await payosRes.json();
             setPayosData(pData);
             if (pData.order_code) {
-              setReceiptUrl(`https://amms-juaa.onrender.com/api/Payments/payment-receipt-docx/${pData.order_code}`);
+              setReceiptUrl(`https://mmes-sep490-84gr.onrender.com/api/Payments/payment-receipt-docx/${pData.order_code}`);
             }
           }
         } catch (e) {
@@ -230,11 +230,10 @@ export default function PaymentSuccess() {
               </div>
               <div className="flex justify-between py-3 border-b border-slate-100">
                 <span className="text-slate-600">Trạng thái</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  order.status === 'Finished' ? 'bg-green-100 text-green-700' :
-                  order.status === 'Processing' ? 'bg-amber-100 text-amber-700' :
-                  'bg-slate-100 text-slate-700'
-                }`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Finished' ? 'bg-green-100 text-green-700' :
+                    order.status === 'Processing' ? 'bg-amber-100 text-amber-700' :
+                      'bg-slate-100 text-slate-700'
+                  }`}>
                   {order.status === "Delivery" ? "Đang giao hàng" : order.status === "Paid" ? "Chờ bàn giao vận chuyển" : order.status}
                 </span>
               </div>
@@ -399,31 +398,31 @@ export default function PaymentSuccess() {
       </div>
 
       {/* Preview Modal */}
-{isPreviewOpen && receiptUrl && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
-        <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-          <FileText className="w-5 h-5 text-indigo-600" />
-          Xem trước biên lai
-        </h3>
-        <button 
-          onClick={() => setIsPreviewOpen(false)}
-          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <iframe
-          src={`https://docs.google.com/gview?url=${encodeURIComponent(receiptUrl)}&embedded=true`}
-          className="w-full h-full border-0"
-          title="Biên lai thanh toán"
-        />
-      </div>
-    </div>
-  </div>
-)}
+      {isPreviewOpen && receiptUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+              <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-600" />
+                Xem trước biên lai
+              </h3>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={`https://docs.google.com/gview?url=${encodeURIComponent(receiptUrl)}&embedded=true`}
+                className="w-full h-full border-0"
+                title="Biên lai thanh toán"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

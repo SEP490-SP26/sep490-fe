@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-const API_BASE = "https://amms-juaa.onrender.com";
+const API_BASE = "https://mmes-sep490-84gr.onrender.com";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -65,11 +65,10 @@ export default function ForgotPasswordPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-[380px] rounded-xl bg-white shadow-2xl overflow-hidden">
             <div
-              className={`px-5 py-3 text-white font-semibold ${
-                popup.type === "success"
+              className={`px-5 py-3 text-white font-semibold ${popup.type === "success"
                   ? "bg-green-600"
                   : "bg-red-600"
-              }`}
+                }`}
             >
               {popup.title}
             </div>

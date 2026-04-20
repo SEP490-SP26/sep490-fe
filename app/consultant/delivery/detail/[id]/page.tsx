@@ -21,10 +21,10 @@ import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-const API_BASE = "https://amms-juaa.onrender.com/api/Requests/get-by-order-id";
-const COST_ESTIMATE_API = "https://amms-juaa.onrender.com/api/Requests/get-cost-estimate";
-const DELIVERY_NOTE_API = "https://amms-juaa.onrender.com/api/Requests";
-const SEND_EMAIL_API = "https://amms-juaa.onrender.com/api/Orders/send-remaining-payment-email";
+const API_BASE = "https://mmes-sep490-84gr.onrender.com/api/Requests/get-by-order-id";
+const COST_ESTIMATE_API = "https://mmes-sep490-84gr.onrender.com/api/Requests/get-cost-estimate";
+const DELIVERY_NOTE_API = "https://mmes-sep490-84gr.onrender.com/api/Requests";
+const SEND_EMAIL_API = "https://mmes-sep490-84gr.onrender.com/api/Orders/send-remaining-payment-email";
 
 interface OrderRequest {
   order_request_id: number;
@@ -473,7 +473,7 @@ function EmailPreview({
           {/* Payment link */}
           <div style={{ textAlign: "center", margin: "0 0 18px 0" }}>
             <p style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>
-              Hoặc truy cập bằng cách dán đường link này vào trình duyệt: <p style={{color: "#3382f1"}}>{paymentPageUrl}</p>
+              Hoặc truy cập bằng cách dán đường link này vào trình duyệt: <p style={{ color: "#3382f1" }}>{paymentPageUrl}</p>
             </p>
           </div>
 
@@ -875,7 +875,7 @@ export default function OrderDetailPage() {
             <CostRow label="Tổng cộng" value={finalTotal} bold />
 
             {/* Deposit progress */}
-            {/*
+          {/*
             <div className="mt-4 pt-3 border-t border-gray-100">
               <div className="flex justify-between text-xs text-gray-500 mb-2">
                 <span>Đã cọc ({depositPct}%)</span>

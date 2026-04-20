@@ -61,7 +61,7 @@ export default function AdminUpdatePage() {
   useEffect(() => {
     if (!id) return;
 
-    fetch("https://amms-juaa.onrender.com/get-all-user", {
+    fetch("https://mmes-sep490-84gr.onrender.com/get-all-user", {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -109,7 +109,7 @@ export default function AdminUpdatePage() {
       }
 
       const res = await fetch(
-        `https://amms-juaa.onrender.com/admin-update-user/${id}`,
+        `https://mmes-sep490-84gr.onrender.com/admin-update-user/${id}`,
         {
           method: "POST",
           headers: {
@@ -285,11 +285,10 @@ export default function AdminUpdatePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white w-[360px] rounded-xl shadow-lg p-6 text-center space-y-4">
             <div
-              className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center text-white ${
-                popup.type === "success"
+              className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center text-white ${popup.type === "success"
                   ? "bg-green-500"
                   : "bg-red-500"
-              }`}
+                }`}
             >
               {popup.type === "success" ? "✓" : "✕"}
             </div>
@@ -300,11 +299,10 @@ export default function AdminUpdatePage() {
 
             <button
               onClick={closePopup}
-              className={`px-4 py-2 rounded-md text-white text-sm ${
-                popup.type === "success"
+              className={`px-4 py-2 rounded-md text-white text-sm ${popup.type === "success"
                   ? "bg-green-600 hover:bg-green-700"
                   : "bg-red-600 hover:bg-red-700"
-              }`}
+                }`}
             >
               Đóng
             </button>

@@ -18,7 +18,7 @@ interface RoleHeaderProps {
   className?: string;
 }
 
-const HUB_URL = "https://amms-juaa.onrender.com/hubs/realtime";
+const HUB_URL = "https://mmes-sep490-84gr.onrender.com/hubs/realtime";
 //const HUB_URL = "https://localhost:7109/hubs/realtime";
 export default function RoleHeader({
   userInfo,
@@ -33,11 +33,11 @@ export default function RoleHeader({
   React.useEffect(() => {
     const handleScroll = () => setIsVisible(window.scrollY < 10);
     window.addEventListener("scroll", handleScroll, { passive: true });
-    
+
     try {
       const stored = localStorage.getItem("user");
       if (stored) setLocalUser(JSON.parse(stored));
-    } catch (err) {}
+    } catch (err) { }
 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -51,7 +51,7 @@ export default function RoleHeader({
     clearAll,
   } = useNotifications({
     hubUrl: HUB_URL,
-    role:   userInfo?.role ?? "",          // ← bắt buộc, dùng để filter
+    role: userInfo?.role ?? "",          // ← bắt buộc, dùng để filter
     roleId: localUser?.role_id,
     userId: localUser?.user_id,
     accessToken,

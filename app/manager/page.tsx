@@ -14,10 +14,10 @@ import { Doughnut, Bar } from "react-chartjs-2";
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const STATUSES: Record<string, { label: string; color: string; bg: string; desc: string }> = {
-  Processing: { label: "Chờ duyệt",     color: "#3b82f6", bg: "#eff6ff", desc: "Consultant gửi lên" },
-  Verified:   { label: "Đã duyệt",      color: "#22c55e", bg: "#f0fdf4", desc: "Chờ gửi khách hàng" },
-  Waiting:    { label: "Chờ đặt cọc",   color: "#f59e0b", bg: "#fffbeb", desc: "Đợi khách xác nhận" },
-  Rejected:   { label: "Khách từ chối", color: "#ef4444", bg: "#fef2f2", desc: "Từ chối đặt cọc" },
+  Processing: { label: "Chờ duyệt", color: "#3b82f6", bg: "#eff6ff", desc: "Consultant gửi lên" },
+  Verified: { label: "Đã duyệt", color: "#22c55e", bg: "#f0fdf4", desc: "Chờ gửi khách hàng" },
+  Waiting: { label: "Chờ đặt cọc", color: "#f59e0b", bg: "#fffbeb", desc: "Đợi khách xác nhận" },
+  Rejected: { label: "Khách từ chối", color: "#ef4444", bg: "#fef2f2", desc: "Từ chối đặt cọc" },
 };
 const KEYS = ["Processing", "Verified", "Waiting", "Rejected"];
 
@@ -37,7 +37,7 @@ export default function Dashboard() {
       try {
         setLoading(true);
         const res = await fetch(
-          "https://amms-juaa.onrender.com/api/Requests/paged?page=1&pageSize=500"
+          "https://mmes-sep490-84gr.onrender.com/api/Requests/paged?page=1&pageSize=500"
         );
         const data = await res.json();
         setOrders((data.data || []).filter((o: any) => o.product_name));

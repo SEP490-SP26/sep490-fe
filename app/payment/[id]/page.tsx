@@ -77,7 +77,7 @@ export default function Payment() {
   const checkStatus = useCallback(async () => {
     try {
       const res = await fetch(
-        `https://amms-juaa.onrender.com/api/Orders/payos/remaining-status-by-order-id?order_id=${ORDER_ID}`
+        `https://mmes-sep490-84gr.onrender.com/api/Orders/payos/remaining-status-by-order-id?order_id=${ORDER_ID}`
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data: PaymentStatus = await res.json()
@@ -87,18 +87,18 @@ export default function Payment() {
         stopPolling();
         setStage('paid');
         try {
-            await fetch(
-              `https://amms-juaa.onrender.com/api/Requests/notify-customer-pay?request_id=${ORDER_ID}`,
-              {
-                method: 'GET',
-              }
-            );
-          } catch (error) {
-            console.error('Call API notify failed:', error);
-          }
+          await fetch(
+            `https://mmes-sep490-84gr.onrender.com/api/Requests/notify-customer-pay?request_id=${ORDER_ID}`,
+            {
+              method: 'GET',
+            }
+          );
+        } catch (error) {
+          console.error('Call API notify failed:', error);
+        }
         setTimeout(() => {
-    router.push(`/payment-success/${ORDER_ID}`)
-  }, 2000)
+          router.push(`/payment-success/${ORDER_ID}`)
+        }, 2000)
       }
     } catch (e) {
       console.error('Polling error:', e)
@@ -110,7 +110,7 @@ export default function Payment() {
       try {
         // 1. Gọi API tạo link thanh toán
         const initRes = await fetch(
-          `https://amms-juaa.onrender.com/api/Orders/create-payos-remaining-link/${ORDER_ID}`
+          `https://mmes-sep490-84gr.onrender.com/api/Orders/create-payos-remaining-link/${ORDER_ID}`
         )
         if (!initRes.ok) throw new Error(`HTTP ${initRes.status}`)
         const initData: PaymentInitData = await initRes.json()
@@ -118,7 +118,7 @@ export default function Payment() {
 
         // 2. Gọi API check status (giữ nguyên logic cũ)
         const res = await fetch(
-          `https://amms-juaa.onrender.com/api/Orders/payos/remaining-status-by-order-id?order_id=${ORDER_ID}`
+          `https://mmes-sep490-84gr.onrender.com/api/Orders/payos/remaining-status-by-order-id?order_id=${ORDER_ID}`
         )
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data: PaymentStatus = await res.json()

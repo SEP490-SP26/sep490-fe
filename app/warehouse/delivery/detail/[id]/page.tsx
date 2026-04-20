@@ -18,7 +18,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { productionsApi } from "@/apiRequests/productions";
 
-const API_BASE = "https://amms-juaa.onrender.com/api/Requests/get-by-order-id";
+const API_BASE = "https://mmes-sep490-84gr.onrender.com/api/Requests/get-by-order-id";
 
 interface OrderRequest {
   order_request_id: number;
@@ -96,9 +96,8 @@ function InfoRow({
         {label}
       </span>
       <span
-        className={`text-gray-800 text-sm flex-1 ${
-          mono ? "font-mono text-xs" : "font-medium"
-        }`}
+        className={`text-gray-800 text-sm flex-1 ${mono ? "font-mono text-xs" : "font-medium"
+          }`}
       >
         {value ?? "—"}
       </span>
@@ -174,7 +173,7 @@ export default function WarehouseDeliveryDetailPage() {
     return "xxxx" + phone.slice(-4);
   };
 
-    const maskEmail = (email: string) => {
+  const maskEmail = (email: string) => {
     if (!email) return "";
     const parts = email.split("@");
     if (parts.length !== 2) return email;
@@ -376,7 +375,7 @@ export default function WarehouseDeliveryDetailPage() {
             >
               {actionText}
             </Button>
-            
+
             {!isPaid && (
               <p className="text-xs text-center text-gray-400 mt-3 px-2">
                 Tính năng bàn giao chỉ khả dụng khi đơn hàng ở trạng thái <strong className="text-gray-500">Đã thanh toán</strong>.

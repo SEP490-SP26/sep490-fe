@@ -93,7 +93,7 @@ export default function ConsultantOrdersPage() {
 
     const initSignalR = async () => {
       try {
-        const hubUrl = "https://amms-juaa.onrender.com/hubs/realtime";
+        const hubUrl = "https://mmes-sep490-84gr.onrender.com/hubs/realtime";
         const conn = await getHubConnection(hubUrl);
 
         const handleServerEvent = () => {

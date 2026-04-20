@@ -131,7 +131,7 @@ const FinishProduction: React.FC = () => {
     try {
       setLoading(true);
       const res = await fetch(
-        "https://amms-juaa.onrender.com/api/Requests/paged?page=1&pageSize=500"
+        "https://mmes-sep490-84gr.onrender.com/api/Requests/paged?page=1&pageSize=500"
       );
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
 
@@ -178,8 +178,8 @@ const FinishProduction: React.FC = () => {
       .filter((o) =>
         customerKeyword
           ? o.customer_name
-              .toLowerCase()
-              .includes(customerKeyword.toLowerCase())
+            .toLowerCase()
+            .includes(customerKeyword.toLowerCase())
           : true
       )
       .filter((o) => {

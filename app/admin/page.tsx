@@ -94,7 +94,7 @@ export default function AdminUserPage() {
   ======================= */
   const fetchUsers = () => {
     setLoading(true);
-    fetch("https://amms-juaa.onrender.com/get-all-user", {
+    fetch("https://mmes-sep490-84gr.onrender.com/get-all-user", {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((res) => res.json())
@@ -161,7 +161,7 @@ export default function AdminUserPage() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("https://amms-juaa.onrender.com/api/User/upload-users", {
+      const res = await fetch("https://mmes-sep490-84gr.onrender.com/api/User/upload-users", {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: formData,
@@ -200,7 +200,7 @@ export default function AdminUserPage() {
     setSubmitting(true);
     try {
       const res = await fetch(
-        `https://amms-juaa.onrender.com/admin-update-user/${selectedUser.user_id}`,
+        `https://mmes-sep490-84gr.onrender.com/admin-update-user/${selectedUser.user_id}`,
         {
           method: "POST",
           headers: {
@@ -392,7 +392,7 @@ export default function AdminUserPage() {
                     <th className="px-6 py-3 text-left font-medium">User</th>
                     <th className="px-6 py-3 text-left font-medium">Email</th>
                     <th className="px-6 py-3 text-left font-medium">Vai trò</th>
-                    <th className="px-6 py-3 text-left font-medium">Trạng thái</th>                    
+                    <th className="px-6 py-3 text-left font-medium">Trạng thái</th>
                   </tr>
                 </thead>
 

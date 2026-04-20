@@ -30,7 +30,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 const { Title } = Typography;
 
 // ✅ Đổi sang API mới
-const API_URL = "https://amms-juaa.onrender.com/api/Requests/paged";
+const API_URL = "https://mmes-sep490-84gr.onrender.com/api/Requests/paged";
 
 // ✅ Interface cập nhật theo response của API mới
 interface Order {
@@ -73,43 +73,43 @@ const TAB_CONFIG: {
   tagLabel: string;
   emptyText: string;
 }[] = [
-  {
-    key: "finished",
-    label: "Đã sản xuất xong",
-    icon: <CheckCircleOutlined />,
-    color: "text-green-600",
-    tagColor: "success",
-    tagLabel: "Hoàn thành SX",
-    emptyText: 'Không có đơn nào ở trạng thái "Đã sản xuất xong"',
-  },
-  {
-    key: "pending_payment",
-    label: "Chờ thanh toán",
-    icon: <ClockCircleOutlined />,
-    color: "text-yellow-600",
-    tagColor: "warning",
-    tagLabel: "Chờ thanh toán",
-    emptyText: 'Không có đơn nào ở trạng thái "Chờ thanh toán"',
-  },
-  {
-    key: "delivery",
-    label: "Đang vận chuyển",
-    icon: <TruckOutlined />,
-    color: "text-blue-600",
-    tagColor: "processing",
-    tagLabel: "Đang vận chuyển",
-    emptyText: 'Không có đơn nào ở trạng thái "Đang vận chuyển"',
-  },
-  {
-    key: "completed",
-    label: "Đã nhận hàng",
-    icon: <CheckCircleOutlined />,
-    color: "text-purple-600",
-    tagColor: "purple",
-    tagLabel: "Đã nhận hàng",
-    emptyText: 'Không có đơn nào ở trạng thái "Đã nhận hàng"',
-  },
-];
+    {
+      key: "finished",
+      label: "Đã sản xuất xong",
+      icon: <CheckCircleOutlined />,
+      color: "text-green-600",
+      tagColor: "success",
+      tagLabel: "Hoàn thành SX",
+      emptyText: 'Không có đơn nào ở trạng thái "Đã sản xuất xong"',
+    },
+    {
+      key: "pending_payment",
+      label: "Chờ thanh toán",
+      icon: <ClockCircleOutlined />,
+      color: "text-yellow-600",
+      tagColor: "warning",
+      tagLabel: "Chờ thanh toán",
+      emptyText: 'Không có đơn nào ở trạng thái "Chờ thanh toán"',
+    },
+    {
+      key: "delivery",
+      label: "Đang vận chuyển",
+      icon: <TruckOutlined />,
+      color: "text-blue-600",
+      tagColor: "processing",
+      tagLabel: "Đang vận chuyển",
+      emptyText: 'Không có đơn nào ở trạng thái "Đang vận chuyển"',
+    },
+    {
+      key: "completed",
+      label: "Đã nhận hàng",
+      icon: <CheckCircleOutlined />,
+      color: "text-purple-600",
+      tagColor: "purple",
+      tagLabel: "Đã nhận hàng",
+      emptyText: 'Không có đơn nào ở trạng thái "Đã nhận hàng"',
+    },
+  ];
 
 export default function DeliveryPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);

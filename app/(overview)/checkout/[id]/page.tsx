@@ -133,7 +133,7 @@ export default function RequestDetailPage() {
         if (data && data.status === 'PAID') {
           try {
             await fetch(
-              `https://amms-juaa.onrender.com/api/Requests/notify-customer-pay?request_id=${requestId}`,
+              `https://mmes-sep490-84gr.onrender.com/api/Requests/notify-customer-pay?request_id=${requestId}`,
               {
                 method: 'GET',
               }

@@ -1,5 +1,5 @@
 import axios from "axios";
 
 export default axios.create({
-    baseURL: 'https://amms-juaa.onrender.com'
+    baseURL: 'https://mmes-sep490-84gr.onrender.com'
 })
