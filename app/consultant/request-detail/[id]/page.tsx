@@ -572,7 +572,7 @@ export default function ConsultantRequestDetailPage() {
                                                     setIsProduceCheckCommitted(false);
                                                     setIsProduceModalOpen(true);
                                                 }}
-                                                className={`rounded-lg text-white border-0 ${(!orderDetail.printer_ready_file_path && !pendingPrintFile) ? 'bg-gray-100 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'}`}
+                                                className={`rounded-lg text-white border-0 ${(!orderDetail.printer_ready_file_path && !pendingPrintFile) ? 'cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'}`}
                                             >
                                                 Đưa vào sản xuất
                                             </Button>
