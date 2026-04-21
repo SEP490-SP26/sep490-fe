@@ -761,7 +761,7 @@ export default function RequestDetailPage() {
                   </Button>
                 )}
                 {requestDetail.remaining_receipt_path && (
-                   <Button
+                  <Button
                     type="primary"
                     icon={<EyeOutlined />}
                     onClick={() => window.open(requestDetail.remaining_receipt_path as string, '_blank')}
@@ -774,7 +774,7 @@ export default function RequestDetailPage() {
             )}
 
             {/* Receipt Secion */}
-            {requestDetail.customer_signed_contract_path  && (
+            {/* {requestDetail.customer_signed_contract_path  && (
               <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-blue-200 shadow-md">
@@ -819,7 +819,7 @@ export default function RequestDetailPage() {
                   Tải phiếu thu
                 </Button>
               </div>
-            )}
+            )} */}
 
             {/* Contract Section in Sidebar */}
             <div className="space-y-4">
