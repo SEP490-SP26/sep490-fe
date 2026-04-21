@@ -96,8 +96,12 @@ const PLANNING_LABELS: Record<string, string> = {
 };
 
 /* ══ Helpers ═════════════════════ */
-function formatNumber(n: number): string {
+function formatCurrency(n: number): string {
   return new Intl.NumberFormat("vi-VN").format(n);
+}
+
+function formatDecimal3(n: number): string {
+  return n.toFixed(3);
 }
 
 /* ══ Sub-components ══════════════ */
@@ -144,13 +148,73 @@ function ConfigField({
   onChange,
   suffix,
   type = "number",
+  error,
+  disabled,
 }: {
   label: string;
   value: number | string;
   onChange: (v: string) => void;
   suffix?: string;
   type?: string;
+  error?: string;
+  disabled?: boolean;
 }) {
+  const [focused, setFocused] = React.useState(false);
+  const [editValue, setEditValue] = React.useState("");
+
+  const isDecimal = suffix === "kg/m²";
+  const isText = type === "text";
+
+  const displayValue = (() => {
+    if (isText) return String(value);
+    if (focused) return editValue;
+    const num = Number(value);
+    if (isNaN(num)) return String(value);
+    if (isDecimal) return formatDecimal3(num);
+    return formatCurrency(num);
+  })();
+
+  const handleFocus = () => {
+    if (!isText) {
+      setFocused(true);
+      setEditValue(String(value));
+    }
+  };
+
+  const handleChange = (rawVal: string) => {
+    if (isText) {
+      onChange(rawVal);
+      return;
+    }
+    setEditValue(rawVal);
+  };
+
+  const handleBlur = () => {
+    if (!isText) {
+      setFocused(false);
+      let cleaned: string;
+      if (isDecimal) {
+        cleaned = editValue.replace(/,/g, ".").replace(/[^\d.]/g, "");
+        const dotIdx = cleaned.indexOf(".");
+        if (dotIdx !== -1) {
+          cleaned = cleaned.substring(0, dotIdx + 1) + cleaned.substring(dotIdx + 1).replace(/\./g, "");
+        }
+      } else {
+        cleaned = editValue.replace(/[^\d]/g, "");
+      }
+      const num = Number(cleaned);
+      if (!isNaN(num) && cleaned !== "") {
+        if (isDecimal) {
+          onChange(parseFloat(num.toFixed(3)).toString());
+        } else {
+          onChange(String(num));
+        }
+      } else {
+        onChange("0");
+      }
+    }
+  };
+
   return (
     <div className="group">
       <label className="block text-xs font-medium text-gray-500 mb-1.5 group-hover:text-blue-600 transition-colors">
@@ -158,13 +222,18 @@ function ConfigField({
       </label>
       <div className="relative">
         <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          step={type === "number" ? "any" : undefined}
-          className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 
+          type="text"
+          inputMode={isText ? "text" : (isDecimal ? "decimal" : "numeric")}
+          value={displayValue}
+          onChange={(e) => handleChange(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          disabled={disabled}
+          className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-lg text-sm text-gray-800 
                      focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white
-                     hover:border-gray-300 transition-all duration-200"
+                     hover:border-gray-300 transition-all duration-200
+                     ${error ? "border-red-300 bg-red-50/50 focus:ring-red-500/20 focus:border-red-400" : "border-gray-200"}
+                     ${disabled ? "opacity-60 cursor-not-allowed bg-gray-100" : ""}`}
         />
         {suffix && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
@@ -172,7 +241,49 @@ function ConfigField({
           </span>
         )}
       </div>
+      {error && (
+        <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+          <FiAlertCircle size={12} />
+          {error}
+        </p>
+      )}
     </div>
+  );
+}
+
+function CurrencyTableInput({
+  value,
+  onChange,
+  className,
+}: {
+  value: number;
+  onChange: (val: number) => void;
+  className?: string;
+}) {
+  const [focused, setFocused] = React.useState(false);
+  const [editValue, setEditValue] = React.useState("");
+
+  const displayValue = focused ? editValue : formatCurrency(value);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={displayValue}
+      onChange={(e) => setEditValue(e.target.value)}
+      onFocus={() => {
+        setFocused(true);
+        setEditValue(String(value));
+      }}
+      onBlur={() => {
+        setFocused(false);
+        const cleaned = editValue.replace(/[^\d]/g, "");
+        const num = Number(cleaned);
+        onChange(!isNaN(num) && cleaned !== "" ? num : 0);
+      }}
+      className={className || `w-32 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm
+                 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white`}
+    />
   );
 }
 
@@ -228,6 +339,41 @@ export default function BaseConfigsPage() {
   /* ───── Save config ────────── */
   const handleSave = async () => {
     if (!config) return;
+
+    // ── Validation ──
+    for (const [, val] of Object.entries(config.materialPrices)) {
+      if (val < 0) { showToast("error", "Giá nguyên liệu không được âm"); return; }
+    }
+    for (const [, val] of Object.entries(config.materialRates)) {
+      if (val < 0) { showToast("error", "Định mức tiêu hao không được âm"); return; }
+    }
+    if (config.systemParameters.vat_percent < 0 || config.systemParameters.vat_percent > 100) {
+      showToast("error", "VAT phải từ 0 đến 100%"); return;
+    }
+    if (config.systemParameters.default_production_days <= 0) {
+      showToast("error", "Số ngày sản xuất mặc định phải lớn hơn 0"); return;
+    }
+    for (const [, pct] of Object.entries(config.systemParameters.rush_percent_by_days_early)) {
+      if (pct < 0 || pct > 100) { showToast("error", "Phụ thu gấp phải từ 0 đến 100%"); return; }
+    }
+    if (config.design.default_design_cost < 0) {
+      showToast("error", "Chi phí thiết kế không được âm"); return;
+    }
+    for (const [, proc] of Object.entries(config.processCosts.by_process)) {
+      if (proc.unit_price < 0) { showToast("error", "Đơn giá công đoạn không được âm"); return; }
+    }
+    for (const plate of config.platePrices.items) {
+      if (plate.price_per_plate < 0) { showToast("error", "Giá bản kẽm không được âm"); return; }
+    }
+    const payTotal = config.paymentTerms.deposit_percent + config.paymentTerms.remaining_percent;
+    if (payTotal !== 100) {
+      showToast("error", `Tổng tỷ lệ đặt cọc + còn lại phải bằng 100% (hiện tại: ${payTotal}%)`);
+      return;
+    }
+    if (config.paymentTerms.deposit_percent < 0 || config.paymentTerms.remaining_percent < 0) {
+      showToast("error", "Tỷ lệ thanh toán không được âm"); return;
+    }
+
     setSaving(true);
     try {
       await baseConfigApi.updateConfigs(config);
@@ -352,9 +498,14 @@ export default function BaseConfigsPage() {
 
   const updatePaymentTerm = (key: "deposit_percent" | "remaining_percent", val: string) => {
     if (!config) return;
+    const num = Math.min(100, Math.max(0, Number(val) || 0));
+    const other = Math.max(0, 100 - num);
     setConfig({
       ...config,
-      paymentTerms: { ...config.paymentTerms, [key]: Number(val) || 0 },
+      paymentTerms: {
+        deposit_percent: key === "deposit_percent" ? num : other,
+        remaining_percent: key === "remaining_percent" ? num : other,
+      },
     });
   };
 
@@ -695,10 +846,9 @@ export default function BaseConfigsPage() {
                           </div>
                         </td>
                         <td className="py-3 px-3">
-                          <input
-                            type="number"
+                          <CurrencyTableInput
                             value={proc.unit_price}
-                            onChange={(e) => updateProcessCost(code, "unit_price", e.target.value)}
+                            onChange={(val) => updateProcessCost(code, "unit_price", String(val))}
                             className="w-32 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm
                                        focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white"
                           />
@@ -845,14 +995,13 @@ export default function BaseConfigsPage() {
                         <td className="py-3 px-3 text-gray-600">{plate.height_cm}</td>
                         <td className="py-3 px-3">
                           <div className="relative">
-                            <input
-                              type="number"
+                            <CurrencyTableInput
                               value={plate.price_per_plate}
-                              onChange={(e) => updatePlatePriceItem(idx, e.target.value)}
-                              className="w-36 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm
+                              onChange={(val) => updatePlatePriceItem(idx, String(val))}
+                              className="w-36 pr-12 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm
                                          focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">VNĐ</span>
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">VNĐ</span>
                           </div>
                         </td>
                       </tr>
@@ -877,19 +1026,48 @@ export default function BaseConfigsPage() {
             onToggle={() => toggleSection("paymentTerms")}
           />
           {openSections.paymentTerms && (
-            <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
-              <ConfigField
-                label="Tỷ lệ đặt cọc (%)"
-                value={config.paymentTerms.deposit_percent}
-                onChange={(v) => updatePaymentTerm("deposit_percent", v)}
-                suffix="%"
-              />
-              <ConfigField
-                label="Còn lại (%)"
-                value={config.paymentTerms.remaining_percent}
-                onChange={(v) => updatePaymentTerm("remaining_percent", v)}
-                suffix="%"
-              />
+            <div className="px-5 pb-5 space-y-4 max-w-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ConfigField
+                  label="Tỷ lệ đặt cọc (%)"
+                  value={config.paymentTerms.deposit_percent}
+                  onChange={(v) => updatePaymentTerm("deposit_percent", v)}
+                  suffix="%"
+                />
+                <ConfigField
+                  label="Còn lại (%)"
+                  value={config.paymentTerms.remaining_percent}
+                  onChange={(v) => updatePaymentTerm("remaining_percent", v)}
+                  suffix="%"
+                />
+              </div>
+              {/* Progress bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Tổng: {config.paymentTerms.deposit_percent + config.paymentTerms.remaining_percent}%</span>
+                  <span className={
+                    config.paymentTerms.deposit_percent + config.paymentTerms.remaining_percent === 100
+                      ? "text-emerald-600 font-medium" : "text-red-500 font-medium"
+                  }>
+                    {config.paymentTerms.deposit_percent + config.paymentTerms.remaining_percent === 100
+                      ? "✓ Hợp lệ" : "✗ Phải bằng 100%"}
+                  </span>
+                </div>
+                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
+                  <div
+                    className="h-full bg-blue-500 rounded-l-full transition-all duration-300"
+                    style={{ width: `${Math.min(config.paymentTerms.deposit_percent, 100)}%` }}
+                  />
+                  <div
+                    className="h-full bg-emerald-500 rounded-r-full transition-all duration-300"
+                    style={{ width: `${Math.min(config.paymentTerms.remaining_percent, 100 - Math.min(config.paymentTerms.deposit_percent, 100))}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-blue-600 font-medium">Đặt cọc: {config.paymentTerms.deposit_percent}%</span>
+                  <span className="text-emerald-600 font-medium">Còn lại: {config.paymentTerms.remaining_percent}%</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
