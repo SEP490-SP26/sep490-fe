@@ -240,6 +240,7 @@ export const mapToOrderEstimationResult = (
     discount_amount: discountAmount !== undefined ? discountAmount : (costEstimate.cost.discount_amount || 0),
     final_total_cost: additionalSpecs?.final_total_cost ?? (costEstimate.cost.final_total_cost || 0),
     cost_note: additionalSpecs?.cost_note || "",
+    deposit_amount: additionalSpecs?.deposit_amount || 0,
 
     // Time
     estimated_finish_date: costEstimate.cost.estimated_finish_date || new Date().toISOString(),

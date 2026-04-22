@@ -1067,8 +1067,8 @@ function ConsultantForm() {
 
         ink_rate_per_m2: ink_rate,
         ink_price_per_kg: materialPrices?.ink_price_per_kg ?? 150000,
-        coating_glue_price_per_kg: coating_type === 'Keo phủ nước' 
-          ? (materialPrices?.coating_glue_keo_nuoc_per_kg ?? 80000) 
+        coating_glue_price_per_kg: coating_type === 'Keo phủ nước'
+          ? (materialPrices?.coating_glue_keo_nuoc_per_kg ?? 80000)
           : (materialPrices?.coating_glue_keo_dau_per_kg ?? 120000),
         mounting_glue_price_per_kg: materialPrices?.mounting_glue_per_kg ?? 90000,
         lamination_price_per_kg: materialPrices?.lamination_per_kg ?? 150000,
@@ -1146,8 +1146,8 @@ function ConsultantForm() {
           ...savedEstimate,
           coating_type: savedEstimate.coating_type && savedEstimate.coating_type !== "NONE" ? savedEstimate.coating_type : "NONE",
           ink_unit_price: materialPrices?.ink_price_per_kg ?? 150000,
-          coating_glue_unit_price: (calcInput.coating_type && calcInput.coating_type !== 'NONE') 
-            ? (calcInput.coating_type === 'Keo phủ nước' ? (materialPrices?.coating_glue_keo_nuoc_per_kg ?? 80000) : (materialPrices?.coating_glue_keo_dau_per_kg ?? 120000)) 
+          coating_glue_unit_price: (calcInput.coating_type && calcInput.coating_type !== 'NONE')
+            ? (calcInput.coating_type === 'Keo phủ nước' ? (materialPrices?.coating_glue_keo_nuoc_per_kg ?? 80000) : (materialPrices?.coating_glue_keo_dau_per_kg ?? 120000))
             : 0,
           mounting_glue_unit_price: materialPrices?.mounting_glue_per_kg ?? 90000,
           lamination_unit_price: materialPrices?.lamination_per_kg ?? 150000,
@@ -1548,7 +1548,8 @@ function ConsultantForm() {
                 previous_estimate_id: calculations.previous_estimate_id || null,
                 final_total_cost: quote.final_price,
                 contract_file_path: finalContractPath,
-                contract_uploaded_at: contractUploadedAt
+                contract_uploaded_at: contractUploadedAt,
+                deposit_amount: Math.round(((quote.final_price || calculations.costEstimate.cost.final_total_cost) * (paymentTerms?.deposit_percent ?? 30) / 100) / 1000) * 1000
               }
             );
 
@@ -2339,10 +2340,6 @@ function ConsultantForm() {
                           <div className="space-y-1 pl-2 border-l border-gray-100">
                             {calc ? (
                               <>
-                                <div className="flex justify-between text-gray-500">
-                                  <span>Thành tiền:</span>
-                                  <span>{subtotal.toLocaleString()} đ</span>
-                                </div>
                                 {discountAmt > 0 && (
                                   <div className="flex justify-between text-gray-500">
                                     <span>Chiết khấu ({quoteDiscountPercent}%):</span>
@@ -2351,20 +2348,18 @@ function ConsultantForm() {
                                 )}
 
                                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                                  <span className="font-bold text-gray-700">Tổng cộng (Sau VAT):</span>
-                                  <span className={`font-bold text-lg ${negotiatedPrice ? 'text-gray-400 line-through text-base' : 'text-blue-600'}`}>
-                                    {finalTotal.toLocaleString()} đ
-                                  </span>
+                                  <span className="font-bold text-gray-700">Tổng thanh toán:</span>
+                                  <span className="font-bold text-xl text-blue-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
                                 </div>
 
-                                {negotiatedPrice && (
+                                {/* {negotiatedPrice && (
                                   <div className="flex justify-between items-center bg-yellow-50 px-2 py-1 rounded mt-1 border border-yellow-100">
                                     <span className="font-bold text-yellow-700">Giá chốt:</span>
                                     <span className="font-bold text-xl text-red-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
                                   </div>
-                                )}
+                                )} */}
 
-                                <div className="flex justify-between items-center text-sm text-orange-600 mt-1">
+                                <div className="flex justify-between items-center text-sm text-green-600 mt-1">
                                   <span>Cọc ({depositPercent}%):</span>
                                   <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
                                 </div>
