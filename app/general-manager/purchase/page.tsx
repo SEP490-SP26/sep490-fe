@@ -1227,8 +1227,8 @@ export default function PurchaseManagement() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Chọn vật tư</option>
-                    {allMaterials.map((material: Material) => (
-                      <option key={material.material_code} value={material.material_code}>
+                    {allMaterials.map((material: any) => (
+                      <option key={material.material_code || material.code || material.id || material.material_id} value={material.id || material.material_id}>
                         {material.name}
                       </option>
                     ))}
@@ -1296,16 +1296,16 @@ export default function PurchaseManagement() {
                         return;
                       }
 
-                      // 🔥 MAP CODE -> ID
-                      const material = materials.find(
-                        (m) => m.id === directMaterialId
+                      // 🔥 FIND MATERIAL IN allMaterials
+                      const material = allMaterials.find(
+                        (m: any) => m.id?.toString() === directMaterialId || m.material_id?.toString() === directMaterialId
                       );
 
                       if (!material) {
                         showWarningToast("Không tìm thấy vật tư hợp lệ");
                         return;
                       }
-                      const materialIdNum = Number(material.id.replace("m", ""));
+                      const materialIdNum = Number(material.id || material.material_id);
                       setIsSubmitting(true);
                       try {
                         const payload = {
