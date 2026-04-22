@@ -537,6 +537,7 @@ export interface DetailedProductionEstimation {
   discount_amount: number;
   final_total_cost: number;
   cost_note: string;
+  deposit_amount: number;
 
   // --- Thời gian & Giao hàng ---
   estimated_finish_date: string; // ISO Date

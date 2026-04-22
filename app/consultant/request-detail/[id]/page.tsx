@@ -514,7 +514,7 @@ export default function ConsultantRequestDetailPage() {
 
     return (
         <div className="min-h-screen pb-8 bg-primary">
-        <Spin spinning={uploadingContract || isAutoGenerating} fullscreen tip={isAutoGenerating ? "Đang tạo hợp đồng tự động..." : "Đang tải lên hợp đồng..."} />
+            <Spin spinning={uploadingContract || isAutoGenerating} fullscreen tip={isAutoGenerating ? "Đang tạo hợp đồng tự động..." : "Đang tải lên hợp đồng..."} />
             <div className="max-w-7xl mx-auto px-2 pt-2 animate-fade-in-up">
                 {/* Header - Compact */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-4">
@@ -755,14 +755,14 @@ export default function ConsultantRequestDetailPage() {
                                         {orderDetail.print_width_mm > 0 && orderDetail.print_length_mm > 0 && <Descriptions.Item label="Kích thước in" span={1}><Text strong className="text-slate-800">{orderDetail.print_width_mm} x {orderDetail.print_length_mm} mm</Text></Descriptions.Item>}
                                     </Descriptions>
 
-                                    {orderDetail.description && (
+                                    {/* {orderDetail.description && (
                                         <div>
                                             <Text type="secondary" className="block mb-2 text-xs uppercase font-semibold">Mô tả yêu cầu</Text>
                                             <div className="text-slate-700 text-sm leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
                                                 {orderDetail.description}
                                             </div>
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             </Card>
                         </div>
@@ -1291,7 +1291,7 @@ export default function ConsultantRequestDetailPage() {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     {/* mô tả yêu cầu */}
-                                    <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
+                                    {/* <Card className="rounded-2xl border border-slate-100 shadow-sm border-t-4 border-t-primary">
                                         <div>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
@@ -1305,7 +1305,7 @@ export default function ConsultantRequestDetailPage() {
                                                 {orderDetail.description || "Không có mô tả"}
                                             </div>
                                         </div>
-                                    </Card>
+                                    </Card> */}
 
                                     {/* Ghi chú của consultant */}
                                     {orderDetail.consultant_note && (
@@ -1648,12 +1648,12 @@ export default function ConsultantRequestDetailPage() {
                                                                 if (!contractUrl) return null;
                                                                 const isImage = contractUrl.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i);
                                                                 const isDoc = contractUrl.toLowerCase().match(/\.(doc|docx)$/i);
-                                                                
+
                                                                 return isImage ? (
                                                                     <div className="w-full flex justify-center bg-slate-200">
-                                                                        <img 
-                                                                            src={contractUrl} 
-                                                                            alt={`Hợp đồng #${index + 1}`} 
+                                                                        <img
+                                                                            src={contractUrl}
+                                                                            alt={`Hợp đồng #${index + 1}`}
                                                                             className="max-w-full h-auto object-contain bg-white shadow-sm"
                                                                             onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
                                                                         />

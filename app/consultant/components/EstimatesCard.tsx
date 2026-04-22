@@ -72,15 +72,20 @@ export default function EstimatesCard({
 }: EstimatesCardProps) {
   const daysUntilFree = workshopFreeInfo.days;
 
+  const calculatedTongTienHang = costEstimate ? ((costEstimate.cost.material_cost || 0) + (costEstimate.process_cost?.total_cost || 0) + (costEstimate.cost.design_cost || 0)) : 0;
+  const calculatedSauChietKhau = calculatedTongTienHang - (costEstimate?.cost?.discount_amount || 0);
+  const calculatedVat = calculatedSauChietKhau * (systemParameters?.vat_percent || 0) / 100;
+  const calculatedThanhToan = calculatedSauChietKhau + calculatedVat;
+
   // Auto-update final_price when discount changes
   useEffect(() => {
-    if (costEstimate?.cost?.final_total_cost) {
-      const price = costEstimate.cost.final_total_cost;
+    if (costEstimate) {
+      const price = calculatedThanhToan;
       const roundedPrice = Math.round(price / 1000) * 1000;
 
       form.setFieldValue("final_price", roundedPrice);
     }
-  }, [discountPercent, costEstimate, form]);
+  }, [discountPercent, costEstimate, form, calculatedThanhToan]);
 
   const renderStatusAlert = () => {
     if (!estimate) return null;
@@ -356,17 +361,7 @@ export default function EstimatesCard({
                         </span>
                       </div>
 
-                      {costEstimate.cost.design_cost > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Phí thiết kế:</span>
-                          <span className="font-medium">
-                            {Math.round(costEstimate.cost.design_cost).toLocaleString(
-                              "vi-VN"
-                            )}{" "}
-                            ₫
-                          </span>
-                        </div>
-                      )}
+                    
 
                       {/* Chi phí gia công từ process_cost.details */}
                       {costEstimate.process_cost?.details
@@ -432,6 +427,18 @@ export default function EstimatesCard({
                             </span>
                           </div>
                         )}
+
+                        {costEstimate.cost.design_cost > 0 && (
+                        <div className="flex justify-between text-gray-700 mt-1">
+                          <span className="text-gray-600">Phí thiết kế:</span>
+                          <span className="font-medium">
+                            {Math.round(costEstimate.cost.design_cost).toLocaleString(
+                              "vi-VN"
+                            )}{" "}
+                            ₫
+                          </span>
+                        </div>
+                      )}
                       </div>
 
                       {/* <div className="flex justify-between font-medium">
@@ -465,11 +472,11 @@ export default function EstimatesCard({
                       <div className="border-t-2 border-blue-300 pt-3 mt-3">
                         <div className="flex justify-between items-center text-gray-700">
                           <span className="font-medium">
-                            Tổng tiền hàng:
+                            Tổng:
                           </span>
                           <span className="font-bold text-lg">
                             {(
-                              Math.round((costEstimate.cost.subtotal || costEstimate.cost.base_cost) / 10) *
+                              Math.round(calculatedTongTienHang / 10) *
                               10
                             ).toLocaleString("vi-VN")}{" "}
                             ₫
@@ -512,7 +519,7 @@ export default function EstimatesCard({
 
                                 <span className="font-bold text-base lg:text-lg xl:text-xl text-green-700 leading-none text-right shrink-0">
                                   {Math.round(
-                                    (costEstimate.cost.subtotal || 0) - (costEstimate.cost.discount_amount || 0)
+                                    calculatedSauChietKhau
                                   ).toLocaleString("vi-VN")}{" "}
                                   ₫
                                 </span>
@@ -526,7 +533,7 @@ export default function EstimatesCard({
                           <span className="text-gray-700 font-medium">VAT ({systemParameters?.vat_percent || 0}%):</span>
                           <span className="font-bold text-gray-800">
                             {(
-                              Math.round(costEstimate.cost.overhead_cost / 10) * 10
+                              Math.round(calculatedVat / 10) * 10
                             ).toLocaleString("vi-VN")}{" "}
                             ₫
                           </span>
@@ -539,7 +546,7 @@ export default function EstimatesCard({
                           </span>
                           <span className="font-bold  text-lg text-blue-700">
                             {(
-                              Math.round(costEstimate.cost.final_total_cost / 10) *
+                              Math.round(calculatedThanhToan / 10) *
                               10
                             ).toLocaleString("vi-VN")}{" "}
                             ₫
