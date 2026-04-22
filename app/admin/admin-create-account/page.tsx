@@ -11,7 +11,7 @@ const ROLE_OPTIONS = [
   { id: 2, label: "Consultant" },
   { id: 3, label: "Manager" },
   { id: 4, label: "Warehouse" },
-  { id: 5, label: "User" },
+  { id: 5, label: "Customer" },
   { id: 6, label: "Productions manager" },
   { id: 7, label: "Staff Ralo" },
   { id: 8, label: "Staff Cắt" },

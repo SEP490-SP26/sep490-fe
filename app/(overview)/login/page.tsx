@@ -138,7 +138,16 @@ export default function LoginPage() {
           router.replace("/warehouse");
           break;
         case 5:
-          router.replace("/user");
+          const mockCustomer = {
+            id: `CUST-${user_id}`,
+            phone: loginMethod === "username" ? data.username : "0123456789",
+            name: full_name || "Customer",
+            email: loginMethod === "email" ? data.email : "",
+            createdAt: new Date().toISOString(),
+            addresses: []
+          };
+          localStorage.setItem("sep490_customer", JSON.stringify(mockCustomer));
+          router.replace("/customer/profile");
           break;
         case 6:
           router.replace("/productions-manager");
@@ -246,7 +255,16 @@ export default function LoginPage() {
           router.replace("/warehouse");
           break;
         case 5:
-          router.replace("/staff");
+          const googleMockCustomer = {
+            id: `CUST-${role_id}`,
+            phone: "0123456789",
+            name: decoded.name || "Customer",
+            email: decoded.email || "",
+            createdAt: new Date().toISOString(),
+            addresses: []
+          };
+          localStorage.setItem("sep490_customer", JSON.stringify(googleMockCustomer));
+          router.replace("/customer/profile");
           break;
         default:
           router.replace("/");

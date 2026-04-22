@@ -29,7 +29,7 @@ const ROLE_MAP: Record<number, string> = {
   2: "Consultant",
   3: "Manager",
   4: "Warehouse",
-  5: "User",
+  5: "Customer",
   6: "Productions manager",
   7: "Staff",
   8: "General Manager",
