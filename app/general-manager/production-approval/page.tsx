@@ -215,7 +215,7 @@ function ProductionApprovalContent() {
             loading={approveMutation.isPending}
             onClick={() => selectedOrderId && approveMutation.mutate(selectedOrderId)}
             disabled={!(statusData?.has_enough_material && statusData?.has_free_machine)}
-            className={(statusData?.has_enough_material && statusData?.has_free_machine) ? "bg-green-600 hover:bg-green-700" : ""}
+            className={(statusData?.has_enough_material && statusData?.has_free_machine) ? "!bg-green-600 hover:bg-green-700" : "!bg-gray-400 !text-white"}
           >
             Xác nhận đưa vào sản xuất
           </Button>,
