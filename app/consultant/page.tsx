@@ -2273,7 +2273,10 @@ function ConsultantForm() {
                     const discountAmt = Math.round((subtotal * quoteDiscountPercent) / 100) || 0;
                     const finalTotal = Math.round(calc?.final_total_cost || 0);
                     const depositPercent = paymentTerms?.deposit_percent ?? 30;
-                    const depositRequired = Math.round((finalTotal * depositPercent / 100) / 1000) * 1000;
+
+                    // SYNC WITH EstimatesCard: Use negotiated price if exists, else raw total
+                    const effectiveFinalPrice = quote.final_price || calc?.final_total_cost || 0;
+                    const depositRequired = Math.round((effectiveFinalPrice * depositPercent / 100) / 1000) * 1000;
 
                     // Calculate default rounded price (same logic as in EstimatesCard)
                     const defaultAutoPrice = Math.round(finalTotal / 1000) * 1000;
@@ -2349,7 +2352,7 @@ function ConsultantForm() {
 
                                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
                                   <span className="font-bold text-gray-700">Tổng thanh toán:</span>
-                                  <span className="font-bold text-xl text-blue-600">{Math.round(negotiatedPrice).toLocaleString()} đ</span>
+                                  <span className="font-bold text-xl text-blue-600">{(quote.final_price || defaultAutoPrice).toLocaleString()} đ</span>
                                 </div>
 
                                 {/* {negotiatedPrice && (
@@ -2360,7 +2363,7 @@ function ConsultantForm() {
                                 )} */}
 
                                 <div className="flex justify-between items-center text-sm text-green-600 mt-1">
-                                  <span>Cọc ({depositPercent}%):</span>
+                                  <span>Tiền cọc ({depositPercent}%):</span>
                                   <span className="font-semibold">{depositRequired.toLocaleString()} đ</span>
                                 </div>
                               </>
