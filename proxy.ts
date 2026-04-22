@@ -25,6 +25,7 @@ const MANAGEMENT_ROUTES = [
   '/consultant',
   '/staff',
   '/warehouse',
+  '/customer',
   '/productions-manager',
   '/inventory',
   '/general-manager'
@@ -35,7 +36,7 @@ const ROLE_DASHBOARDS: Record<number, string> = {
   2: '/consultant',
   3: '/manager',
   4: '/warehouse',
-  5: '/customer',
+  5: '/customer/profile',
   6: '/productions-manager',
   7: '/staff',
   18: '/general-manager'
@@ -45,17 +46,7 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('token')?.value
   const { pathname } = request.nextUrl
 
-  /* =========================
-     🔥 FIX QUAN TRỌNG NHẤT
-     Không cho middleware xử lý login pages
-     ========================= */
-  if (
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/management-login') ||
-    pathname.startsWith('/register')
-  ) {
-    return NextResponse.next()
-  }
+  // Removed early exit for login pages to allow logged-in users to be redirected to their dashboard
 
   const isStaticFile =
     pathname.startsWith('/_next') ||
@@ -145,6 +136,17 @@ export function proxy(request: NextRequest) {
     const isManagementContext = MANAGEMENT_ROUTES.some(route =>
       pathname.startsWith(route)
     )
+
+    // Tránh infinite redirect loop nếu đang ở trang login/register
+    if (
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/management-login') ||
+      pathname.startsWith('/register')
+    ) {
+      const response = NextResponse.next()
+      response.cookies.delete('token')
+      return response
+    }
 
     const response = NextResponse.redirect(
       new URL(

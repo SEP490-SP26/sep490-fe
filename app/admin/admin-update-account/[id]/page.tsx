@@ -212,7 +212,7 @@ export default function AdminUpdatePage() {
               <option value={2}>Consultant</option>
               <option value={3}>Manager</option>
               <option value={4}>Warehouse</option>
-              <option value={5}>User</option>
+              <option value={5}>Customer</option>
               <option value={6}>Productions manager</option>
               <option value={7}>Staff ralo</option>
               <option value={8}>Staff cắt</option>

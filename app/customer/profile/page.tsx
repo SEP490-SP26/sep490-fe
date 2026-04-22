@@ -476,38 +476,38 @@ const myOrders = useMemo(() => {
                   </div>
                 ),
               },
-              {
-                key: 'security',
-                label: (
-                  <span>
-                    <SafetyOutlined /> Bảo mật
-                  </span>
-                ),
-                children: (
-                  <div className='space-y-6'>
-                    <div className='p-4 bg-green-50 border border-green-200 rounded-lg'>
-                      <div className='flex items-center gap-2 mb-2'>
-                        <CheckCircleOutlined className='text-green-500' />
-                        <span className='font-medium text-green-700'>
-                          Số điện thoại đã xác minh
-                        </span>
-                      </div>
-                      <Text type='secondary'>{customer.phone}</Text>
-                    </div>
+              // {
+              //   key: 'security',
+              //   label: (
+              //     <span>
+              //       <SafetyOutlined /> Bảo mật
+              //     </span>
+              //   ),
+              //   children: (
+              //     <div className='space-y-6'>
+              //       <div className='p-4 bg-green-50 border border-green-200 rounded-lg'>
+              //         <div className='flex items-center gap-2 mb-2'>
+              //           <CheckCircleOutlined className='text-green-500' />
+              //           <span className='font-medium text-green-700'>
+              //             Số điện thoại đã xác minh
+              //           </span>
+              //         </div>
+              //         <Text type='secondary'>{customer.phone}</Text>
+              //       </div>
 
-                    <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg'>
-                      <Title level={5}>Xác thực hai yếu tố</Title>
-                      <Text type='secondary'>
-                        Tài khoản của bạn được bảo vệ bằng OTP qua số điện thoại.
-                      </Text>
-                    </div>
+              //       <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+              //         <Title level={5}>Xác thực hai yếu tố</Title>
+              //         <Text type='secondary'>
+              //           Tài khoản của bạn được bảo vệ bằng OTP qua số điện thoại.
+              //         </Text>
+              //       </div>
 
-                    <Button danger onClick={handleLogout} icon={<LogoutOutlined />}>
-                      Đăng xuất khỏi tất cả thiết bị
-                    </Button>
-                  </div>
-                ),
-              },
+              //       <Button danger onClick={handleLogout} icon={<LogoutOutlined />}>
+              //         Đăng xuất khỏi tất cả thiết bị
+              //       </Button>
+              //     </div>
+              //   ),
+              // },
             ]}
           />
         </Card>
