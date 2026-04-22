@@ -74,7 +74,8 @@ export default function RequestDetailPage() {
         const data: any = (response as any).data || response;
 
         if (data && data.quotes) {
-          setQuotes(data.quotes);
+          const sortedQuotes = [...data.quotes].sort((a: QuoteOption, b: QuoteOption) => a.estimate_id - b.estimate_id);
+          setQuotes(sortedQuotes);
           if (data.estimate_finish_date) {
             const formattedDate = dayjs(data.estimate_finish_date).format("DD/MM/YYYY");
             setEstimateFinishDate(formattedDate !== "Invalid Date" ? formattedDate : data.estimate_finish_date);
@@ -290,7 +291,7 @@ export default function RequestDetailPage() {
   return (
     <div className="min-h-screen  bg-slate-50 py-8 px-4 flex flex-col items-center">
       <div className={`grid grid-cols-1 ${quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-12 w-full max-w-7xl`}>
-        {[...quotes].sort((a, b) => a.estimate_id - b.estimate_id).map((quote, index) => (
+        {quotes.map((quote, index) => (
           <QuoteCard
             key={quote.quote_id}
             quote={{
