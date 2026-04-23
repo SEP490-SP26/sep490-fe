@@ -108,7 +108,7 @@ function ConsultantForm() {
   // State
   const [designFilePath, setDesignFilePath] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]); // Store full product list
-  const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
+  const [productSuggestions, setProductSuggestions] = useState<any[]>([]);
   const [isSendDesign, setIsSendDesign] = useState<boolean>(true);
   const [paperTypes, setPaperTypes] = useState<
     { code: string; name: string; stock: number; value: string }[]
@@ -585,14 +585,68 @@ function ConsultantForm() {
 
       // Product Suggestions
       try {
-        const res: any = await productsApi.getAllProducts();
-        if (Array.isArray(res)) {
-          setProducts(res);
-          setProductSuggestions(res.map((p: any) => p.name));
-        } else if (res?.data && Array.isArray(res.data)) {
-          setProducts(res.data);
-          setProductSuggestions(res.data.map((p: any) => p.name));
+        const [productsRes, productTypesRes] = await Promise.all([
+          productsApi.getAllProducts(),
+          productTypesApi.getAll()
+        ]);
+
+        let pList: Product[] = [];
+        if (Array.isArray(productsRes)) {
+          pList = productsRes;
+        } else if ((productsRes as any)?.data && Array.isArray((productsRes as any).data)) {
+          pList = (productsRes as any).data;
         }
+        setProducts(pList);
+
+        let ptList: ProductType[] = [];
+        if (Array.isArray(productTypesRes)) {
+          ptList = productTypesRes.filter((pt: any) => pt.is_active);
+        } else if ((productTypesRes as any)?.data) {
+          ptList = (productTypesRes as any).data.filter((pt: any) => pt.is_active);
+        }
+
+        // Group products
+        const groups = [
+          { label: "Hộp màu", code: "HOP_MAU" },
+          { label: "Khay", code: "KHAY" },
+          { label: "Thẻ màu", code: "THE_MAU" },
+          { label: "Vỏ hộp gạch", code: "VO_HOP_GACH" },
+        ];
+
+        const groupedOptions = groups.map(group => {
+          const type = ptList.find(pt => pt.code === group.code);
+          const productsInGroup = type 
+            ? pList.filter(p => p.product_type_id === type.product_type_id)
+            : [];
+          
+          return {
+            label: group.label,
+            options: productsInGroup.map(p => ({
+              label: p.name,
+              value: p.name,
+            }))
+          };
+        }).filter(group => group.options.length > 0);
+
+        // Add products that don't belong to any of the 4 groups to "Khác"
+        const assignedProductIds = new Set(
+          groups.flatMap(group => {
+            const type = ptList.find(pt => pt.code === group.code);
+            return type ? pList.filter(p => p.product_type_id === type.product_type_id).map(p => p.product_id) : [];
+          })
+        );
+        const otherProducts = pList.filter(p => !assignedProductIds.has(p.product_id));
+        if (otherProducts.length > 0) {
+          groupedOptions.push({
+            label: "Khác",
+            options: otherProducts.map(p => ({
+              label: p.name,
+              value: p.name,
+            }))
+          });
+        }
+
+        setProductSuggestions(groupedOptions);
       } catch (error) {
         console.error("Error fetching product suggestions:", error);
       }

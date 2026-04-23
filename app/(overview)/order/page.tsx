@@ -138,8 +138,9 @@ export default function GuestOrderPage() {
   const [unitValue, setUnitValue] = useState<number>(0);
 
   const [productsList, setProductsList] = useState<any[]>([]);
-  const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
+  const [productSuggestions, setProductSuggestions] = useState<any[]>([]);
   const [paperTypes, setPaperTypes] = useState<any[]>([]);
+  const [productTypes, setProductTypes] = useState<any[]>([]);
 
   const productNameField = Form.useWatch("productName", form);
   const quantityField = Form.useWatch("quantity", form);
@@ -228,18 +229,70 @@ export default function GuestOrderPage() {
   useEffect(() => {
     const fetchRefData = async () => {
       try {
-        const [productsRes, papersRes] = await Promise.all([
+        const [productsRes, papersRes, productTypesRes] = await Promise.all([
           productsApi.getAllProducts(),
-          materialsApi.getAllPaperTypes()
+          materialsApi.getAllPaperTypes(),
+          productTypesApi.getAll()
         ]);
 
+        let pList: any[] = [];
         if (Array.isArray(productsRes)) {
-          setProductsList(productsRes);
-          setProductSuggestions(productsRes.map((p: any) => p.name));
+          pList = productsRes;
         } else if ((productsRes as any)?.data && Array.isArray((productsRes as any).data)) {
-          setProductsList((productsRes as any).data);
-          setProductSuggestions((productsRes as any).data.map((p: any) => p.name));
+          pList = (productsRes as any).data;
         }
+        setProductsList(pList);
+
+        let ptList: any[] = [];
+        if (Array.isArray(productTypesRes)) {
+          ptList = productTypesRes;
+        } else if ((productTypesRes as any)?.data) {
+          ptList = (productTypesRes as any).data;
+        }
+        setProductTypes(ptList);
+
+        // Group products
+        const groups = [
+          { label: "Hộp màu", code: "HOP_MAU" },
+          { label: "Khay", code: "KHAY" },
+          { label: "Thẻ màu", code: "THE_MAU" },
+          { label: "Vỏ hộp gạch", code: "VO_HOP_GACH" },
+        ];
+
+        const groupedOptions = groups.map(group => {
+          const type = ptList.find(pt => pt.code === group.code);
+          const productsInGroup = type 
+            ? pList.filter(p => p.product_type_id === type.product_type_id)
+            : [];
+          
+          return {
+            label: <span className="font-bold text-blue-600">{group.label}</span>,
+            options: productsInGroup.map(p => ({
+              label: p.name,
+              value: p.name,
+            }))
+          };
+        }).filter(group => group.options.length > 0);
+
+        // Add products that don't belong to any of the 4 groups to "Khác"
+        const assignedProductIds = new Set(
+          groups.flatMap(group => {
+            const type = ptList.find(pt => pt.code === group.code);
+            return type ? pList.filter(p => p.product_type_id === type.product_type_id).map(p => p.product_id) : [];
+          })
+        );
+        const otherProducts = pList.filter(p => !assignedProductIds.has(p.product_id));
+        if (otherProducts.length > 0) {
+          groupedOptions.push({
+            label: <span className="font-bold text-gray-500">Khác</span>,
+            options: otherProducts.map(p => ({
+              label: p.name,
+              value: p.name,
+            }))
+          });
+        }
+
+        setProductSuggestions(groupedOptions);
 
         if (Array.isArray(papersRes)) {
           setPaperTypes(papersRes);
@@ -712,17 +765,20 @@ export default function GuestOrderPage() {
                           ]}
                         >
                           <AutoComplete
-                            options={productSuggestions.map((name) => ({
-                              label: name,
-                              value: name,
-                            }))}
+                            options={productSuggestions}
                             placeholder="Chọn hoặc nhập tên sản phẩm"
                             style={{ width: "100%" }}
-                            filterOption={(inputValue, option) =>
-                              (option?.value as string)
+                            filterOption={(inputValue, option) => {
+                              if (option?.options) {
+                                // Group option - always show if any of its options match
+                                return option.options.some((opt: any) => 
+                                  opt.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                );
+                              }
+                              return (option?.value as string)
                                 .toUpperCase()
-                                .indexOf(inputValue.toUpperCase()) !== -1
-                            }
+                                .indexOf(inputValue.toUpperCase()) !== -1;
+                            }}
                             // Cho phép nhập giá trị không có trong danh sách
                             onSelect={(value) => {
                               form.setFieldsValue({ productName: value });
