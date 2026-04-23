@@ -23,7 +23,7 @@ export default function LayoutConsultant({
       case "consultantcreaterequest":
       case "clone-request":
       case "pending":
-        router.push(`/consultant/request-detail/${id}`);
+        router.push(`/consultant?orderId=${id}&mode=negotiate`);
         break;
       case "cancel":
         router.push(`/consultant?orderId=${id}&mode=negotiate`);
