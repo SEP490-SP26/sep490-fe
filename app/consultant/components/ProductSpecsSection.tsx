@@ -8,7 +8,7 @@ import { ALL_PROCESS_TYPES } from "@/utils/processConstants";
 
 interface ProductSpecsSectionProps {
   orderId: string | null;
-  PRODUCT_SUGGESTIONS: string[];
+  PRODUCT_SUGGESTIONS: any[];
   productTypes: any[];
   paperTypes: any[];
   formTypes: string[];
@@ -237,10 +237,7 @@ export default function ProductSpecsSection({
             <FloatingSelect
               label="Tên sản phẩm"
               showSearch
-              options={PRODUCT_SUGGESTIONS.map((name) => ({
-                label: name,
-                value: name,
-              }))}
+              options={PRODUCT_SUGGESTIONS}
               disabled={disabledSharedFields || (isDeclined && !highlightFields['product_name'])}
               className={(orderId || disabledSharedFields) ? "bg-gray-50" : ""}
               required
