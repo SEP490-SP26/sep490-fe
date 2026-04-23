@@ -282,5 +282,8 @@ export const mapToOrderEstimationResult = (
     wave_sheets_used: costEstimate.cost.wave_sheets_used || 0,
     contract_file_path: additionalSpecs?.contract_file_path || "",
     contract_uploaded_at: additionalSpecs?.contract_uploaded_at || null,
+    lamination_material_id: additionalSpecs?.lamination_material_id ?? null,
+    lamination_material_code: additionalSpecs?.lamination_material_code ?? null,
+    lamination_material_name: additionalSpecs?.lamination_material_name ?? null,
   };
 };

@@ -124,6 +124,7 @@ function ConsultantForm() {
   const [songTypes, setSongTypes] = useState<Material[]>([]);
   const [glueTypes, setGlueTypes] = useState<Material[]>([]);
   const [inkMaterials, setInkMaterials] = useState<Material[]>([]);
+  const [laminationMaterials, setLaminationMaterials] = useState<Material[]>([]);
   const [isFactoryModalOpen, setIsFactoryModalOpen] = useState(false);
   const [factoryOrders, setFactoryOrders] = useState<Order[]>([]);
   const [fileList, setFileList] = useState<any[]>([]);
@@ -528,6 +529,10 @@ function ConsultantForm() {
           // 4. Filter Ink Types (type: MỨC)
           const inks = allMaterials.filter((m: any) => m.type === "Mực");
           setInkMaterials(inks);
+
+          // 5. Filter Lamination Types (type: Màng)
+          const laminationMats = allMaterials.filter((m: any) => m.type === "Màng");
+          setLaminationMaterials(laminationMats);
         }
       } catch (error) {
         console.error("Error fetching materials:", error);
@@ -1530,6 +1535,11 @@ function ConsultantForm() {
             const quoteDiscountPercent = calculations.discountPercent || 0;
             const discountAmt = Math.round((originalPrice * quoteDiscountPercent) / 100);
 
+            // Tìm vật liệu màng nếu công đoạn CAN được chọn
+            const quoteProcesses = Array.isArray(quote.production_processes) ? quote.production_processes : (quote.production_processes || "").split(",");
+            const hasCANProcess = quoteProcesses.includes("CAN");
+            const laminationMat = hasCANProcess && laminationMaterials.length > 0 ? laminationMaterials[0] : null;
+
             const estimationResult = mapToOrderEstimationResult(
               calculations.costEstimate,
               calculations.paperEstimate,
@@ -1549,7 +1559,10 @@ function ConsultantForm() {
                 final_total_cost: quote.final_price,
                 contract_file_path: finalContractPath,
                 contract_uploaded_at: contractUploadedAt,
-                deposit_amount: Math.round(((quote.final_price || calculations.costEstimate.cost.final_total_cost) * (paymentTerms?.deposit_percent ?? 30) / 100) / 1000) * 1000
+                deposit_amount: Math.round(((quote.final_price || calculations.costEstimate.cost.final_total_cost) * (paymentTerms?.deposit_percent ?? 30) / 100) / 1000) * 1000,
+                lamination_material_id: laminationMat?.material_id ?? null,
+                lamination_material_code: laminationMat?.code ?? null,
+                lamination_material_name: laminationMat?.name ?? null,
               }
             );
 
@@ -1649,6 +1662,11 @@ function ConsultantForm() {
           const originalPrice = costEstimate.cost.final_total_cost;
           const discountAmount = Math.round((originalPrice * currentTabDiscountPercent) / 100);
 
+          // Tìm vật liệu màng nếu công đoạn CAN được chọn
+          const adjustProcesses = form.getFieldValue("production_processes") || [];
+          const adjustHasCAN = Array.isArray(adjustProcesses) ? adjustProcesses.includes("CAN") : adjustProcesses.includes("CAN");
+          const adjustLaminationMat = adjustHasCAN && laminationMaterials.length > 0 ? laminationMaterials[0] : null;
+
           const estimationResult = mapToOrderEstimationResult(
             costEstimate,
             paperEstimate,
@@ -1667,7 +1685,10 @@ function ConsultantForm() {
               previous_estimate_id: previousEstimateId || null,
               final_total_cost: finalPrice,
               contract_file_path: finalContractPath,
-              contract_uploaded_at: contractUploadedAt
+              contract_uploaded_at: contractUploadedAt,
+              lamination_material_id: adjustLaminationMat?.material_id ?? null,
+              lamination_material_code: adjustLaminationMat?.code ?? null,
+              lamination_material_name: adjustLaminationMat?.name ?? null,
             }
           );
 
