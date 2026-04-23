@@ -511,6 +511,9 @@ export interface DetailedProductionEstimation {
   lamination_rate_per_m2: number;
   lamination_sheets_used: number;   // Số tờ thực hiện cán
   total_lamination_area_m2: number; // Tổng diện tích cán (m2)
+  lamination_material_id: number | null;   // ID vật liệu màng
+  lamination_material_code: string | null; // Mã vật liệu màng
+  lamination_material_name: string | null; // Tên vật liệu màng
 
   // --- Công đoạn Bồi (Mounting) ---
   mounting_glue_cost: number;

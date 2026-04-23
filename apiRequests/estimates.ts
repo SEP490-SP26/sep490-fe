@@ -55,6 +55,9 @@ export interface RequestQuotationItem {
     is_one_side_box: boolean | null;
     is_send_design: boolean;
     design_file_path: string;
+    lamination_material_id: number | null;
+    lamination_material_code: string | null;
+    lamination_material_name: string | null;
 
     // --- Chi tiết Chi phí Vật tư (Dự toán) ---
     paper_cost: number;
