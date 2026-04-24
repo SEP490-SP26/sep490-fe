@@ -70,11 +70,11 @@ export default function ProductSpecsSection({
   const currentInkTypes = Form.useWatch("ink_type_names", form) || [];
   const currentCoatingType = Form.useWatch("coating_type", form);
   const hasPHU = currentProcesses.includes("PHU");
-  const hasCAN = currentProcesses.includes("CAN");
   const hasBOI = currentProcesses.includes("BOI");
 
   const prevHasPHURef = useRef(hasPHU);
   const prevHasBOIRef = useRef(hasBOI);
+  const prevProductTypeCodeRef = useRef(selectedProductTypeCode);
 
   // ── PER-PRODUCT-TYPE PROCESS RULES ──────────────────────────────────────
   // Returns an object: { forbidden: string[], mandatoryExtra: string[], warnings: Record<string,string> }
@@ -111,7 +111,7 @@ export default function ProductSpecsSection({
         // Max: RALO,CAT,IN,PHU/CAN,BE,DUT,DAN. Forbidden: BOI.
         return {
           forbidden: ["BOI"],
-          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT"],
+          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT", "CAN", 'PHU'],
           warnings: {
             BOI: "Hộp màu không cần Bồi (giấy Ivory/Duplex đã đủ độ cứng, Bồi làm tăng chi phí và độ dày không cần thiết)",
           },
@@ -188,6 +188,7 @@ export default function ProductSpecsSection({
     prevTabKeyRef.current = activeTabKey;
     prevHasPHURef.current = hasPHU;
     prevHasBOIRef.current = hasBOI;
+    prevProductTypeCodeRef.current = selectedProductTypeCode;
   }
 
   // Handle clearing dependent fields ONLY when the user explicitly unchecks a process
@@ -210,6 +211,37 @@ export default function ProductSpecsSection({
     prevHasPHURef.current = hasPHU;
     prevHasBOIRef.current = hasBOI;
   }, [hasPHU, hasBOI, form]);
+
+  // Khi chuyển loại sản phẩm, xóa CAN và coating_type nếu CAN bị cấm trong loại mới
+  // Đồng thời đảm bảo coating_type bị xóa nếu không còn PHU
+  useEffect(() => {
+    if (prevProductTypeCodeRef.current === selectedProductTypeCode) return;
+    prevProductTypeCodeRef.current = selectedProductTypeCode;
+
+    const rules = getProductTypeRules(selectedProductTypeCode);
+    const currentProcesses: string[] = form.getFieldValue("production_processes") || [];
+
+    // Lọc bỏ các công đoạn bị cấm theo loại sản phẩm mới
+    const filteredProcesses = currentProcesses.filter(p => !rules.forbidden.includes(p));
+    const hadCAN = currentProcesses.includes("CAN");
+    const stillHasCAN = filteredProcesses.includes("CAN");
+    const stillHasPHU = filteredProcesses.includes("PHU");
+
+    if (hadCAN && !stillHasCAN) {
+      // CAN bị loại bỏ do forbidden — cập nhật lại processes
+      form.setFieldValue("production_processes", filteredProcesses);
+      handleFormValuesChange({ production_processes: filteredProcesses }, { ...form.getFieldsValue(), production_processes: filteredProcesses });
+    }
+
+    // Nếu PHU không còn trong processes (do bị forbidden hoặc đã bị xóa), clear coating_type
+    if (!stillHasPHU) {
+      const currentCoating = form.getFieldValue("coating_type");
+      if (currentCoating) {
+        form.setFieldValue("coating_type", undefined);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProductTypeCode]);
 
   // Tự động cập nhật số kẽm dựa trên số loại mực được chọn
   useEffect(() => {
@@ -568,35 +600,20 @@ export default function ProductSpecsSection({
                 updatedValues = value.map(v => typeof v === 'string' ? v.trim().toUpperCase() : v).filter(v => v);
               } else if (typeof value === "string") {
                 updatedValues = value.split(",").map(v => v.trim().toUpperCase()).filter(v => v);
-              } else {
-                updatedValues = ["RALO", "CAT", "IN", "BE", "DUT"];
               }
 
-              // Luôn bắt buộc các công đoạn cơ bản
-              if (!updatedValues.includes("RALO")) updatedValues.push("RALO");
-              if (!updatedValues.includes("CAT")) updatedValues.push("CAT");
-              if (!updatedValues.includes("IN")) updatedValues.push("IN");
-              if (!updatedValues.includes("BE")) updatedValues.push("BE");
-
-              // VO_HOP_GACH: bắt buộc thêm BOI, DUT, DAN
-              if (selectedProductTypeCode === "VO_HOP_GACH") {
-                if (!updatedValues.includes("BOI")) updatedValues.push("BOI");
-                if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
-                if (!updatedValues.includes("DAN")) updatedValues.push("DAN");
-              } else if (selectedProductTypeCode !== "THE_MAU") {
-                if (!updatedValues.includes("DUT")) updatedValues.push("DUT");
-              }
-
-              // Xóa các công đoạn bị cấm theo loại sản phẩm
+              // Đảm bảo các công đoạn bắt buộc theo loại sản phẩm
               const rules = getProductTypeRules(selectedProductTypeCode);
-              updatedValues = updatedValues.filter(v => !rules.forbidden.includes(v));
+              
+              // 1. Thêm các công đoạn luôn phải có (alwaysDisabled)
+              rules.alwaysDisabled.forEach(pt => {
+                if (!updatedValues.includes(pt)) {
+                  updatedValues.push(pt);
+                }
+              });
 
-              // PHU và CAN loại trừ nhau: nếu có cả hai, ưu tiên giữ cái mới chọn
-              // (logic này chỉ là fallback – UI đã disable cái kia)
-              if (updatedValues.includes("PHU") && updatedValues.includes("CAN")) {
-                // Giữ PHU, bỏ CAN
-                updatedValues = updatedValues.filter(v => v !== "CAN");
-              }
+              // 3. Xóa các công đoạn bị cấm
+              updatedValues = updatedValues.filter(v => !rules.forbidden.includes(v));
 
               // Sắp xếp đúng theo trình tự gia công chuẩn
               const STANDARD_ORDER = ALL_PROCESS_TYPES;
@@ -644,29 +661,19 @@ export default function ProductSpecsSection({
                     const rules = productTypeRules;
                     const isForbidden = rules.forbidden.includes(pt);
                     const isAlwaysDisabled = rules.alwaysDisabled.includes(pt);
-                    // PHU/CAN mutual exclusion
-                    const isPHUCANConflict =
-                      (pt === "PHU" && hasCAN) || (pt === "CAN" && hasPHU);
-                    const isDisabled = isAlwaysDisabled || isForbidden || isPHUCANConflict;
+                    const isDisabled = isAlwaysDisabled || isForbidden;
                     const warningMsg = rules.warnings[pt];
 
                     // Tooltip explanation
                     let tooltipTitle: string | undefined;
                     if (isForbidden) {
                       tooltipTitle = warningMsg || `Không được phép sử dụng công đoạn ${PROCESS_TYPE_LABELS[pt] || pt} cho loại sản phẩm này`;
-                    } else if (isPHUCANConflict) {
-                      tooltipTitle =
-                        pt === "CAN"
-                          ? "Đã chọn Phủ — không thể chọn thêm Cán (hai công đoạn loại trừ nhau)"
-                          : "Đã chọn Cán — không thể chọn thêm Phủ (hai công đoạn loại trừ nhau)";
                     } else if (warningMsg) {
                       tooltipTitle = warningMsg;
                     }
 
                     const labelColor = isForbidden
                       ? "text-red-300 line-through"
-                      : isPHUCANConflict
-                      ? "text-gray-400"
                       : isAlwaysDisabled
                       ? "text-gray-400"
                       : warningMsg
@@ -682,7 +689,7 @@ export default function ProductSpecsSection({
                         >
                           <span className={`text-[13px] leading-tight ${labelColor}`}>
                             {PROCESS_TYPE_LABELS[pt] || pt}
-                            {warningMsg && !isForbidden && !isPHUCANConflict && (
+                            {warningMsg && !isForbidden && (
                               <span className="ml-0.5 text-amber-500 text-[10px]">⚠</span>
                             )}
                             {/* {isForbidden && (
