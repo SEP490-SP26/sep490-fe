@@ -504,13 +504,16 @@ export default function ProdutionManager() {
                   <button
                     onClick={() => handleStart(order.order_id)}
                     disabled={
-                      startMutation.isPending &&
-                      startMutation.variables === order.order_id
+                      !order.is_production_ready ||
+                      (startMutation.isPending &&
+                      startMutation.variables === order.order_id)
                     }
+                    title={!order.is_production_ready ? "Đơn hàng chưa được duyệt sản xuất" : ""}
                     className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
                       ${
-                        startMutation.isPending &&
-                        startMutation.variables === order.order_id
+                        !order.is_production_ready ||
+                        (startMutation.isPending &&
+                        startMutation.variables === order.order_id)
                           ? "cursor-not-allowed bg-gray-300 text-gray-600"
                           : "bg-yellow-500 text-white hover:bg-yellow-600"
                       }`}

@@ -133,7 +133,7 @@ export default function ProductionDetail() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:col-span-2">
           <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
             <BiPackage className="w-5 h-5 text-indigo-500" />
-            Thông Tin Sản Phẩm
+            Thông Tin Thành Phẩm
           </h2>
           
           <div className="grid grid-cols-2 gap-y-4 gap-x-6">

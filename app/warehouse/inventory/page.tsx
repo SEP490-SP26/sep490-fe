@@ -10,7 +10,7 @@ import { Pagination, Tabs } from "antd";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BiPackage } from "react-icons/bi";
-import { BsTruck } from "react-icons/bs";
+import { BsSearch, BsTruck } from "react-icons/bs";
 
 
 export default function InventoryManagement() {
@@ -35,6 +35,8 @@ export default function InventoryManagement() {
   const [poPage, setPoPage] = useState(1);
   const [finishedGoodPage, setFinishedGoodPage] = useState(1);
   const [isConfirmingId, setIsConfirmingId] = useState<number | null>(null);
+  const [poSearch, setPoSearch] = useState("");
+  const [finishedGoodSearch, setFinishedGoodSearch] = useState("");
 
   const {
     data: purchaseRequests,
@@ -103,13 +105,27 @@ export default function InventoryManagement() {
 
 
   // ===== Pagination computed data =====
-  const orderedPOs = getPurchaseOrdersByStatus("Ordered");
+  const orderedPOs = getPurchaseOrdersByStatus("Ordered").filter((po: any) => {
+    if (!poSearch) return true;
+    const search = poSearch.toLowerCase();
+    const supplierMatch = po.supplierName?.toLowerCase().includes(search);
+    const itemMatch = po.items?.some((item: any) => item.materialName?.toLowerCase().includes(search));
+    const idMatch = po.purchaseId?.toString().includes(search);
+    return supplierMatch || itemMatch || idMatch;
+  });
   const paginatedPOs = orderedPOs.slice(
     (poPage - 1) * ITEMS_PER_PAGE,
     poPage * ITEMS_PER_PAGE
   );
 
-  const importingRequests = finishedGoodsRequests?.filter((req: any) => req.process_status === "Importing") || [];
+  const importingRequests = (finishedGoodsRequests?.filter((req: any) => req.process_status === "Importing") || []).filter((req: any) => {
+    if (!finishedGoodSearch) return true;
+    const search = finishedGoodSearch.toLowerCase();
+    const idMatch = req.order_id?.toString().includes(search);
+    const productMatch = req.product_name?.toLowerCase().includes(search);
+    const customerMatch = req.customer_name?.toLowerCase().includes(search);
+    return idMatch || productMatch || customerMatch;
+  });
   const paginatedImportingRequests = importingRequests.slice(
     (finishedGoodPage - 1) * ITEMS_PER_PAGE,
     finishedGoodPage * ITEMS_PER_PAGE
@@ -166,89 +182,24 @@ export default function InventoryManagement() {
       key: "1",
       label: (
         <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
-          <BsTruck className="w-5 h-5 text-blue-500" />
-          Chờ nhập kho
-        </span>
-      ),
-      children: (
-        <div className="pt-2">
-          <div className="space-y-4 w-full overflow-y-auto">
-            {paginatedPOs.map((po: any) => (
-              <div
-                key={po.purchaseId}
-                className="border border-blue-200 bg-blue-50 rounded-lg p-4"
-              >
-                <div className="mb-3">
-                  {po.items.map((item: any) => (
-                    <div
-                      key={item.material_id}
-                      className="flex mb-1 justify-between items-center"
-                    >
-                      <div className="text-gray-900">
-                        {item.materialName}
-                      </div>
-                      <div className="text-gray-500 text-sm">
-                        SL: {item.qtyOrdered} {item.unit}
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-gray-500 text-sm">
-                    Nhà cung cấp: {po.supplierName}
-                  </div>
-                  <div className="text-gray-500 text-sm">
-                    Dự kiến:{" "}
-                    {new Date(
-                      po.etaDate
-                        ? po.etaDate
-                        : new Date(new Date(po.createdAt).setDate(
-                            new Date(po.createdAt).getDate() + 3
-                          ))
-                    ).toLocaleDateString("vi-VN")}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleReceive(po.purchaseId)}
-                  className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2"
-                >
-                  <BiPackage className="w-4 h-4" />
-                  Nhập kho
-                </button>
-              </div>
-            ))}
-
-            {orderedPOs.length === 0 && (
-              <div className="text-gray-400 text-center py-8 text-sm">
-                Không có đơn hàng chờ nhập
-              </div>
-            )}
-          </div>
-
-          {/* ===== Pagination Ant Design (1 2 3 4 5 …) ===== */}
-          {orderedPOs.length > ITEMS_PER_PAGE && (
-            <div className="mt-4 flex justify-center">
-              <Pagination
-                current={poPage}
-                pageSize={ITEMS_PER_PAGE}
-                total={orderedPOs.length}
-                onChange={(page) => setPoPage(page)}
-                showSizeChanger={false}
-              />
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "2",
-      label: (
-        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
           <BiPackage className="w-5 h-5 text-green-500" />
           Nhập kho thành phẩm
         </span>
       ),
       children: (
-        <div className="pt-2">
+        <div className="pt-4">
+          <div className="mb-4">
+            <div className="relative">
+              <BsSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={finishedGoodSearch}
+                onChange={(e) => { setFinishedGoodSearch(e.target.value); setFinishedGoodPage(1); }}
+                placeholder="🔍 Tìm theo mã đơn, tên sản phẩm..."
+                className="w-full border-2 border-green-200 bg-green-50/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 focus:bg-white transition placeholder:text-gray-400 shadow-sm"
+              />
+            </div>
+          </div>
           {importingRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
               <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
@@ -269,16 +220,12 @@ export default function InventoryManagement() {
                 >
                   <div className="mb-3">
                     <div className="flex mb-1 justify-between items-center">
-                      <div className="text-gray-900 font-medium">#{req.code} - {req.product_name || "Chưa có tên SP"}</div>
+                      <div className="text-gray-900 font-medium">Mã đơn hàng: {req.order_id} - {req.product_name || "Chưa có tên SP"}</div>
                       <div className="text-gray-500 text-sm">SL: {req.quantity || 0}</div>
                     </div>
-                    <div className="text-gray-500 text-sm">Khách hàng: {req.customer_name}</div>
-                    <div className="text-gray-500 text-sm">SĐT: {req.customer_phone}</div>
-                    {(req.order_request_date || req.delivery_date) && (
+                    {(req.delivery_date) && (
                       <div className="text-gray-500 text-sm">
-                        {req.order_request_date && `Ngày tạo: ${new Date(req.order_request_date).toLocaleDateString("vi-VN")}`}
-                        {req.order_request_date && req.delivery_date && " - "}
-                        {req.delivery_date && `Ngày giao: ${new Date(req.delivery_date).toLocaleDateString("vi-VN")}`}
+                        {req.delivery_date && `Ngày giao dự kiến: ${new Date(req.delivery_date).toLocaleDateString("vi-VN")}`}
                       </div>
                     )}
                   </div>
@@ -307,6 +254,112 @@ export default function InventoryManagement() {
                   />
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "2",
+      label: (
+        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
+          <BsTruck className="w-5 h-5 text-blue-500" />
+          Nhập kho nguyên vật liệu
+        </span>
+      ),
+      children: (
+        <div className="pt-4">
+          <div className="mb-4">
+            <div className="relative">
+              <BsSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={poSearch}
+                onChange={(e) => { setPoSearch(e.target.value); setPoPage(1); }}
+                placeholder="🔍 Tìm theo mã, tên vật liệu, nhà cung cấp..."
+                className="w-full border-2 border-blue-200 bg-blue-50/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition placeholder:text-gray-400 shadow-sm"
+              />
+            </div>
+          </div>
+          <div className="space-y-4 w-full overflow-y-auto">
+            {paginatedPOs.map((po: any) => {
+              const etaDateObj = new Date(
+                po.etaDate
+                  ? po.etaDate
+                  : new Date(new Date(po.createdAt).setDate(
+                      new Date(po.createdAt).getDate() + 3
+                    ))
+              );
+              
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const etaDateOnly = new Date(etaDateObj);
+              etaDateOnly.setHours(0, 0, 0, 0);
+              const isDisabled = etaDateOnly.getTime() > today.getTime();
+
+              return (
+                <div
+                  key={po.purchaseId}
+                  className="border border-blue-200 bg-blue-50 rounded-lg p-4"
+                >
+                  <div className="mb-3">
+                    {po.items.map((item: any) => (
+                      <div
+                        key={item.material_id}
+                        className="flex mb-1 justify-between items-center"
+                      >
+                        <div className="text-gray-900">
+                          Mã đặt hàng: {po.purchaseId} - {item.materialName}
+                        </div>
+                        <div className="text-gray-500 text-sm">
+                          SL: {item.qtyOrdered} {item.unit}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-gray-500 text-sm">
+                      Nhà cung cấp: {po.supplierName}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      Dự kiến giao: {etaDateObj.toLocaleDateString("vi-VN")}
+                      {isDisabled && (
+                        <span className="text-red-500 ml-2 italic">(Chưa giao hàng)</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleReceive(po.purchaseId)}
+                    disabled={isDisabled}
+                    className={`w-full text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 ${
+                      isDisabled 
+                        ? "bg-gray-400 cursor-not-allowed opacity-60" 
+                        : "bg-green-600 hover:bg-green-700"
+                    }`}
+                  >
+                    <BiPackage className="w-4 h-4" />
+                    Nhập kho
+                  </button>
+                </div>
+              );
+            })}
+
+            {orderedPOs.length === 0 && (
+              <div className="text-gray-400 text-center py-8 text-sm">
+                Không có đơn hàng chờ nhập
+              </div>
+            )}
+          </div>
+
+          {/* ===== Pagination Ant Design (1 2 3 4 5 …) ===== */}
+          {orderedPOs.length > ITEMS_PER_PAGE && (
+            <div className="mt-4 flex justify-center">
+              <Pagination
+                current={poPage}
+                pageSize={ITEMS_PER_PAGE}
+                total={orderedPOs.length}
+                onChange={(page) => setPoPage(page)}
+                showSizeChanger={false}
+              />
             </div>
           )}
         </div>

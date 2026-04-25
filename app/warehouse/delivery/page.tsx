@@ -95,7 +95,7 @@ const FinishProduction: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
-  const [customerKeyword, setCustomerKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] =
     useState<[Dayjs | null, Dayjs | null] | null>(null);
 
@@ -175,13 +175,14 @@ const FinishProduction: React.FC = () => {
       .filter((o) =>
         activeTab === "all" ? true : o.process_status === activeTab
       )
-      .filter((o) =>
-        customerKeyword
-          ? o.customer_name
-            .toLowerCase()
-            .includes(customerKeyword.toLowerCase())
-          : true
-      )
+      .filter((o) => {
+        if (!searchKeyword) return true;
+        const kw = searchKeyword.toLowerCase();
+        const matchCustomer = o.customer_name?.toLowerCase().includes(kw);
+        const matchCode = o.code?.toString().toLowerCase().includes(kw);
+        const matchProduct = o.product_name?.toLowerCase().includes(kw);
+        return matchCustomer || matchCode || matchProduct;
+      })
       .filter((o) => {
         if (!deliveryRange?.[0] || !deliveryRange?.[1]) return true;
         if (!o.delivery_date) return false;
@@ -191,7 +192,7 @@ const FinishProduction: React.FC = () => {
           d.isSameOrBefore(deliveryRange[1], "day")
         );
       });
-  }, [data, activeTab, customerKeyword, deliveryRange]);
+  }, [data, activeTab, searchKeyword, deliveryRange]);
 
   /* =======================
      Tab counts
@@ -387,10 +388,10 @@ const FinishProduction: React.FC = () => {
         wrap
       >
         <Input
-          placeholder="🔍 Tìm theo khách hàng"
+          placeholder="🔍 Tìm mã đơn, khách hàng, sản phẩm..."
           allowClear
-          style={{ width: 240 }}
-          onChange={(e) => setCustomerKeyword(e.target.value)}
+          style={{ width: 300 }}
+          onChange={(e) => setSearchKeyword(e.target.value)}
         />
 
         <DatePicker.RangePicker

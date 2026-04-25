@@ -37,6 +37,9 @@ export interface InputMaterial {
   code: string;
   quantity: number;
   unit: string;
+  estimated_quantity: number;
+  actual_quantity?: number;
+  quantity_source: string;
 }
 
 export interface OutputProduct {
@@ -44,6 +47,9 @@ export interface OutputProduct {
   code: string;
   quantity: number;
   unit: string;
+  estimated_quantity: number;
+  actual_quantity?: number;
+  quantity_source: string;
 }
 
 export interface ScanLog {
@@ -947,7 +953,7 @@ export default function ProductionDetailPage() {
                                 Tên vật liệu
                               </th>
                               <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
-                                Số lượng
+                                Số lượng ước tính
                               </th>
                               <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">
                                 ĐVT
@@ -975,11 +981,11 @@ export default function ProductionDetailPage() {
                                       {m.name}
                                     </td>
                                     <td className="px-3 py-2.5 text-right font-semibold">
-                                      {typeof m.quantity === "number"
-                                        ? m.quantity % 1 !== 0
-                                          ? m.quantity.toFixed(2)
-                                          : m.quantity.toLocaleString("vi-VN")
-                                        : m.quantity}
+                                      {typeof m.estimated_quantity === "number"
+                                        ? m.estimated_quantity % 1 !== 0
+                                          ? m.estimated_quantity.toFixed(2)
+                                          : m.estimated_quantity.toLocaleString("vi-VN")
+                                        : m.estimated_quantity}
                                     </td>
                                     <td className="px-3 py-2.5 text-center text-gray-500">
                                       {m.unit}
@@ -1000,18 +1006,33 @@ export default function ProductionDetailPage() {
                         Thành phẩm công đoạn
                       </h4>
                       <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col justify-center flex-1">
-                        <p className="font-semibold text-green-800 mb-1">
+                        <p className="font-semibold text-green-800 mb-3">
                           {stage.output_product.name}
                         </p>
-                        <p className="text-sm text-green-600">
-                          Số lượng:{" "}
-                          <span className="font-bold text-lg">
-                            {stage.output_product.quantity.toLocaleString(
-                              "vi-VN"
-                            )}
-                          </span>{" "}
-                          {stage.output_product.unit}
-                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Estimated */}
+                          <div className="bg-white border border-green-200 rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-1">Ước tính</p>
+                            <p className="text-green-700">
+                              <span className="font-bold text-lg">
+                                {stage.output_product.estimated_quantity.toLocaleString("vi-VN")}
+                              </span>{" "}
+                              <span className="text-sm">{stage.output_product.unit}</span>
+                            </p>
+                          </div>
+                          {/* Actual */}
+                          <div className="bg-white border border-blue-200 rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-1">Thực tế</p>
+                            <p className="text-blue-700">
+                              <span className="font-bold text-lg">
+                                {stage.output_product.actual_quantity != null
+                                  ? stage.output_product.actual_quantity.toLocaleString("vi-VN")
+                                  : "—"}
+                              </span>{" "}
+                              <span className="text-sm">{stage.output_product.unit}</span>
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
