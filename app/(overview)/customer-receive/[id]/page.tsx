@@ -1,7 +1,7 @@
 "use client";
 
 import { requestOrderApi } from "@/apiRequests/request";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { BiArrowBack, BiCheckShield, BiCube, BiUser, BiCreditCard, BiFile, BiMap, BiCalendarCheck } from "react-icons/bi";
 import { Spin } from "antd";
@@ -16,6 +16,7 @@ const [showThankYouModal, setShowThankYouModal] = useState(false);
   const router = useRouter();
   const id = params.id as string;
   const [isReceiving, setIsReceiving] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: requestData, isPending, error } = useQuery({
     queryKey: ["request-detail", id],
@@ -37,6 +38,7 @@ const handleReceiveOrder = async () => {
   try {
     await requestOrderApi.customerReceive(Number(id));
     showSuccessToast("Đã xác nhận nhận hàng thành công!");
+    await queryClient.invalidateQueries({ queryKey: ["request-detail", id] });
     setShowThankYouModal(true); // Mở thank you, không chuyển trang
   } catch (err: any) {
     showErrorToast(err.response?.data?.message || "Có lỗi xảy ra!");
@@ -52,6 +54,21 @@ const handleReceiveOrder = async () => {
       </div>
     );
   }
+
+  const maskPhone = (phone: string) => {
+    if (!phone) return "";
+    const p = phone.trim();
+    if (p.length < 6) return p;
+    return p.substring(0, 3) + "****" + p.substring(p.length - 3);
+  };
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [user, domain] = email.split("@");
+    if (!domain) return email;
+    if (user.length <= 2) return "*".repeat(user.length) + "@" + domain;
+    return user[0] + "****" + user[user.length - 1] + "@" + domain;
+  };
 
   if (error || !requestData) {
     return (
@@ -71,6 +88,8 @@ const handleReceiveOrder = async () => {
     );
   }
 
+  const isCompleted = requestData.process_status?.toLowerCase() === "completed" || requestData.process_status?.toLowerCase() === "hoàn thành";
+
   return (
     <div className="max-w-5xl mx-auto pb-16 pt-8 px-4">
       <div className="flex items-center gap-4 mb-8">
@@ -89,11 +108,15 @@ const handleReceiveOrder = async () => {
           </div>
           <button
             onClick={() => setShowConfirmModal(true)}
-            disabled={isReceiving}
-            className="bg-emerald-600 text-white px-8 py-3 rounded-lg hover:bg-emerald-700 transition-all font-bold flex items-center gap-2 shadow-md shadow-emerald-200 disabled:opacity-70 disabled:cursor-not-allowed w-fit hover:scale-105 active:scale-95"
+            disabled={isReceiving || isCompleted}
+            className={`px-8 py-3 rounded-lg transition-all font-bold flex items-center gap-2 shadow-md w-fit hover:scale-105 active:scale-95 ${
+              isCompleted 
+                ? "bg-gray-400 text-white shadow-gray-200 cursor-not-allowed opacity-70 hover:scale-100 active:scale-100" 
+                : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 disabled:opacity-70 disabled:cursor-not-allowed"
+            }`}
           >
             <BiCheckShield className="w-6 h-6" />
-            {isReceiving ? "Đang xử lý..." : "Xác Nhận Nhận Hàng"}
+            {isReceiving ? "Đang xử lý..." : isCompleted ? "Đã nhận hàng" : "Xác Nhận Nhận Hàng"}
           </button>
         </div>
       </div>
@@ -112,11 +135,11 @@ const handleReceiveOrder = async () => {
             </div>
             <div className="flex justify-between items-center border-b border-gray-50 pb-2">
               <span className="text-gray-500 text-sm">Số điện thoại</span>
-              <span className="font-semibold text-gray-900">{requestData.customer_phone}</span>
+              <span className="font-semibold text-gray-900">{maskPhone(requestData.customer_phone)}</span>
             </div>
             <div className="flex justify-between items-center border-b border-gray-50 pb-2">
               <span className="text-gray-500 text-sm">Email</span>
-              <span className="font-semibold text-gray-900">{requestData.customer_email}</span>
+              <span className="font-semibold text-gray-900">{maskEmail(requestData.customer_email)}</span>
             </div>
             <div className="flex flex-col gap-1 pt-2">
               <span className="text-gray-500 text-sm flex items-center gap-1"><BiMap /> Địa chỉ giao hàng</span>
