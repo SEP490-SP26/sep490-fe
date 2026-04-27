@@ -28,7 +28,11 @@ const { Title } = Typography;
    Types
 ======================= */
 
-type ProductionStatus = "Finished" | "InProcessing" | "Scheduled";
+type ProductionStatus = "Finished" | "InProcessing" | "Scheduled" | "Importing";
+
+interface StageStatus {
+  end_time: string | null;
+}
 
 interface ProductionOrder {
   order_id: number;
@@ -39,6 +43,7 @@ interface ProductionOrder {
   delivery_date: string;
   current_stage: string | null;
   production_status: ProductionStatus;
+  stage_statuses?: StageStatus[];
 }
 
 interface ProductionResponse {
@@ -59,6 +64,27 @@ const statusConfig: Record<
   Finished: { label: "Hoàn thành", color: "green" },
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
+  Importing: { label: "Hoàn thành", color: "green" },
+};
+
+/* =======================
+   Helper
+======================= */
+
+const getCompletionDate = (o: ProductionOrder): Dayjs => {
+  if (o.stage_statuses && o.stage_statuses.length > 0) {
+    let latestTime: Dayjs | null = null;
+    for (const s of o.stage_statuses) {
+      if (s.end_time) {
+        const dt = dayjs(s.end_time);
+        if (!latestTime || dt.isAfter(latestTime)) {
+          latestTime = dt;
+        }
+      }
+    }
+    if (latestTime) return latestTime;
+  }
+  return dayjs(o.delivery_date);
 };
 
 /* =======================
@@ -71,7 +97,7 @@ const FinishProduction: React.FC = () => {
   const [data, setData] = useState<ProductionOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [customerKeyword, setCustomerKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] =
     useState<[Dayjs | null, Dayjs | null] | null>(null);
 
@@ -102,23 +128,24 @@ const FinishProduction: React.FC = () => {
 
   const filteredData = useMemo(() => {
     return data
-      .filter((o) => o.production_status === "Finished")
-      .filter((o) =>
-        customerKeyword
-          ? o.customer_name
-              .toLowerCase()
-              .includes(customerKeyword.toLowerCase())
-          : true
-      )
+      .filter((o) => o.production_status === "Finished" || o.production_status === "Importing")
+      .filter((o) => {
+        if (!searchKeyword) return true;
+        const kw = searchKeyword.toLowerCase();
+        const matchCustomer = o.customer_name?.toLowerCase().includes(kw);
+        const matchCode = o.code?.toLowerCase().includes(kw);
+        const matchProduct = o.product_name?.toLowerCase().includes(kw);
+        return matchCustomer || matchCode || matchProduct;
+      })
       .filter((o) => {
         if (!deliveryRange?.[0] || !deliveryRange?.[1]) return true;
-        const d = dayjs(o.delivery_date);
+        const d = getCompletionDate(o);
         return (
           d.isSameOrAfter(deliveryRange[0], "day") &&
           d.isSameOrBefore(deliveryRange[1], "day")
         );
       });
-  }, [data, customerKeyword, deliveryRange]);
+  }, [data, searchKeyword, deliveryRange]);
 
   /* =======================
      Columns
@@ -146,8 +173,8 @@ const FinishProduction: React.FC = () => {
     },
     {
       title: "Ngày hoàn thành",
-      dataIndex: "delivery_date",
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+      key: "completion_date",
+      render: (_, record: ProductionOrder) => getCompletionDate(record).format("DD/MM/YYYY"),
     },
     {
       title: "Trạng thái",
@@ -194,15 +221,16 @@ const FinishProduction: React.FC = () => {
         wrap
       >
         <Input
-          placeholder="🔍 Tìm theo khách hàng"
+          placeholder="🔍 Tìm mã đơn, khách hàng, sản phẩm..."
           allowClear
-          style={{ width: 240 }}
-          onChange={(e) => setCustomerKeyword(e.target.value)}
+          style={{ width: 300 }}
+          onChange={(e) => setSearchKeyword(e.target.value)}
         />
 
         <DatePicker.RangePicker
           format="DD/MM/YYYY"
           placeholder={["Từ ngày", "Đến ngày"]}
+          onChange={(dates) => setDeliveryRange(dates as any)}
         />
       </Space>
 

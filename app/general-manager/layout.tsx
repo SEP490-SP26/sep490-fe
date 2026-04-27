@@ -26,7 +26,7 @@ export default function LayoutWarehouse({
       router.push(`/general-manager/production-approval?orderId=${id}`);
       break;
     default:
-      router.push(`/general-manager/production-approval`);
+      //router.push(`/general-manager/production-approval`);
       break;
   }
 };
