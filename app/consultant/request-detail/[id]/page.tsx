@@ -712,7 +712,7 @@ export default function ConsultantRequestDetailPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                         <div className="lg:col-span-2">
                             {/* Summary Card (Customer & Product packed tightly) */}
-                            <Card className="h-full rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
+                            <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
                                 {/* Customer Section */}
                                 <div className="mb-6">
                                     <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
@@ -780,66 +780,67 @@ export default function ConsultantRequestDetailPage() {
                             </Card>
                         </div>
                         <div className="lg:col-span-1">
-                            {/* Design Files Card */}
+                            {/* Combined Tài liệu & Thanh toán Card */}
                             <Card
-                                className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary h-full flex flex-col"
+                                className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary"
+                                bodyStyle={{ padding: '20px' }}
                             >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
-                                            <FileImageOutlined />
-                                            File đính kèm
-                                        </h3>
-                                    </div>
+                                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-50">
+                                    <FileImageOutlined className="text-primary text-lg" />
+                                    <h3 className="m-0 text-sm uppercase tracking-wider font-bold text-primary">Tài liệu & Thanh toán</h3>
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {/* File mẫu */}
-                                    <div className="flex flex-col gap-2 p-2 bg-gray-50 rounded">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <FileTextOutlined className="text-gray-400 text-sm" />
+                                    <div className="group">
+                                        <div className="flex items-center justify-between p-2 rounded-xl transition-all hover:bg-slate-50 border border-transparent hover:border-slate-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
+                                                    <FileImageOutlined />
+                                                </div>
                                                 <div>
-                                                    <div className="font-medium text-sm">Mẫu thiết kế</div>
-                                                    <div className="text-xs text-gray-500">
+                                                    <div className="text-sm font-bold text-slate-700">Mẫu thiết kế</div>
+                                                    <div className="text-[11px] text-slate-500">
                                                         {orderDetail.design_file_path ? (
                                                             `${orderDetail.design_file_path.split(',').length} file thiết kế`
                                                         ) : "Chưa tải lên"}
                                                     </div>
                                                 </div>
                                             </div>
-                                            {orderDetail.design_file_path && !pendingDesignFile ? (
-                                                <Button
-                                                    size="small"
-                                                    icon={<DownloadOutlined />}
-                                                    onClick={downloadAllDesignFiles}
-                                                >
-                                                    Tải tất cả
-                                                </Button>
-                                            ) : (
-                                                <Upload
-                                                    showUploadList={false}
-                                                    accept=".ai,.eps,.pdf,.png,.jpg,.jpeg,.zip,.rar,.cdr"
-                                                    beforeUpload={(file) => {
-                                                        setPendingDesignFile(file);
-                                                        return false;
-                                                    }}
-                                                >
-                                                    <Button size="small" icon={<UploadOutlined />}>
-                                                        Chọn file
+                                            <div className="flex items-center">
+                                                {orderDetail.design_file_path && !pendingDesignFile ? (
+                                                    <Button
+                                                        size="small"
+                                                        type="text"
+                                                        icon={<DownloadOutlined />}
+                                                        onClick={downloadAllDesignFiles}
+                                                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                    >
+                                                        Tải về
                                                     </Button>
-                                                </Upload>
-                                            )}
+                                                ) : (
+                                                    <Upload
+                                                        showUploadList={false}
+                                                        accept=".ai,.eps,.pdf,.png,.jpg,.jpeg,.zip,.rar,.cdr"
+                                                        beforeUpload={(file) => {
+                                                            setPendingDesignFile(file);
+                                                            return false;
+                                                        }}
+                                                    >
+                                                        <Button size="small" type="dashed" icon={<UploadOutlined />}>
+                                                            Chọn file
+                                                        </Button>
+                                                    </Upload>
+                                                )}
+                                            </div>
                                         </div>
-                                        {/* NEW: DISPLAY THE PENDING DESIGN FILE HERE */}
                                         {pendingDesignFile && (
-                                            <div className="mt-1 flex items-center justify-between p-1.5 bg-white border border-gray-200 rounded text-xs">
+                                            <div className="mt-2 ml-12 mr-2 flex items-center justify-between p-1.5 bg-blue-50/50 border border-blue-100 rounded-lg text-xs">
                                                 <div className="flex items-center gap-1.5 truncate">
-                                                    <FileTextOutlined className="text-blue-400" style={{ fontSize: "12px" }} />
+                                                    <FileTextOutlined className="text-blue-500" />
                                                     <span
                                                         className="truncate text-blue-700 cursor-pointer hover:underline font-medium"
                                                         onClick={() => handleViewLocalFile(pendingDesignFile)}
-                                                        title="Click để xem file cục bộ"
                                                     >
                                                         {pendingDesignFile.name}
                                                     </span>
@@ -848,7 +849,7 @@ export default function ConsultantRequestDetailPage() {
                                                     type="text"
                                                     danger
                                                     size="small"
-                                                    style={{ padding: 0, height: "auto" }}
+                                                    style={{ padding: '0 4px', height: 20 }}
                                                     onClick={() => setPendingDesignFile(null)}
                                                 >
                                                     Hủy
@@ -859,31 +860,33 @@ export default function ConsultantRequestDetailPage() {
 
                                     {/* File in (Bản in) - Shown only when Accepted */}
                                     {orderDetail.process_status === 'Accepted' && (
-                                        <div className="flex flex-col gap-2 p-2 bg-blue-50/50 border border-blue-100 rounded">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <PrinterOutlined className="text-blue-500 text-sm" />
+                                        <div className="group">
+                                            <div className="flex items-center justify-between p-2 rounded-xl transition-all hover:bg-emerald-50/50 border border-transparent hover:border-emerald-100">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
+                                                        <PrinterOutlined />
+                                                    </div>
                                                     <div>
-                                                        <div className="font-medium text-sm">File in (Printer Ready)</div>
-                                                        <div className="text-xs text-gray-500">
+                                                        <div className="text-sm font-bold text-slate-700">File in (Printer Ready)</div>
+                                                        <div className="text-[11px]">
                                                             {orderDetail.printer_ready_file_path || pendingPrintFile ? (
-                                                                <span className="text-green-600 font-medium">Đã có file in</span>
+                                                                <span className="text-emerald-600 font-medium">Đã sẵn sàng</span>
                                                             ) : (
-                                                                <span className="text-gray-500">Chưa có file in</span>
+                                                                <span className="text-slate-400">Chưa có</span>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="flex items-center">
                                                     {orderDetail.printer_ready_file_path ? (
                                                         <Button
                                                             size="small"
-                                                            type="primary"
+                                                            type="text"
                                                             icon={<DownloadOutlined />}
                                                             onClick={() => window.open(orderDetail.printer_ready_file_path, "_blank")}
-                                                            className="bg-green-600 hover:bg-green-500"
+                                                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                                                         >
-                                                            Xem
+                                                            Xem file
                                                         </Button>
                                                     ) : (
                                                         <Upload
@@ -897,24 +900,22 @@ export default function ConsultantRequestDetailPage() {
                                                             <Button
                                                                 size="small"
                                                                 type={pendingPrintFile ? "default" : "primary"}
+                                                                ghost={!pendingPrintFile}
                                                                 icon={<UploadOutlined />}
                                                             >
-                                                                {pendingPrintFile ? "Thay đổi file" : ""}
+                                                                {pendingPrintFile ? "Đổi file" : "Tải lên"}
                                                             </Button>
                                                         </Upload>
                                                     )}
                                                 </div>
                                             </div>
-
-                                            {/* NEW: DISPLAY THE PENDING PRINT FILE HERE */}
                                             {pendingPrintFile && (
-                                                <div className="mt-1 flex items-center justify-between p-1.5 bg-white border border-blue-200 rounded text-xs">
+                                                <div className="mt-2 ml-12 mr-2 flex items-center justify-between p-1.5 bg-emerald-50/50 border border-emerald-100 rounded-lg text-xs">
                                                     <div className="flex items-center gap-1.5 truncate">
-                                                        <FileTextOutlined className="text-blue-400" style={{ fontSize: "12px" }} />
+                                                        <FileTextOutlined className="text-emerald-500" />
                                                         <span
-                                                            className="truncate text-blue-700 cursor-pointer hover:underline font-medium"
+                                                            className="truncate text-emerald-700 cursor-pointer hover:underline font-medium"
                                                             onClick={() => handleViewLocalFile(pendingPrintFile)}
-                                                            title="Click để xem file cục bộ"
                                                         >
                                                             {pendingPrintFile.name}
                                                         </span>
@@ -923,7 +924,7 @@ export default function ConsultantRequestDetailPage() {
                                                         type="text"
                                                         danger
                                                         size="small"
-                                                        style={{ padding: 0, height: "auto" }}
+                                                        style={{ padding: '0 4px', height: 20 }}
                                                         onClick={() => setPendingPrintFile(null)}
                                                     >
                                                         Hủy
@@ -933,79 +934,74 @@ export default function ConsultantRequestDetailPage() {
                                         </div>
                                     )}
 
-
                                     {/* File khác */}
                                     {(orderDetail as any).other_files && (orderDetail as any).other_files.length > 0 && (
-                                        <div className="mt-2">
-                                            <div className="text-xs font-medium text-gray-700 mb-1">
-                                                File khác ({(orderDetail as any).other_files.length}):
-                                            </div>
-                                            <div className="space-y-1">
-                                                {(orderDetail as any).other_files.slice(0, 2).map((file: any, index: number) => (
+                                        <div className="pt-2">
+                                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-tight mb-2 ml-2">File đính kèm khác ({(orderDetail as any).other_files.length})</div>
+                                            <div className="space-y-1.5 px-2">
+                                                {(orderDetail as any).other_files.slice(0, 3).map((file: any, index: number) => (
                                                     <div
                                                         key={index}
-                                                        className="flex items-center justify-between p-1.5 bg-white border rounded text-xs"
+                                                        className="flex items-center justify-between p-2 bg-slate-50/50 border border-slate-100 rounded-lg text-xs hover:bg-white transition-colors"
                                                     >
-                                                        <div className="flex items-center gap-1.5 truncate">
-                                                            <FileTextOutlined className="text-gray-400" style={{ fontSize: "12px" }} />
-                                                            <span className="truncate">{file.name}</span>
+                                                        <div className="flex items-center gap-2 truncate">
+                                                            <FileTextOutlined className="text-slate-400" />
+                                                            <span className="truncate text-slate-600">{file.name}</span>
                                                         </div>
                                                         <Button
                                                             type="link"
                                                             size="small"
-                                                            style={{ padding: 0, fontSize: "12px" }}
+                                                            className="p-0 h-auto text-[11px]"
                                                             onClick={() => window.open(file.url, "_blank")}
                                                         >
-                                                            Tải
+                                                            Tải về
                                                         </Button>
                                                     </div>
                                                 ))}
-                                                {(orderDetail as any).other_files.length > 2 && (
-                                                    <div className="text-xs text-gray-500 text-center">
-                                                        + {(orderDetail as any).other_files.length - 2} file khác
+                                                {(orderDetail as any).other_files.length > 3 && (
+                                                    <div className="text-[11px] text-slate-400 text-center mt-1">
+                                                        + {(orderDetail as any).other_files.length - 3} file khác
                                                     </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Payment Receipts Section */}
+                                    {(orderDetail.deposit_receipt_path || orderDetail.remaining_receipt_path) && (
+                                        <div className="mt-4 pt-4 border-t border-slate-100">
+                                            <div className="flex items-center gap-2 mb-3 ml-2">
+                                                <CreditCardOutlined className="text-orange-500" />
+                                                <span className="text-xs font-bold uppercase text-slate-500 tracking-wider">Biên lai thanh toán</span>
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                {orderDetail.deposit_receipt_path && (
+                                                    <Button
+                                                        type="default"
+                                                        size="middle"
+                                                        icon={<EyeOutlined />}
+                                                        onClick={() => window.open(orderDetail.deposit_receipt_path as string, '_blank')}
+                                                        className="w-full rounded-lg border-orange-200 text-orange-600 hover:text-orange-700 hover:border-orange-300 hover:bg-orange-50 transition-all flex items-center justify-center font-medium"
+                                                    >
+                                                        Xem biên lai đặt cọc
+                                                    </Button>
+                                                )}
+                                                {orderDetail.remaining_receipt_path && (
+                                                    <Button
+                                                        type="default"
+                                                        size="middle"
+                                                        icon={<EyeOutlined />}
+                                                        onClick={() => window.open(orderDetail.remaining_receipt_path as string, '_blank')}
+                                                        className="w-full rounded-lg border-orange-200 text-orange-600 hover:text-orange-700 hover:border-orange-300 hover:bg-orange-50 transition-all flex items-center justify-center font-medium"
+                                                    >
+                                                        Xem biên lai còn lại
+                                                    </Button>
                                                 )}
                                             </div>
                                         </div>
                                     )}
                                 </div>
                             </Card>
-
-                            {/* Payment Receipts Section */}
-                            {(orderDetail.deposit_receipt_path || orderDetail.remaining_receipt_path) && (
-                                <Card className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-orange-100 border-t-4 border-t-orange-500 mt-4 h-auto flex flex-col">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="text-sm uppercase tracking-wider font-bold text-orange-600 mb-0 flex items-center gap-2">
-                                                <CreditCardOutlined />
-                                                Biên lai thanh toán
-                                            </h3>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {orderDetail.deposit_receipt_path && (
-                                            <Button
-                                                type="primary"
-                                                icon={<EyeOutlined />}
-                                                onClick={() => window.open(orderDetail.deposit_receipt_path as string, '_blank')}
-                                                className="w-full rounded-lg bg-orange-500 hover:bg-orange-600 border-none shadow-sm h-10 font-medium"
-                                            >
-                                                Xem biên lai đặt cọc
-                                            </Button>
-                                        )}
-                                        {orderDetail.remaining_receipt_path && (
-                                            <Button
-                                                type="primary"
-                                                icon={<EyeOutlined />}
-                                                onClick={() => window.open(orderDetail.remaining_receipt_path as string, '_blank')}
-                                                className="w-full rounded-lg bg-orange-500 hover:bg-orange-600 border-none shadow-sm h-10 font-medium"
-                                            >
-                                                Xem biên lai còn lại
-                                            </Button>
-                                        )}
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
 
@@ -1013,7 +1009,7 @@ export default function ConsultantRequestDetailPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                         <div className="lg:col-span-2">
                             {/* Cost Estimates Block */}
-                            <Card className="h-full rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-accent">
+                            <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-accent">
                                 <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
                                     <DollarOutlined />
                                     Thông tin báo giá
