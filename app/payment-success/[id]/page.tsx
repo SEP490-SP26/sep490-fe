@@ -415,7 +415,7 @@ export default function PaymentSuccess() {
             </div>
             <div className="flex-1 overflow-hidden">
               <iframe
-                src={`https://docs.google.com/gview?url=${encodeURIComponent(receiptUrl)}&embedded=true`}
+                src={`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(receiptUrl)}`}
                 className="w-full h-full border-0"
                 title="Biên lai thanh toán"
               />

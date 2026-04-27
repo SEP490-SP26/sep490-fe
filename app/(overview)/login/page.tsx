@@ -14,6 +14,7 @@ import { setCookie } from "cookies-next";
 import Image from "next/image";
 import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
+import { useCustomer, Customer } from "@/context/CustomerContext";
 
 
 
@@ -37,6 +38,7 @@ export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState<"username" | "email">("username");
   const router = useRouter();
   const { login } = useAuth();
+  const { login: customerLogin } = useCustomer();
 
   const {
     register,
@@ -138,15 +140,15 @@ export default function LoginPage() {
           router.replace("/warehouse");
           break;
         case 5:
-          const mockCustomer = {
+          const mockCustomer: Customer = {
             id: `CUST-${user_id}`,
-            phone: loginMethod === "username" ? data.username : "0123456789",
-            name: full_name || "Customer",
-            email: loginMethod === "email" ? data.email : "",
+            phone: (loginMethod === "username" ? data.username : "0123456789") || "0123456789",
+            name: (full_name as string) || "Customer",
+            email: (loginMethod === "email" ? data.email : "") || "",
             createdAt: new Date().toISOString(),
             addresses: []
           };
-          localStorage.setItem("sep490_customer", JSON.stringify(mockCustomer));
+          customerLogin(mockCustomer);
           router.replace("/customer/profile");
           break;
         case 6:
@@ -255,7 +257,7 @@ export default function LoginPage() {
           router.replace("/warehouse");
           break;
         case 5:
-          const googleMockCustomer = {
+          const googleMockCustomer: Customer = {
             id: `CUST-${role_id}`,
             phone: "0123456789",
             name: decoded.name || "Customer",
@@ -263,7 +265,7 @@ export default function LoginPage() {
             createdAt: new Date().toISOString(),
             addresses: []
           };
-          localStorage.setItem("sep490_customer", JSON.stringify(googleMockCustomer));
+          customerLogin(googleMockCustomer);
           router.replace("/customer/profile");
           break;
         default:

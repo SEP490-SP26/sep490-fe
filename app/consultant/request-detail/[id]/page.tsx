@@ -221,7 +221,7 @@ export default function ConsultantRequestDetailPage() {
     const handleOpenFile = (fileUrl: string) => {
         if (!fileUrl) return;
         if (fileUrl.toLowerCase().match(/\.(doc|docx)$/i)) {
-            window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`, "_blank");
+            window.open(`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`, "_blank");
         } else {
             window.open(fileUrl, "_blank");
         }
@@ -528,27 +528,23 @@ export default function ConsultantRequestDetailPage() {
                     </div>
                     <div className="flex gap-2">
                         {orderDetail.process_status === 'Verified' && (
-                            <Button
-                                type="primary"
-                                icon={<SendOutlined />}
-                                className="bg-blue-600 hover:bg-blue-500 rounded-lg"
-                                size="middle"
-                                loading={previewLoading}
+                            <button
                                 onClick={handleSendQuote}
+                                disabled={previewLoading}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                Xem trước & Gửi báo giá
-                            </Button>
+                                {previewLoading ? <Spin size="small" className="text-white" /> : <SendOutlined />}
+                                <span>Xem trước & Gửi báo giá</span>
+                            </button>
                         )}
                         {orderDetail.process_status === 'Processing' && (
-                            <Button
-                                type="default"
-                                icon={<EditOutlined />}
-                                size="middle"
-                                className="rounded-lg"
+                            <button
                                 onClick={() => router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate`)}
+                                className="flex items-center gap-2 px-4 py-2 border border-slate-300 hover:border-slate-400 bg-white text-slate-700 rounded-lg font-medium transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md"
                             >
-                                Cập nhật yêu cầu
-                            </Button>
+                                <EditOutlined />
+                                <span>Cập nhật yêu cầu</span>
+                            </button>
 
                         )}
 
@@ -563,38 +559,48 @@ export default function ConsultantRequestDetailPage() {
                                 {!orderDetail.printer_ready_file_path && (
                                     <>
                                         <Tooltip title={(!orderDetail.printer_ready_file_path && !pendingPrintFile) ? "Vui lòng tải lên file in (Printer Ready) trước khi đưa vào sản xuất" : ""}>
-                                            <Button
-                                                type="primary"
-                                                icon={<CheckCircleOutlined />}
-                                                disabled={!orderDetail.printer_ready_file_path && !pendingPrintFile}
-                                                onClick={() => {
-                                                    setIsPrintFileViewed(false);
-                                                    setIsProduceCheckCommitted(false);
-                                                    setIsProduceModalOpen(true);
-                                                }}
-                                                className={`rounded-lg text-white border-0 ${(!orderDetail.printer_ready_file_path && !pendingPrintFile) ? 'cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'}`}
-                                            >
-                                                Đưa vào sản xuất
-                                            </Button>
+                                        <button
+                                            disabled={!orderDetail.printer_ready_file_path && !pendingPrintFile}
+                                            onClick={() => {
+                                                setIsPrintFileViewed(false);
+                                                setIsProduceCheckCommitted(false);
+                                                setIsProduceModalOpen(true);
+                                            }}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
+                                                ${(!orderDetail.printer_ready_file_path && !pendingPrintFile) 
+                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' 
+                                                    : 'bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-sm hover:shadow-md'
+                                                }`}
+                                        >
+                                            <CheckCircleOutlined />
+                                            <span>Đưa vào sản xuất</span>
+                                        </button>
                                         </Tooltip>
                                         <Modal
                                             title={<span className="font-semibold text-lg">Xác nhận đưa vào sản xuất</span>}
                                             open={isProduceModalOpen}
                                             onCancel={() => setIsProduceModalOpen(false)}
                                             footer={[
-                                                <Button key="cancel" onClick={() => setIsProduceModalOpen(false)}>
-                                                    Hủy
-                                                </Button>,
-                                                <Button
-                                                    key="confirm"
-                                                    type="primary"
-                                                    loading={confirmingLayout}
-                                                    disabled={!isPrintFileViewed || !isProduceCheckCommitted}
-                                                    onClick={handleConfirmLayout}
-                                                    className="bg-blue-600 hover:bg-blue-500"
+                                                <button 
+                                                    key="cancel" 
+                                                    onClick={() => setIsProduceModalOpen(false)}
+                                                    className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
                                                 >
+                                                    Hủy
+                                                </button>,
+                                                <button
+                                                    key="confirm"
+                                                    disabled={!isPrintFileViewed || !isProduceCheckCommitted || confirmingLayout}
+                                                    onClick={handleConfirmLayout}
+                                                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 
+                                                        ${(!isPrintFileViewed || !isProduceCheckCommitted || confirmingLayout)
+                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm'
+                                                        }`}
+                                                >
+                                                    {confirmingLayout ? <Spin size="small" className="mr-2" /> : null}
                                                     Xác nhận
-                                                </Button>
+                                                </button>
                                             ]}
                                         >
                                             <p className="text-base text-slate-700 mb-4">Bạn có chắc chắn muốn đưa vào sản xuất cho yêu cầu <strong>#{orderDetail.request_id}</strong>?</p>
@@ -650,13 +656,15 @@ export default function ConsultantRequestDetailPage() {
                             open={updateModalOpen}
                             onCancel={() => setUpdateModalOpen(false)}
                             footer={[
-                                <Button key="cancel" onClick={() => setUpdateModalOpen(false)}>
+                                <button 
+                                    key="cancel" 
+                                    onClick={() => setUpdateModalOpen(false)}
+                                    className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
+                                >
                                     Hủy
-                                </Button>,
-                                <Button
+                                </button>,
+                                <button
                                     key="confirm"
-                                    type="primary"
-                                    className="bg-blue-600 hover:bg-blue-500"
                                     disabled={!updateReason.trim()}
                                     onClick={() => {
                                         if (!updateReason.trim()) {
@@ -666,9 +674,14 @@ export default function ConsultantRequestDetailPage() {
                                         setUpdateModalOpen(false);
                                         router.push(`/consultant?orderId=${orderDetail.request_id}&mode=negotiate&reason=${encodeURIComponent(updateReason.trim())}`);
                                     }}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 
+                                        ${(!updateReason.trim())
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm'
+                                        }`}
                                 >
                                     Xác nhận
-                                </Button>
+                                </button>
                             ]}
                         >
                             <Form form={updateForm} layout="vertical">
@@ -1528,12 +1541,25 @@ export default function ConsultantRequestDetailPage() {
                         </Form.Item>
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-                            <Button onClick={() => setAlternativeModalOpen(false)} className="rounded-lg">
+                            <button 
+                                type="button"
+                                onClick={() => setAlternativeModalOpen(false)} 
+                                className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
+                            >
                                 Hủy
-                            </Button>
-                            <Button type="primary" htmlType="submit" loading={submittingAlternative} className="rounded-lg bg-amber-600 hover:bg-amber-500 border-none">
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={submittingAlternative}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 
+                                    ${submittingAlternative 
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                        : 'bg-amber-600 text-white hover:bg-amber-700 active:scale-95 shadow-sm'
+                                    }`}
+                            >
+                                {submittingAlternative ? <Spin size="small" className="mr-2" /> : null}
                                 Xác nhận
-                            </Button>
+                            </button>
                         </div>
                     </Form>
                 </Modal>
@@ -1570,19 +1596,24 @@ export default function ConsultantRequestDetailPage() {
                                 )}
                             </div>
                             <div className="flex gap-3">
-                                <Button onClick={() => setIsPreviewModalOpen(false)} className="rounded-lg">
-                                    Đóng
-                                </Button>
-                                <Button
-                                    type="primary"
-                                    icon={<SendOutlined />}
-                                    className={`bg-emerald-600 hover:bg-emerald-500 border-none shadow-md shadow-emerald-200 rounded-lg ${(!isContractCommitted || !isAllContractsReviewed || !hasContract) ? 'opacity-50 grayscale' : ''}`}
-                                    loading={sending}
-                                    disabled={!isContractCommitted || !isAllContractsReviewed || !hasContract}
-                                    onClick={handleSendQuote}
+                                <button 
+                                    onClick={() => setIsPreviewModalOpen(false)} 
+                                    className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
                                 >
-                                    Xác nhận và Gửi cho khách
-                                </Button>
+                                    Đóng
+                                </button>
+                                <button
+                                    disabled={!isContractCommitted || !isAllContractsReviewed || !hasContract || sending}
+                                    onClick={handleSendQuote}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
+                                        ${(!isContractCommitted || !isAllContractsReviewed || !hasContract || sending)
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70 grayscale'
+                                            : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-md shadow-emerald-100'
+                                        }`}
+                                >
+                                    {sending ? <Spin size="small" className="text-white" /> : <SendOutlined />}
+                                    <span>Xác nhận và Gửi cho khách</span>
+                                </button>
                             </div>
                         </div>
 
@@ -1660,7 +1691,7 @@ export default function ConsultantRequestDetailPage() {
                                                                     </div>
                                                                 ) : (
                                                                     <iframe
-                                                                        src={isDoc ? `https://docs.google.com/viewer?url=${encodeURIComponent(contractUrl)}&embedded=true` : contractUrl}
+                                                                        src={isDoc ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
                                                                         className="w-full border-0 rounded-t-lg shadow-sm"
                                                                         style={{ height: '800px' }}
                                                                         title={`Hợp đồng #${index + 1}`}
