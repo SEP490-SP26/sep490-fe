@@ -517,6 +517,7 @@ export interface CreateQRBody {
   task_id: number;
   ttl_minutes: number;
   qty_good: number;
+  materials?: any[];
 }
 
 export interface CreateQRResponse {

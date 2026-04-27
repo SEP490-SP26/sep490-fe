@@ -78,6 +78,7 @@ export interface ProductionStage {
   waste_percent: number;
   last_scan_time: string | null;
   logs: ScanLog[];
+  n_up?: number | null;
   input_materials: InputMaterial[];
   output_product: OutputProduct;
 }
@@ -471,6 +472,12 @@ export default function ProductionDetailPage() {
   const [qtyInputStage, setQtyInputStage] =
     useState<ProductionStage | null>(null);
   const [qtyInputValue, setQtyInputValue] = useState<string>("");
+  const [qtyError, setQtyError] = useState("");
+
+  const [qrPrepare, setQrPrepare] = useState<any>(null);
+  const [prepareLoading, setPrepareLoading] = useState(false);
+  const [materialQtys, setMaterialQtys] = useState<{ [id: number]: string }>({});
+  const [materialErrors, setMaterialErrors] = useState<{ [id: number]: string }>({});
 
   const [collapsedStages, setCollapsedStages] =
     useState<Record<number, boolean>>({});
@@ -482,6 +489,46 @@ export default function ProductionDetailPage() {
     message: string;
   }>({ open: false, type: "success", message: "" });
   const [showPreview, setShowPreview] = useState(false);
+
+  // Global Scanner Detection
+  const handleQrScannedRef = useRef<any>(null);
+
+  useEffect(() => {
+    let buffer = "";
+    let lastKeyTime = Date.now();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is interacting with an input or textarea
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      const currentTime = Date.now();
+      // Scanners type very fast. If delay > 50ms, assume it's normal typing and reset
+      if (currentTime - lastKeyTime > 50) {
+        buffer = "";
+      }
+      lastKeyTime = currentTime;
+
+      if (e.key === "Enter") {
+        if (buffer.length > 0 && handleQrScannedRef.current) {
+          handleQrScannedRef.current(buffer);
+          buffer = "";
+        }
+        return;
+      }
+
+      if (e.key.length === 1) {
+        buffer += e.key;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
@@ -543,34 +590,85 @@ export default function ProductionDetailPage() {
     totalStages > 0 ? Math.round((finishedStages / totalStages) * 100) : 0;
 
   /* ===== QR LOGIC ===== */
-  const handleCreateQr = async (
-    stage: ProductionStage,
-    qtyOverride?: number
-  ) => {
+  const fetchQrPrepare = async (taskId: number) => {
+    try {
+      setPrepareLoading(true);
+      const res = await tasksApi.qrPrepare(taskId);
+      const data = res.data ?? res;
+      setQrPrepare(data);
+
+      const initQtys: { [id: number]: string } = {};
+      const consumable = data.consumable_materials || [];
+      consumable.forEach((m: any) => {
+        initQtys[m.material_id] = "";
+      });
+      setMaterialQtys(initQtys);
+      setMaterialErrors({});
+    } catch (err: any) {
+      console.log("Fetch qr-prepare error:", err);
+      setPopup({
+        open: true,
+        type: "error",
+        message: err.message || "Lỗi tải qr-prepare",
+      });
+    } finally {
+      setPrepareLoading(false);
+    }
+  };
+
+  const handleCreateQr = async () => {
+    if (!qtyInputStage) return;
     try {
       setQrLoading(true);
 
-      const defaultQty = Number(stage.output_product?.quantity || 0);
-
-      if (qtyOverride !== undefined && qtyOverride < 0) {
-        setPopup({
-          open: true,
-          type: "error",
-          message: "Số lượng không hợp lệ",
-        });
-        return;
+      if (qrPrepare && qrPrepare.consumable_materials?.length > 0) {
+        for (const mat of qrPrepare.consumable_materials) {
+          const val = materialQtys[mat.material_id];
+          if (val && val !== "") {
+            if (Number(val) < 0) {
+              setMaterialErrors((prev) => ({ ...prev, [mat.material_id]: "Số lượng không hợp lệ" }));
+              return;
+            }
+            if (Number(val) > mat.estimated_input_qty) {
+              setMaterialErrors((prev) => ({ ...prev, [mat.material_id]: `Tối đa ${mat.estimated_input_qty}` }));
+              return;
+            }
+          }
+          if (materialErrors[mat.material_id]) return;
+        }
       }
 
-      const finalQty =
-        qtyOverride && qtyOverride > 0 ? qtyOverride : defaultQty;
+      const defaultQty = Number(qtyInputStage.output_product?.quantity || 0);
+      const inputVal = Number(qtyInputValue);
+      
+      if (qtyInputValue !== "" && inputVal <= 0) {
+        setQtyError("Số lượng phải lớn hơn 0");
+        return;
+      }
+      
+      const finalQty = qtyInputValue !== "" && inputVal > 0 ? inputVal : defaultQty;
+
+      const materials =
+        qrPrepare?.consumable_materials?.map((mat: any) => {
+          const qtyLeftStr = materialQtys[mat.material_id];
+          const qtyLeft = qtyLeftStr === "" || qtyLeftStr === undefined ? 0 : Number(qtyLeftStr);
+          return {
+            material_id: mat.material_id,
+            quantity_used: 0,
+            is_stock: true,
+            quantity_left: qtyLeft,
+          };
+        }) ?? [];
 
       const data = await tasksApi.createQRByStageId({
-        task_id: stage.task_id,
+        task_id: qtyInputStage.task_id,
         ttl_minutes: 30,
         qty_good: finalQty,
+        materials,
       });
 
       setQrToken((data as any)?.token ?? (data as any)?.data?.token);
+      setQtyInputStage(null);
     } catch (err: any) {
       setPopup({
         open: true,
@@ -609,6 +707,11 @@ export default function ProductionDetailPage() {
       setQrLoading(false);
     }
   };
+
+  // Keep ref updated
+  useEffect(() => {
+    handleQrScannedRef.current = handleQrScanned;
+  }, [handleQrScanned]);
 
   if (isLoading) return <Loading text="Đang tải dữ liệu..." />;
 
@@ -914,8 +1017,8 @@ export default function ProductionDetailPage() {
               {!isCollapsed && (
                 <div className="p-5 space-y-5">
                   {/* Time Info - Actual Time */}
-                  <div className="w-full">
-                    <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-green-50 rounded-xl p-4 border border-green-100 h-full">
                       <p className="text-xs text-green-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
                         <BsClock className="w-3.5 h-3.5" />
                         Thời gian thực tế
@@ -935,6 +1038,24 @@ export default function ProductionDetailPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* N_UP Info */}
+                    {(stage.process_name.toLowerCase().includes("cắt") || stage.process_name.toLowerCase().includes("in")) && stage.n_up != null && (
+                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 h-full">
+                        <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                          <BsLayers className="w-3.5 h-3.5" />
+                          Thông số kỹ thuật
+                        </p>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-blue-100">
+                            <span className="text-gray-500 font-medium">Số SP / 1 tờ giấy:</span>
+                            <span className="font-bold text-gray-800">
+                              {stage.n_up}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Materials I/O */}
@@ -1086,7 +1207,9 @@ export default function ProductionDetailPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setQtyInputValue(stage.output_product?.quantity?.toString() || "");
+                          setQtyError("");
                           setQtyInputStage(stage);
+                          fetchQrPrepare(stage.task_id);
                         }}
                         disabled={qrLoading}
                         className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
@@ -1106,37 +1229,106 @@ export default function ProductionDetailPage() {
 
       {/* Qty Input Modal */}
       {qtyInputStage && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl border border-blue-200 p-6 w-[320px] shadow-lg">
-            <h3 className="font-semibold text-blue-700 mb-4">
-              Nhập số lượng tạo QR
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-blue-200 p-6 w-[400px] max-w-[95vw] shadow-lg max-h-[90vh] flex flex-col">
+            <h3 className="font-semibold text-blue-700 mb-4 text-center">
+              Nhập thông tin hoàn thành
             </h3>
-            <input
-              type="number"
-              min={1}
-              placeholder="Để trống = số lượng mặc định"
-              value={qtyInputValue}
-              onChange={(e) => setQtyInputValue(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-              autoFocus
-            />
-            <div className="flex gap-3">
+
+            {prepareLoading ? (
+              <div className="flex justify-center py-4">
+                <span className="text-blue-500 font-medium text-sm">Đang tải dữ liệu...</span>
+              </div>
+            ) : (
+              <div className="overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: '60vh' }}>
+                {qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu đầu vào</h4>
+                    {qrPrepare.reference_inputs.map((ref: any, idx: number) => (
+                      <div key={idx} className="mb-2">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-semibold text-gray-800">{ref.input_name || ref.material_name || ref.name || "Nguyên liệu"}</span>
+                          <span className="text-gray-500">{ref.estimated_qty ?? ref.quantity} {ref.unit}</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={`${ref.estimated_qty ?? ref.quantity ?? ""} ${ref.unit || ""}`.trim()}
+                          disabled
+                          className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-500 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu dư</h4>
+                    {qrPrepare.consumable_materials.map((mat: any) => (
+                      <div key={mat.material_id} className="mb-2">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-semibold text-gray-800">{mat.material_name}</span>
+                          <span className="text-gray-500">Đã xuất: {mat.estimated_input_qty} {mat.unit}</span>
+                        </div>
+                        <input
+                          type="number"
+                          placeholder="Nhập lượng dư (Mặc định: 0)"
+                          value={materialQtys[mat.material_id] ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setMaterialQtys(prev => ({ ...prev, [mat.material_id]: val }));
+                            if (val && Number(val) > mat.estimated_input_qty) {
+                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Tối đa ${mat.estimated_input_qty}` }));
+                            } else if (val && Number(val) < 0) {
+                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
+                            } else {
+                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                            }
+                          }}
+                          className={`w-full border rounded-lg px-3 py-2 text-sm ${materialErrors[mat.material_id] ? 'border-red-500' : ''}`}
+                        />
+                        {materialErrors[mat.material_id] && <span className="text-xs text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Số lượng thành phẩm</h4>
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder={`Mặc định: ${qtyInputStage?.output_product?.quantity ?? "--"} sp`}
+                    value={qtyInputValue}
+                    onChange={(e) => {
+                      setQtyInputValue(e.target.value);
+                      if (e.target.value && Number(e.target.value) <= 0) {
+                        setQtyError("Số lượng phải lớn hơn 0");
+                      } else {
+                        setQtyError("");
+                      }
+                    }}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${qtyError ? 'border-red-500' : ''}`}
+                    autoFocus
+                  />
+                  {qtyError && <span className="text-xs text-red-500 mt-1 block">{qtyError}</span>}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
               <button
                 onClick={() => setQtyInputStage(null)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 rounded-lg py-2"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg py-2.5 transition"
               >
                 Hủy
               </button>
               <button
-                onClick={() => {
-                  handleCreateQr(
-                    qtyInputStage,
-                    qtyInputValue ? Number(qtyInputValue) : undefined
-                  );
-                  setQtyInputStage(null);
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2"
+                onClick={handleCreateQr}
+                disabled={prepareLoading || qrLoading || !!qtyError || Object.values(materialErrors).some(err => err !== "")}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium rounded-lg py-2.5 transition flex items-center justify-center gap-2"
               >
+                {qrLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                 Xác nhận
               </button>
             </div>
