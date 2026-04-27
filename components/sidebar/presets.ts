@@ -250,12 +250,12 @@ export const managerNavItems: NavItem[] = [
     icon: FiPackage,
     basePath: "/manager",
   },
-  {
-    path: "/requests-processing",
-    label: "Yêu cầu cần được duyệt",
-    icon: FiList,
-    basePath: "/manager",
-  },
+  // {
+  //   path: "/requests-processing",
+  //   label: "Yêu cầu cần được duyệt",
+  //   icon: FiList,
+  //   basePath: "/manager",
+  // },
   {
     path: "/requests",
     label: "Danh sách yêu cầu",

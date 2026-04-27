@@ -14,7 +14,7 @@ import { setCookie } from "cookies-next";
 import Image from "next/image";
 import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
-import { useCustomer } from "@/context/CustomerContext";
+import { useCustomer, Customer } from "@/context/CustomerContext";
 
 
 
@@ -140,11 +140,11 @@ export default function LoginPage() {
           router.replace("/warehouse");
           break;
         case 5:
-          const mockCustomer = {
+          const mockCustomer: Customer = {
             id: `CUST-${user_id}`,
-            phone: loginMethod === "username" ? data.username : "0123456789",
-            name: full_name || "Customer",
-            email: loginMethod === "email" ? data.email : "",
+            phone: (loginMethod === "username" ? data.username : "0123456789") || "0123456789",
+            name: (full_name as string) || "Customer",
+            email: (loginMethod === "email" ? data.email : "") || "",
             createdAt: new Date().toISOString(),
             addresses: []
           };
@@ -257,7 +257,7 @@ export default function LoginPage() {
           router.replace("/warehouse");
           break;
         case 5:
-          const googleMockCustomer = {
+          const googleMockCustomer: Customer = {
             id: `CUST-${role_id}`,
             phone: "0123456789",
             name: decoded.name || "Customer",
