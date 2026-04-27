@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCustomer } from "@/context/CustomerContext";
+import { useAuth } from "@/lib/auth-context";
 import {
     UserOutlined,
     SearchOutlined,
@@ -24,8 +25,16 @@ import Image from "next/image";
 
 export default function OverviewSidebar() {
     const [collapsed, setCollapsed] = useState(false);
-    const { customer, isLoggedIn, isLoading, logout } = useCustomer();
+    const { customer, isLoggedIn, isLoading, logout: customerLogout } = useCustomer();
+    const { logout: authLogout } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = () => {
+        customerLogout();
+        authLogout();
+        router.push('/login');
+    };
 
     const navItems = [
         { label: "Trang chủ", href: "/", icon: HomeOutlined },
@@ -164,7 +173,7 @@ export default function OverviewSidebar() {
                                         {customer?.name || "Khách hàng"}
                                     </p>
                                     <button
-                                        onClick={logout}
+                                        onClick={handleLogout}
                                         className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 mt-0.5 transition-colors"
                                     >
                                         <LogoutOutlined /> Đăng xuất
