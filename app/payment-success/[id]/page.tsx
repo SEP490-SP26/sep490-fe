@@ -234,7 +234,7 @@ export default function PaymentSuccess() {
                     order.status === 'Processing' ? 'bg-amber-100 text-amber-700' :
                       'bg-slate-100 text-slate-700'
                   }`}>
-                  {order.status === "Delivery" ? "Đang giao hàng" : order.status === "Paid" ? "Chờ bàn giao vận chuyển" : order.status}
+                  {order.status === "Delivery" ? "Đang giao hàng" : order.status === "Paid" ? "Chờ bàn giao vận chuyển" : order.status === "Completed" ? "Đã nhận hàng" : order.status}
                 </span>
               </div>
             </div>
@@ -346,7 +346,7 @@ export default function PaymentSuccess() {
                 <p className="text-2xl font-bold text-blue-600">{formatVND(order.deposit_amount)}</p>
               </div>
               <div className="bg-orange-50 rounded-xl p-4">
-                <p className="text-sm text-slate-600 mb-1">Còn lại</p>
+                <p className="text-sm text-slate-600 mb-1">Còn lại (đã thanh toán)</p>
                 <p className="text-2xl font-bold text-orange-600">{formatVND(remainingAmount)}</p>
               </div>
             </div>
