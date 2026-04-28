@@ -494,41 +494,62 @@ export default function ProductionDetailPage() {
   const handleQrScannedRef = useRef<any>(null);
 
   useEffect(() => {
-    let buffer = "";
-    let lastKeyTime = Date.now();
+  let buffer = "";
+  let lastKeyTime = 0;
+  let scanTimer: NodeJS.Timeout | null = null;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is interacting with an input or textarea
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA"
-      ) {
-        return;
-      }
+  const finishScan = () => {
+    const value = buffer.trim();
 
-      const currentTime = Date.now();
-      // Scanners type very fast. If delay > 50ms, assume it's normal typing and reset
-      if (currentTime - lastKeyTime > 50) {
-        buffer = "";
-      }
-      lastKeyTime = currentTime;
+    if (value.length >= 6 && handleQrScannedRef.current) {
+      handleQrScannedRef.current(value);
+    }
 
-      if (e.key === "Enter") {
-        if (buffer.length > 0 && handleQrScannedRef.current) {
-          handleQrScannedRef.current(buffer);
-          buffer = "";
-        }
-        return;
-      }
+    buffer = "";
+  };
 
-      if (e.key.length === 1) {
-        buffer += e.key;
-      }
-    };
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const tag = document.activeElement?.tagName;
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+    const now = Date.now();
+
+    // nếu ngắt quãng quá lâu mới reset
+    if (now - lastKeyTime > 200) {
+      buffer = "";
+    }
+
+    lastKeyTime = now;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      if (scanTimer) clearTimeout(scanTimer);
+
+      finishScan();
+      return;
+    }
+
+    if (e.key.length === 1) {
+      buffer += e.key;
+    }
+
+    // fallback nếu scanner không gửi Enter
+    if (scanTimer) clearTimeout(scanTimer);
+
+    scanTimer = setTimeout(() => {
+      finishScan();
+    }, 300);
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+    if (scanTimer) clearTimeout(scanTimer);
+  };
+}, []);
 
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
@@ -939,15 +960,27 @@ export default function ProductionDetailPage() {
       )}
 
       {/* =================== STAGE DETAILS =================== */}
-      <div className="space-y-4">
-        <h2 className="font-semibold flex items-center gap-2 text-gray-800 text-lg">
-          <BsGear className="w-5 h-5 text-blue-600" /> Chi tiết từng công
-          đoạn
-        </h2>
+      <h2 className="font-semibold flex items-center gap-2 text-gray-800 text-lg mb-4">
+        <BsGear className="w-5 h-5 text-blue-600" /> Chi tiết từng công đoạn
+      </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Column 1: Chưa sản xuất */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-50 border border-yellow-200">
+            <BsClock className="w-4 h-4 text-yellow-600" />
+            <span className="text-sm font-bold text-yellow-700">Chưa hoàn thành</span>
+            <span className="ml-auto text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">
+              {sortedStages?.filter(s => s.status !== "Finished").length ?? 0}
+            </span>
+          </div>
+          {sortedStages?.filter(s => s.status !== "Finished").length === 0 && (
+            <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">Tất cả công đoạn đã hoàn thành 🎉</div>
+          )}
 
-        {sortedStages?.map((stage, index) => {
+        {sortedStages?.filter(s => s.status !== "Finished").map((stage, index) => {
           const isCollapsed = collapsedStages[stage.process_id] ?? true;
-          const statusInfo = STATUS_MAP[stage.status];          return (
+          const statusInfo = STATUS_MAP[stage.status];
+          return (
             <div
               key={stage.process_id}
               className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}
@@ -1223,6 +1256,187 @@ export default function ProductionDetailPage() {
             </div>
           );
         })}
+        </div>
+
+        {/* Column 2: Đã hoàn thành */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-50 border border-green-200">
+            <BsCheckCircle className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-bold text-green-700">Đã hoàn thành</span>
+            <span className="ml-auto text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+              {sortedStages?.filter(s => s.status === "Finished").length ?? 0}
+            </span>
+          </div>
+          {sortedStages?.filter(s => s.status === "Finished").length === 0 && (
+            <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">Chưa có công đoạn hoàn thành</div>
+          )}
+          {sortedStages?.filter(s => s.status === "Finished").map((stage, index) => {
+            const isCollapsed = collapsedStages[stage.process_id] ?? true;
+            const statusInfo = STATUS_MAP[stage.status];
+            return (
+              <div
+                key={stage.process_id}
+                className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}
+              >
+                {/* Stage Header */}
+                <div
+                  className={`flex justify-between items-center px-5 py-4 cursor-pointer ${statusInfo.bg}`}
+                  onClick={() => toggleStage(stage.process_id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
+                        stage.status === "Finished"
+                          ? "bg-green-500 border-green-500 text-white"
+                          : stage.status === "InProcessing" ||
+                            stage.status === "Ready"
+                          ? "bg-white border-blue-500 text-blue-600"
+                          : "bg-white border-gray-300 text-gray-400"
+                      }`}
+                    >
+                      {stage.status === "Finished" ? (
+                        <BsCheckCircle className="w-4 h-4" />
+                      ) : (
+                        stage.seq_num
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                        {stage.process_name}
+                        <span className="text-gray-400 font-normal text-sm">
+                          (Phụ trách: Phòng {stage.process_name})
+                        </span>
+                      </h3>
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-md ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}
+                        >
+                          {statusInfo.label}
+                        </span>
+                        {stage.assigned_to_name && (
+                          <span className="text-xs text-gray-600 font-medium flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md border border-gray-200">
+                            <BsPerson className="w-3.5 h-3.5" />
+                            {stage.assigned_to_name}
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-md border border-blue-300 shadow-sm">
+                          <BsClock className="w-3.5 h-3.5" />
+                          Dự kiến: {formatDateTime(stage.planned_start_time)} - {formatDateTime(stage.planned_end_time)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isCollapsed ? (
+                      <BsChevronDown className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <BsChevronUp className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Stage Body */}
+                {!isCollapsed && (
+                  <div className="p-5 space-y-5">
+                    <div className="w-full grid grid-cols-1 gap-4">
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-100 h-full">
+                        <p className="text-xs text-green-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                          <BsClock className="w-3.5 h-3.5" />
+                          Thời gian thực tế
+                        </p>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                            <span className="text-gray-500 font-medium">Bắt đầu:</span>
+                            <span className="font-bold text-gray-800">
+                              {formatDateTime(stage.start_time)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                            <span className="text-gray-500 font-medium">Kết thúc:</span>
+                            <span className="font-bold text-gray-800">
+                              {formatDateTime(stage.end_time)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Output Product */}
+                    <div className="flex flex-col">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                        <BsBoxSeam className="w-4 h-4 text-green-500" />
+                        Thành phẩm công đoạn
+                      </h4>
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col justify-center flex-1">
+                        <p className="font-semibold text-green-800 mb-3">
+                          {stage.output_product.name}
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-white border border-green-200 rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-1">Ước tính</p>
+                            <p className="text-green-700">
+                              <span className="font-bold text-lg">
+                                {stage.output_product.estimated_quantity.toLocaleString("vi-VN")}
+                              </span>{" "}
+                              <span className="text-sm">{stage.output_product.unit}</span>
+                            </p>
+                          </div>
+                          <div className="bg-white border border-blue-200 rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-1">Thực tế</p>
+                            <p className="text-blue-700">
+                              <span className="font-bold text-lg">
+                                {stage.output_product.actual_quantity != null
+                                  ? stage.output_product.actual_quantity.toLocaleString("vi-VN")
+                                  : "—"}
+                              </span>{" "}
+                              <span className="text-sm">{stage.output_product.unit}</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Scan Logs */}
+                    {stage.logs && stage.logs.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                          <BsClipboardCheck className="w-4 h-4 text-purple-500" />
+                          Lịch sử scan
+                        </h4>
+                        <div className="border rounded-xl overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-purple-50">
+                              <tr>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Thời gian</th>
+                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Số lượng thành phẩm</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stage.logs.map((log, i) => (
+                                <tr key={i} className="border-t">
+                                  <td className="px-3 py-2.5">{formatDateTime(stage.end_time)}</td>
+                                  <td className="px-3 py-2.5 text-right text-green-600 font-bold">{log.qty_good}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">
+                      <p className="text-xs text-gray-400">
+                        {stage.last_scan_time
+                          ? `Lần scan cuối: ${formatDateTime(stage.last_scan_time)}`
+                          : "Chưa có dữ liệu scan"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* =================== MODALS =================== */}
@@ -1294,7 +1508,15 @@ export default function ProductionDetailPage() {
                 )}
 
                 <div className="mb-4">
-                  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Số lượng thành phẩm</h4>
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <h4 className="font-bold text-gray-700 uppercase">
+                      Số lượng thành phẩm
+                    </h4>
+
+                    <span className="text-gray-500">
+                      Đơn vị tính: {qtyInputStage?.output_product?.unit}
+                    </span>
+                  </div>
                   <input
                     type="number"
                     min={1}
