@@ -1550,7 +1550,7 @@ export default function ProductionDetailPage() {
                       </p>
                       
                       {stage.end_time && (() => {
-                        const isExpired = new Date().getTime() - new Date(stage.end_time).getTime() > 15 * 60 * 1000;
+                        const isExpired = new Date().getTime() - new Date(stage.end_time).getTime() > 5 * 60 * 1000;
                         return (
                           <button
                             onClick={(e) => {
