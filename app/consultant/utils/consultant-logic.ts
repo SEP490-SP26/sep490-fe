@@ -285,5 +285,6 @@ export const mapToOrderEstimationResult = (
     lamination_material_id: additionalSpecs?.lamination_material_id ?? null,
     lamination_material_code: additionalSpecs?.lamination_material_code ?? null,
     lamination_material_name: additionalSpecs?.lamination_material_name ?? null,
+    number_of_plates: additionalSpecs?.number_of_plates || 0,
   };
 };

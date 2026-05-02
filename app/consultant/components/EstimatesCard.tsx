@@ -243,6 +243,35 @@ export default function EstimatesCard({
                           </span>
                         </div>
                       </div>
+
+                      {form?.getFieldValue("number_of_plates") > 0 && (() => {
+                        const numberOfPlates = form.getFieldValue("number_of_plates");
+                        const plateWaste = numberOfPlates < 5 ? 1 : 2;
+                        const totalPlates = numberOfPlates + plateWaste;
+                        return (
+                          <>
+                            <div className="col-span-2 border-t border-green-200 pt-2 mt-1"></div>
+                            <div className="text-gray-600">Số bản kẽm:</div>
+                            <div className="font-medium text-right text-gray-800">
+                              {numberOfPlates} bản
+                            </div>
+                            <div className="text-gray-600">Kẽm hao phí ralo:</div>
+                            <div className="font-medium text-right text-orange-600">
+                              +{plateWaste} bản
+                            </div>
+                            <div className="col-span-2">
+                              <div className="flex justify-between items-center mt-1">
+                                <span className="text-gray-700 font-semibold">
+                                  Tổng kẽm tính tiền:
+                                </span>
+                                <span className="font-bold text-lg text-green-700">
+                                  {totalPlates} bản
+                                </span>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
