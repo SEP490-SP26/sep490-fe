@@ -564,6 +564,8 @@ export interface DetailedProductionEstimation {
   contract_file_path: string;
   contract_uploaded_at: string | null; // ISO Date
 
+  number_of_plates: number;
+
   // --- Chi tiết chi phí nhân công theo bảng giá ---
   process_costs: ProcessCostItem[];
 }

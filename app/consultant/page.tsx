@@ -1617,6 +1617,7 @@ function ConsultantForm() {
                 lamination_material_id: laminationMat?.material_id ?? null,
                 lamination_material_code: laminationMat?.code ?? null,
                 lamination_material_name: laminationMat?.name ?? null,
+                number_of_plates: quote.number_of_plates > 0 ? quote.number_of_plates + (quote.number_of_plates < 5 ? 1 : 2) : 0,
               }
             );
 
@@ -1743,6 +1744,7 @@ function ConsultantForm() {
               lamination_material_id: adjustLaminationMat?.material_id ?? null,
               lamination_material_code: adjustLaminationMat?.code ?? null,
               lamination_material_name: adjustLaminationMat?.name ?? null,
+              number_of_plates: form.getFieldValue("number_of_plates") > 0 ? form.getFieldValue("number_of_plates") + (form.getFieldValue("number_of_plates") < 5 ? 1 : 2) : 0,
             }
           );
 

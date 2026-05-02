@@ -753,7 +753,13 @@ export default function ConsultantRequestDetailPage() {
                                         {orderDetail.coating_type && orderDetail.coating_type !== "NONE" && <Descriptions.Item label="Loại phủ" span={1}><Text strong className="text-slate-800">{formatCoatingType(orderDetail.coating_type)}</Text></Descriptions.Item>}
                                         {orderDetail.wave_type && orderDetail.wave_type !== "NONE" && <Descriptions.Item label="Kiểu sóng" span={1}><Text strong className="text-slate-800">{orderDetail.wave_type}</Text></Descriptions.Item>}
                                         {orderDetail.wave_alternative && <Descriptions.Item label="Sóng thay thế" span={1}><Tag color="amber" className="text-amber-600 m-0 border-0 rounded px-2">{orderDetail.wave_alternative}</Tag></Descriptions.Item>}
-                                        {orderDetail.number_of_plates > 0 && <Descriptions.Item label="Số kẽm" span={1}><Text strong className="text-slate-800">{orderDetail.number_of_plates}</Text></Descriptions.Item>}
+                                        {orderDetail.number_of_plates > 0 && (
+                                            <Descriptions.Item label="Số kẽm" span={1}>
+                                                <Text strong className="text-slate-800">
+                                                    {orderDetail.number_of_plates} <span className="text-xs text-orange-600 font-medium">(+{orderDetail.number_of_plates < 5 ? 1 : 2} hao phí)</span>
+                                                </Text>
+                                            </Descriptions.Item>
+                                        )}
                                         {orderDetail.ink_type_names && orderDetail.ink_type_names.length > 0 && (
                                             <Descriptions.Item label="Loại mực" span={2}>
                                                 <Space wrap size={[4, 4]}>
