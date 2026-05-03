@@ -119,8 +119,15 @@ export default function ProductionDetail() {
           </div>
           <button
             onClick={handleConfirmImporting}
-            disabled={isConfirming}
-            className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed w-fit"
+            disabled={isConfirming || !detailData?.import_recieve_path}
+            className="
+              bg-green-600 text-white px-6 py-2.5 rounded-lg
+              hover:bg-green-700
+              disabled:bg-gray-400 disabled:hover:bg-gray-400
+              disabled:text-gray-200
+              transition-colors font-medium flex items-center gap-2 shadow-sm
+              disabled:cursor-not-allowed w-fit
+            "
           >
             <BiPackage className="w-5 h-5" />
             {isConfirming ? "Đang xử lý..." : "Báo cáo nhập kho"}
@@ -144,7 +151,7 @@ export default function ProductionDetail() {
             <div>
               <div className="text-sm text-gray-500 mb-1">Quy cách đóng gói</div>
               <div className="font-medium text-gray-900 flex items-center gap-2">
-                <BiUser className="text-gray-400" /> {detailData.customer_name}
+                {detailData.packaging_standard}
               </div>
             </div>
             <div>
