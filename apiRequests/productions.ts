@@ -38,6 +38,26 @@ interface ProductionStatusResponse {
   is_production_ready: boolean;
   has_enough_material: boolean;
   has_free_machine: boolean;
+  production_id: number;
+  product_type_id: number;
+  request_print_width_mm: number;
+  request_print_length_mm: number;
+  order_quantity: number;
+  is_full_process: boolean;
+  has_matched_sub_product: boolean;
+  sub_product_message: string;
+  matched_sub_product: {
+    id: number;
+    product_type_id: number;
+    product_type_name: string;
+    width: number;
+    length: number;
+    product_process: string;
+    quantity: number;
+    is_active: boolean;
+    description: string;
+    updated_at: string;
+  },
   materials: [
     {
       material_id: number;
@@ -89,6 +109,9 @@ export const productionsApi = {
   startReady: (orderId: number) =>
     http.get<ProductionStatusResponse>(`/api/Productions/start-ready/${orderId}`),
 
-  updateProduction: (orderId: number, body: { is_production_ready: boolean }) =>
+  updateProduction: (orderId: number, body: { is_production_ready: boolean, is_full_process: boolean, sub_id: number | null }) =>
     http.put(`/api/Productions/start-ready/${orderId}`, body),
+
+  generateImportReceive: (body: { order_id: number }) =>
+    http.post(`/api/Productions/generate-import-receive`, body),
 };

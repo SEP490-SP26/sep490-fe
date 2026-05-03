@@ -228,6 +228,12 @@ export const generalManagerNavItems: NavItem[] = [
     basePath: "/general-manager",
   },
   {
+    path: "/import-receipt",
+    label: "Nhập kho thành phẩm",
+    icon: FiPackage,
+    basePath: "/general-manager",
+  },
+  {
     path: "/",
     label: "Đăng xuất",
     icon: FiLogOut,

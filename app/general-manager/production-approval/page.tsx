@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, Input, Button, Tag, Modal, Spin, message } from "antd";
+import { Table, Input, Button, Tag, Modal, Spin, message, Tabs } from "antd";
 import { SearchOutlined, ReloadOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { orderApi } from "@/apiRequests/order";
 import { productionsApi } from "@/apiRequests/productions";
@@ -15,6 +15,7 @@ function ProductionApprovalContent() {
   const [searchText, setSearchText] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('1');
 
   const { data: apiData, isLoading, refetch } = useQuery({
     queryKey: ["orders", "approval-list"],
@@ -45,8 +46,8 @@ function ProductionApprovalContent() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async (orderId: number) => {
-      return await productionsApi.updateProduction(orderId, { is_production_ready: true });
+    mutationFn: async ({ orderId, is_full_process, sub_id }: { orderId: number, is_full_process: boolean, sub_id: number | null }) => {
+      return await productionsApi.updateProduction(orderId, { is_production_ready: true, is_full_process, sub_id });
     },
     onSuccess: () => {
       message.success("Đã duyệt đơn đưa vào sản xuất thành công!");
@@ -73,6 +74,7 @@ function ProductionApprovalContent() {
 
   const handleCheckConditions = (orderId: number) => {
     setSelectedOrderId(orderId);
+    setActiveTab('1');
     setIsModalVisible(true);
   };
 
@@ -209,16 +211,29 @@ function ProductionApprovalContent() {
         style={{ top: 20 }}
         footer={[
           <Button key="cancel" onClick={() => setIsModalVisible(false)}>Hủy bỏ</Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={approveMutation.isPending}
-            onClick={() => selectedOrderId && approveMutation.mutate(selectedOrderId)}
-            disabled={!(statusData?.has_enough_material && statusData?.has_free_machine)}
-            className={(statusData?.has_enough_material && statusData?.has_free_machine) ? "!bg-green-600 hover:bg-green-700" : "!bg-gray-400 !text-white"}
-          >
-            Xác nhận đưa vào sản xuất
-          </Button>,
+          activeTab === '1' ? (
+            <Button
+              key="submit-full"
+              type="primary"
+              loading={approveMutation.isPending}
+              onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: true, sub_id: null })}
+              disabled={!(statusData?.has_enough_material && statusData?.has_free_machine)}
+              className={(statusData?.has_enough_material && statusData?.has_free_machine) ? "!bg-green-600 hover:bg-green-700" : "!bg-gray-400 !text-white"}
+            >
+              Xác nhận sản xuất (Từ vật tư)
+            </Button>
+          ) : (
+            <Button
+              key="submit-sub"
+              type="primary"
+              loading={approveMutation.isPending}
+              onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: false, sub_id: statusData?.matched_sub_product?.id || null })}
+              disabled={!statusData?.has_matched_sub_product}
+              className={statusData?.has_matched_sub_product ? "!bg-blue-600 hover:bg-blue-700" : "!bg-gray-400 !text-white"}
+            >
+              Xác nhận sản xuất (Từ bán thành phẩm)
+            </Button>
+          )
         ]}
       >
         <div className="py-4">
@@ -228,7 +243,15 @@ function ProductionApprovalContent() {
               <div className="text-gray-500">Đang kiểm tra dữ liệu hệ thống kho và máy móc...</div>
             </div>
           ) : statusData ? (
-            <div className="space-y-6 text-base">
+            <Tabs 
+              activeKey={activeTab} 
+              onChange={setActiveTab}
+              items={[
+                {
+                  key: '1',
+                  label: 'Sản xuất từ nguyên vật liệu',
+                  children: (
+                    <div className="space-y-6 text-base mt-2">
                {/* 1. Tổng quan */}
                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-2 gap-4 mb-4">
@@ -335,7 +358,56 @@ function ProductionApprovalContent() {
                     </div>
                  </div>
                )}
-            </div>
+                    </div>
+                  )
+                },
+                {
+                  key: '2',
+                  label: 'Sản xuất từ bán thành phẩm',
+                  children: (
+                    <div className="space-y-6 text-base mt-2">
+                      {statusData.has_matched_sub_product && statusData.matched_sub_product ? (
+                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="mb-4 text-green-600 font-medium text-lg">
+                            {statusData.sub_product_message || "Đã tìm thấy bán thành phẩm phù hợp với quy cách của đơn hàng này."}
+                          </div>
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
+                              <span className="text-gray-500 text-sm">Loại sản phẩm</span>
+                              <span className="font-semibold text-gray-800">{statusData.matched_sub_product.product_type_name}</span>
+                            </div>
+                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
+                              <span className="text-gray-500 text-sm">Số lượng hiện có</span>
+                              <span className="font-bold text-blue-600 text-lg">{(statusData.matched_sub_product.quantity || 0).toLocaleString("vi-VN")}</span>
+                            </div>
+                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
+                              <span className="text-gray-500 text-sm">Kích thước (Rộng x Dài)</span>
+                              <span className="font-semibold text-gray-800">{statusData.matched_sub_product.width} x {statusData.matched_sub_product.length} mm</span>
+                            </div>
+                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
+                              <span className="text-gray-500 text-sm">Công đoạn đã hoàn thành</span>
+                              <span className="font-semibold text-gray-800">{statusData.matched_sub_product.product_process}</span>
+                            </div>
+                            {statusData.matched_sub_product.description && (
+                              <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100 col-span-2">
+                                <span className="text-gray-500 text-sm">Mô tả thêm</span>
+                                <span className="text-gray-800">{statusData.matched_sub_product.description}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg bg-gray-50 mt-4">
+                          <div className="text-gray-500 text-lg">
+                            {statusData.sub_product_message || "Không có bán thành phẩm nào phù hợp với quy cách của đơn hàng này."}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+              ]}
+            />
           ) : (
             <div className="text-center text-red-500 p-8 font-bold border border-red-200 bg-red-50 rounded-xl">
                Đã xảy ra lỗi, Không thể lấy thông tin trạng thái sản xuất. Xin vui lòng thử lại sau.

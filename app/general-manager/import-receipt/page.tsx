@@ -1,0 +1,226 @@
+"use client";
+
+import React, { useEffect, useMemo, useState, Suspense } from "react";
+import {
+  Table,
+  Tag,
+  DatePicker,
+  Input,
+  Space,
+  Button,
+  Spin,
+  message,
+  Popconfirm
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { SearchOutlined, CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons";
+import dayjs, { Dayjs } from "dayjs";
+import { productionsApi } from "@/apiRequests/productions";
+import { orderApi } from "@/apiRequests/order";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
+type ProductionStatus = "Finished" | "InProcessing" | "Scheduled";
+
+interface ProductionOrder {
+  order_id: number;
+  code: string;
+  customer_name: string;
+  product_name: string;
+  quantity: number;
+  delivery_date: string;
+  current_stage: string | null;
+  production_status: ProductionStatus;
+}
+
+interface ProductionResponse {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  data: ProductionOrder[];
+}
+
+function ImportReceiptContent() {
+  const queryClient = useQueryClient();
+  const [customerKeyword, setCustomerKeyword] = useState("");
+  const [deliveryRange, setDeliveryRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+
+  const { data: apiData, isLoading, refetch } = useQuery({
+    queryKey: ["orders", "finished-list"],
+    queryFn: async () => {
+      try {
+        const response = await orderApi.getList(1, 1000);
+        return Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        return [];
+      }
+    },
+  });
+
+  const generateImportMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      return await productionsApi.generateImportReceive({ order_id: orderId });
+    },
+    onSuccess: () => {
+      message.success("Tạo phiếu nhập kho thành công!");
+      refetch();
+    },
+    onError: (error: any) => {
+      message.error(error?.response?.data?.message || "Có lỗi xảy ra khi tạo phiếu nhập kho.");
+    }
+  });
+
+  const filteredData = useMemo(() => {
+    return (apiData || [])
+      .filter((o: any) => o.status === "Finished")
+      .filter((o: any) =>
+        customerKeyword
+          ? o.customer_name?.toLowerCase().includes(customerKeyword.toLowerCase()) ||
+            o.code?.toLowerCase().includes(customerKeyword.toLowerCase())
+          : true
+      )
+      .filter((o: any) => {
+        if (!deliveryRange?.[0] || !deliveryRange?.[1]) return true;
+        const d = dayjs(o.delivery_date);
+        return (
+          d.isSameOrAfter(deliveryRange[0], "day") &&
+          d.isSameOrBefore(deliveryRange[1], "day")
+        );
+      });
+  }, [apiData, customerKeyword, deliveryRange]);
+
+  const columns: ColumnsType<ProductionOrder> = [
+    {
+      title: "STT",
+      key: "stt",
+      width: 60,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: "Mã đơn",
+      dataIndex: "code",
+      key: "code",
+      width: 120,
+      render: (text) => <span className="font-semibold text-blue-600">{text}</span>,
+    },
+    { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
+    { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
+    {
+      title: "Số lượng",
+      dataIndex: "quantity",
+      key: "quantity",
+      align: "right",
+      render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>,
+    },
+    {
+      title: "Ngày hoàn thành",
+      dataIndex: "delivery_date",
+      key: "delivery_date",
+      render: (v: string) => (v ? dayjs(v).format("DD/MM/YYYY") : "N/A"),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "production_status",
+      key: "status",
+      render: () => <Tag color="green">Hoàn thành</Tag>,
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 180,
+      align: "center",
+      render: (_, record) => (
+        <Popconfirm
+          title="Tạo phiếu nhập kho"
+          description="Bạn có chắc chắn muốn tạo phiếu nhập kho cho sản phẩm này không?"
+          onConfirm={() => generateImportMutation.mutate(record.order_id || (record as any)._id)}
+          okText="Tạo phiếu"
+          cancelText="Hủy"
+          okButtonProps={{ loading: generateImportMutation.isPending }}
+        >
+          <Button
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            loading={generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)}
+          >
+            Duyệt nhập kho
+          </Button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
+      <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
+        <h1 className="text-2xl font-bold text-gray-900">Duyệt & Tạo phiếu nhập kho</h1>
+        <Button
+          type="primary"
+          icon={<ReloadOutlined />}
+          onClick={() => refetch()}
+          className="bg-blue-600 shadow-sm"
+        >
+          Làm mới
+        </Button>
+      </div>
+
+      <div className="p-6">
+        <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <Space wrap className="flex-1">
+            <Input
+              placeholder="Tìm mã đơn hoặc khách hàng..."
+              prefix={<SearchOutlined className="text-gray-400" />}
+              value={customerKeyword}
+              onChange={(e) => setCustomerKeyword(e.target.value)}
+              className="sm:w-[300px] shadow-sm"
+              size="large"
+              allowClear
+            />
+            <DatePicker.RangePicker
+              format="DD/MM/YYYY"
+              placeholder={["Từ ngày", "Đến ngày"]}
+              onChange={(dates) => setDeliveryRange(dates as any)}
+              size="large"
+              className="shadow-sm"
+            />
+          </Space>
+          <div className="text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 whitespace-nowrap">
+            Tổng số: <span className="font-bold text-blue-700">{filteredData.length}</span> đơn hoàn thành
+          </div>
+        </div>
+
+        <Table
+          columns={columns as any}
+          dataSource={filteredData}
+          rowKey={(record: any) => record.order_id || record._id || record.code}
+          loading={isLoading}
+          pagination={{ pageSize: 12, showSizeChanger: true }}
+          bordered
+          size="middle"
+          scroll={{ x: 900 }}
+          className="shadow-sm rounded-lg overflow-hidden border border-gray-200"
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function ImportReceiptPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-[80vh]">
+          <Spin size="large" />
+        </div>
+      }
+    >
+      <ImportReceiptContent />
+    </Suspense>
+  );
+}
