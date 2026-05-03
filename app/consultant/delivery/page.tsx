@@ -207,6 +207,15 @@ export default function DeliveryPage() {
       ),
     },
     {
+      title: "Mã đơn",
+      dataIndex: "order_id",
+      key: "order_id",
+      width: 100,
+      render: (id: number) => (
+        <span className="font-mono text-gray-500 text-xs">#{id}</span>
+      ),
+    },
+    {
       title: "Khách Hàng",
       dataIndex: "customer_name",
       key: "customer_name",

@@ -231,10 +231,10 @@ export default function PaymentSuccess() {
               <div className="flex justify-between py-3 border-b border-slate-100">
                 <span className="text-slate-600">Trạng thái</span>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Finished' ? 'bg-green-100 text-green-700' :
-                    order.status === 'Processing' ? 'bg-amber-100 text-amber-700' :
-                      'bg-slate-100 text-slate-700'
+                  order.status === 'Processing' ? 'bg-amber-100 text-amber-700' :
+                    'bg-slate-100 text-slate-700'
                   }`}>
-                  {order.status === "Delivery" ? "Đang giao hàng" : order.status === "Paid" ? "Chờ bàn giao vận chuyển" : order.status === "Completed" ? "Đã nhận hàng" : order.status}
+                  {order.status === "Delivery" ? "Đang giao hàng" : order.status === "Paid" ? "Chờ bàn giao vận chuyển" : order.status === "Completed" ? "Đã nhận hàng" : "Đã thanh toán"}
                 </span>
               </div>
             </div>
