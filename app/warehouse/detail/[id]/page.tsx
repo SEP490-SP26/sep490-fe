@@ -4,8 +4,8 @@ import { productionsApi } from "@/apiRequests/productions";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { BiArrowBack, BiCube, BiUser, BiCalendar, BiPackage, BiTransferAlt, BiCheckCircle, BiTimeFive, BiRightArrowAlt } from "react-icons/bi";
-import { FiPrinter, FiDroplet, FiSettings } from "react-icons/fi";
-import { Spin } from "antd";
+import { FiPrinter, FiDroplet, FiSettings, FiFileText } from "react-icons/fi";
+import { Spin, Modal } from "antd";
 import { useState } from "react";
 import { requestOrderApi } from "@/apiRequests/request";
 import { showErrorToast, showSuccessToast } from "@/utils/toastService";
@@ -15,6 +15,7 @@ export default function ProductionDetail() {
   const router = useRouter();
   const id = params.id as string;
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const { data: detailData, isPending, error } = useQuery({
     queryKey: ["production-detail", id],
@@ -101,6 +102,15 @@ export default function ProductionDetail() {
     }
   };
 
+  const getPreviewUrl = (url: string) => {
+    if (!url) return "";
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.endsWith('.doc') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.xls') || lowerUrl.endsWith('.xlsx')) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+
   return (
     <div className="max-w-7xl mx-auto pb-16">
       <div className="flex items-center gap-4 mb-8">
@@ -119,8 +129,15 @@ export default function ProductionDetail() {
           </div>
           <button
             onClick={handleConfirmImporting}
-            disabled={isConfirming}
-            className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed w-fit"
+            disabled={isConfirming || !detailData?.import_recieve_path}
+            className="
+              bg-green-600 text-white px-6 py-2.5 rounded-lg
+              hover:bg-green-700
+              disabled:bg-gray-400 disabled:hover:bg-gray-400
+              disabled:text-gray-200
+              transition-colors font-medium flex items-center gap-2 shadow-sm
+              disabled:cursor-not-allowed w-fit
+            "
           >
             <BiPackage className="w-5 h-5" />
             {isConfirming ? "Đang xử lý..." : "Báo cáo nhập kho"}
@@ -128,7 +145,7 @@ export default function ProductionDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-start">
         {/* General Info Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:col-span-2">
           <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
@@ -144,7 +161,7 @@ export default function ProductionDetail() {
             <div>
               <div className="text-sm text-gray-500 mb-1">Quy cách đóng gói</div>
               <div className="font-medium text-gray-900 flex items-center gap-2">
-                <BiUser className="text-gray-400" /> {detailData.customer_name}
+                {detailData.packaging_standard}
               </div>
             </div>
             <div>
@@ -159,7 +176,55 @@ export default function ProductionDetail() {
             </div>
           </div>
         </div>
+
+        {/* Preview Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col h-full min-h-[300px]">
+          <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <FiFileText className="w-5 h-5 text-indigo-500" />
+            Phiếu nhập kho
+          </h2>
+          {detailData.import_recieve_path ? (
+             <div className="flex-1 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex flex-col items-center justify-center relative group">
+                <iframe 
+                  src={getPreviewUrl(detailData.import_recieve_path)} 
+                  className="w-full h-full min-h-[250px] object-contain" 
+                  title="Phiếu nhập kho" 
+                />
+                <button 
+                  onClick={() => setIsPreviewModalOpen(true)}
+                  className="absolute inset-0 w-full h-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer border-none"
+                >
+                  <span className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium text-sm shadow-sm pointer-events-none">
+                    Xem chi tiết
+                  </span>
+                </button>
+             </div>
+          ) : (
+             <div className="flex-1 bg-gray-50 rounded-xl border border-gray-200 border-dashed flex flex-col items-center justify-center p-6 text-center">
+                <FiFileText className="w-8 h-8 text-gray-300 mb-2" />
+                <span className="text-gray-500 text-sm">Chưa có phiếu nhập kho</span>
+             </div>
+          )}
+        </div>
       </div>
+
+      <Modal
+        title="Xem trước phiếu nhập kho"
+        open={isPreviewModalOpen}
+        onCancel={() => setIsPreviewModalOpen(false)}
+        footer={null}
+        width={1000}
+        centered
+        destroyOnClose
+      >
+        <div className="w-full h-[75vh] mt-4">
+          <iframe
+            src={getPreviewUrl(detailData?.import_recieve_path)}
+            className="w-full h-full border-0 rounded-lg bg-gray-50"
+            title="Phiếu nhập kho chi tiết"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

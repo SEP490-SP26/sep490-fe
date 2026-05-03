@@ -24,7 +24,7 @@ import {
   BsArrowRight,
   BsClipboardCheck,
   BsEye,
-  BsXLg,
+  BsArrowReturnLeft,
   BsLayers,
 } from "react-icons/bs";
 
@@ -1565,7 +1565,7 @@ export default function ProductionDetailPage() {
                                 : "bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
                             }`}
                           >
-                            <BsXLg className="w-3.5 h-3.5" /> Hoàn tác báo cáo
+                            <BsArrowReturnLeft className="w-3.5 h-3.5" /> Hoàn tác báo cáo
                           </button>
                         );
                       })()}
@@ -1585,7 +1585,7 @@ export default function ProductionDetailPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl border border-blue-200 p-6 w-[400px] max-w-[95vw] shadow-lg max-h-[90vh] flex flex-col">
             <h3 className="font-semibold text-blue-700 mb-4 text-center">
-              Nhập thông tin hoàn thành
+              Nhập thông tin hoàn thành: {qtyInputStage?.process_name}
             </h3>
 
             {prepareLoading ? (
@@ -1594,57 +1594,120 @@ export default function ProductionDetailPage() {
               </div>
             ) : (
               <div className="overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: '60vh' }}>
-                {qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu đầu vào</h4>
-                    {qrPrepare.reference_inputs.map((ref: any, idx: number) => (
-                      <div key={idx} className="mb-2">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="font-semibold text-gray-800">{ref.input_name || ref.material_name || ref.name || "Nguyên liệu"}</span>
-                          <span className="text-gray-500">{ref.estimated_qty ?? ref.quantity} {ref.unit}</span>
-                        </div>
-                        <input
-                          type="text"
-                          value={`${ref.estimated_qty ?? ref.quantity ?? ""} ${ref.unit || ""}`.trim()}
-                          disabled
-                          className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-500 text-sm"
-                        />
+                {(() => {
+                  const combinedInputs: { name: string; quantity: number | string; unit: string }[] = [];
+                  
+                  if (qtyInputStage?.input_materials) {
+                    qtyInputStage.input_materials.forEach((mat: any) => {
+                      combinedInputs.push({
+                        name: mat.name || mat.code || "Nguyên liệu",
+                        quantity: mat.estimated_quantity ?? mat.quantity,
+                        unit: mat.unit
+                      });
+                    });
+                  }
+                  
+                  if (qrPrepare?.reference_inputs) {
+                    qrPrepare.reference_inputs.forEach((ref: any) => {
+                      const name = ref.input_name || ref.material_name || ref.name || "Nguyên liệu";
+                      const exists = combinedInputs.some((m) => m.name.toLowerCase() === name.toLowerCase());
+                      if (!exists) {
+                        combinedInputs.push({
+                          name: name,
+                          quantity: ref.estimated_qty ?? ref.quantity,
+                          unit: ref.unit
+                        });
+                      }
+                    });
+                  }
+                  
+                  if (combinedInputs.length === 0) return null;
+                  
+                  return (
+                    <div className="mb-4">
+                      <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu đầu vào</h4>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Số lượng</th>
+                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">ĐVT</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {combinedInputs.map((item, idx) => (
+                              <tr key={idx} className="border-t">
+                                <td className="px-3 py-2 text-gray-800 font-medium">{item.name}</td>
+                                <td className="px-3 py-2 text-right text-gray-600">
+                                  {typeof item.quantity === "number" ? item.quantity.toLocaleString("vi-VN") : item.quantity}
+                                </td>
+                                <td className="px-3 py-2 text-center text-gray-500">{item.unit}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
 
                 {qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
                   <div className="mb-4">
                     <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu dư</h4>
-                    {qrPrepare.consumable_materials.map((mat: any) => (
-                      <div key={mat.material_id} className="mb-2">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="font-semibold text-gray-800">{mat.material_name}</span>
-                          <span className="text-gray-500">Đã xuất: {mat.estimated_input_qty} {mat.unit}</span>
-                        </div>
-                        <input
-                          type="number"
-                          placeholder="Nhập lượng dư (Mặc định: 0)"
-                          value={materialQtys[mat.material_id] ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setMaterialQtys(prev => ({ ...prev, [mat.material_id]: val }));
-                            if (val && Number(val) > mat.estimated_input_qty) {
-                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Tối đa ${mat.estimated_input_qty}` }));
-                            } else if (val && Number(val) < 0) {
-                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
-                            } else {
-                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
-                            }
-                          }}
-                          className={`w-full border rounded-lg px-3 py-2 text-sm ${materialErrors[mat.material_id] ? 'border-red-500' : ''}`}
-                        />
-                        {materialErrors[mat.material_id] && <span className="text-xs text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
-                      </div>
-                    ))}
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
+                            <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Đã xuất</th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {qrPrepare.consumable_materials.map((mat: any) => (
+                            <tr key={mat.material_id} className="border-t">
+                              <td className="px-3 py-2 text-gray-800 font-medium">{mat.material_name}</td>
+                              <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
+                                {mat.estimated_input_qty} {mat.unit}
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  placeholder="0"
+                                  value={materialQtys[mat.material_id] ?? ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setMaterialQtys(prev => ({ ...prev, [mat.material_id]: val }));
+                                    if (val && Number(val) > mat.estimated_input_qty) {
+                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Tối đa ${mat.estimated_input_qty}` }));
+                                    } else if (val && Number(val) < 0) {
+                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
+                                    } else {
+                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                                    }
+                                  }}
+                                  className={`w-full border rounded-lg px-2 py-1.5 text-sm ${materialErrors[mat.material_id] ? 'border-red-500' : ''}`}
+                                />
+                                {materialErrors[mat.material_id] && <span className="text-[10px] text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
+
+                <div className="mb-4">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Thành phẩm đầu ra ước tính</h4>
+                  <div className="flex justify-between items-center text-sm bg-green-50 px-3 py-2 border border-green-200 rounded-lg">
+                    <span className="font-semibold text-green-800">{qtyInputStage?.output_product?.name}</span>
+                    <span className="font-bold text-green-700">
+                      {qtyInputStage?.output_product?.estimated_quantity?.toLocaleString("vi-VN")} {qtyInputStage?.output_product?.unit}
+                    </span>
+                  </div>
+                </div>
 
                 <div className="mb-4">
                   <div className="flex justify-between items-center text-xs mb-2">
@@ -1736,7 +1799,7 @@ export default function ProductionDetailPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl border border-red-200 p-6 w-[400px] max-w-[95vw] shadow-lg flex flex-col">
             <h3 className="font-semibold text-red-600 mb-4 text-center flex items-center justify-center gap-2">
-              <BsXLg className="w-5 h-5" /> Hoàn tác báo cáo
+              <BsArrowReturnLeft className="w-5 h-5" /> Hoàn tác báo cáo
             </h3>
             <p className="text-sm text-gray-600 mb-4 text-center">
               Bạn có chắc chắn muốn hoàn tác báo cáo của công đoạn <span className="font-semibold text-gray-800">{cancelStage.process_name}</span> không?
@@ -1790,7 +1853,7 @@ export default function ProductionDetailPage() {
               }}
               className="absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-600 hover:text-red-500 hover:bg-red-50 transition"
             >
-              <BsXLg className="w-4 h-4" />
+              <BsArrowReturnLeft className="w-4 h-4" />
             </button>
             <img
               src={production.ready_print_file}

@@ -300,18 +300,6 @@ export default function InventoryManagement() {
                       </div>
                     )}
                   </div>
-                  
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleConfirmImporting(req.order_id);
-                    }}
-                    disabled={isConfirmingId === req.order_id}
-                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <BiPackage className="w-4 h-4" />
-                    {isConfirmingId === req.order_id ? "Đang xử lý..." : "Nhập kho"}
-                  </button>
                 </div>
               ))}
               {importingRequests.length > ITEMS_PER_PAGE && (
@@ -358,7 +346,7 @@ export default function InventoryManagement() {
                 po.etaDate
                   ? po.etaDate
                   : new Date(new Date(po.createdAt).setDate(
-                      new Date(po.createdAt).getDate() + 3
+                      new Date(po.createdAt).getDate()
                     ))
               );
               
@@ -397,7 +385,6 @@ export default function InventoryManagement() {
                       )}
                     </div>
                   </div>
-
                   <button
                     onClick={() => handleReceive(po.purchaseId)}
                     disabled={isDisabled}
