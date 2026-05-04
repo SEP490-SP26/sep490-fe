@@ -24,7 +24,7 @@ import {
   BsArrowRight,
   BsClipboardCheck,
   BsEye,
-  BsXLg,
+  BsArrowReturnLeft,
   BsLayers,
 } from "react-icons/bs";
 
@@ -386,11 +386,7 @@ function ProductionTimeline({ stages }: { stages: ProductionStage[] }) {
                     : "bg-white border-gray-300 text-gray-400"
                 }`}
               >
-                {isDone ? (
-                  <BsCheckCircle className="w-5 h-5" />
-                ) : (
-                  index + 1
-                )}
+                {stage.seq_num}
               </div>
 
               <span
@@ -490,45 +486,70 @@ export default function ProductionDetailPage() {
   }>({ open: false, type: "success", message: "" });
   const [showPreview, setShowPreview] = useState(false);
 
+  const [cancelStage, setCancelStage] = useState<ProductionStage | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+
   // Global Scanner Detection
   const handleQrScannedRef = useRef<any>(null);
 
   useEffect(() => {
-    let buffer = "";
-    let lastKeyTime = Date.now();
+  let buffer = "";
+  let lastKeyTime = 0;
+  let scanTimer: NodeJS.Timeout | null = null;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is interacting with an input or textarea
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA"
-      ) {
-        return;
-      }
+  const finishScan = () => {
+    const value = buffer.trim();
 
-      const currentTime = Date.now();
-      // Scanners type very fast. If delay > 50ms, assume it's normal typing and reset
-      if (currentTime - lastKeyTime > 50) {
-        buffer = "";
-      }
-      lastKeyTime = currentTime;
+    if (value.length >= 6 && handleQrScannedRef.current) {
+      handleQrScannedRef.current(value);
+    }
 
-      if (e.key === "Enter") {
-        if (buffer.length > 0 && handleQrScannedRef.current) {
-          handleQrScannedRef.current(buffer);
-          buffer = "";
-        }
-        return;
-      }
+    buffer = "";
+  };
 
-      if (e.key.length === 1) {
-        buffer += e.key;
-      }
-    };
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const tag = document.activeElement?.tagName;
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+    const now = Date.now();
+
+    // nếu ngắt quãng quá lâu mới reset
+    if (now - lastKeyTime > 200) {
+      buffer = "";
+    }
+
+    lastKeyTime = now;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      if (scanTimer) clearTimeout(scanTimer);
+
+      finishScan();
+      return;
+    }
+
+    if (e.key.length === 1) {
+      buffer += e.key;
+    }
+
+    // fallback nếu scanner không gửi Enter
+    if (scanTimer) clearTimeout(scanTimer);
+
+    scanTimer = setTimeout(() => {
+      finishScan();
+    }, 300);
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+    if (scanTimer) clearTimeout(scanTimer);
+  };
+}, []);
 
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
@@ -705,6 +726,39 @@ export default function ProductionDetailPage() {
       });
     } finally {
       setQrLoading(false);
+    }
+  };
+
+  const handleCancelFinish = async () => {
+    if (!cancelStage) return;
+    if (!cancelReason.trim()) {
+      setPopup({ open: true, type: "error", message: "Vui lòng nhập lý do hoàn tác" });
+      return;
+    }
+    try {
+      setCancelLoading(true);
+      await tasksApi.cancelFinish(cancelStage.task_id, { reason: cancelReason });
+      setCancelStage(null);
+      setCancelReason("");
+      setPopup({
+        open: true,
+        type: "success",
+        message: "Hoàn tác báo cáo thành công",
+      });
+      setTimeout(async () => {
+        setPopup((p) => ({ ...p, open: false }));
+        await queryClient.invalidateQueries({
+          queryKey: ["production-detail", id],
+        });
+      }, 900);
+    } catch (err: any) {
+      setPopup({
+        open: true,
+        type: "error",
+        message: err.message || "Lỗi khi hoàn tác báo cáo",
+      });
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -939,15 +993,27 @@ export default function ProductionDetailPage() {
       )}
 
       {/* =================== STAGE DETAILS =================== */}
-      <div className="space-y-4">
-        <h2 className="font-semibold flex items-center gap-2 text-gray-800 text-lg">
-          <BsGear className="w-5 h-5 text-blue-600" /> Chi tiết từng công
-          đoạn
-        </h2>
+      <h2 className="font-semibold flex items-center gap-2 text-gray-800 text-lg mb-4">
+        <BsGear className="w-5 h-5 text-blue-600" /> Chi tiết từng công đoạn
+      </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Column 1: Chưa sản xuất */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-50 border border-yellow-200">
+            <BsClock className="w-4 h-4 text-yellow-600" />
+            <span className="text-sm font-bold text-yellow-700">Chưa hoàn thành</span>
+            <span className="ml-auto text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">
+              {sortedStages?.filter(s => s.status !== "Finished").length ?? 0}
+            </span>
+          </div>
+          {sortedStages?.filter(s => s.status !== "Finished").length === 0 && (
+            <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">Tất cả công đoạn đã hoàn thành 🎉</div>
+          )}
 
-        {sortedStages?.map((stage, index) => {
+        {sortedStages?.filter(s => s.status !== "Finished").map((stage, index) => {
           const isCollapsed = collapsedStages[stage.process_id] ?? true;
-          const statusInfo = STATUS_MAP[stage.status];          return (
+          const statusInfo = STATUS_MAP[stage.status];
+          return (
             <div
               key={stage.process_id}
               className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}
@@ -968,11 +1034,7 @@ export default function ProductionDetailPage() {
                         : "bg-white border-gray-300 text-gray-400"
                     }`}
                   >
-                    {stage.status === "Finished" ? (
-                      <BsCheckCircle className="w-4 h-4" />
-                    ) : (
-                      index + 1
-                    )}
+                      {stage.seq_num}
                   </div>
 
                   <div className="flex flex-col gap-1.5">
@@ -1223,6 +1285,297 @@ export default function ProductionDetailPage() {
             </div>
           );
         })}
+        </div>
+
+        {/* Column 2: Đã hoàn thành */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-50 border border-green-200">
+            <BsCheckCircle className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-bold text-green-700">Đã hoàn thành</span>
+            <span className="ml-auto text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+              {sortedStages?.filter(s => s.status === "Finished").length ?? 0}
+            </span>
+          </div>
+          {sortedStages?.filter(s => s.status === "Finished").length === 0 && (
+            <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">Chưa có công đoạn hoàn thành</div>
+          )}
+          {sortedStages?.filter(s => s.status === "Finished").map((stage, index) => {
+            const isCollapsed = collapsedStages[stage.process_id] ?? true;
+            const statusInfo = STATUS_MAP[stage.status];
+            return (
+              <div
+                key={stage.process_id}
+                className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}
+              >
+                {/* Stage Header */}
+                <div
+                  className={`flex justify-between items-center px-5 py-4 cursor-pointer ${statusInfo.bg}`}
+                  onClick={() => toggleStage(stage.process_id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
+                        stage.status === "Finished"
+                          ? "bg-green-500 border-green-500 text-white"
+                          : stage.status === "InProcessing" ||
+                            stage.status === "Ready"
+                          ? "bg-white border-blue-500 text-blue-600"
+                          : "bg-white border-gray-300 text-gray-400"
+                      }`}
+                    >
+                      {stage.seq_num}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                        {stage.process_name}
+                        <span className="text-gray-400 font-normal text-sm">
+                          (Phụ trách: Phòng {stage.process_name})
+                        </span>
+                      </h3>
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-md ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}
+                        >
+                          {statusInfo.label}
+                        </span>
+                        {stage.assigned_to_name && (
+                          <span className="text-xs text-gray-600 font-medium flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md border border-gray-200">
+                            <BsPerson className="w-3.5 h-3.5" />
+                            {stage.assigned_to_name}
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-md border border-blue-300 shadow-sm">
+                          <BsClock className="w-3.5 h-3.5" />
+                          Dự kiến: {formatDateTime(stage.planned_start_time)} - {formatDateTime(stage.planned_end_time)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isCollapsed ? (
+                      <BsChevronDown className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <BsChevronUp className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Stage Body */}
+                {!isCollapsed && (
+                  <div className="p-5 space-y-5">
+                    {/* Time Info - Actual Time */}
+                    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-100 h-full">
+                        <p className="text-xs text-green-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                          <BsClock className="w-3.5 h-3.5" />
+                          Thời gian thực tế
+                        </p>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                            <span className="text-gray-500 font-medium">Bắt đầu:</span>
+                            <span className="font-bold text-gray-800">
+                              {formatDateTime(stage.start_time)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                            <span className="text-gray-500 font-medium">Kết thúc:</span>
+                            <span className="font-bold text-gray-800">
+                              {formatDateTime(stage.end_time)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* N_UP Info */}
+                      {(stage.process_name.toLowerCase().includes("cắt") || stage.process_name.toLowerCase().includes("in")) && stage.n_up != null && (
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 h-full">
+                          <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                            <BsLayers className="w-3.5 h-3.5" />
+                            Thông số kỹ thuật
+                          </p>
+                          <div className="space-y-1.5 text-sm">
+                            <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-blue-100">
+                              <span className="text-gray-500 font-medium">Số SP / 1 tờ giấy:</span>
+                              <span className="font-bold text-gray-800">
+                                {stage.n_up}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Materials I/O */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Input Materials */}
+                      <div className="flex flex-col">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                          <BsArrowRight className="w-4 h-4 text-orange-500" />
+                          Nguyên vật liệu đầu vào
+                        </h4>
+                        <div className="border rounded-xl overflow-hidden flex-1">
+                          <table className="w-full text-sm">
+                            <thead className="bg-orange-50">
+                              <tr>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-orange-600">
+                                  Tên vật liệu
+                                </th>
+                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
+                                  Số lượng ước tính
+                                </th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">
+                                  ĐVT
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stage.input_materials.length === 0 ? (
+                                <tr>
+                                  <td
+                                    colSpan={3}
+                                    className="px-3 py-4 text-center text-gray-400 text-xs"
+                                  >
+                                    Không có dữ liệu
+                                  </td>
+                                </tr>
+                              ) : (
+                                stage.input_materials.map(
+                                  (m: any, i: number) => (
+                                    <tr
+                                      key={i}
+                                      className="border-t hover:bg-orange-50/50 transition"
+                                    >
+                                      <td className="px-3 py-2.5 text-gray-700">
+                                        {m.name}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-right font-semibold">
+                                        {typeof m.estimated_quantity === "number"
+                                          ? m.estimated_quantity % 1 !== 0
+                                            ? m.estimated_quantity.toFixed(2)
+                                            : m.estimated_quantity.toLocaleString("vi-VN")
+                                          : m.estimated_quantity}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center text-gray-500">
+                                        {m.unit}
+                                      </td>
+                                    </tr>
+                                  )
+                                )
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Output Product */}
+                      <div className="flex flex-col">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                          <BsBoxSeam className="w-4 h-4 text-green-500" />
+                          Thành phẩm công đoạn
+                        </h4>
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col justify-center flex-1">
+                          <p className="font-semibold text-green-800 mb-3">
+                            {stage.output_product.name}
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Estimated */}
+                            <div className="bg-white border border-green-200 rounded-lg p-3">
+                              <p className="text-xs text-gray-500 mb-1">Ước tính</p>
+                              <p className="text-green-700">
+                                <span className="font-bold text-lg">
+                                  {stage.output_product.estimated_quantity.toLocaleString("vi-VN")}
+                                </span>{" "}
+                                <span className="text-sm">{stage.output_product.unit}</span>
+                              </p>
+                            </div>
+                            {/* Actual */}
+                            <div className="bg-white border border-blue-200 rounded-lg p-3">
+                              <p className="text-xs text-gray-500 mb-1">Thực tế</p>
+                              <p className="text-blue-700">
+                                <span className="font-bold text-lg">
+                                  {stage.output_product.actual_quantity != null
+                                    ? stage.output_product.actual_quantity.toLocaleString("vi-VN")
+                                    : "—"}
+                                </span>{" "}
+                                <span className="text-sm">{stage.output_product.unit}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Scan Logs */}
+                    {stage.logs && stage.logs.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                          <BsClipboardCheck className="w-4 h-4 text-purple-500" />
+                          Lịch sử scan
+                        </h4>
+                        <div className="border rounded-xl overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-purple-50">
+                              <tr>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
+                                  Thời gian
+                                </th>
+                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
+                                  Số lượng thành phẩm
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stage.logs.map((log, i) => (
+                                <tr key={i} className="border-t">
+                                  <td className="px-3 py-2.5">
+                                    {formatDateTime(stage.end_time)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right text-green-600 font-bold">
+                                    {log.qty_good}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Last scan info & Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">
+                      <p className="text-xs text-gray-400">
+                        {stage.last_scan_time
+                          ? `Lần scan cuối: ${formatDateTime(stage.last_scan_time)}`
+                          : "Chưa có dữ liệu scan"}
+                      </p>
+                      
+                      {stage.end_time && (() => {
+                        const isExpired = new Date().getTime() - new Date(stage.end_time).getTime() > 5 * 60 * 1000;
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCancelStage(stage);
+                              setCancelReason("");
+                            }}
+                            disabled={isExpired}
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border ${
+                              isExpired
+                                ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                                : "bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                            }`}
+                          >
+                            <BsArrowReturnLeft className="w-3.5 h-3.5" /> Hoàn tác báo cáo
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* =================== MODALS =================== */}
@@ -1232,7 +1585,7 @@ export default function ProductionDetailPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl border border-blue-200 p-6 w-[400px] max-w-[95vw] shadow-lg max-h-[90vh] flex flex-col">
             <h3 className="font-semibold text-blue-700 mb-4 text-center">
-              Nhập thông tin hoàn thành
+              Nhập thông tin hoàn thành: {qtyInputStage?.process_name}
             </h3>
 
             {prepareLoading ? (
@@ -1241,60 +1594,131 @@ export default function ProductionDetailPage() {
               </div>
             ) : (
               <div className="overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: '60vh' }}>
-                {qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu đầu vào</h4>
-                    {qrPrepare.reference_inputs.map((ref: any, idx: number) => (
-                      <div key={idx} className="mb-2">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="font-semibold text-gray-800">{ref.input_name || ref.material_name || ref.name || "Nguyên liệu"}</span>
-                          <span className="text-gray-500">{ref.estimated_qty ?? ref.quantity} {ref.unit}</span>
-                        </div>
-                        <input
-                          type="text"
-                          value={`${ref.estimated_qty ?? ref.quantity ?? ""} ${ref.unit || ""}`.trim()}
-                          disabled
-                          className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-500 text-sm"
-                        />
+                {(() => {
+                  const combinedInputs: { name: string; quantity: number | string; unit: string }[] = [];
+                  
+                  if (qtyInputStage?.input_materials) {
+                    qtyInputStage.input_materials.forEach((mat: any) => {
+                      combinedInputs.push({
+                        name: mat.name || mat.code || "Nguyên liệu",
+                        quantity: mat.estimated_quantity ?? mat.quantity,
+                        unit: mat.unit
+                      });
+                    });
+                  }
+                  
+                  if (qrPrepare?.reference_inputs) {
+                    qrPrepare.reference_inputs.forEach((ref: any) => {
+                      const name = ref.input_name || ref.material_name || ref.name || "Nguyên liệu";
+                      const exists = combinedInputs.some((m) => m.name.toLowerCase() === name.toLowerCase());
+                      if (!exists) {
+                        combinedInputs.push({
+                          name: name,
+                          quantity: ref.estimated_qty ?? ref.quantity,
+                          unit: ref.unit
+                        });
+                      }
+                    });
+                  }
+                  
+                  if (combinedInputs.length === 0) return null;
+                  
+                  return (
+                    <div className="mb-4">
+                      <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu đầu vào</h4>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Số lượng</th>
+                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">ĐVT</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {combinedInputs.map((item, idx) => (
+                              <tr key={idx} className="border-t">
+                                <td className="px-3 py-2 text-gray-800 font-medium">{item.name}</td>
+                                <td className="px-3 py-2 text-right text-gray-600">
+                                  {typeof item.quantity === "number" ? item.quantity.toLocaleString("vi-VN") : item.quantity}
+                                </td>
+                                <td className="px-3 py-2 text-center text-gray-500">{item.unit}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
 
                 {qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
                   <div className="mb-4">
                     <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu dư</h4>
-                    {qrPrepare.consumable_materials.map((mat: any) => (
-                      <div key={mat.material_id} className="mb-2">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="font-semibold text-gray-800">{mat.material_name}</span>
-                          <span className="text-gray-500">Đã xuất: {mat.estimated_input_qty} {mat.unit}</span>
-                        </div>
-                        <input
-                          type="number"
-                          placeholder="Nhập lượng dư (Mặc định: 0)"
-                          value={materialQtys[mat.material_id] ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setMaterialQtys(prev => ({ ...prev, [mat.material_id]: val }));
-                            if (val && Number(val) > mat.estimated_input_qty) {
-                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Tối đa ${mat.estimated_input_qty}` }));
-                            } else if (val && Number(val) < 0) {
-                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
-                            } else {
-                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
-                            }
-                          }}
-                          className={`w-full border rounded-lg px-3 py-2 text-sm ${materialErrors[mat.material_id] ? 'border-red-500' : ''}`}
-                        />
-                        {materialErrors[mat.material_id] && <span className="text-xs text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
-                      </div>
-                    ))}
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
+                            <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Đã xuất</th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {qrPrepare.consumable_materials.map((mat: any) => (
+                            <tr key={mat.material_id} className="border-t">
+                              <td className="px-3 py-2 text-gray-800 font-medium">{mat.material_name}</td>
+                              <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
+                                {mat.estimated_input_qty} {mat.unit}
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  placeholder="0"
+                                  value={materialQtys[mat.material_id] ?? ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setMaterialQtys(prev => ({ ...prev, [mat.material_id]: val }));
+                                    if (val && Number(val) > mat.estimated_input_qty) {
+                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Tối đa ${mat.estimated_input_qty}` }));
+                                    } else if (val && Number(val) < 0) {
+                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
+                                    } else {
+                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                                    }
+                                  }}
+                                  className={`w-full border rounded-lg px-2 py-1.5 text-sm ${materialErrors[mat.material_id] ? 'border-red-500' : ''}`}
+                                />
+                                {materialErrors[mat.material_id] && <span className="text-[10px] text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
 
                 <div className="mb-4">
-                  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Số lượng thành phẩm</h4>
+                  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Thành phẩm đầu ra ước tính</h4>
+                  <div className="flex justify-between items-center text-sm bg-green-50 px-3 py-2 border border-green-200 rounded-lg">
+                    <span className="font-semibold text-green-800">{qtyInputStage?.output_product?.name}</span>
+                    <span className="font-bold text-green-700">
+                      {qtyInputStage?.output_product?.estimated_quantity?.toLocaleString("vi-VN")} {qtyInputStage?.output_product?.unit}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <h4 className="font-bold text-gray-700 uppercase">
+                      Số lượng thành phẩm
+                    </h4>
+
+                    <span className="text-gray-500">
+                      Đơn vị tính: {qtyInputStage?.output_product?.unit}
+                    </span>
+                  </div>
                   <input
                     type="number"
                     min={1}
@@ -1349,7 +1773,7 @@ export default function ProductionDetailPage() {
 
       {/* Popup */}
       {popup.open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl border border-blue-200 p-6 w-[320px] text-center shadow-lg">
             <h3
               className={`font-semibold mb-3 ${
@@ -1370,6 +1794,51 @@ export default function ProductionDetailPage() {
           </div>
         </div>
       )}
+      {/* Cancel Finish Modal */}
+      {cancelStage && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-red-200 p-6 w-[400px] max-w-[95vw] shadow-lg flex flex-col">
+            <h3 className="font-semibold text-red-600 mb-4 text-center flex items-center justify-center gap-2">
+              <BsArrowReturnLeft className="w-5 h-5" /> Hoàn tác báo cáo
+            </h3>
+            <p className="text-sm text-gray-600 mb-4 text-center">
+              Bạn có chắc chắn muốn hoàn tác báo cáo của công đoạn <span className="font-semibold text-gray-800">{cancelStage.process_name}</span> không?
+            </p>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Lý do hoàn tác <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Nhập lý do hoàn tác (báo cáo nhầm, v.v...)"
+                className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => {
+                  setCancelStage(null);
+                  setCancelReason("");
+                }}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg py-2.5 transition"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleCancelFinish}
+                disabled={cancelLoading || !cancelReason.trim()}
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-medium rounded-lg py-2.5 transition flex items-center justify-center gap-2"
+              >
+                {cancelLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* =================== PRINT FILE PREVIEW MODAL =================== */}
       {showPreview && production?.ready_print_file && (
         <div
@@ -1384,7 +1853,7 @@ export default function ProductionDetailPage() {
               }}
               className="absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-600 hover:text-red-500 hover:bg-red-50 transition"
             >
-              <BsXLg className="w-4 h-4" />
+              <BsArrowReturnLeft className="w-4 h-4" />
             </button>
             <img
               src={production.ready_print_file}

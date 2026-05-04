@@ -11,6 +11,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BiPackage } from "react-icons/bi";
 import { BsSearch, BsTruck } from "react-icons/bs";
+import { subProductsApi, SubProduct } from "@/apiRequests/subproducts";
+import { Table } from "antd";
 
 
 export default function InventoryManagement() {
@@ -37,6 +39,7 @@ export default function InventoryManagement() {
   const [isConfirmingId, setIsConfirmingId] = useState<number | null>(null);
   const [poSearch, setPoSearch] = useState("");
   const [finishedGoodSearch, setFinishedGoodSearch] = useState("");
+  const [subProductPage, setSubProductPage] = useState(1);
 
   const {
     data: purchaseRequests,
@@ -93,6 +96,22 @@ export default function InventoryManagement() {
     initialData: [],
   });
 
+  const {
+    data: subProductsResponse,
+    isPending: isSubProductsPending,
+  } = useQuery({
+    queryKey: ["subproducts"],
+    queryFn: async () => {
+      try {
+        const response = await subProductsApi.getPaged(1, 500, true);
+        return response;
+      } catch (error) {
+        console.error("Error fetching subproducts:", error);
+        return { data: [], page: 1, pageSize: 500, hasNext: false };
+      }
+    },
+  });
+
   if (isInvPending) {
     return <Loading />;
   }
@@ -130,6 +149,58 @@ export default function InventoryManagement() {
     (finishedGoodPage - 1) * ITEMS_PER_PAGE,
     finishedGoodPage * ITEMS_PER_PAGE
   );
+
+  const subProductsList: SubProduct[] = subProductsResponse?.data || [];
+  
+  const subProductsColumns = [
+    {
+      title: 'Mã ID',
+      dataIndex: 'id',
+      key: 'id',
+      render: (text: string) => <span className="font-medium text-gray-500">#{text}</span>,
+    },
+    {
+      title: 'Tên bán thành phẩm',
+      dataIndex: 'product_type_name',
+      key: 'product_type_name',
+      render: (text: string) => <span className="font-semibold text-gray-900">{text || "Bán thành phẩm"}</span>,
+    },
+    {
+      title: 'Kích thước',
+      key: 'size',
+      render: (_: any, record: SubProduct) => (
+        <span>{record.width} x {record.length}</span>
+      ),
+    },
+    {
+      title: 'Công đoạn',
+      dataIndex: 'product_process',
+      key: 'product_process',
+      render: (text: string) => (
+        <span className="font-medium text-purple-700 bg-purple-100 rounded-md px-2 py-0.5 border border-purple-200">{text}</span>
+      ),
+    },
+    {
+      title: 'Số lượng',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      render: (text: number) => (
+        <span className="font-bold text-purple-600">{text || 0}</span>
+      ),
+    },
+    {
+      title: 'Mô tả',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+    },
+    {
+      title: 'Cập nhật lần cuối',
+      dataIndex: 'updated_at',
+      key: 'updated_at',
+      render: (text: string) => <span className="text-gray-500 text-sm">{new Date(text).toLocaleString("vi-VN")}</span>,
+    },
+  ];
 
   const handleConfirmImporting = async (order_id: number) => {
     try {
@@ -229,18 +300,6 @@ export default function InventoryManagement() {
                       </div>
                     )}
                   </div>
-                  
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleConfirmImporting(req.order_id);
-                    }}
-                    disabled={isConfirmingId === req.order_id}
-                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <BiPackage className="w-4 h-4" />
-                    {isConfirmingId === req.order_id ? "Đang xử lý..." : "Nhập kho"}
-                  </button>
                 </div>
               ))}
               {importingRequests.length > ITEMS_PER_PAGE && (
@@ -287,7 +346,7 @@ export default function InventoryManagement() {
                 po.etaDate
                   ? po.etaDate
                   : new Date(new Date(po.createdAt).setDate(
-                      new Date(po.createdAt).getDate() + 3
+                      new Date(po.createdAt).getDate()
                     ))
               );
               
@@ -326,7 +385,6 @@ export default function InventoryManagement() {
                       )}
                     </div>
                   </div>
-
                   <button
                     onClick={() => handleReceive(po.purchaseId)}
                     disabled={isDisabled}
@@ -362,6 +420,40 @@ export default function InventoryManagement() {
               />
             </div>
           )}
+        </div>
+      ),
+    },
+    {
+      key: "3",
+      label: (
+        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
+          <BsTruck className="w-5 h-5 text-purple-500" />
+          Nhập kho bán thành phẩm
+        </span>
+      ),
+      children: (
+        <div className="pt-4">
+          <div className="w-full overflow-y-auto">
+            {subProductsList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                <div className="w-16 h-16 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                  <BsTruck className="w-8 h-8" />
+                </div>
+                <h3 className="text-gray-900 font-medium text-lg mb-1">Chưa có dữ liệu</h3>
+                <p className="text-gray-500 max-w-sm">
+                  Không có dữ liệu bán thành phẩm.
+                </p>
+              </div>
+            ) : (
+              <Table
+                columns={subProductsColumns}
+                dataSource={subProductsList.map((item) => ({ ...item, key: item.id }))}
+                pagination={{ pageSize: 5, showSizeChanger: false, current: subProductPage, onChange: setSubProductPage }}
+                className="border border-gray-200 rounded-lg overflow-hidden [&_.ant-table-thead_th]:!bg-gray-50 [&_.ant-table-thead_th]:!font-semibold"
+                rowClassName="hover:bg-purple-50/50 transition-colors"
+              />
+            )}
+          </div>
         </div>
       ),
     },
