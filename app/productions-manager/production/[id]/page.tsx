@@ -1585,7 +1585,7 @@ export default function ProductionDetailPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl border border-blue-200 p-6 w-[400px] max-w-[95vw] shadow-lg max-h-[90vh] flex flex-col">
             <h3 className="font-semibold text-blue-700 mb-4 text-center">
-              Nhập thông tin hoàn thành: {qtyInputStage?.process_name}
+              Nhập thông tin hoàn thành công đoạn: {qtyInputStage?.process_name}
             </h3>
 
             {prepareLoading ? (
@@ -1604,20 +1604,6 @@ export default function ProductionDetailPage() {
                         quantity: mat.estimated_quantity ?? mat.quantity,
                         unit: mat.unit
                       });
-                    });
-                  }
-                  
-                  if (qrPrepare?.reference_inputs) {
-                    qrPrepare.reference_inputs.forEach((ref: any) => {
-                      const name = ref.input_name || ref.material_name || ref.name || "Nguyên liệu";
-                      const exists = combinedInputs.some((m) => m.name.toLowerCase() === name.toLowerCase());
-                      if (!exists) {
-                        combinedInputs.push({
-                          name: name,
-                          quantity: ref.estimated_qty ?? ref.quantity,
-                          unit: ref.unit
-                        });
-                      }
                     });
                   }
                   
