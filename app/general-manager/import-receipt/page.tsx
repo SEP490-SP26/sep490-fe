@@ -35,6 +35,8 @@ interface ProductionOrder {
   delivery_date: string;
   current_stage: string | null;
   production_status: ProductionStatus;
+  status?: string;
+  import_recieve_path?: string | null;
 }
 
 interface ProductionResponse {
@@ -77,7 +79,7 @@ function ImportReceiptContent() {
 
   const filteredData = useMemo(() => {
     return (apiData || [])
-      .filter((o: any) => o.status === "Finished")
+      .filter((o: any) => o.status === "Importing")
       .filter((o: any) =>
         customerKeyword
           ? o.customer_name?.toLowerCase().includes(customerKeyword.toLowerCase()) ||
@@ -136,22 +138,24 @@ function ImportReceiptContent() {
       width: 180,
       align: "center",
       render: (_, record) => (
-        <Popconfirm
-          title="Tạo phiếu nhập kho"
-          description="Bạn có chắc chắn muốn tạo phiếu nhập kho cho sản phẩm này không?"
-          onConfirm={() => generateImportMutation.mutate(record.order_id || (record as any)._id)}
-          okText="Tạo phiếu"
-          cancelText="Hủy"
-          okButtonProps={{ loading: generateImportMutation.isPending }}
-        >
-          <Button
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            loading={generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)}
+        record.status === "Importing" && record.import_recieve_path === null ? (
+          <Popconfirm
+            title="Tạo phiếu nhập kho"
+            description="Bạn có chắc chắn muốn tạo phiếu nhập kho cho sản phẩm này không?"
+            onConfirm={() => generateImportMutation.mutate(record.order_id || (record as any)._id)}
+            okText="Tạo phiếu"
+            cancelText="Hủy"
+            okButtonProps={{ loading: generateImportMutation.isPending }}
           >
-            Duyệt nhập kho
-          </Button>
-        </Popconfirm>
+            <Button
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              loading={generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)}
+            >
+              Duyệt nhập kho
+            </Button>
+          </Popconfirm>
+        ) : null
       ),
     },
   ];
