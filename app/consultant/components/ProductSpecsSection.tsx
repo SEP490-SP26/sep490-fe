@@ -370,6 +370,7 @@ export default function ProductSpecsSection({
               min={1}
               controls={!disabledSharedFields && !(isDeclined && !highlightFields['number_of_plates'])}
               disabled={disabledSharedFields || (isDeclined && !highlightFields['number_of_plates'])}
+              tooltip="Bao gồm số bản kẽm cơ bản và kẽm hao phí ralo"
             />
           </Form.Item>
         </Col>

@@ -733,7 +733,14 @@ function ConsultantForm() {
                 delivery_date: orderData.delevery_date ? dayjs(orderData.delevery_date) : (orderData.delivery_date ? dayjs(orderData.delivery_date) : null),
                 detail_address: orderData.detail_address,
                 description: orderData.description,
-                number_of_plates: est.number_of_plates || orderData.number_of_plates || 1,
+                number_of_plates: (() => {
+                  const total = est.number_of_plates || orderData.number_of_plates || 0;
+                  if (total <= 0) return 1;
+                  // Reverse: Basic 1->Total 2, Basic 4->Total 5, Basic 5->Total 7
+                  if (total >= 7) return total - 2;
+                  if (total >= 2) return total - 1;
+                  return total;
+                })(),
                 coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : undefined),
                 wave_type: est.wave_type && est.wave_type !== "NONE" ? est.wave_type : (orderData.wave_type && orderData.wave_type !== "NONE" ? orderData.wave_type : undefined),
                 length: orderData.product_length_mm,
@@ -1117,7 +1124,7 @@ function ConsultantForm() {
         print_width_mm: printSizeResult.print_width_mm,
         print_length_mm: printSizeResult.print_length_mm,
 
-        number_of_plates: number_of_plates || 1,
+        number_of_plates: (Number(number_of_plates) > 0 ? Number(number_of_plates) + (Number(number_of_plates) < 5 ? 1 : 2) : 0) || 1,
         platePrices: platePrices || undefined,
 
         processesCsv: inputs.production_processes || "",
@@ -1551,7 +1558,7 @@ function ConsultantForm() {
             paper_name: paperTypes.find((p) => p.code === primaryQuote.paper_code)?.name || "",
             coating_type: primaryQuote.coating_type,
             wave_type: primaryQuote.wave_type,
-            number_of_plates: primaryQuote.number_of_plates,
+            number_of_plates: Number(primaryQuote.number_of_plates) > 0 ? Number(primaryQuote.number_of_plates) + (Number(primaryQuote.number_of_plates) < 5 ? 1 : 2) : 0,
 
             product_length_mm: primaryQuote.length,
             product_width_mm: primaryQuote.width,
@@ -1617,7 +1624,7 @@ function ConsultantForm() {
                 lamination_material_id: laminationMat?.material_id ?? null,
                 lamination_material_code: laminationMat?.code ?? null,
                 lamination_material_name: laminationMat?.name ?? null,
-                number_of_plates: quote.number_of_plates > 0 ? quote.number_of_plates + (quote.number_of_plates < 5 ? 1 : 2) : 0,
+                number_of_plates: Number(quote.number_of_plates) > 0 ? Number(quote.number_of_plates) + (Number(quote.number_of_plates) < 5 ? 1 : 2) : 0,
               }
             );
 
@@ -1744,7 +1751,7 @@ function ConsultantForm() {
               lamination_material_id: adjustLaminationMat?.material_id ?? null,
               lamination_material_code: adjustLaminationMat?.code ?? null,
               lamination_material_name: adjustLaminationMat?.name ?? null,
-              number_of_plates: form.getFieldValue("number_of_plates") > 0 ? form.getFieldValue("number_of_plates") + (form.getFieldValue("number_of_plates") < 5 ? 1 : 2) : 0,
+              number_of_plates: Number(form.getFieldValue("number_of_plates")) > 0 ? Number(form.getFieldValue("number_of_plates")) + (Number(form.getFieldValue("number_of_plates")) < 5 ? 1 : 2) : 0,
             }
           );
 
