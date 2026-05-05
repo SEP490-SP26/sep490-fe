@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { LuLayoutDashboard } from "react-icons/lu";
 import { FaSuitcase, FaUserPlus, FaWarehouse } from "react-icons/fa";
+import {MdDashboard} from "react-icons/md";
 import { NavItem } from "./Sidebar";
 import { TbTruckDelivery } from "react-icons/tb";
 
@@ -148,6 +149,11 @@ export const productionsManagerNavItems: NavItem[] = [
 // Preset cho Warehouse
 export const warehouseNavItems: NavItem[] = [
   {
+    path: "/dashboard",
+    label: "Tổng quan",
+    icon: MdDashboard,
+    basePath: "/warehouse",
+  },{
     path: "/inventory",
     label: "Nhập kho",
     icon: FaWarehouse,
