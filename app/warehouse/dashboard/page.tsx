@@ -44,7 +44,7 @@ export default function WarehouseDashboard() {
     queryKey: ["finished-goods-reqs"],
     queryFn: async () => {
       const res = await requestOrderApi.getList(1, 500);
-      return res.data;
+      return res;
     },
   });
 
@@ -439,11 +439,22 @@ export default function WarehouseDashboard() {
           </div>
         </div>
         {(() => {
-          const list = requestsData?.data || [];
+          const DISPLAY_STATUSES = ["Finished", "PendingPaid", "Paid"];
+          const normalizeStatus = (s: string) => {
+            if (!s) return s;
+            const upper = s.toUpperCase();
+            if (upper === "FINISHED" || upper === "DONE") return "Finished";
+            if (upper === "PENDINGPAID") return "PendingPaid";
+            if (upper === "PAID") return "Paid";
+            return s;
+          };
+          const list = (requestsData?.data || []).filter((r: any) =>
+            DISPLAY_STATUSES.includes(normalizeStatus(r.process_status))
+          );
           const filtered = list.filter((r: any) => {
             if (!reqSearch) return true;
             const s = reqSearch.toLowerCase();
-            return (r.product_name || "").toLowerCase().includes(s) || (r.customer_name || "").toLowerCase().includes(s) || (r.process_status || "").toLowerCase().includes(s);
+            return (r.product_name || "").toLowerCase().includes(s) || (r.customer_name || "").toLowerCase().includes(s);
           });
           const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
           const paged = filtered.slice((reqPage - 1) * PAGE_SIZE, reqPage * PAGE_SIZE);
@@ -454,10 +465,8 @@ export default function WarehouseDashboard() {
                   <thead className="bg-green-50"><tr>
                     <th className="px-3 py-2.5 text-left font-semibold text-green-700">#</th>
                     <th className="px-3 py-2.5 text-left font-semibold text-green-700">Sản phẩm</th>
-                    <th className="px-3 py-2.5 text-left font-semibold text-green-700">Khách hàng</th>
                     <th className="px-3 py-2.5 text-center font-semibold text-green-700">Trạng thái</th>
                     <th className="px-3 py-2.5 text-right font-semibold text-green-700">Số lượng</th>
-                    <th className="px-3 py-2.5 text-right font-semibold text-green-700">Ngày giao</th>
                   </tr></thead>
                   <tbody>
                     {paged.length === 0 ? (
@@ -466,14 +475,16 @@ export default function WarehouseDashboard() {
                       <tr key={r.order_request_id ?? i} className="border-t hover:bg-green-50/40 transition">
                         <td className="px-3 py-2.5 text-gray-400">{(reqPage - 1) * PAGE_SIZE + i + 1}</td>
                         <td className="px-3 py-2.5 font-medium text-gray-800">{r.product_name || "—"}</td>
-                        <td className="px-3 py-2.5 text-gray-600">{r.customer_name || "—"}</td>
-                        <td className="px-3 py-2.5 text-center"><span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-md text-xs font-medium border border-green-200">{r.process_status}</span></td>
+                        <td className="px-3 py-2.5 text-center">
+                          <span className={"px-2 py-0.5 rounded-md bg-green-100 text-xs font-medium border"}>
+                            Đã nhập kho
+                          </span>
+                        </td>
                         <td className="px-3 py-2.5 text-right font-bold text-green-700">{(r.quantity || 0).toLocaleString("vi-VN")}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-500 text-xs">{r.delivery_date ? new Date(r.delivery_date).toLocaleDateString("vi-VN") : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table>  
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-4">
