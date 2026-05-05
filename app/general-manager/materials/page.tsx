@@ -107,14 +107,12 @@ export default function MaterialsManagementPage() {
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Quản lý nguyên vật liệu</h1>
-        <Button 
-          type="primary" 
-          icon={<ReloadOutlined />} 
+        <button 
           onClick={() => refetch()}
-          className="bg-blue-600 shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors font-medium"
         >
-          Làm mới
-        </Button>
+          <ReloadOutlined /> Làm mới
+        </button>
       </div>
 
       <div className="p-6">

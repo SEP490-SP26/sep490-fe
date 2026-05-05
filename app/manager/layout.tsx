@@ -3,6 +3,7 @@ import Footer from "@/components/Footer/Footer";
 import { managerNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import RoleHeader from "@/components/Header/RoleHeader";
+import { ConfigProvider } from "antd";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { BiCalendarCheck, BiLogOut, BiPackage } from "react-icons/bi";
@@ -68,7 +69,22 @@ export default function LayoutManager({
   };
 
   return (
-    <div className="bg-gray-50">
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#1e3a8a", // Tailwind blue-900
+          borderRadius: 6,
+        },
+      }}
+    >
+      <div 
+        className="bg-gray-50 min-h-screen"
+        style={{ 
+          '--color-primary': '#1e3a8a', 
+          '--color-primary-light': '#3b82f6', 
+          '--color-primary-dark': '#1e3a8a' 
+        } as React.CSSProperties}
+      >
       {/* Sidebar */}
       {/* <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
         <div className="p-6">
@@ -114,6 +130,7 @@ export default function LayoutManager({
           userInfo={userInfo}
           onLogout={handleLogout}
           onNavigateToRequest={handleNavigate}
+          theme="blue"
         />
         {/* Main content */}
         <main className="flex-1 p-6">
@@ -123,5 +140,6 @@ export default function LayoutManager({
         <Footer />
       </div>
     </div>
+    </ConfigProvider>
   );
 }

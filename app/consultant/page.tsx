@@ -2100,25 +2100,26 @@ function ConsultantForm() {
                     </div>
                   )}
                   <Form.Item className={isSendToManagerAction && orderStatus !== 'Declined' ? "mt-2" : "mt-4"}>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      size="large"
-                      loading={loading}
-                      block
-                      className={`h-12 font-bold ${isCreateMode
-                        ? "bg-green-600 hover:bg-green-700"
-                        : estimate?.caseType === 3
-                          ? "bg-red-600 hover:bg-red-700"
-                          : estimate?.caseType === 2
-                            ? "bg-orange-500 hover:bg-orange-600"
-                            : "bg-blue-600"
-                        }`}
+                    <button
+                      type="submit"
+                      className={`w-full h-12 rounded-lg font-bold text-white flex justify-center items-center gap-2 transition-colors ${
+                        (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing") ||
+                        (isSendToManagerAction && orderStatus !== 'Declined' && !isCustomerContacted) || loading
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : isCreateMode
+                            ? "bg-green-600 hover:bg-green-700"
+                            : estimate?.caseType === 3
+                              ? "bg-red-600 hover:bg-red-700"
+                              : estimate?.caseType === 2
+                                ? "bg-orange-500 hover:bg-orange-600"
+                                : "bg-purple-900 hover:bg-purple-800"
+                      }`}
                       disabled={
                         (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing") ||
-                        (isSendToManagerAction && orderStatus !== 'Declined' && !isCustomerContacted)
+                        (isSendToManagerAction && orderStatus !== 'Declined' && !isCustomerContacted) || loading
                       }
                     >
+                      {loading && <Spin size="small" />}
                       {isCreateMode
                         ? "GỬI QUẢN LÝ DUYỆT"
                         : (existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified")
@@ -2126,7 +2127,7 @@ function ConsultantForm() {
                           : (existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing")
                             ? "ĐANG CHỜ DUYỆT"
                             : "GỬI QUẢN LÝ DUYỆT"}
-                    </Button>
+                    </button>
                     {/* <Button
                     type="primary"
                     htmlType="submit"

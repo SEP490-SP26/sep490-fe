@@ -402,9 +402,9 @@ export default function ConsultantOrdersPage() {
             <Link
               href={`/consultant?orderId=${record.order_request_id}&mode=negotiate`}
             >
-              <Button type="primary" size="small" icon={<EditOutlined />}>
-                Tiếp nhận
-              </Button>
+              <button className="flex items-center gap-2 px-3 py-1 text-sm bg-purple-900 text-white rounded hover:bg-purple-800 transition-colors">
+                <EditOutlined /> Tiếp nhận
+              </button>
             </Link>
 
             <Button
@@ -429,9 +429,9 @@ export default function ConsultantOrdersPage() {
             <Link
               href={`/consultant?orderId=${record.order_request_id}&mode=negotiate`}
             >
-              <Button type="primary" size="small" icon={<EditOutlined />} className="bg-orange-500 hover:bg-orange-600">
-                Chỉnh sửa lại
-              </Button>
+              <button className="flex items-center gap-2 px-3 py-1 text-sm bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors">
+                <EditOutlined /> Chỉnh sửa lại
+              </button>
             </Link>
           </Space>
         );

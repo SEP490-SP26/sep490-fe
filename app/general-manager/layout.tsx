@@ -4,6 +4,7 @@ import Footer from "@/components/Footer/Footer";
 import { generalManagerNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import RoleHeader from "@/components/Header/RoleHeader";
+import { ConfigProvider } from "antd";
 import { useRouter } from "next/navigation";
 import React from "react";
 
@@ -39,7 +40,22 @@ export default function LayoutWarehouse({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#78350f", // amber-900
+          borderRadius: 6,
+        },
+      }}
+    >
+      <div 
+        className="min-h-screen bg-gray-50"
+        style={{ 
+          '--color-primary': '#78350f', 
+          '--color-primary-light': '#b45309', 
+          '--color-primary-dark': '#78350f' 
+        } as React.CSSProperties}
+      >
       {/* Sidebar */}
       <Sidebar
         className="bg-amber-900 text-white"
@@ -53,6 +69,7 @@ export default function LayoutWarehouse({
           userInfo={userInfo}
           onLogout={handleLogout}
           onNavigateToRequest={handleNavigate}
+          theme="amber"
         />
         {/* Main */}
         <main className="flex-1 p-8">
@@ -63,5 +80,6 @@ export default function LayoutWarehouse({
         <Footer />
       </div>
     </div>
+    </ConfigProvider>
   );
 }

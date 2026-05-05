@@ -147,13 +147,14 @@ function ImportReceiptContent() {
             cancelText="Hủy"
             okButtonProps={{ loading: generateImportMutation.isPending }}
           >
-            <Button
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              loading={generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)}
+            <button
+              type="button"
+              disabled={generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors text-sm font-medium disabled:opacity-50"
             >
+              {(generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)) ? <Spin size="small" /> : <CheckCircleOutlined />}
               Duyệt nhập kho
-            </Button>
+            </button>
           </Popconfirm>
         ) : null
       ),
@@ -164,14 +165,13 @@ function ImportReceiptContent() {
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Duyệt & Tạo phiếu nhập kho</h1>
-        <Button
-          type="primary"
-          icon={<ReloadOutlined />}
+        <button
+          type="button"
           onClick={() => refetch()}
-          className="bg-blue-600 shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors font-medium"
         >
-          Làm mới
-        </Button>
+          <ReloadOutlined /> Làm mới
+        </button>
       </div>
 
       <div className="p-6">

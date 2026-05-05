@@ -32,6 +32,7 @@ import {
     Popover,
     Skeleton,
     Space,
+    Spin,
     Tag,
     Typography
 } from "antd";
@@ -336,25 +337,37 @@ export default function ManagerRequestDetailPage() {
                         {orderDetail.process_status === 'Processing' && (
                             noteMode ? (
                                 <>
-                                    <Button onClick={() => setNoteMode(false)} block className="rounded-lg text-sm font-medium h-auto py-2">
+                                    <button 
+                                        onClick={() => setNoteMode(false)} 
+                                        className="w-full rounded-lg text-sm font-medium h-auto py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
+                                    >
                                         Hủy bỏ
-                                    </Button>
+                                    </button>
                                     <Popconfirm
                                         title={<span className="text-lg font-medium">Xác nhận yêu cầu chỉnh sửa ?</span>}
                                         onConfirm={() => handleApproval('Declined')}
                                         okText="Xác nhận"
                                         cancelText="Hủy"
                                     >
-                                        <Button type="primary" block className="rounded-lg text-sm font-medium h-auto py-2 bg-slate-800 hover:bg-slate-700 shadow-none border-0" loading={actionLoading}>
+                                        <button 
+                                            type="button" 
+                                            className="w-full flex justify-center items-center gap-2 rounded-lg text-sm font-medium h-auto py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-colors disabled:opacity-50" 
+                                            disabled={actionLoading}
+                                        >
+                                            {actionLoading && <Spin size="small" />}
                                             Xác nhận yêu cầu chỉnh sửa
-                                        </Button>
+                                        </button>
                                     </Popconfirm>
                                 </>
                             ) : (
                                 <>
-                                    <Button icon={<EditOutlined />} onClick={() => setNoteMode(true)} danger block className="rounded-lg text-sm font-medium h-auto py-2">
+                                    <button 
+                                        onClick={() => setNoteMode(true)} 
+                                        className="w-full flex justify-center items-center gap-2 rounded-lg text-sm font-medium h-auto py-2 px-4 bg-white border border-red-500 text-red-500 hover:bg-red-50 transition-colors"
+                                    >
+                                        <EditOutlined />
                                         Yêu cầu chỉnh sửa
-                                    </Button>
+                                    </button>
                                     <Popconfirm
                                         title={<span className="text-lg font-medium">Duyệt yêu cầu?</span>}
                                         onConfirm={() => handleApproval('Verified')}
@@ -364,9 +377,14 @@ export default function ManagerRequestDetailPage() {
                                         okButtonProps={{ className: "bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" }}
                                         cancelButtonProps={{ className: "bg-slate-800 hover:bg-slate-700 text-sm font-medium h-auto py-2 shadow-none border-0" }}
                                     >
-                                        <Button icon={<CheckOutlined />} block className="rounded-lg bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" loading={actionLoading}>
+                                        <button 
+                                            type="button" 
+                                            className="w-full flex justify-center items-center gap-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium h-auto py-2 px-4 shadow-sm transition-colors disabled:opacity-50" 
+                                            disabled={actionLoading}
+                                        >
+                                            {actionLoading ? <Spin size="small" /> : <CheckOutlined />}
                                             Duyệt yêu cầu
-                                        </Button>
+                                        </button>
                                     </Popconfirm>
                                 </>
                             )

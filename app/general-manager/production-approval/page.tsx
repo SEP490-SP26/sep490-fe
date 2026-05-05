@@ -132,14 +132,13 @@ function ProductionApprovalContent() {
       width: 180,
       align: 'center' as const,
       render: (_: any, record: any) => (
-        <Button
-          type="primary"
-          ghost
+        <button
           onClick={() => handleCheckConditions(record.order_id || record._id)}
           disabled={record.status === 'Finished' || record.status === 'Delivered'}
+          className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent transition-colors"
         >
           Trình duyệt SX
-        </Button>
+        </button>
       ),
     },
   ];
@@ -156,14 +155,12 @@ function ProductionApprovalContent() {
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Duyệt lệnh sản xuất</h1>
-        <Button
-          type="primary"
-          icon={<ReloadOutlined />}
+        <button
           onClick={() => refetch()}
-          className="bg-blue-600 shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors font-medium"
         >
-          Làm mới
-        </Button>
+          <ReloadOutlined /> Làm mới
+        </button>
       </div>
 
       <div className="p-6">
@@ -210,29 +207,35 @@ function ProductionApprovalContent() {
         width={1000}
         style={{ top: 20 }}
         footer={[
-          <Button key="cancel" onClick={() => setIsModalVisible(false)}>Hủy bỏ</Button>,
+          <button 
+            key="cancel" 
+            onClick={() => setIsModalVisible(false)}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          >
+            Hủy bỏ
+          </button>,
           activeTab === '1' ? (
-            <Button
+            <button
               key="submit-full"
-              type="primary"
-              loading={approveMutation.isPending}
+              type="button"
+              disabled={!(statusData?.has_enough_material && statusData?.has_free_machine) || approveMutation.isPending}
               onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: true, sub_id: null })}
-              disabled={!(statusData?.has_enough_material && statusData?.has_free_machine)}
-              className={(statusData?.has_enough_material && statusData?.has_free_machine) ? "!bg-green-600 hover:bg-green-700" : "!bg-gray-400 !text-white"}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${(statusData?.has_enough_material && statusData?.has_free_machine) && !approveMutation.isPending ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
             >
+              {approveMutation.isPending && <Spin size="small" />}
               Xác nhận sản xuất (Từ vật tư)
-            </Button>
+            </button>
           ) : (
-            <Button
+            <button
               key="submit-sub"
-              type="primary"
-              loading={approveMutation.isPending}
+              type="button"
+              disabled={!statusData?.has_matched_sub_product || approveMutation.isPending}
               onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: false, sub_id: statusData?.matched_sub_product?.id || null })}
-              disabled={!statusData?.has_matched_sub_product}
-              className={statusData?.has_matched_sub_product ? "!bg-blue-600 hover:bg-blue-700" : "!bg-gray-400 !text-white"}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${statusData?.has_matched_sub_product && !approveMutation.isPending ? "bg-amber-900 hover:bg-amber-800" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
             >
+              {approveMutation.isPending && <Spin size="small" />}
               Xác nhận sản xuất (Từ bán thành phẩm)
-            </Button>
+            </button>
           )
         ]}
       >
