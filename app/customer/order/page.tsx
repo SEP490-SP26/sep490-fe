@@ -24,6 +24,8 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import authApiRequest from '@/apiRequests/auth'
 
 const { Title, Text } = Typography
 
@@ -31,6 +33,7 @@ export default function CustomerOrderPage() {
   const [form] = Form.useForm()
   // const { addOrder } = useProduction()
   const { customer, isLoggedIn, isLoading, getDefaultAddress } = useCustomer()
+  const { user, isAuthenticated } = useAuth()
   const router = useRouter()
   const [isSuccess, setIsSuccess] = useState(false)
   const [fileList, setFileList] = useState<UploadFile[]>([])
@@ -52,20 +55,39 @@ export default function CustomerOrderPage() {
 
   // Pre-fill customer info and default address
   useEffect(() => {
-    if (customer) {
-      form.setFieldsValue({
-        customerName: customer.name,
-        phone: customer.phone,
-        email: customer.email,
-      })
+    const fetchUserData = async () => {
+      if (isAuthenticated && user?.user_id) {
+        try {
+          const res = await authApiRequest.getUserById(user.user_id);
+          const userData = (res as any)?.data || res;
+          
+          if (userData) {
+            form.setFieldsValue({
+              customerName: userData.full_name || user.full_name,
+              phone: userData.phone_number || '',
+              email: userData.email || '',
+            });
+          }
+        } catch (error) {
+          console.error("Fetch user error", error);
+        }
+      } else if (customer) {
+        form.setFieldsValue({
+          customerName: customer.name,
+          phone: customer.phone,
+          email: customer.email,
+        })
+      }
 
       // Set default address
       const defaultAddr = getDefaultAddress()
       if (defaultAddr) {
         setSelectedAddressId(defaultAddr.id)
       }
-    }
-  }, [customer, form, getDefaultAddress])
+    };
+    
+    fetchUserData();
+  }, [customer, form, getDefaultAddress, isAuthenticated, user])
 
   const normFile = (e: any) => {
     if (Array.isArray(e)) return e

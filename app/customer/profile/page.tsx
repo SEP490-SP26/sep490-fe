@@ -44,12 +44,14 @@ import dayjs from 'dayjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import authApiRequest from '@/apiRequests/auth'
 
 const { Title, Text } = Typography
 
 export default function CustomerProfilePage() {
   const {
-    customer,
+    customer: localCustomer,
     isLoggedIn,
     isLoading,
     updateProfile,
@@ -59,6 +61,42 @@ export default function CustomerProfilePage() {
     deleteAddress,
     setDefaultAddress,
   } = useCustomer()
+
+  const { user, isAuthenticated } = useAuth()
+  const [apiUser, setApiUser] = useState<any>(null)
+  const [loadingUser, setLoadingUser] = useState(false)
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (isAuthenticated && user?.user_id) {
+        setLoadingUser(true)
+        try {
+          const res = await authApiRequest.getUserById(user.user_id)
+          const data = (res as any)?.data || res
+          setApiUser(data)
+        } catch (error) {
+          console.error("Failed to fetch user data in profile page", error)
+        } finally {
+          setLoadingUser(false)
+        }
+      }
+    }
+    fetchUserData()
+  }, [isAuthenticated, user])
+
+  const customer = useMemo(() => {
+    if (apiUser) {
+      return {
+        id: apiUser.user_id?.toString() || localCustomer?.id,
+        name: apiUser.full_name || localCustomer?.name,
+        phone: apiUser.phone_number || localCustomer?.phone,
+        email: apiUser.email || localCustomer?.email,
+        createdAt: apiUser.created_at || localCustomer?.createdAt,
+        addresses: localCustomer?.addresses || []
+      }
+    }
+    return localCustomer;
+  }, [apiUser, localCustomer])
   const { orders } = useProduction()
   const router = useRouter()
   const [form] = Form.useForm()
@@ -253,7 +291,7 @@ const myOrders = useMemo(() => {
     },
   ]
 
-  if (isLoading || !customer) {
+  if (isLoading || loadingUser || !customer) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-gray-500'>Đang tải...</div>

@@ -23,6 +23,23 @@ interface RegisterBodyType {
   full_name: string;
 }
 
+interface UserInfoResponse {
+  user_id: number,
+  username: string,
+  password_hash: string,
+  email: string,
+  full_name: string,
+  role_id: number,
+  is_active: boolean,
+  phone_number: string,
+  created_at: string,
+  productions: any[],
+  purchases: any[],
+  role: any,
+  stock_moves: any[],
+  assigned_order_requests: any[]
+}
+
 const authApiRequest = {
   login: (body: LoginBodyAlternativeType) =>
     http.post<LoginResType>("/login", {
@@ -36,6 +53,9 @@ const authApiRequest = {
     http.post<GoogleLoginRes>("/login-with-google", {
       id_token,
     }),
+
+  getUserById: (user_id: number) =>
+    http.get<UserInfoResponse>(`/get-user-by-id/${user_id}`),
 };
 
 export default authApiRequest;
