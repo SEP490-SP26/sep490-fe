@@ -140,7 +140,7 @@ export default function ProductionDetail() {
             "
           >
             <BiPackage className="w-5 h-5" />
-            {isConfirming ? "Đang xử lý..." : "Báo cáo nhập kho"}
+            {isConfirming ? "Đang xử lý..." : "Xác nhận nhập kho"}
           </button>
         </div>
       </div>

@@ -75,6 +75,9 @@ export interface BaseConfigResponse {
     break_end_time: string;
     work_end_time: string;
   };
+  deliveryPayment: {
+    require_remaining_before_delivery: boolean;
+  };
 }
 
 /* ══════════════════════════════════
@@ -174,6 +177,9 @@ export interface BaseConfigUpdateRequest {
     break_start_time: string;
     break_end_time: string;
     work_end_time: string;
+  };
+  delivery_payment: {
+    require_remaining_before_delivery: boolean;
   };
 }
 
@@ -284,6 +290,7 @@ export function toUpdateRequest(res: BaseConfigResponse): BaseConfigUpdateReques
       deposit_percent: res.paymentTerms.deposit_percent,
     },
     planning: { ...res.planning },
+    delivery_payment: { ...res.deliveryPayment },
   };
 }
 

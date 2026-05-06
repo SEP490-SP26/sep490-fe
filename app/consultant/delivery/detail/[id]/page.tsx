@@ -769,12 +769,13 @@ export default function OrderDetailPage() {
           </Section> */}
 
           {/* Delivery Info */}
+          {/*
           <Section title="Thông Tin Giao Hàng" icon={<SendOutlined />} accent="#ec4899">
-            {/* <InfoRow
+            <InfoRow
               icon={<FileTextOutlined />}
               label="Ghi chú cho KH"
               value={order.message_to_customer || <span className="text-gray-300 italic text-xs">—</span>}
-            /> */}
+            />
             {order.delivery_note && (
               <InfoRow
                 icon={<FileTextOutlined />}
@@ -815,7 +816,7 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             )}
-          </Section>
+          </Section>*/}
           {/* Contract files */}
           {/* {(estimate?.consultant_contract_path || estimate?.customer_signed_contract_path) && (
             <Section title="Hợp Đồng" icon={<FileTextOutlined />} accent="#6366f1">

@@ -52,6 +52,7 @@ interface RequestItem {
   delivery_date: string;
   process_status: ProductionStatus;
   delivery_note: string | null;
+  require_remaining_before_delivery: boolean;
 }
 
 interface PagedResponse {
@@ -147,6 +148,7 @@ const FinishProduction: React.FC = () => {
         delivery_date: r.delivery_date,
         process_status: normalizeStatus(r.process_status),
         delivery_note: r.delivery_note,
+        require_remaining_before_delivery: r.require_remaining_before_delivery ?? true,
       }));
 
       const filtered = mapped.filter((o) =>
@@ -305,8 +307,13 @@ const FinishProduction: React.FC = () => {
           text = "Chờ tư vấn viên liên hệ với khách hàng";
           disabled = true;
         } else if (status === "PendingPaid") {
-          text = "Chờ khách hàng thanh toán để vận chuyển";
-          disabled = true;
+          if (record.require_remaining_before_delivery) {
+            text = "Chờ khách hàng thanh toán để vận chuyển";
+            disabled = true;
+          } else {
+            text = "Bàn giao cho đơn vị vận chuyển";
+            disabled = false;
+          }
         } else if (status === "Paid") {
           text = "Bàn giao cho đơn vị vận chuyển";
           disabled = false;
