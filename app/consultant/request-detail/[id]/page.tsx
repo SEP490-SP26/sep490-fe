@@ -513,9 +513,9 @@ export default function ConsultantRequestDetailPage() {
     }) ?? false;
 
     return (
-        <div className="min-h-screen pb-8 bg-primary">
+        <div className="min-h-screen pb-8 ">
             <Spin spinning={uploadingContract || isAutoGenerating} fullscreen tip={isAutoGenerating ? "Đang tạo hợp đồng tự động..." : "Đang tải lên hợp đồng..."} />
-            <div className="max-w-7xl mx-auto px-2 pt-2 animate-fade-in-up">
+            <div className="max-w-8xl mx-auto px-4 pt-2 animate-fade-in-up">
                 {/* Header - Compact */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-4">
                     <div>
@@ -559,30 +559,30 @@ export default function ConsultantRequestDetailPage() {
                                 {!orderDetail.printer_ready_file_path && (
                                     <>
                                         <Tooltip title={(!orderDetail.printer_ready_file_path && !pendingPrintFile) ? "Vui lòng tải lên file in (Printer Ready) trước khi đưa vào sản xuất" : ""}>
-                                        <button
-                                            disabled={!orderDetail.printer_ready_file_path && !pendingPrintFile}
-                                            onClick={() => {
-                                                setIsPrintFileViewed(false);
-                                                setIsProduceCheckCommitted(false);
-                                                setIsProduceModalOpen(true);
-                                            }}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
-                                                ${(!orderDetail.printer_ready_file_path && !pendingPrintFile) 
-                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' 
-                                                    : 'bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-sm hover:shadow-md'
-                                                }`}
-                                        >
-                                            <CheckCircleOutlined />
-                                            <span>Đưa vào sản xuất</span>
-                                        </button>
+                                            <button
+                                                disabled={!orderDetail.printer_ready_file_path && !pendingPrintFile}
+                                                onClick={() => {
+                                                    setIsPrintFileViewed(false);
+                                                    setIsProduceCheckCommitted(false);
+                                                    setIsProduceModalOpen(true);
+                                                }}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
+                                                ${(!orderDetail.printer_ready_file_path && !pendingPrintFile)
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                                                        : 'bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-sm hover:shadow-md'
+                                                    }`}
+                                            >
+                                                <CheckCircleOutlined />
+                                                <span>Đưa vào sản xuất</span>
+                                            </button>
                                         </Tooltip>
                                         <Modal
                                             title={<span className="font-semibold text-lg">Xác nhận đưa vào sản xuất</span>}
                                             open={isProduceModalOpen}
                                             onCancel={() => setIsProduceModalOpen(false)}
                                             footer={[
-                                                <button 
-                                                    key="cancel" 
+                                                <button
+                                                    key="cancel"
                                                     onClick={() => setIsProduceModalOpen(false)}
                                                     className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
                                                 >
@@ -656,8 +656,8 @@ export default function ConsultantRequestDetailPage() {
                             open={updateModalOpen}
                             onCancel={() => setUpdateModalOpen(false)}
                             footer={[
-                                <button 
-                                    key="cancel" 
+                                <button
+                                    key="cancel"
                                     onClick={() => setUpdateModalOpen(false)}
                                     className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
                                 >
@@ -712,7 +712,7 @@ export default function ConsultantRequestDetailPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                         <div className="lg:col-span-2">
                             {/* Summary Card (Customer & Product packed tightly) */}
-                            <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
+                            <Card className="rounded-2xl border border-slate-200 shadow-lg border-t-4 border-t-primary" bodyStyle={{ padding: '24px' }}>
                                 {/* Customer Section */}
                                 <div className="mb-6">
                                     <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
@@ -788,7 +788,7 @@ export default function ConsultantRequestDetailPage() {
                         <div className="lg:col-span-1">
                             {/* Combined Tài liệu & Thanh toán Card */}
                             <Card
-                                className="shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 border border-slate-100 border-t-4 border-t-primary"
+                                className="shadow-lg rounded-2xl border border-slate-100 border-t-4 border-t-primary"
                                 bodyStyle={{ padding: '20px' }}
                             >
                                 <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-50">
@@ -1015,7 +1015,7 @@ export default function ConsultantRequestDetailPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                         <div className="lg:col-span-2">
                             {/* Cost Estimates Block */}
-                            <Card className="rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-accent">
+                            <Card className="rounded-2xl border-2 border-slate-400 shadow-lg border-t-4 border-t-accent">
                                 <h3 className="text-sm uppercase tracking-wider font-bold text-primary mb-4 flex items-center gap-2">
                                     <DollarOutlined />
                                     Thông tin báo giá
@@ -1324,7 +1324,7 @@ export default function ConsultantRequestDetailPage() {
 
                                     {/* Ghi chú của consultant */}
                                     {orderDetail.consultant_note && (
-                                        <Card className="mt-6 rounded-2xl border border-blue-100 shadow-sm border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
+                                        <Card className="mt-6 rounded-2xl border border-blue-100 shadow-lg  border-t-4 border-t-blue-400 bg-blue-50/30 pb-0">
                                             <div>
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
@@ -1543,19 +1543,19 @@ export default function ConsultantRequestDetailPage() {
                         </Form.Item>
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-                            <button 
+                            <button
                                 type="button"
-                                onClick={() => setAlternativeModalOpen(false)} 
+                                onClick={() => setAlternativeModalOpen(false)}
                                 className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
                             >
                                 Hủy
                             </button>
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={submittingAlternative}
                                 className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 
-                                    ${submittingAlternative 
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                    ${submittingAlternative
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                         : 'bg-amber-600 text-white hover:bg-amber-700 active:scale-95 shadow-sm'
                                     }`}
                             >
@@ -1598,8 +1598,8 @@ export default function ConsultantRequestDetailPage() {
                                 )}
                             </div>
                             <div className="flex gap-3">
-                                <button 
-                                    onClick={() => setIsPreviewModalOpen(false)} 
+                                <button
+                                    onClick={() => setIsPreviewModalOpen(false)}
                                     className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
                                 >
                                     Đóng

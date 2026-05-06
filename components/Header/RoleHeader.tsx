@@ -16,6 +16,7 @@ interface RoleHeaderProps {
   onNavigateToRequest?: (requestId: number, status?: string | null) => void;
   accessToken?: string;
   className?: string;
+  theme?: "default" | "purple" | "blue" | "amber";
 }
 
 const HUB_URL = "https://mmes-sep490-84gr.onrender.com/hubs/realtime";
@@ -26,6 +27,7 @@ export default function RoleHeader({
   onNavigateToRequest,
   accessToken,
   className = "",
+  theme = "default",
 }: RoleHeaderProps) {
   const [isVisible, setIsVisible] = React.useState(true);
   const [localUser, setLocalUser] = React.useState<any>(null);
@@ -69,13 +71,26 @@ export default function RoleHeader({
     { key: "logout", label: "Đăng xuất", icon: <LogoutOutlined />, danger: true, onClick: onLogout },
   ];
 
+  const isPurple = theme === "purple";
+  const isBlue = theme === "blue";
+  const isAmber = theme === "amber";
+  const isDarkTheme = isPurple || isBlue || isAmber;
+  
+  const headerBgClass = isPurple 
+    ? "bg-purple-900 text-white border-purple-800" 
+    : isBlue
+      ? "bg-blue-900 text-white border-blue-800"
+      : isAmber
+        ? "bg-amber-900 text-white border-amber-800"
+        : "bg-white/80 backdrop-blur-md border-gray-100 text-gray-800";
+
   return (
     <header
-      className={`sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-100
+      className={`sticky top-0 z-40 w-full border-b
         px-6 py-3 flex justify-between items-center shadow-sm
         transition-all duration-500 ease-in-out
         ${isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"}
-        ${className}`}
+        ${headerBgClass} ${className}`}
     >
       <div />
 
@@ -88,15 +103,16 @@ export default function RoleHeader({
           onMarkAllAsRead={markAllAsRead}
           onClearAll={clearAll}
           onNavigate={onNavigateToRequest}
+          theme={theme}
         />
 
         <Dropdown menu={{ items: menuItems }} placement="bottomRight" arrow>
-          <div className="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 py-1 px-2 rounded-lg transition-all duration-200">
+          <div className={`flex items-center gap-3 cursor-pointer group py-1 px-2 rounded-lg transition-all duration-200 ${isPurple ? 'hover:bg-purple-800' : isBlue ? 'hover:bg-blue-800' : isAmber ? 'hover:bg-amber-800' : 'hover:bg-gray-50'}`}>
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-gray-800 leading-tight group-hover:text-primary transition-colors">
+              <p className={`text-sm font-semibold leading-tight transition-colors ${isDarkTheme ? 'text-white' : 'text-gray-800 group-hover:text-primary'}`}>
                 {localUser?.full_name || userInfo?.name || "Người dùng"}
               </p>
-              <p className="text-[11px] text-gray-400 uppercase tracking-wider font-medium mt-0.5">
+              <p className={`text-[11px] uppercase tracking-wider font-medium mt-0.5 ${isDarkTheme ? 'text-gray-200' : 'text-gray-400'}`}>
                 {userInfo?.role || "Công ty in ấn"}
               </p>
             </div>
@@ -104,7 +120,13 @@ export default function RoleHeader({
               size="default"
               src={userInfo?.avatar}
               icon={!userInfo?.avatar && <UserOutlined />}
-              className="bg-primary/10 text-primary border border-primary/20"
+              className={isPurple 
+                ? "bg-purple-800 text-white border border-purple-700" 
+                : isBlue 
+                  ? "bg-blue-800 text-white border border-blue-700" 
+                  : isAmber
+                    ? "bg-amber-800 text-white border border-amber-700"
+                    : "bg-primary/10 text-primary border border-primary/20"}
             />
           </div>
         </Dropdown>

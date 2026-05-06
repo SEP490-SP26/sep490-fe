@@ -2,6 +2,7 @@
 import { consultantNavItems } from "@/components/sidebar/presets";
 import RoleHeader from "@/components/Header/RoleHeader";
 import Sidebar from "@/components/sidebar/Sidebar";
+import { ConfigProvider } from "antd";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { FiList, FiLogOut, FiShoppingCart } from "react-icons/fi";
@@ -70,7 +71,22 @@ export default function LayoutConsultant({
     router.push("/management-login");
   };
   return (
-    <div className="min-h-screen bg-background">
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#581c87", // Tailwind purple-900
+          borderRadius: 6,
+        },
+      }}
+    >
+      <div 
+        className="min-h-screen bg-background"
+        style={{ 
+          '--color-primary': '#581c87', 
+          '--color-primary-light': '#7e22ce', 
+          '--color-primary-dark': '#3b0764' 
+        } as React.CSSProperties}
+      >
       {/* Sidebar */}
 
       <Sidebar
@@ -89,6 +105,7 @@ export default function LayoutConsultant({
           userInfo={userInfo}
           onLogout={handleLogout}
           onNavigateToRequest={handleNavigate}
+          theme="purple"
         />
         <main className="flex-1">
           {/* Content */}
@@ -124,5 +141,6 @@ export default function LayoutConsultant({
         </footer>
       </div>
     </div>
+    </ConfigProvider>
   );
 }

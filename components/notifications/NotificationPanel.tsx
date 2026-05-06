@@ -18,6 +18,7 @@ interface NotificationPanelProps {
   onMarkAllAsRead: () => void;
   onClearAll: () => void;
   onNavigate?: (requestId: number, status?: string | null) => void;
+  theme?: "default" | "purple" | "blue" | "amber";
 }
 
 /* ─── Time ago ─────────────────────────────────────────────────────── */
@@ -183,6 +184,14 @@ function Panel({
 
 export default function NotificationPanel(props: NotificationPanelProps) {
   const [open, setOpen] = useState(false);
+  const isPurple = props.theme === "purple";
+  const isBlue = props.theme === "blue";
+  const isAmber = props.theme === "amber";
+  const isDarkTheme = isPurple || isBlue || isAmber;
+  
+  const triggerBtnClass = isDarkTheme
+    ? "relative p-2 hover:bg-white/20 rounded-full transition-colors text-white"
+    : "relative p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-primary";
 
   return (
     <Dropdown
@@ -194,7 +203,7 @@ export default function NotificationPanel(props: NotificationPanelProps) {
       popupRender={() => <Panel {...props} onCloseDropdown={() => setOpen(false)} />}
     >
       <Badge count={props.unreadCount} size="small" offset={[-2, 4]} overflowCount={99}>
-        <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-primary">
+        <button className={triggerBtnClass}>
           <BellOutlined className="text-xl" />
           {props.connected && (
             <span className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-green-400 border-2 border-white" />

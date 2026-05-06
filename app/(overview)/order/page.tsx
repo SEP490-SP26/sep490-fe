@@ -45,7 +45,9 @@ import { formatVietnameseNumber } from "@/utils/format";
 import { disabledDate } from "@/utils/vietnamHolidays";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import authApiRequest from "@/apiRequests/auth";
 import axios from "@/apiRequests/axios";
+import { useAuth } from "@/lib/auth-context";
 
 const { Title, Text } = Typography;
 
@@ -86,6 +88,7 @@ const getQuantityLabel = (val: number) => {
 
 export default function GuestOrderPage() {
   const { customer, isLoggedIn } = useCustomer();
+  const { user, isAuthenticated } = useAuth();
   const [form] = Form.useForm();
   const [isSuccess, setIsSuccess] = useState(false);
   const [successResponse, setSuccessResponse] = useState<any>(null);
@@ -195,35 +198,54 @@ export default function GuestOrderPage() {
 
   // Handle verified email from Home Page / Logged In Customer
   useEffect(() => {
-    const emailParam = searchParams.get("email");
-    const verifiedParam = searchParams.get("verified");
+    const fetchRealUser = async () => {
+      const emailParam = searchParams.get("email");
+      const verifiedParam = searchParams.get("verified");
 
-    if (isLoggedIn && customer) {
-      form.setFieldsValue({
-        customerName: customer.name,
-        phone: customer.phone,
-        email: customer.email,
-      });
-      setIsVerified(true);
-      setIsOtpSent(false);
+      if (isAuthenticated && user?.user_id) {
+        try {
+          const res = await authApiRequest.getUserById(user.user_id);
+          const userData = (res as any)?.data || res;
+          if (userData) {
+            form.setFieldsValue({
+              customerName: userData.full_name || user.full_name,
+              phone: userData.phone_number || "",
+              email: userData.email || "",
+            });
+            setIsVerified(true);
+            setIsOtpSent(false);
+          }
+        } catch (error) {
+          console.error("Fetch user error", error);
+        }
+      } else if (isLoggedIn && customer) {
+        form.setFieldsValue({
+          customerName: customer.name,
+          phone: customer.phone,
+          email: customer.email,
+        });
+        setIsVerified(true);
+        setIsOtpSent(false);
 
-      if (customer.addresses && customer.addresses.length > 0) {
-        const defaultAddr = customer.addresses.find((a) => a.isDefault) || customer.addresses[0];
-        const addressStr = defaultAddr.formattedAddress || `${defaultAddr.streetAddress}, ${defaultAddr.districtName}, ${defaultAddr.provinceName}`;
+        if (customer.addresses && customer.addresses.length > 0) {
+          const defaultAddr = customer.addresses.find((a) => a.isDefault) || customer.addresses[0];
+          const addressStr = defaultAddr.formattedAddress || `${defaultAddr.streetAddress}, ${defaultAddr.districtName}, ${defaultAddr.provinceName}`;
 
-        form.setFieldValue("shippingAddress", addressStr);
-        setSelectedAddress({
-          formattedAddress: addressStr,
-          lat: defaultAddr.lat || 0,
-          lng: defaultAddr.lng || 0,
-        } as any);
+          form.setFieldValue("shippingAddress", addressStr);
+          setSelectedAddress({
+            formattedAddress: addressStr,
+            lat: defaultAddr.lat || 0,
+            lng: defaultAddr.lng || 0,
+          } as any);
+        }
+      } else if (emailParam && verifiedParam === "true") {
+        form.setFieldValue("email", emailParam);
+        setIsVerified(true);
+        setIsOtpSent(false); // No need to send OTP if already verified
       }
-    } else if (emailParam && verifiedParam === "true") {
-      form.setFieldValue("email", emailParam);
-      setIsVerified(true);
-      setIsOtpSent(false); // No need to send OTP if already verified
-    }
-  }, [searchParams, form, isLoggedIn, customer]);
+    };
+    fetchRealUser();
+  }, [searchParams, form, isLoggedIn, customer, isAuthenticated, user]);
 
   // Fetch product suggestions and paper types
   useEffect(() => {
@@ -587,7 +609,7 @@ export default function GuestOrderPage() {
                         rules={[{ required: true, message: "Nhập họ tên" }]}
                         className="w-full"
                       >
-                        <Input placeholder="Nguyễn Văn A" disabled={isLoggedIn} />
+                        <Input placeholder="Nguyễn Văn A" disabled={isLoggedIn || isAuthenticated} />
                       </Form.Item>
 
                       {/* SĐT - simple field without OTP */}
@@ -600,7 +622,7 @@ export default function GuestOrderPage() {
                         ]}
                         className="w-full"
                       >
-                        <Input placeholder="0912345678" disabled={isLoggedIn} />
+                        <Input placeholder="0912345678" disabled={isLoggedIn || isAuthenticated} />
                       </Form.Item>
                     </div>
 

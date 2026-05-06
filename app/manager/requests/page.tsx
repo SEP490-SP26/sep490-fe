@@ -272,9 +272,9 @@ export default function ManagerOrdersPage() {
       align: "center" as const,
       render: (_: any, record: OrderRequest) => (
         <Link href={`/manager/request-detail/${record.order_request_id}`}>
-          <Button size="small" icon={<EyeOutlined />}>
-            Chi Tiết
-          </Button>
+          <button className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-900 text-white rounded hover:bg-blue-800 transition-colors">
+            <EyeOutlined /> Chi Tiết
+          </button>
         </Link>
       ),
     },

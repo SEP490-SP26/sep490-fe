@@ -171,15 +171,14 @@ export default function MachinesManagementPage() {
               Cập nhật: {formatDatetime(snapshot.generated_at)}
             </span>
           )}
-          <Button
-            type="primary"
-            icon={<ReloadOutlined />}
+          <button
+            type="button"
             onClick={handleRefetch}
-            loading={isLoading}
-            className="bg-blue-600 shadow-sm"
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors font-medium disabled:opacity-50"
           >
-            Làm mới
-          </Button>
+            <ReloadOutlined className={isLoading ? "animate-spin" : ""} /> Làm mới
+          </button>
         </div>
       </div>
 
