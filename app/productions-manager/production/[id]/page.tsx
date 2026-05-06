@@ -81,6 +81,7 @@ export interface ProductionStage {
   n_up?: number | null;
   input_materials: InputMaterial[];
   output_product: OutputProduct;
+  is_taken_sub_product?: boolean;
 }
 
 export interface ProductionResponse {
@@ -553,8 +554,7 @@ export default function ProductionDetailPage() {
 
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
-      ...prev,
-      [processId]: !prev[processId],
+      [processId]: !(prev[processId] ?? true),
     }));
   };
 
@@ -982,7 +982,7 @@ export default function ProductionDetailPage() {
 
       {/* =================== TIMELINE =================== */}
       {sortedStages && sortedStages.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm overflow-x-auto">
+        <div className="sticky top-4 z-40 bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-md overflow-x-auto transition-all">
           <h2 className="font-semibold mb-6 flex items-center gap-2 text-gray-800">
             <BsClock className="w-5 h-5 text-blue-600" /> Tiến độ công đoạn
           </h2>
@@ -1056,6 +1056,11 @@ export default function ProductionDetailPage() {
                         <span className="text-xs text-gray-600 font-medium flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md border border-gray-200">
                           <BsPerson className="w-3.5 h-3.5" />
                           {stage.assigned_to_name}
+                        </span>
+                      )}
+                      {stage.is_taken_sub_product && (
+                        <span className="text-xs font-bold text-teal-700 flex items-center gap-1.5 px-3 py-1 bg-teal-100 rounded-md border border-teal-300 shadow-sm">
+                          Hoàn thành từ bán thành phẩm có sẵn
                         </span>
                       )}
                       <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-md border border-blue-300 shadow-sm">
@@ -1342,6 +1347,11 @@ export default function ProductionDetailPage() {
                           <span className="text-xs text-gray-600 font-medium flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md border border-gray-200">
                             <BsPerson className="w-3.5 h-3.5" />
                             {stage.assigned_to_name}
+                          </span>
+                        )}
+                        {stage.is_taken_sub_product && (
+                          <span className="text-xs font-bold text-teal-700 flex items-center gap-1.5 px-3 py-1 bg-teal-100 rounded-md border border-teal-300 shadow-sm">
+                            Hoàn thành từ bán thành phẩm có sẵn
                           </span>
                         )}
                         <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-md border border-blue-300 shadow-sm">
