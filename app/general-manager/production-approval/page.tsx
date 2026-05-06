@@ -46,8 +46,8 @@ function ProductionApprovalContent() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ orderId, is_full_process, sub_id }: { orderId: number, is_full_process: boolean, sub_id: number | null }) => {
-      return await productionsApi.updateProduction(orderId, { is_production_ready: true, is_full_process, sub_id });
+    mutationFn: async ({ orderId }: { orderId: number }) => {
+      return await productionsApi.updateProduction(orderId, { is_production_ready: true });
     },
     onSuccess: () => {
       message.success("Đã duyệt đơn đưa vào sản xuất thành công!");
@@ -214,29 +214,16 @@ function ProductionApprovalContent() {
           >
             Hủy bỏ
           </button>,
-          activeTab === '1' ? (
-            <button
-              key="submit-full"
-              type="button"
-              disabled={!(statusData?.has_enough_material && statusData?.has_free_machine) || approveMutation.isPending}
-              onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: true, sub_id: null })}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${(statusData?.has_enough_material && statusData?.has_free_machine) && !approveMutation.isPending ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
-            >
-              {approveMutation.isPending && <Spin size="small" />}
-              Xác nhận sản xuất (Từ vật tư)
-            </button>
-          ) : (
-            <button
-              key="submit-sub"
-              type="button"
-              disabled={!statusData?.has_matched_sub_product || approveMutation.isPending}
-              onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: false, sub_id: statusData?.matched_sub_product?.id || null })}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${statusData?.has_matched_sub_product && !approveMutation.isPending ? "bg-amber-900 hover:bg-amber-800" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
-            >
-              {approveMutation.isPending && <Spin size="small" />}
-              Xác nhận sản xuất (Từ bán thành phẩm)
-            </button>
-          )
+          <button
+            key="submit"
+            type="button"
+            disabled={!(statusData?.has_enough_material && statusData?.has_free_machine) || approveMutation.isPending}
+            onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId })}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${(statusData?.has_enough_material && statusData?.has_free_machine) && !approveMutation.isPending ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
+          >
+            {approveMutation.isPending && <Spin size="small" />}
+            Xác nhận đủ điều kiện sản xuất
+          </button>
         ]}
       >
         <div className="py-4">

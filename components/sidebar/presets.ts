@@ -269,6 +269,12 @@ export const managerNavItems: NavItem[] = [
     basePath: "/manager",
   },
   {
+    path: "/production-method",
+    label: "Phương thức sản xuất",
+    icon: FiSettings,
+    basePath: "/manager",
+  },
+  {
     path: "/",
     label: "Đăng xuất",
     icon: FiLogOut,

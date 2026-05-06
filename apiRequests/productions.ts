@@ -109,9 +109,12 @@ export const productionsApi = {
   startReady: (orderId: number) =>
     http.get<ProductionStatusResponse>(`/api/Productions/start-ready/${orderId}`),
 
-  updateProduction: (orderId: number, body: { is_production_ready: boolean, is_full_process: boolean, sub_id: number | null }) =>
+  updateProduction: (orderId: number, body: { is_production_ready: boolean }) =>
     http.put(`/api/Productions/start-ready/${orderId}`, body),
 
   generateImportReceive: (body: { order_id: number }) =>
     http.post(`/api/Productions/generate-import-receive`, body),
+
+  productionMethod: (body: { order_id: number, is_full_process: boolean, sub_id: number | null }) =>
+    http.post(`/api/Productions/production-method`, body),
 };
