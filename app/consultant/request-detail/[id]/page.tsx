@@ -1668,39 +1668,41 @@ export default function ConsultantRequestDetailPage() {
                                                     <div className="flex flex-col">
                                                         {/* Hợp đồng Web Viewer - Cloudinary/Iframe */}
                                                         <div
-                                                            className="w-full h-[600px] overflow-y-auto bg-slate-100 rounded-t-lg relative"
+                                                            className="w-full h-[600px] bg-slate-100 rounded-t-lg relative contract-scroll-container"
                                                             onScroll={(e) => {
                                                                 const el = e.currentTarget;
-                                                                if (el.scrollHeight - el.scrollTop <= el.clientHeight + 50) {
+                                                                if (el.scrollHeight - Math.abs(el.scrollTop) <= el.clientHeight + 50) {
                                                                     setReviewedContracts(prev => new Set([...prev, quote.estimate_id]));
                                                                 }
                                                             }}
                                                         >
-                                                            {(() => {
-                                                                const contractUrl = quote.customer_signed_contract_path || quote.consultant_contract_path;
-                                                                if (!contractUrl) return null;
-                                                                const isImage = contractUrl.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i);
-                                                                const isDoc = contractUrl.toLowerCase().match(/\.(doc|docx)$/i);
+                                                            <div className="contract-scroll-content">
+                                                                {(() => {
+                                                                    const contractUrl = quote.customer_signed_contract_path || quote.consultant_contract_path;
+                                                                    if (!contractUrl) return null;
+                                                                    const isImage = contractUrl.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i);
+                                                                    const isDoc = contractUrl.toLowerCase().match(/\.(doc|docx)$/i);
 
-                                                                return isImage ? (
-                                                                    <div className="w-full flex justify-center bg-slate-200">
-                                                                        <img
-                                                                            src={contractUrl}
-                                                                            alt={`Hợp đồng #${index + 1}`}
-                                                                            className="max-w-full h-auto object-contain bg-white shadow-sm"
+                                                                    return isImage ? (
+                                                                        <div className="w-full flex justify-center bg-slate-200">
+                                                                            <img
+                                                                                src={contractUrl}
+                                                                                alt={`Hợp đồng #${index + 1}`}
+                                                                                className="max-w-full h-auto object-contain bg-white shadow-sm"
+                                                                                onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <iframe
+                                                                            src={isDoc ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
+                                                                            className="w-full border-0 rounded-t-lg shadow-sm pointer-events-none"
+                                                                            style={{ height: '2600px' }}
+                                                                            title={`Hợp đồng #${index + 1}`}
                                                                             onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
                                                                         />
-                                                                    </div>
-                                                                ) : (
-                                                                    <iframe
-                                                                        src={isDoc ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
-                                                                        className="w-full border-0 rounded-t-lg shadow-sm"
-                                                                        style={{ height: '800px' }}
-                                                                        title={`Hợp đồng #${index + 1}`}
-                                                                        onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
-                                                                    />
-                                                                );
-                                                            })()}
+                                                                    );
+                                                                })()}
+                                                            </div>
                                                         </div>
 
                                                         {/* Bản sao lưu HTML để đảm bảo scroll tracking (hoặc nội dung đi kèm) */}
@@ -1832,6 +1834,31 @@ export default function ConsultantRequestDetailPage() {
                     .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
                     .overflow-y-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
                     
+                    /* Contract scrollbar on the left */
+                    .contract-scroll-container {
+                        overflow-y: scroll; /* Force scrollbar */
+                        direction: rtl; /* Move to left */
+                    }
+                    .contract-scroll-content {
+                        direction: ltr; /* Reset content to left-to-right */
+                    }
+                    .contract-scroll-container::-webkit-scrollbar {
+                        width: 10px;
+                        display: block; /* Always show */
+                    }
+                    .contract-scroll-container::-webkit-scrollbar-track {
+                        background: #f1f5f9;
+                        border-right: 1px solid #cbd5e1;
+                    }
+                    .contract-scroll-container::-webkit-scrollbar-thumb {
+                        background: #94a3b8;
+                        border-radius: 4px;
+                        border: 2px solid #f1f5f9;
+                    }
+                    .contract-scroll-container::-webkit-scrollbar-thumb:hover {
+                        background: #64748b;
+                    }
+
                     /* Clean up AntD Collapse padding manually if needed */
                     .ant-collapse-ghost > .ant-collapse-item > .ant-collapse-header { padding: 8px 12px; }
                     .ant-collapse-content > .ant-collapse-content-box { padding: 4px 12px 12px; }

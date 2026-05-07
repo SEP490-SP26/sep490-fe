@@ -235,11 +235,12 @@ export default function WarehouseDeliveryDetailPage() {
   const isPaid = normStatus === "Paid";
   const isFinished = normStatus === "Finished";
   const isPendingPaid = normStatus === "PendingPaid";
+  const isImporting = normStatus === "Importing";
 
-  let actionText = "Không khả dụng";
-  if (isFinished) actionText = "Chờ tư vấn viên liên hệ với khách hàng";
-  else if (isPendingPaid) actionText = "Chờ khách hàng thanh toán để vận chuyển";
-  else if (isPaid) actionText = "Bàn giao cho đơn vị vận chuyển";
+  // let actionText = "Không khả dụng";
+  // if (isFinished) actionText = "Chờ tư vấn viên liên hệ với khách hàng";
+  // else if (isPendingPaid) actionText = "Chờ khách hàng thanh toán để vận chuyển";
+  // else if (isPaid) actionText = "Bàn giao cho đơn vị vận chuyển";
 
   return (
     <div className="min-h-screen bg-[#f5f7fa] pb-12">
@@ -362,7 +363,7 @@ export default function WarehouseDeliveryDetailPage() {
               size="large"
               icon={<SendOutlined />}
               block
-              disabled={!isPaid}
+              disabled={!isImporting}
               loading={transferring}
               onClick={handleTransfer}
               style={{
@@ -373,7 +374,7 @@ export default function WarehouseDeliveryDetailPage() {
                 marginTop: 8,
               }}
             >
-              {actionText}
+              Giao Hàng
             </Button>
 
             {!isPaid && (

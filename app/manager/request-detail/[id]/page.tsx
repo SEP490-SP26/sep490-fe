@@ -339,7 +339,7 @@ export default function ManagerRequestDetailPage() {
                                 <>
                                     <button 
                                         onClick={() => setNoteMode(false)} 
-                                        className="w-full rounded-lg text-sm font-medium h-auto py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
+                                        className="rounded-lg text-sm font-medium h-auto py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors whitespace-nowrap"
                                     >
                                         Hủy bỏ
                                     </button>
@@ -351,7 +351,7 @@ export default function ManagerRequestDetailPage() {
                                     >
                                         <button 
                                             type="button" 
-                                            className="w-full flex justify-center items-center gap-2 rounded-lg text-sm font-medium h-auto py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-colors disabled:opacity-50" 
+                                            className="flex justify-center items-center gap-2 rounded-lg text-sm font-medium h-auto py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition-colors disabled:opacity-50 whitespace-nowrap" 
                                             disabled={actionLoading}
                                         >
                                             {actionLoading && <Spin size="small" />}
@@ -363,7 +363,7 @@ export default function ManagerRequestDetailPage() {
                                 <>
                                     <button 
                                         onClick={() => setNoteMode(true)} 
-                                        className="w-full flex justify-center items-center gap-2 rounded-lg text-sm font-medium h-auto py-2 px-4 bg-white border border-red-500 text-red-500 hover:bg-red-50 transition-colors"
+                                        className="flex justify-center items-center gap-2 rounded-lg text-sm font-medium h-auto py-2 px-4 bg-white border border-red-500 text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap"
                                     >
                                         <EditOutlined />
                                         Yêu cầu chỉnh sửa
@@ -379,7 +379,7 @@ export default function ManagerRequestDetailPage() {
                                     >
                                         <button 
                                             type="button" 
-                                            className="w-full flex justify-center items-center gap-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium h-auto py-2 px-4 shadow-sm transition-colors disabled:opacity-50" 
+                                            className="flex justify-center items-center gap-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium h-auto py-2 px-4 shadow-sm transition-colors disabled:opacity-50 whitespace-nowrap" 
                                             disabled={actionLoading}
                                         >
                                             {actionLoading ? <Spin size="small" /> : <CheckOutlined />}
