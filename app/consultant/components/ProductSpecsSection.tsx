@@ -321,7 +321,7 @@ export default function ProductSpecsSection({
 
       <Row gutter={16}>
 
-        <Col span={9}>
+        <Col span={12}>
           <Tooltip title={isCurrentPaperIncompatible ? paperWarningMsg : (highlightFields['paper_code'] || "")} color={isCurrentPaperIncompatible ? "volcano" : "orange"} placement="topLeft" trigger={['hover', 'focus']}>
             <div className="w-full">
               <Form.Item
@@ -361,7 +361,7 @@ export default function ProductSpecsSection({
           </Tooltip>
         </Col>
 
-        <Col span={5}>
+        <Col span={6}>
           <Form.Item
             name="quantity"
             rules={[{ required: true, message: "Nhập số lượng" }]}
@@ -381,7 +381,7 @@ export default function ProductSpecsSection({
             />
           </Form.Item>
         </Col>
-        <Col span={4}>
+        <Col span={6}>
           <Form.Item name="number_of_plates">
             <FloatingInputAntd
               label="Số kẽm"
@@ -394,7 +394,10 @@ export default function ProductSpecsSection({
             />
           </Form.Item>
         </Col>
-        <Col span={6}>
+      </Row>
+
+      {(hasPHU || hasCAN) && (
+        <Row gutter={16}>
           {hasPHU && (() => {
             const isKeoDauWarning = selectedProductTypeCode === "THE_MAU" && currentCoatingType === "KEO_DAU";
             const tooltipTitle = isKeoDauWarning
@@ -402,58 +405,61 @@ export default function ProductSpecsSection({
               : highlightFields['coating_type'] || "";
               
             return (
-              <Tooltip 
-                title={tooltipTitle} 
-                color={isKeoDauWarning ? "volcano" : "orange"} 
-                placement="topLeft" 
-                trigger={['hover', 'focus']}
-              >
-                <div className="w-full">
-                  <Form.Item name="coating_type" className="mb-0" validateStatus={isKeoDauWarning ? "warning" : undefined}>
-                    <FloatingSelect
-                      label="Loại keo phủ"
-                      options={glueTypes.map((gt) => ({
-                        label: gt.name,
-                        value: gt.code,
-                      }))}
-                      className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-                      disabled={isDeclined && !highlightFields['coating_type']}
-                    />
-                  </Form.Item>
-                </div>
-              </Tooltip>
+              <Col span={12}>
+                <Tooltip 
+                  title={tooltipTitle} 
+                  color={isKeoDauWarning ? "volcano" : "orange"} 
+                  placement="topLeft" 
+                  trigger={['hover', 'focus']}
+                >
+                  <div className="w-full">
+                    <Form.Item name="coating_type" validateStatus={isKeoDauWarning ? "warning" : undefined}>
+                      <FloatingSelect
+                        label="Loại keo phủ"
+                        options={glueTypes.map((gt) => ({
+                          label: gt.name,
+                          value: gt.code,
+                        }))}
+                        className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                        disabled={isDeclined && !highlightFields['coating_type']}
+                      />
+                    </Form.Item>
+                  </div>
+                </Tooltip>
+              </Col>
             );
           })()}
-        </Col>
-        <Col span={6}>
+
           {hasCAN && (() => {
             const tooltipTitle = highlightFields['lamination_material'] || "";
               
             return (
-              <Tooltip 
-                title={tooltipTitle} 
-                color="orange" 
-                placement="topLeft" 
-                trigger={['hover', 'focus']}
-              >
-                <div className="w-full">
-                  <Form.Item name="lamination_material" className="mb-0" rules={[{ required: true, message: "Vui lòng chọn màng" }]}>
-                    <FloatingSelect
-                      label="Loại màng"
-                      options={laminationTypes.map((lt) => ({
-                        label: lt.name,
-                        value: lt.code,
-                      }))}
-                      className={highlightFields['lamination_material'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
-                      disabled={isDeclined && !highlightFields['lamination_material']}
-                    />
-                  </Form.Item>
-                </div>
-              </Tooltip>
+              <Col span={12}>
+                <Tooltip 
+                  title={tooltipTitle} 
+                  color="orange" 
+                  placement="topLeft" 
+                  trigger={['hover', 'focus']}
+                >
+                  <div className="w-full">
+                    <Form.Item name="lamination_material" rules={[{ required: true, message: "Vui lòng chọn màng" }]}>
+                      <FloatingSelect
+                        label="Loại màng"
+                        options={laminationTypes.map((lt) => ({
+                          label: lt.name,
+                          value: lt.code,
+                        }))}
+                        className={highlightFields['lamination_material'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                        disabled={isDeclined && !highlightFields['lamination_material']}
+                      />
+                    </Form.Item>
+                  </div>
+                </Tooltip>
+              </Col>
             );
           })()}
-        </Col>
-      </Row>
+        </Row>
+      )}
 
       {(selectedProductTypeCode === "HOP_MAU" ||
         selectedProductTypeCode === "VO_HOP_GACH") && (
