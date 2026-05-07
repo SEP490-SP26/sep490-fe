@@ -5,7 +5,7 @@ import {
   FiSave, FiRefreshCw, FiDollarSign, FiPercent, FiTool,
   FiLayers, FiClock, FiCreditCard, FiGrid, FiEdit3,
   FiChevronDown, FiChevronRight, FiCheckCircle, FiAlertCircle,
-  FiSettings,
+  FiSettings, FiTruck,
 } from "react-icons/fi";
 import { baseConfigApi, BaseConfigResponse } from "@/apiRequests/baseConfigs";
 
@@ -314,6 +314,7 @@ export default function BaseConfigsPage() {
     platePrices: false,
     paymentTerms: false,
     planning: false,
+    deliveryPayment: false,
   });
 
   const toggleSection = (key: string) =>
@@ -526,6 +527,14 @@ export default function BaseConfigsPage() {
     setConfig({
       ...config,
       design: { default_design_cost: Number(val) || 0 },
+    });
+  };
+
+  const updateDeliveryPayment = (val: boolean) => {
+    if (!config) return;
+    setConfig({
+      ...config,
+      deliveryPayment: { require_remaining_before_delivery: val },
     });
   };
 
@@ -1095,6 +1104,47 @@ export default function BaseConfigsPage() {
                   type={key === "min_start_wait_hours" ? "number" : "text"}
                 />
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* ════════════════════
+           11. CẤU HÌNH GIAO HÀNG
+        ═════════════════════ */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <SectionHeader
+            icon={FiTruck}
+            title="Cấu hình giao hàng"
+            subtitle="Yêu cầu thanh toán phần còn lại trước khi giao hàng"
+            color="bg-orange-50 text-orange-600"
+            isOpen={openSections.deliveryPayment}
+            onToggle={() => toggleSection("deliveryPayment")}
+          />
+          {openSections.deliveryPayment && (
+            <div className="px-5 pb-5">
+              <div className="flex items-center justify-between max-w-lg p-4 rounded-lg border border-gray-100 bg-gray-50/50">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">
+                    Yêu cầu thanh toán còn lại trước khi giao
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {config.deliveryPayment.require_remaining_before_delivery
+                      ? "Kho phải chờ khách thanh toán xong mới được bàn giao cho vận chuyển"
+                      : "Kho có thể bàn giao cho vận chuyển ngay cả khi chưa thanh toán còn lại"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateDeliveryPayment(!config.deliveryPayment.require_remaining_before_delivery)}
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                    ${config.deliveryPayment.require_remaining_before_delivery ? "bg-blue-600" : "bg-gray-300"}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-300
+                      ${config.deliveryPayment.require_remaining_before_delivery ? "translate-x-6" : "translate-x-1"}`}
+                  />
+                </button>
+              </div>
             </div>
           )}
         </div>

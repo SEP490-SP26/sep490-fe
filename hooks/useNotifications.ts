@@ -67,7 +67,9 @@ export const SIGNALR_NOTIFICATION_METHODS: string[] = [
   "processing",
   "paid",
   "importing",
-  "confirm-layout"
+  "confirm-layout",
+  "approved-production",
+  "approve-production"
 ];
 
 /* ================================================================
