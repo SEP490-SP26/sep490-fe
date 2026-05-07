@@ -136,7 +136,7 @@ export default function ManagementLoginPage() {
                     router.replace("/warehouse");
                     break;
                 case 5:
-                    router.replace("/customer");
+                    router.replace("/");
                     break;
                 case 6:
                     router.replace("/productions-manager");
@@ -248,7 +248,7 @@ export default function ManagementLoginPage() {
                     router.replace("/warehouse");
                     break;
                 case 5:
-                    router.replace("/customer");
+                    router.replace("/");
                     break;
                 case 6:
                     router.replace("/productions-manager");

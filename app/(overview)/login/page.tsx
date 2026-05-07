@@ -149,7 +149,7 @@ export default function LoginPage() {
             addresses: []
           };
           customerLogin(mockCustomer);
-          router.replace("/customer/profile");
+          router.replace("/");
           break;
         case 6:
           router.replace("/productions-manager");
@@ -266,7 +266,7 @@ export default function LoginPage() {
             addresses: []
           };
           customerLogin(googleMockCustomer);
-          router.replace("/customer/profile");
+          router.replace("/");
           break;
         default:
           router.replace("/");
