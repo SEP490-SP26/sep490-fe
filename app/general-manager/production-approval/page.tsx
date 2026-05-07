@@ -50,7 +50,7 @@ function ProductionApprovalContent() {
       return await productionsApi.updateProduction(orderId, { is_production_ready: true });
     },
     onSuccess: () => {
-      message.success("Đã duyệt đơn đưa vào sản xuất thành công!");
+      message.success("Đã duyệt đơn thành công!");
       setIsModalVisible(false);
       refetch();
     },
