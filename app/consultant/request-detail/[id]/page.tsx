@@ -1693,7 +1693,7 @@ export default function ConsultantRequestDetailPage() {
                                                                     </div>
                                                                 ) : (
                                                                     <iframe
-                                                                        src={isDoc ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
+                                                                        src={isDoc ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
                                                                         className="w-full border-0 rounded-t-lg shadow-sm"
                                                                         style={{ height: '800px' }}
                                                                         title={`Hợp đồng #${index + 1}`}

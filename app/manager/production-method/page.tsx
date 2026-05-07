@@ -132,15 +132,18 @@ function ProductionMethodContent() {
       key: "action",
       width: 180,
       align: 'center' as const,
-      render: (_: any, record: any) => (
-        <button
-          onClick={() => handleCheckConditions(record.order_id || record._id)}
-          disabled={record.status === 'Finished' || record.status === 'Delivered'}
-          className="px-3 py-1 text-sm font-medium border border-blue-900 text-blue-900 rounded hover:bg-blue-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent transition-colors"
-        >
-          Chọn PT Sản Xuất
-        </button>
-      ),
+      render: (_: any, record: any) => {
+        if (record.is_full_process === true) return null;
+        return (
+          <button
+            onClick={() => handleCheckConditions(record.order_id || record._id)}
+            disabled={record.status === 'Finished' || record.status === 'Delivered'}
+            className="px-3 py-1 text-sm font-medium border border-blue-900 text-blue-900 rounded hover:bg-blue-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent transition-colors"
+          >
+            Chọn PT Sản Xuất
+          </button>
+        );
+      },
     },
   ];
 
@@ -207,38 +210,40 @@ function ProductionMethodContent() {
         }}
         width={1000}
         style={{ top: 20 }}
-        footer={[
-          <button 
-            key="cancel" 
-            onClick={() => setIsModalVisible(false)}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            Hủy bỏ
-          </button>,
-          activeTab === '1' ? (
-            <button
-              key="submit-full"
-              type="button"
-              disabled={!(statusData?.has_enough_material && statusData?.has_free_machine) || approveMutation.isPending}
-              onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: true, sub_id: null })}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${(statusData?.has_enough_material && statusData?.has_free_machine) && !approveMutation.isPending ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
+        footer={
+          <div className="flex justify-end gap-3">
+            <button 
+              key="cancel" 
+              onClick={() => setIsModalVisible(false)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
-              {approveMutation.isPending && <Spin size="small" />}
-              Xác nhận sản xuất (Từ vật tư)
+              Hủy bỏ
             </button>
-          ) : (
-            <button
-              key="submit-sub"
-              type="button"
-              disabled={!statusData?.has_matched_sub_product || approveMutation.isPending}
-              onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: false, sub_id: statusData?.matched_sub_product?.id || null })}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${statusData?.has_matched_sub_product && !approveMutation.isPending ? "bg-blue-900 hover:bg-blue-800" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
-            >
-              {approveMutation.isPending && <Spin size="small" />}
-              Xác nhận sản xuất (Từ bán thành phẩm)
-            </button>
-          )
-        ]}
+            {activeTab === '1' ? (
+              <button
+                key="submit-full"
+                type="button"
+                disabled={!(statusData?.has_enough_material && statusData?.has_free_machine) || approveMutation.isPending}
+                onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: true, sub_id: null })}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${(statusData?.has_enough_material && statusData?.has_free_machine) && !approveMutation.isPending ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
+              >
+                {approveMutation.isPending && <Spin size="small" />}
+                Xác nhận sản xuất (Từ vật tư)
+              </button>
+            ) : (
+              <button
+                key="submit-sub"
+                type="button"
+                disabled={!statusData?.has_matched_sub_product || approveMutation.isPending}
+                onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: false, sub_id: statusData?.matched_sub_product?.id || null })}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${statusData?.has_matched_sub_product && !approveMutation.isPending ? "bg-blue-900 hover:bg-blue-800" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
+              >
+                {approveMutation.isPending && <Spin size="small" />}
+                Xác nhận sản xuất (Từ bán thành phẩm)
+              </button>
+            )}
+          </div>
+        }
       >
         <div className="py-4">
           {isChecking ? (

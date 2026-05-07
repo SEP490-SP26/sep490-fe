@@ -1022,7 +1022,7 @@ export default function ManagerRequestDetailPage() {
                     <div className="py-2">
                         {contractPath ? (
                             <iframe 
-                                src={contractPath.endsWith('.pdf') ? contractPath : `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(contractPath)}`} 
+                                src={contractPath.endsWith('.pdf') ? contractPath : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contractPath)}`} 
                                 className="w-full rounded-lg border border-slate-200"
                                 style={{ height: '75vh' }}
                                 title="Customer Signed Contract"
@@ -1049,7 +1049,7 @@ export default function ManagerRequestDetailPage() {
                     <div className="py-2">
                         {viewOnlyContract?.path ? (
                             <iframe 
-                                src={viewOnlyContract.path.endsWith('.pdf') ? viewOnlyContract.path : `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(viewOnlyContract.path)}`} 
+                                src={viewOnlyContract.path.endsWith('.pdf') ? viewOnlyContract.path : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewOnlyContract.path)}`} 
                                 className="w-full rounded-lg border border-slate-200"
                                 style={{ height: '75vh' }}
                                 title="Contract Viewer"

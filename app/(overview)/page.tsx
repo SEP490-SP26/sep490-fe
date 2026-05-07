@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Modal, Input, Button, message, Form } from "antd";
 import { otpsApi } from "@/apiRequests/otps";
 import { MailOutlined } from "@ant-design/icons";
+import { useAuth } from "@/lib/auth-context";
 
 const data = [
   {
@@ -134,6 +135,7 @@ const data = [
 
 export default function HomePage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -142,7 +144,11 @@ export default function HomePage() {
   const [form] = Form.useForm();
 
   const showModal = () => {
-    setIsModalOpen(true);
+    if (isAuthenticated) {
+      router.push("/order");
+    } else {
+      setIsModalOpen(true);
+    }
   };
 
   const handleCancel = () => {

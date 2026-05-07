@@ -742,6 +742,7 @@ function ConsultantForm() {
                   return total;
                 })(),
                 coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : undefined),
+                lamination_material: est.lamination_material_code || orderData.lamination_material_code || undefined,
                 wave_type: est.wave_type && est.wave_type !== "NONE" ? est.wave_type : (orderData.wave_type && orderData.wave_type !== "NONE" ? orderData.wave_type : undefined),
                 length: orderData.product_length_mm,
                 width: orderData.product_width_mm,
@@ -848,6 +849,7 @@ function ConsultantForm() {
               description: orderData.description,
               ...(orderData.number_of_plates && { number_of_plates: orderData.number_of_plates }),
               ...((orderData.coating_type && orderData.coating_type !== "NONE") && { coating_type: orderData.coating_type }),
+              ...(orderData.lamination_material_code && { lamination_material: orderData.lamination_material_code }),
               // Add dimensions and paper code if available
               ...(orderData.product_length_mm && { length: orderData.product_length_mm }),
               ...(orderData.product_width_mm && { width: orderData.product_width_mm }),
@@ -1300,6 +1302,7 @@ function ConsultantForm() {
           .join(",")
         : (values.production_processes || ""),
       coating_type: (values.production_processes && values.production_processes.includes("PHU")) ? (values.coating_type && values.coating_type !== "NONE" ? values.coating_type : undefined) : undefined,
+      lamination_material: (values.production_processes && values.production_processes.includes("CAN")) ? (values.lamination_material && values.lamination_material !== "NONE" ? values.lamination_material : undefined) : undefined,
       wave_type: (values.production_processes && values.production_processes.includes("BOI")) ? (values.wave_type && values.wave_type !== "NONE" ? values.wave_type : undefined) : undefined,
       is_one_side_box: !!values.is_one_side_box,
       glue_tab: Number(values.glue_tab) || 0,
@@ -1336,7 +1339,7 @@ function ConsultantForm() {
     const relevantFields = [
       "paper_code", "quantity", "length", "width", "height",
       "product_type", "production_processes", "wave_type",
-      "number_of_plates", "coating_type", "delivery_date",
+      "number_of_plates", "coating_type", "lamination_material", "delivery_date",
       "form_product", "is_one_side_box", "glue_tab", "bleed"
     ];
     const hasRelevantChange = Object.keys(changedValues).some((key) =>
@@ -1599,7 +1602,8 @@ function ConsultantForm() {
             // Tìm vật liệu màng nếu công đoạn CAN được chọn
             const quoteProcesses = Array.isArray(quote.production_processes) ? quote.production_processes : (quote.production_processes || "").split(",");
             const hasCANProcess = quoteProcesses.includes("CAN");
-            const laminationMat = hasCANProcess && laminationMaterials.length > 0 ? laminationMaterials[0] : null;
+            const selectedLaminationCode = quote.lamination_material;
+            const laminationMat = hasCANProcess ? laminationMaterials.find(m => m.code === selectedLaminationCode) || (laminationMaterials.length > 0 ? laminationMaterials[0] : null) : null;
 
             const estimationResult = mapToOrderEstimationResult(
               calculations.costEstimate,
@@ -1727,7 +1731,8 @@ function ConsultantForm() {
           // Tìm vật liệu màng nếu công đoạn CAN được chọn
           const adjustProcesses = form.getFieldValue("production_processes") || [];
           const adjustHasCAN = Array.isArray(adjustProcesses) ? adjustProcesses.includes("CAN") : adjustProcesses.includes("CAN");
-          const adjustLaminationMat = adjustHasCAN && laminationMaterials.length > 0 ? laminationMaterials[0] : null;
+          const selectedLaminationCode = form.getFieldValue("lamination_material");
+          const adjustLaminationMat = adjustHasCAN ? laminationMaterials.find(m => m.code === selectedLaminationCode) || (laminationMaterials.length > 0 ? laminationMaterials[0] : null) : null;
 
           const estimationResult = mapToOrderEstimationResult(
             costEstimate,
@@ -2021,6 +2026,7 @@ function ConsultantForm() {
                             songTypes={songTypes}
                             glueTypes={glueTypes}
                             inkTypes={inkMaterials}
+                            laminationTypes={laminationMaterials}
                             handleFormValuesChange={handleCalculate}
                             form={form}
                             disabledSharedFields={activeTabKey !== "1"}
@@ -2249,6 +2255,7 @@ function ConsultantForm() {
                 },
                 { key: "paper_code", label: "Giấy/Chất liệu", format: (v) => paperTypes.find(p => p.code === v)?.name || v },
                 { key: "coating_type", label: "Phủ/Tráng", format: (v) => v === "NONE" ? "Không" : v === "Keo phủ nước" ? "Keo nước" : v === "KEO_DAN" ? "Keo dán" : v },
+                { key: "lamination_material", label: "Màng (Cán)", format: (v) => laminationMaterials.find(m => m.code === v)?.name || v },
                 { key: "wave_type", label: "Sóng", format: (v) => v },
                 { key: "number_of_plates", label: "Số lượng kẽm", format: (v) => v },
                 {

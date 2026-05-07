@@ -151,6 +151,11 @@ function ProductionApprovalContent() {
     }
   }, [searchParams]);
 
+  const isNvlReady = !!(statusData?.has_enough_material && statusData?.has_free_machine);
+  const isSubProductReady = !!(statusData?.has_matched_sub_product);
+  const areBothReady = isNvlReady && isSubProductReady;
+  const isAnyReady = isNvlReady || isSubProductReady;
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
@@ -206,25 +211,33 @@ function ProductionApprovalContent() {
         }}
         width={1000}
         style={{ top: 20 }}
-        footer={[
-          <button 
-            key="cancel" 
-            onClick={() => setIsModalVisible(false)}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            Hủy bỏ
-          </button>,
-          <button
-            key="submit"
-            type="button"
-            disabled={!(statusData?.has_enough_material && statusData?.has_free_machine) || approveMutation.isPending}
-            onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId })}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${(statusData?.has_enough_material && statusData?.has_free_machine) && !approveMutation.isPending ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
-          >
-            {approveMutation.isPending && <Spin size="small" />}
-            Xác nhận đủ điều kiện sản xuất
-          </button>
-        ]}
+        footer={
+          <div className="flex justify-end gap-3">
+            <button 
+              key="cancel" 
+              onClick={() => setIsModalVisible(false)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              key="submit"
+              type="button"
+              disabled={!isAnyReady || approveMutation.isPending}
+              onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId })}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${
+                isAnyReady && !approveMutation.isPending 
+                  ? areBothReady 
+                    ? "bg-blue-600 hover:bg-blue-700" 
+                    : "bg-green-600 hover:bg-green-700" 
+                  : "bg-gray-400 cursor-not-allowed opacity-80"
+              }`}
+            >
+              {approveMutation.isPending && <Spin size="small" />}
+              {areBothReady ? "Chuyển tiếp cho quản lý" : "Xác nhận đủ điều kiện sản xuất"}
+            </button>
+          </div>
+        }
       >
         <div className="py-4">
           {isChecking ? (

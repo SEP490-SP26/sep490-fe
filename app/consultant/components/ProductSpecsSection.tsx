@@ -22,6 +22,7 @@ interface ProductSpecsSectionProps {
   songTypes: Material[];
   glueTypes: Material[];
   inkTypes: Material[];
+  laminationTypes?: Material[];
   handleFormValuesChange: (changedValues: any, allValues: any) => void;
   form: any;
   disabledSharedFields?: boolean;
@@ -57,6 +58,7 @@ export default function ProductSpecsSection({
   songTypes,
   glueTypes,
   inkTypes,
+  laminationTypes = [],
   handleFormValuesChange,
   form,
   disabledSharedFields = false,
@@ -71,9 +73,11 @@ export default function ProductSpecsSection({
   const currentCoatingType = Form.useWatch("coating_type", form);
   const hasPHU = currentProcesses.includes("PHU");
   const hasBOI = currentProcesses.includes("BOI");
+  const hasCAN = currentProcesses.includes("CAN");
 
   const prevHasPHURef = useRef(hasPHU);
   const prevHasBOIRef = useRef(hasBOI);
+  const prevHasCANRef = useRef(hasCAN);
   const prevProductTypeCodeRef = useRef(selectedProductTypeCode);
 
   // ── PER-PRODUCT-TYPE PROCESS RULES ──────────────────────────────────────
@@ -188,6 +192,7 @@ export default function ProductSpecsSection({
     prevTabKeyRef.current = activeTabKey;
     prevHasPHURef.current = hasPHU;
     prevHasBOIRef.current = hasBOI;
+    prevHasCANRef.current = hasCAN;
     prevProductTypeCodeRef.current = selectedProductTypeCode;
   }
 
@@ -208,9 +213,17 @@ export default function ProductSpecsSection({
       }
     }
 
+    if (prevHasCANRef.current && !hasCAN) {
+      const currentLamination = form.getFieldValue("lamination_material");
+      if (currentLamination) {
+        form.setFieldValue("lamination_material", undefined);
+      }
+    }
+
     prevHasPHURef.current = hasPHU;
     prevHasBOIRef.current = hasBOI;
-  }, [hasPHU, hasBOI, form]);
+    prevHasCANRef.current = hasCAN;
+  }, [hasPHU, hasBOI, hasCAN, form]);
 
   // Khi chuyển loại sản phẩm, xóa CAN và coating_type nếu CAN bị cấm trong loại mới
   // Đồng thời đảm bảo coating_type bị xóa nếu không còn PHU
@@ -231,6 +244,13 @@ export default function ProductSpecsSection({
       // CAN bị loại bỏ do forbidden — cập nhật lại processes
       form.setFieldValue("production_processes", filteredProcesses);
       handleFormValuesChange({ production_processes: filteredProcesses }, { ...form.getFieldsValue(), production_processes: filteredProcesses });
+    }
+
+    if (!stillHasCAN) {
+      const currentLamination = form.getFieldValue("lamination_material");
+      if (currentLamination) {
+        form.setFieldValue("lamination_material", undefined);
+      }
     }
 
     // Nếu PHU không còn trong processes (do bị forbidden hoặc đã bị xóa), clear coating_type
@@ -398,6 +418,34 @@ export default function ProductSpecsSection({
                       }))}
                       className={highlightFields['coating_type'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
                       disabled={isDeclined && !highlightFields['coating_type']}
+                    />
+                  </Form.Item>
+                </div>
+              </Tooltip>
+            );
+          })()}
+        </Col>
+        <Col span={6}>
+          {hasCAN && (() => {
+            const tooltipTitle = highlightFields['lamination_material'] || "";
+              
+            return (
+              <Tooltip 
+                title={tooltipTitle} 
+                color="orange" 
+                placement="topLeft" 
+                trigger={['hover', 'focus']}
+              >
+                <div className="w-full">
+                  <Form.Item name="lamination_material" className="mb-0" rules={[{ required: true, message: "Vui lòng chọn màng" }]}>
+                    <FloatingSelect
+                      label="Loại màng"
+                      options={laminationTypes.map((lt) => ({
+                        label: lt.name,
+                        value: lt.code,
+                      }))}
+                      className={highlightFields['lamination_material'] ? "!border-2 !border-yellow-400 rounded ring-2 ring-yellow-200" : ""}
+                      disabled={isDeclined && !highlightFields['lamination_material']}
                     />
                   </Form.Item>
                 </div>
@@ -645,6 +693,9 @@ export default function ProductSpecsSection({
                 }
                 if (!checkedValues.includes("PHU")) {
                   form.setFieldValue("coating_type", undefined);
+                }
+                if (!checkedValues.includes("CAN")) {
+                  form.setFieldValue("lamination_material", undefined);
                 }
 
                 // Trigger form re-calculation manually if needed because some hidden constraints updated

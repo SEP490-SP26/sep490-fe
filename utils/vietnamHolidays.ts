@@ -39,14 +39,14 @@ export const getVietnamHolidays = (year: number): Holiday[] => {
     { date: `${year}-09-02`, name: "Quốc khánh", type: "solar" },
 
     // Ngày lễ khác
-    { date: `${year}-06-01`, name: "Quốc tế Thiếu nhi", type: "solar" },
-    { date: `${year}-06-21`, name: "Ngày Báo chí Cách mạng", type: "solar" },
-    { date: `${year}-07-27`, name: "Ngày Thương binh Liệt sĩ", type: "solar" },
-    { date: `${year}-10-10`, name: "Ngày Giải phóng Thủ đô", type: "solar" },
-    { date: `${year}-10-20`, name: "Ngày Phụ nữ Việt Nam", type: "solar" },
-    { date: `${year}-11-20`, name: "Ngày Nhà giáo Việt Nam", type: "solar" },
-    { date: `${year}-12-22`, name: "Ngày thành lập Quân đội", type: "solar" },
-    { date: `${year}-12-25`, name: "Giáng sinh", type: "solar" },
+    // { date: `${year}-06-01`, name: "Quốc tế Thiếu nhi", type: "solar" },
+    // { date: `${year}-06-21`, name: "Ngày Báo chí Cách mạng", type: "solar" },
+    // { date: `${year}-07-27`, name: "Ngày Thương binh Liệt sĩ", type: "solar" },
+    // { date: `${year}-10-10`, name: "Ngày Giải phóng Thủ đô", type: "solar" },
+    // { date: `${year}-10-20`, name: "Ngày Phụ nữ Việt Nam", type: "solar" },
+    // { date: `${year}-11-20`, name: "Ngày Nhà giáo Việt Nam", type: "solar" },
+    // { date: `${year}-12-22`, name: "Ngày thành lập Quân đội", type: "solar" },
+    // { date: `${year}-12-25`, name: "Giáng sinh", type: "solar" },
   ];
 
   // Thêm Tết Âm lịch

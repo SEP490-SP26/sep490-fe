@@ -908,7 +908,7 @@ export default function GuestOrderPage() {
                     {/* Estimated Price */}
                     <Form.Item
                       name="estimatedPrice"
-                      label={<span className={labelStyle}>Giá chỉ từ</span>}
+                      label={<span className={labelStyle}>Giá chỉ từ(<Text type="secondary" style={{ color: "#6b7280" }}>(Giá chỉ mang tính tham khảo, có thể thay đổi theo giá thị trường)</Text>)</span>}
                     >
                       {estimatedPrice !== null && estimatedPrice > 0 && (
                         <Col xs={24} md={12} className="mt-4 md:mt-0">
