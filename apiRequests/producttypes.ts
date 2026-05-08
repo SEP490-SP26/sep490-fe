@@ -40,6 +40,7 @@ export interface ProductTemplate {
   paper_code: string;
   paper_name: string;
   wave_type: string;
+  lamination: string;
 
   // --- Kích thước khổ in (mm) ---
   print_width_mm: number;

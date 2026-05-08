@@ -170,9 +170,11 @@ const request = async <Response>(
           const isManagement =
             pathname.startsWith("/admin") ||
             pathname.startsWith("/manager") ||
+            pathname.startsWith("/general-manager") ||
             pathname.startsWith("/consultant") ||
             pathname.startsWith("/staff") ||
             pathname.startsWith("/warehouse") ||
+            pathname.startsWith("/inventory") ||
             pathname.startsWith("/productions-manager") ||
             pathname.startsWith("/materials-manager") ||
             pathname.startsWith("/designer");

@@ -25,10 +25,11 @@ const MANAGEMENT_ROUTES = [
   '/consultant',
   '/staff',
   '/warehouse',
-  '/customer',
   '/productions-manager',
   '/inventory',
-  '/general-manager'
+  '/general-manager',
+  '/materials-manager',
+  '/designer'
 ]
 
 const ROLE_DASHBOARDS: Record<number, string> = {

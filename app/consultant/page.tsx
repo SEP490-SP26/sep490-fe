@@ -949,6 +949,9 @@ function ConsultantForm() {
           ? ((currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : profile.coating_type)
           : undefined,
         wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : profile.wave_type,
+        lamination_material: (profile.production_processes && profile.production_processes.includes("CAN"))
+          ? ((currentValues.lamination_material && currentValues.lamination_material !== "NONE") ? currentValues.lamination_material : profile.lamination)
+          : undefined,
         glue_tab: currentValues.glue_tab !== undefined ? currentValues.glue_tab : profile.glue_tab_mm,
         is_one_side_box: currentValues.is_one_side_box !== undefined ? currentValues.is_one_side_box : profile.is_one_side_box,
 

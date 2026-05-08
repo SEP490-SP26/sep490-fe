@@ -196,54 +196,56 @@ export default function GuestOrderPage() {
     }
   }, [unitValue, quantityField]);
 
+  // Extract fetchRealUser to reuse when placing another order
+  const fetchRealUser = async () => {
+    const emailParam = searchParams.get("email");
+    const verifiedParam = searchParams.get("verified");
+
+    if (isAuthenticated && user?.user_id) {
+      try {
+        const res = await authApiRequest.getUserById(user.user_id);
+        const userData = (res as any)?.data || res;
+        if (userData) {
+          form.setFieldsValue({
+            customerName: userData.full_name || user.full_name,
+            phone: userData.phone_number || "",
+            email: userData.email || "",
+          });
+          setIsVerified(true);
+          setIsOtpSent(false);
+        }
+      } catch (error) {
+        console.error("Fetch user error", error);
+      }
+    } else if (isLoggedIn && customer) {
+      form.setFieldsValue({
+        customerName: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+      });
+      setIsVerified(true);
+      setIsOtpSent(false);
+
+      if (customer.addresses && customer.addresses.length > 0) {
+        const defaultAddr = customer.addresses.find((a) => a.isDefault) || customer.addresses[0];
+        const addressStr = defaultAddr.formattedAddress || `${defaultAddr.streetAddress}, ${defaultAddr.districtName}, ${defaultAddr.provinceName}`;
+
+        form.setFieldValue("shippingAddress", addressStr);
+        setSelectedAddress({
+          formattedAddress: addressStr,
+          lat: defaultAddr.lat || 0,
+          lng: defaultAddr.lng || 0,
+        } as any);
+      }
+    } else if (emailParam && verifiedParam === "true") {
+      form.setFieldValue("email", emailParam);
+      setIsVerified(true);
+      setIsOtpSent(false); // No need to send OTP if already verified
+    }
+  };
+
   // Handle verified email from Home Page / Logged In Customer
   useEffect(() => {
-    const fetchRealUser = async () => {
-      const emailParam = searchParams.get("email");
-      const verifiedParam = searchParams.get("verified");
-
-      if (isAuthenticated && user?.user_id) {
-        try {
-          const res = await authApiRequest.getUserById(user.user_id);
-          const userData = (res as any)?.data || res;
-          if (userData) {
-            form.setFieldsValue({
-              customerName: userData.full_name || user.full_name,
-              phone: userData.phone_number || "",
-              email: userData.email || "",
-            });
-            setIsVerified(true);
-            setIsOtpSent(false);
-          }
-        } catch (error) {
-          console.error("Fetch user error", error);
-        }
-      } else if (isLoggedIn && customer) {
-        form.setFieldsValue({
-          customerName: customer.name,
-          phone: customer.phone,
-          email: customer.email,
-        });
-        setIsVerified(true);
-        setIsOtpSent(false);
-
-        if (customer.addresses && customer.addresses.length > 0) {
-          const defaultAddr = customer.addresses.find((a) => a.isDefault) || customer.addresses[0];
-          const addressStr = defaultAddr.formattedAddress || `${defaultAddr.streetAddress}, ${defaultAddr.districtName}, ${defaultAddr.provinceName}`;
-
-          form.setFieldValue("shippingAddress", addressStr);
-          setSelectedAddress({
-            formattedAddress: addressStr,
-            lat: defaultAddr.lat || 0,
-            lng: defaultAddr.lng || 0,
-          } as any);
-        }
-      } else if (emailParam && verifiedParam === "true") {
-        form.setFieldValue("email", emailParam);
-        setIsVerified(true);
-        setIsOtpSent(false); // No need to send OTP if already verified
-      }
-    };
     fetchRealUser();
   }, [searchParams, form, isLoggedIn, customer, isAuthenticated, user]);
 
@@ -527,15 +529,21 @@ export default function GuestOrderPage() {
                 type="primary"
                 size="large"
                 key="back"
-                onClick={() => {
+                onClick={async () => {
                   setIsSuccess(false);
                   setSuccessResponse(null);
                   form.resetFields();
-                  setIsVerified(false);
                   setIsOtpSent(false);
                   setOtp("");
                   setFileList([]);
                   setSelectedAddress(undefined);
+                  setDesignOption(1);
+
+                  if ((isAuthenticated && user?.user_id) || (isLoggedIn && customer)) {
+                    await fetchRealUser();
+                  } else {
+                    setIsVerified(false);
+                  }
                 }}
               >
                 Đặt đơn khác
