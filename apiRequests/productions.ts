@@ -1,6 +1,5 @@
 import http from "@/lib/httpAxios";
 import { NearestDeliveryResponse } from "@/schemaValidations/common.schema";
-import { start } from "repl";
 
 interface InventoryItem {
   /** Nhóm vật tư (Giấy, Mực, Keo, Màng...) */
@@ -33,60 +32,72 @@ interface ProductionInformationResponse {
   items: InventoryItem[];
 }
 
-interface ProductionStatusResponse {
+export interface MaterialCheck {
+  material_id: number;
+  material_code: string;
+  material_name: string;
+  unit: string;
+  required_qty: number;
+  available_qty: number;
+  missing_qty: number;
+  is_enough: boolean;
+  status: 'Enough' | 'Missing' | string;
+}
+
+export interface MachineCheck {
+  process_id: number;
+  seq_num: number;
+  process_code: string;
+  process_name: string;
+  machine_code: string;
+  machine_found: boolean;
+  is_available: boolean;
+  total_quantity: number;
+  busy_quantity: number;
+  free_quantity: number;
+  status: 'Available' | 'Busy' | string;
+}
+
+export interface ProductionReadiness {
   order_id: number;
+  production_id: number;
+  product_type_id: number;
+  order_quantity: number;
+  
+  // Trạng thái tổng quát
   is_production_ready: boolean;
   has_enough_material: boolean;
   has_free_machine: boolean;
-  production_id: number;
-  product_type_id: number;
+  
+  // Thông số kỹ thuật in
   request_print_width_mm: number;
   request_print_length_mm: number;
-  order_quantity: number;
-  is_full_process: boolean;
+
+  // Logic sử dụng NVL và Bán thành phẩm
+  can_use_nvl: boolean;
+  can_use_sub: boolean;
+  can_use_both: boolean;
+  nvl_qty: number;
+  need_manager_approval: boolean;
+
+  // Thông tin bán thành phẩm (Sub-product)
   has_matched_sub_product: boolean;
   sub_product_message: string;
-  matched_sub_product: {
-    id: number;
-    product_type_id: number;
-    product_type_name: string;
-    width: number;
-    length: number;
-    product_process: string;
-    quantity: number;
-    is_active: boolean;
-    description: string;
-    updated_at: string;
-  },
-  materials: [
-    {
-      material_id: number;
-      material_code: string;
-      material_name: string;
-      unit: string;
-      required_qty: number;
-      available_qty: number;
-      missing_qty: number;
-      is_enough: boolean;
-      status: string;
-    }
-  ],
-  machines: [
-    {
-      process_id: number;
-      seq_num: number;
-      process_code: string;
-      process_name: string;
-      machine_code: string;
-      machine_found: boolean;
-      is_available: boolean;
-      total_quantity: number;
-      busy_quantity: number;
-      free_quantity: number;
-      status: string;
-    }
-  ]
+  selected_sub_product_id: number | null;
+  sub_product_used_qty: number;
+  matched_sub_product: any | null;
+
+  // Ghi chú quản lý
+  gm_note: string | null;
+  mgr_note: string | null;
+
+  // Danh sách chi tiết
+  materials: MaterialCheck[];
+  remaining_materials_for_both: any[];
+  machines: MachineCheck[];
 }
+
+export type ProductionMethod = "NVL" | "SUB" | "BOTH";
 
 export const productionsApi = {
   getNearestDelivery: () =>
@@ -106,15 +117,24 @@ export const productionsApi = {
   transferToShipping: (orderId: number) =>
     http.put(`/api/Productions/delivery/${orderId}`, {}),
 
+  /** GET /api/Productions/start-ready/{orderId} — chỉ kiểm tra phương án sản xuất */
   startReady: (orderId: number) =>
-    http.get<ProductionStatusResponse>(`/api/Productions/start-ready/${orderId}`),
+    http.get<ProductionReadiness>(`/api/Productions/start-ready/${orderId}`),
 
-  updateProduction: (orderId: number, body: { is_production_ready: boolean }) =>
+  /** PUT /api/Productions/start-ready/{orderId} — GM xác nhận đưa vào sản xuất (kèm gm_note) */
+  updateProduction: (orderId: number, body: { is_production_ready: boolean; gm_note?: string }) =>
     http.put(`/api/Productions/start-ready/${orderId}`, body),
 
   generateImportReceive: (body: { order_id: number }) =>
     http.post(`/api/Productions/generate-import-receive`, body),
 
-  productionMethod: (body: { order_id: number, is_full_process: boolean, sub_id: number | null }) =>
+  /** POST /api/Productions/production-method — Manager chọn phương thức NVL / SUB / BOTH */
+  productionMethod: (body: {
+    order_id: number;
+    production_method: ProductionMethod;
+    is_full_process: boolean | null;
+    sub_id: number | null;
+    mgr_note?: string;
+  }) =>
     http.post(`/api/Productions/production-method`, body),
 };

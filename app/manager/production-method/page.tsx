@@ -1,149 +1,165 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, Input, Tag, Modal, Spin, message, Tabs } from "antd";
-import { SearchOutlined, ReloadOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Table, Input, Tag, Modal, Spin, message, Radio } from "antd";
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
+  WarningOutlined,
+} from "@ant-design/icons";
 import { orderApi } from "@/apiRequests/order";
-import { productionsApi } from "@/apiRequests/productions";
+import { productionsApi, ProductionReadiness, ProductionMethod } from "@/apiRequests/productions";
 import { useSearchParams } from "next/navigation";
 
 function ProductionMethodContent() {
-  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText]       = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('1');
+  const [isModalVisible, setIsModalVisible]   = useState(false);
+  const [method, setMethod]               = useState<ProductionMethod>("NVL");
+  const [mgrNote, setMgrNote]             = useState("");
 
+  // ── Danh sách đơn chờ manager duyệt (is_production_ready = false, đã có gm_note) ─
   const { data: apiData, isLoading, refetch } = useQuery({
-    queryKey: ["orders", "manager-approval-list"],
+    queryKey: ["orders", "manager-method-list"],
     queryFn: async () => {
       try {
         const response = await orderApi.getList(1, 100);
         return Array.isArray(response.data) ? response.data : [];
-      } catch (error) {
-        console.error("Error fetching orders:", error);
+      } catch {
         return [];
       }
     },
   });
 
-  const { data: statusData, isLoading: isChecking } = useQuery({
-    queryKey: ["production-status", selectedOrderId],
+  // ── GET start-ready để hiển thị thông tin phương án ─────────────────────────
+  const { data: statusData, isLoading: isChecking } = useQuery<ProductionReadiness | null>({
+    queryKey: ["production-start-ready-mgr", selectedOrderId],
     queryFn: async () => {
       if (!selectedOrderId) return null;
       try {
         const res = await productionsApi.startReady(selectedOrderId);
-        return res?.data ?? res;
-      } catch (error) {
-        console.error("Lỗi khi kiểm tra điều kiện:", error);
+        return res?.data ?? (res as any);
+      } catch (err) {
+        console.error("Lỗi khi lấy phương án:", err);
         return null;
       }
     },
     enabled: !!selectedOrderId && isModalVisible,
   });
 
+  // ── POST production-method ───────────────────────────────────────────────────
   const approveMutation = useMutation({
-    mutationFn: async ({ orderId, is_full_process, sub_id }: { orderId: number, is_full_process: boolean, sub_id: number | null }) => {
-      return await productionsApi.productionMethod({ order_id: orderId, is_full_process, sub_id });
+    mutationFn: async () => {
+      if (!selectedOrderId || !statusData) throw new Error("Thiếu dữ liệu");
+
+      const sub_id = (method === "SUB" || method === "BOTH")
+        ? (statusData.selected_sub_product_id ?? statusData.matched_sub_product?.sub_product_id ?? statusData.matched_sub_product?.id ?? null)
+        : null;
+
+      const is_full_process: boolean | null =
+        method === "NVL"  ? true  :
+        method === "SUB"  ? false :
+        true; // BOTH
+
+      return productionsApi.productionMethod({
+        order_id: selectedOrderId,
+        production_method: method,
+        is_full_process,
+        sub_id,
+        mgr_note: mgrNote,
+      });
     },
     onSuccess: () => {
       message.success("Đã duyệt phương thức sản xuất thành công!");
       setIsModalVisible(false);
+      setMgrNote("");
       refetch();
     },
-    onError: () => {
-      message.error("Có lỗi xảy ra khi duyệt phương thức sản xuất.");
-    }
+    onError: () => message.error("Có lỗi xảy ra khi duyệt phương thức sản xuất."),
   });
 
-  // Lọc hiển thị đơn hàng (chỉ hiện những order có status LayoutPending hoặc Scheduled VÀ đã sẵn sàng sản xuất nhưng chờ manager duyệt)
+  // Lọc đơn: cần manager duyệt (is_production_ready = false, need_manager_approval implied)
+  // Thực tế filter theo trạng thái đơn; backend trả về need_manager_approval khi có >1 option
   const filteredOrders = (apiData || []).filter((order: any) => {
-    // Lưu ý: Tùy thuộc vào backend, trạng thái order có thể là Scheduled hoặc LayoutPending khi is_production_ready === true
-    const statusMatch = (order.status === "LayoutPending" || order.status === "Scheduled") && order.is_production_ready === true;
-    
+    const statusMatch =
+      (order.status === "LayoutPending" || order.status === "Scheduled") &&
+      order.is_production_ready === false &&
+      !order.gm_note; // đã được GM trình duyệt (có gm_note)
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.code?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.product_name?.toLowerCase().includes(searchText.toLowerCase());
-    
     return statusMatch && searchMatch;
   });
 
-
-  const handleCheckConditions = (orderId: number) => {
+  const handleOpen = (orderId: number) => {
     setSelectedOrderId(orderId);
-    setActiveTab('1');
+    setMethod("NVL");
+    setMgrNote("");
     setIsModalVisible(true);
   };
 
+  const handleClose = () => {
+    setIsModalVisible(false);
+    setSelectedOrderId(null);
+    setMgrNote("");
+  };
+
+  const canNvl  = !!statusData?.can_use_nvl;
+  const canSub  = !!statusData?.can_use_sub;
+  const canBoth = !!statusData?.can_use_both;
+
   const getStatusTag = (status: string) => {
     switch (status) {
-      case "Scheduled": return <Tag color="orange">Đã lên lịch</Tag>;
-      case "LayoutPending": return <Tag color="orange">Đang chờ duyệt layout</Tag>;
-      case "InProcessing": return <Tag color="blue">Đang sản xuất</Tag>;
-      case "Finished": return <Tag color="green">Hoàn thành</Tag>;
-      case "Delivered": return <Tag color="cyan">Đã giao</Tag>;
-      case "Cancelled": return <Tag color="red">Đã hủy</Tag>;
-      default: return <Tag>{status || "Mới"}</Tag>;
+      case "Scheduled":     return <Tag color="orange">Đã lên lịch</Tag>;
+      case "LayoutPending": return <Tag color="orange">Chờ duyệt layout</Tag>;
+      case "InProcessing":  return <Tag color="blue">Đang sản xuất</Tag>;
+      case "Finished":      return <Tag color="green">Hoàn thành</Tag>;
+      case "Delivered":     return <Tag color="cyan">Đã giao</Tag>;
+      case "Cancelled":     return <Tag color="red">Đã hủy</Tag>;
+      default:              return <Tag>{status || "Mới"}</Tag>;
     }
   };
 
   const columns = [
     {
-      title: "STT",
-      key: "stt",
-      width: 60,
-      align: 'center' as const,
+      title: "STT", key: "stt", width: 60, align: "center" as const,
       render: (_: any, __: any, index: number) => index + 1,
     },
     {
-      title: "Mã đơn",
-      dataIndex: "code",
-      key: "code",
-      width: 120,
-      render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>,
+      title: "Mã đơn", dataIndex: "code", key: "code", width: 120,
+      render: (t: string) => <span className="font-semibold text-blue-600">{t}</span>,
     },
     { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
-    { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
+    { title: "Sản phẩm",   dataIndex: "product_name",  key: "product_name"  },
     {
-      title: "Số lượng",
-      dataIndex: "quantity",
-      key: "quantity",
-      align: 'right' as const,
-      render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>
+      title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const,
+      render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>,
+    },
+  
+    {
+      title: "Trạng thái", dataIndex: "status", key: "status",
+      render: (s: string) => getStatusTag(s),
     },
     {
-      title: "Trạng thái hiện tại",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => getStatusTag(status),
+      title: "Ngày giao", dataIndex: "delivery_date", key: "delivery_date",
+      render: (d: string) => d ? new Date(d).toLocaleDateString("vi-VN") : "N/A",
     },
     {
-      title: "Ngày giao dự kiến",
-      dataIndex: "delivery_date",
-      key: "delivery_date",
-      render: (date: string) => date ? new Date(date).toLocaleDateString("vi-VN") : "N/A",
-    },
-    {
-      title: "Thao tác",
-      key: "action",
-      width: 180,
-      align: 'center' as const,
-      render: (_: any, record: any) => {
-        if (record.is_full_process === true) return null;
-        return (
-          <button
-            onClick={() => handleCheckConditions(record.order_id || record._id)}
-            disabled={record.status === 'Finished' || record.status === 'Delivered'}
-            className="px-3 py-1 text-sm font-medium border border-blue-900 text-blue-900 rounded hover:bg-blue-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent transition-colors"
-          >
-            Chọn PT Sản Xuất
-          </button>
-        );
-      },
+      title: "Thao tác", key: "action", width: 180, align: "center" as const,
+      render: (_: any, record: any) => (
+        <button
+          onClick={() => handleOpen(record.order_id || record._id)}
+          className="px-3 py-1 text-sm font-medium border border-blue-800 text-blue-800 rounded hover:bg-blue-50 transition-colors"
+        >
+          Chọn Phương Thức SX
+        </button>
+      ),
     },
   ];
 
@@ -155,8 +171,42 @@ function ProductionMethodContent() {
     }
   }, [searchParams]);
 
+  /* ── Material table columns ────────────────────────────────────────────────── */
+  const materialCols = [
+    { title: "Mã VT",     dataIndex: "material_code", key: "material_code", width: 110 },
+    { title: "Tên vật tư",dataIndex: "material_name", key: "material_name"  },
+    { title: "ĐV",        dataIndex: "unit",           key: "unit", width: 60, align: "center" as const },
+    { title: "Yêu cầu",  dataIndex: "required_qty",   key: "required_qty",  align: "right" as const, render: (v: number) => <span className="font-semibold">{v?.toLocaleString("vi-VN")}</span> },
+    { title: "Hiện có",  dataIndex: "available_qty",  key: "available_qty", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
+    { title: "Còn thiếu",dataIndex: "missing_qty",    key: "missing_qty",   align: "right" as const, render: (v: number) => v > 0 ? <span className="text-red-500 font-bold">{v?.toLocaleString("vi-VN")}</span> : "-" },
+    { title: "Tình trạng", key: "st", align: "center" as const, width: 120, render: (_: any, r: any) => r.is_enough ? <Tag color="success" className="mr-0">Đủ cấp</Tag> : <Tag color="error" className="mr-0">Chờ nhập kho</Tag> },
+  ];
+
+  /* ── Method description helper ─────────────────────────────────────────────── */
+  const methodDescriptions: Record<ProductionMethod, { color: string; title: string; desc: string }> = {
+    NVL: {
+      color: "green",
+      title: "NVL – Sản xuất toàn bộ từ nguyên vật liệu",
+      desc: `Toàn bộ ${statusData?.nvl_qty?.toLocaleString("vi-VN") ?? "–"} sản phẩm được sản xuất từ đầu.`,
+    },
+    SUB: {
+      color: "blue",
+      title: "SUB – Dùng bán thành phẩm (đủ số lượng)",
+      desc: "Bán thành phẩm đã đủ; các công đoạn trước product_process sẽ được đánh dấu Finished.",
+    },
+    BOTH: {
+      color: "purple",
+      title: "BOTH – Kết hợp bán thành phẩm + NVL",
+      desc: "Dùng bán thành phẩm trước, phần thiếu sản xuất thêm bằng NVL. Công đoạn ≤ product_process chỉ chạy theo tỷ lệ nvl_qty / order_quantity. is_full_process = null.",
+    },
+  };
+
+  const currentDesc = method ? methodDescriptions[method] : null;
+
+  /* ── Render ────────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
+      {/* Header */}
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Duyệt phương thức sản xuất</h1>
         <button
@@ -167,6 +217,7 @@ function ProductionMethodContent() {
         </button>
       </div>
 
+      {/* Table */}
       <div className="p-6">
         <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <Input
@@ -179,7 +230,7 @@ function ProductionMethodContent() {
             allowClear
           />
           <div className="text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
-            Tổng số: <span className="font-bold text-blue-700">{filteredOrders.length}</span> đơn hàng (Đã được GM duyệt)
+            Tổng số: <span className="font-bold text-blue-700">{filteredOrders.length}</span> đơn (Đã được GM trình duyệt)
           </div>
         </div>
 
@@ -191,11 +242,12 @@ function ProductionMethodContent() {
           pagination={{ pageSize: 12, showSizeChanger: true }}
           bordered
           size="middle"
-          scroll={{ x: 900 }}
+          scroll={{ x: 1000 }}
           className="shadow-sm rounded-lg overflow-hidden border border-gray-200"
         />
       </div>
 
+      {/* Modal */}
       <Modal
         title={
           <div className="flex items-center gap-2">
@@ -204,221 +256,211 @@ function ProductionMethodContent() {
           </div>
         }
         open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setSelectedOrderId(null);
-        }}
+        onCancel={handleClose}
         width={1000}
         style={{ top: 20 }}
         footer={
           <div className="flex justify-end gap-3">
-            <button 
-              key="cancel" 
-              onClick={() => setIsModalVisible(false)}
+            <button
+              onClick={handleClose}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               Hủy bỏ
             </button>
-            {activeTab === '1' ? (
-              <button
-                key="submit-full"
-                type="button"
-                disabled={!(statusData?.has_enough_material && statusData?.has_free_machine) || approveMutation.isPending}
-                onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: true, sub_id: null })}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${(statusData?.has_enough_material && statusData?.has_free_machine) && !approveMutation.isPending ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
-              >
-                {approveMutation.isPending && <Spin size="small" />}
-                Xác nhận sản xuất (Từ vật tư)
-              </button>
-            ) : (
-              <button
-                key="submit-sub"
-                type="button"
-                disabled={!statusData?.has_matched_sub_product || approveMutation.isPending}
-                onClick={() => selectedOrderId && approveMutation.mutate({ orderId: selectedOrderId, is_full_process: false, sub_id: statusData?.matched_sub_product?.id || null })}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${statusData?.has_matched_sub_product && !approveMutation.isPending ? "bg-blue-900 hover:bg-blue-800" : "bg-gray-400 cursor-not-allowed opacity-80"}`}
-              >
-                {approveMutation.isPending && <Spin size="small" />}
-                Xác nhận sản xuất (Từ bán thành phẩm)
-              </button>
-            )}
+            <button
+              type="button"
+              disabled={approveMutation.isPending}
+              onClick={() => approveMutation.mutate()}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${
+                !approveMutation.isPending
+                  ? "bg-blue-800 hover:bg-blue-900"
+                  : "bg-gray-400 cursor-not-allowed opacity-80"
+              }`}
+            >
+              {approveMutation.isPending && <Spin size="small" />}
+              Xác nhận phương thức {method}
+            </button>
           </div>
         }
       >
         <div className="py-4">
           {isChecking ? (
-            <div className="flex flex-col items-center justify-center p-6 space-y-4">
+            <div className="flex flex-col items-center justify-center p-10 space-y-4">
               <Spin size="large" />
-              <div className="text-gray-500">Đang kiểm tra dữ liệu hệ thống kho và máy móc...</div>
+              <div className="text-gray-500">Đang tải thông tin phương án...</div>
             </div>
           ) : statusData ? (
-            <Tabs 
-              activeKey={activeTab} 
-              onChange={setActiveTab}
-              items={[
-                {
-                  key: '1',
-                  label: 'Sản xuất từ nguyên vật liệu',
-                  children: (
-                    <div className="space-y-6 text-base mt-2">
-                       {/* 1. Tổng quan */}
-                       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="flex items-center justify-between p-3 bg-white rounded shadow-sm border border-gray-100">
-                              <span className="text-gray-600 font-medium">Trạng thái Nguyên vật liệu:</span>
-                              {statusData.has_enough_material ? (
-                                <Tag color="success" className="mr-0 text-base py-1 px-3 rounded-full">Đã Đủ Vật Tư</Tag>
-                              ) : (
-                                <Tag color="error" className="mr-0 text-base py-1 px-3 rounded-full">Thiếu Vật Tư</Tag>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-white rounded shadow-sm border border-gray-100">
-                              <span className="text-gray-600 font-medium">Tính khả dụng Máy móc:</span>
-                              {statusData.has_free_machine ? (
-                                <Tag color="success" className="mr-0 text-base py-1 px-3 rounded-full">Sẵn Sàng Sản Xuất</Tag>
-                              ) : (
-                                <Tag color="error" className="mr-0 text-base py-1 px-3 rounded-full">Máy Chưa Sẵn Sàng</Tag>
-                              )}
-                            </div>
-                          </div>
-                          <div className="border-t border-gray-200 pt-3 flex justify-between items-center font-bold text-lg">
-                            <span className="text-gray-700">Kết luận kiểm tra:</span>
-                            {(statusData.has_enough_material && statusData.has_free_machine) ? (
-                              <span className="text-green-600">ĐỦ ĐIỀU KIỆN ĐƯA VÀO SẢN XUẤT</span>
-                            ) : (
-                              <span className="text-red-500">CHƯA ĐỦ TÀI NGUYÊN ĐỂ SẢN XUẤT</span>
-                            )}
-                          </div>
-                       </div>
-        
-                       {/* 2. Chi tiết vật tư */}
-                       <div>
-                          <h3 className="text-lg font-bold text-gray-800 mb-3 border-l-4 border-blue-500 pl-2">Bảng Phân bổ Nguyên Vật Liệu</h3>
-                          <Table
-                            dataSource={statusData.materials || []}
-                            rowKey="material_code"
-                            pagination={false}
-                            size="small"
-                            bordered
-                            columns={[
-                              { title: 'Mã VT', dataIndex: 'material_code', key: 'material_code', width: 100 },
-                              { title: 'Tên vật tư', dataIndex: 'material_name', key: 'material_name' },
-                              { title: 'ĐV', dataIndex: 'unit', key: 'unit', width: 60, align: 'center' },
-                              { title: 'Yêu cầu', dataIndex: 'required_qty', key: 'required_qty', align: 'right', render: (v: number) => <span className="font-semibold">{v?.toLocaleString('vi-VN')}</span> },
-                              { title: 'Hiện có', dataIndex: 'available_qty', key: 'available_qty', align: 'right', render: (v: number) => v?.toLocaleString('vi-VN') },
-                              { 
-                                title: 'Còn thiếu', 
-                                dataIndex: 'missing_qty', 
-                                key: 'missing_qty', 
-                                align: 'right', 
-                                render: (v: number) => v > 0 ? <span className="text-red-500 font-bold">{v?.toLocaleString('vi-VN')}</span> : '-' 
-                              },
-                              { title: 'Trạng thái lệnh', key: 'status', align: 'center', width: 120, render: (_: any, r: any) => r.is_enough ? <Tag color="success" className="mr-0 font-medium">Đủ cấp</Tag> : <Tag color="error" className="mr-0 font-medium">Chờ nhập kho</Tag> }
-                            ]}
-                          />
-                       </div>
-        
-                       {/* 3. Chi tiết máy móc */}
-                       <div>
-                          <h3 className="text-lg font-bold text-gray-800 mb-3 border-l-4 border-blue-500 pl-2">Lộ trình Máy Móc thiết bị</h3>
-                          <Table
-                            dataSource={statusData.machines || []}
-                            rowKey={(r) => `${r.process_id}-${r.seq_num}`}
-                            pagination={false}
-                            size="small"
-                            bordered
-                            columns={[
-                              { title: 'Bước', dataIndex: 'seq_num', key: 'seq_num', width: 60, align: 'center', render: (v: number) => <span className="font-bold text-gray-500">{v}</span> },
-                              { title: 'Quy trình', dataIndex: 'process_name', key: 'process_name' },
-                              { title: 'Mã máy gắn', dataIndex: 'machine_code', key: 'machine_code', render: (v: string) => v ? <Tag color="blue" className="font-mono text-sm mr-0">{v}</Tag> : <span className="italic text-gray-400">Không tìm thấy</span> },
-                              { 
-                                title: 'Tải công việc / Năng lực', 
-                                key: 'capacity', 
-                                align: 'center',
-                                render: (_: any, r: any) => r.machine_found ? (
-                                  <span>
-                                    <span className={r.free_quantity > 0 ? "text-green-600 font-bold" : "text-red-500 font-bold"}>{r.free_quantity}</span>
-                                    <span className="text-gray-300 mx-2">/</span>
-                                    <span className="font-medium">{r.total_quantity}</span>
-                                  </span>
-                                ) : '-'
-                              },
-                              { 
-                                title: 'Đánh giá khả dụng', 
-                                key: 'status', 
-                                align: 'center',
-                                width: 160,
-                                render: (_: any, r: any) => {
-                                  if (!r.machine_found) return <Tag color="error" className="mr-0 w-full text-center">Lỗi cấu hình máy</Tag>;
-                                  if (!r.is_available) return <Tag color="warning" className="mr-0 w-full text-center">Quá tải (Bottleneck)</Tag>;
-                                  return <Tag color="success" className="mr-0 w-full text-center">Sẵn sàng nhận lệnh</Tag>;
-                                }
-                              }
-                            ]}
-                          />
-                       </div>
-                       
-                       {!(statusData.has_enough_material && statusData.has_free_machine) && (
-                         <div className="text-sm text-orange-700 bg-orange-50 p-4 rounded-xl border border-orange-200 mt-2 flex items-start gap-3">
-                            <CheckCircleOutlined className="mt-0.5 text-lg" />
-                            <div>
-                              <strong>Cảnh báo:</strong> Lệnh sản xuất này hiện tại chưa đủ điều kiện triển khai tối ưu từ góc độ hệ thống. Bạn có thể cần bổ sung vật tư hoặc sắp xếp lại máy móc.
-                            </div>
-                         </div>
-                       )}
-                    </div>
-                  )
-                },
-                {
-                  key: '2',
-                  label: 'Sản xuất từ bán thành phẩm',
-                  children: (
-                    <div className="space-y-6 text-base mt-2">
-                      {statusData.has_matched_sub_product && statusData.matched_sub_product ? (
-                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="mb-4 text-green-600 font-medium text-lg">
-                            {statusData.sub_product_message || "Đã tìm thấy bán thành phẩm phù hợp với quy cách của đơn hàng này."}
-                          </div>
-                          <div className="grid grid-cols-2 gap-6">
-                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
-                              <span className="text-gray-500 text-sm">Loại sản phẩm</span>
-                              <span className="font-semibold text-gray-800">{statusData.matched_sub_product.product_type_name}</span>
-                            </div>
-                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
-                              <span className="text-gray-500 text-sm">Số lượng hiện có</span>
-                              <span className="font-bold text-blue-600 text-lg">{(statusData.matched_sub_product.quantity || 0).toLocaleString("vi-VN")}</span>
-                            </div>
-                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
-                              <span className="text-gray-500 text-sm">Kích thước (Rộng x Dài)</span>
-                              <span className="font-semibold text-gray-800">{statusData.matched_sub_product.width} x {statusData.matched_sub_product.length} mm</span>
-                            </div>
-                            <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
-                              <span className="text-gray-500 text-sm">Công đoạn đã hoàn thành</span>
-                              <span className="font-semibold text-gray-800">{statusData.matched_sub_product.product_process}</span>
-                            </div>
-                            {statusData.matched_sub_product.description && (
-                              <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100 col-span-2">
-                                <span className="text-gray-500 text-sm">Mô tả thêm</span>
-                                <span className="text-gray-800">{statusData.matched_sub_product.description}</span>
-                              </div>
-                            )}
-                          </div>
+            <div className="space-y-6">
+
+              {/* ── 1. Chọn phương thức ── */}
+              <div>
+                <h3 className="text-base font-bold text-gray-800 mb-3 border-l-4 border-blue-500 pl-2">
+                  Phương thức sản xuất
+                </h3>
+                <Radio.Group
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value)}
+                  className="w-full"
+                >
+                  <div className="flex flex-col gap-3">
+                    {/* NVL */}
+                    <label
+                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                        method === "NVL"
+                          ? "border-green-500 bg-green-50"
+                          : canNvl
+                          ? "border-gray-200 hover:border-green-300"
+                          : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
+                      }`}
+                    >
+                      <Radio value="NVL" disabled={!canNvl} className="mt-0.5" />
+                      <div>
+                        <div className="font-semibold text-gray-800">
+                          NVL – Sản xuất toàn bộ từ nguyên vật liệu
+                          {!canNvl && <Tag color="default" className="ml-2 text-xs">Không khả dụng</Tag>}
                         </div>
-                      ) : (
-                        <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg bg-gray-50 mt-4">
-                          <div className="text-gray-500 text-lg">
-                            {statusData.sub_product_message || "Không có bán thành phẩm nào phù hợp với quy cách của đơn hàng này."}
-                          </div>
+                        <div className="text-sm text-gray-500 mt-0.5">
+                          Sản xuất sản phẩm từ đầu.
                         </div>
-                      )}
-                    </div>
-                  )
-                }
-              ]}
-            />
+                      </div>
+                    </label>
+
+                    {/* SUB */}
+                    <label
+                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                        method === "SUB"
+                          ? "border-blue-500 bg-blue-50"
+                          : canSub
+                          ? "border-gray-200 hover:border-blue-300"
+                          : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
+                      }`}
+                    >
+                      <Radio value="SUB" disabled={!canSub} className="mt-0.5" />
+                      <div>
+                        <div className="font-semibold text-gray-800">
+                          SUB – Dùng bán thành phẩm (đủ số lượng)
+                          {!canSub && <Tag color="default" className="ml-2 text-xs">Không khả dụng</Tag>}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-0.5">
+                          Bán thành phẩm đủ số lượng.{" "}
+                        </div>
+                        {statusData.has_matched_sub_product && statusData.matched_sub_product && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Sub ID: <strong>{statusData.selected_sub_product_id ?? statusData.matched_sub_product?.sub_product_id ?? statusData.matched_sub_product?.id}</strong> —{" "}
+                            {statusData.matched_sub_product.product_type_name} ({statusData.matched_sub_product.quantity?.toLocaleString("vi-VN")} cái)
+                          </div>
+                        )}
+                      </div>
+                    </label>
+
+                    {/* BOTH */}
+                    <label
+                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                        method === "BOTH"
+                          ? "border-purple-500 bg-purple-50"
+                          : canBoth
+                          ? "border-gray-200 hover:border-purple-300"
+                          : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
+                      }`}
+                    >
+                      <Radio value="BOTH" disabled={!canBoth} className="mt-0.5" />
+                      <div>
+                        <div className="font-semibold text-gray-800">
+                          BOTH – Kết hợp bán thành phẩm + NVL
+                          {!canBoth && <Tag color="default" className="ml-2 text-xs">Không khả dụng</Tag>}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-0.5">
+                          Dùng bán thành phẩm trước, sản xuất thêm phần thiếu bằng NVL.
+                        </div>
+                        {statusData.has_matched_sub_product && statusData.matched_sub_product && (
+                          <div className="text-xs text-purple-600 mt-1">
+                            Sub ID: <strong>{statusData.selected_sub_product_id ?? statusData.matched_sub_product?.sub_product_id ?? statusData.matched_sub_product?.id}</strong> —{" "}
+                            {statusData.matched_sub_product.product_type_name} ({statusData.matched_sub_product.quantity?.toLocaleString("vi-VN")} cái)
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </Radio.Group>
+              </div>
+
+              {/* ── 2. Tóm tắt thông tin sub_product ── */}
+              {(canSub || canBoth) && statusData.has_matched_sub_product && statusData.matched_sub_product && (
+                <div>
+                  <h3 className="text-base font-bold text-gray-800 mb-3 border-l-4 border-blue-400 pl-2">
+                    Thông tin bán thành phẩm
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { label: "Loại sản phẩm",          value: statusData.matched_sub_product.product_type_name },
+                      { label: "Số lượng hiện có",        value: (statusData.matched_sub_product.quantity || 0).toLocaleString("vi-VN") },
+                      { label: "Kích thước (Rộng × Dài)", value: `${statusData.matched_sub_product.width} × ${statusData.matched_sub_product.length} mm` },
+                      { label: "Công đoạn đã hoàn thành", value: statusData.matched_sub_product.product_process },
+                    ].map((item) => (
+                      <div key={item.label} className="flex flex-col gap-1 p-3 bg-gray-50 rounded border border-gray-200">
+                        <span className="text-gray-500 text-xs">{item.label}</span>
+                        <span className="font-semibold text-gray-800 text-sm">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── 3. Vật tư NVL ── */}
+              {(method === "NVL" || method === "BOTH") && (statusData.materials || []).length > 0 && (
+                <div>
+                  <h3 className="text-base font-bold text-gray-800 mb-3 border-l-4 border-green-400 pl-2">
+                    {method === "BOTH" ? "Vật tư phần NVL cần thêm (BOTH)" : "Bảng phân bổ nguyên vật liệu (NVL)"}
+                  </h3>
+                  <Table
+                    dataSource={
+                      method === "BOTH"
+                        ? (statusData.remaining_materials_for_both || statusData.materials)
+                        : statusData.materials
+                    }
+                    rowKey="material_code"
+                    pagination={false}
+                    size="small"
+                    bordered
+                    columns={materialCols}
+                  />
+                </div>
+              )}
+
+              {/* ── 4. Ghi chú của GM ── */}
+              {statusData && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                  <div className="font-semibold text-amber-800 mb-1">
+                    <InfoCircleOutlined className="mr-1" /> Ghi chú từ General Manager:
+                  </div>
+                  <div className="text-gray-700 italic">
+                    {statusData.gm_note || "Không có ghi chú."}
+                  </div>
+                </div>
+              )}
+
+              {/* ── 5. Ghi chú Manager ── */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Ghi chú của Manager (mgr_note)
+                </label>
+                <textarea
+                  rows={3}
+                  value={mgrNote}
+                  onChange={(e) => setMgrNote(e.target.value)}
+                  placeholder={
+                    method === "NVL"  ? "Ví dụ: Duyệt sản xuất bằng NVL." :
+                    method === "SUB"  ? "Ví dụ: Duyệt dùng bán thành phẩm." :
+                                       "Ví dụ: Duyệt kết hợp sub_product và NVL."
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+
+            </div>
           ) : (
             <div className="text-center text-red-500 p-8 font-bold border border-red-200 bg-red-50 rounded-xl">
-               Đã xảy ra lỗi, Không thể lấy thông tin trạng thái sản xuất. Xin vui lòng thử lại sau.
+              Không thể tải thông tin phương án sản xuất. Vui lòng thử lại.
             </div>
           )}
         </div>
@@ -429,11 +471,13 @@ function ProductionMethodContent() {
 
 export default function ProductionMethodPage() {
   return (
-    <Suspense fallback={
-      <div className="flex justify-center items-center min-h-[80vh]">
-        <Spin size="large" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-[80vh]">
+          <Spin size="large" />
+        </div>
+      }
+    >
       <ProductionMethodContent />
     </Suspense>
   );
