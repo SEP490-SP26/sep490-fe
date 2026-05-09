@@ -86,6 +86,8 @@ export interface ProductTemplate {
   paper_name: string;
   coating_type: string;  // Kiểu phủ (VD: KEO_NUOC)
   wave_type: string;     // Loại sóng (VD: SÓNG B)
+  lamination?: string;   // Loại màng (Cán)
+
 
   // Kích thước thành phẩm (mm)
   product_length_mm: number;
