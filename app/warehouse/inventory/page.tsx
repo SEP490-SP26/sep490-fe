@@ -10,7 +10,7 @@ import { Pagination, Tabs } from "antd";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BiPackage } from "react-icons/bi";
-import { BsSearch, BsTruck } from "react-icons/bs";
+import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel } from "react-icons/bs";
 import { subProductsApi, SubProduct } from "@/apiRequests/subproducts";
 import { Table } from "antd";
 
@@ -40,6 +40,8 @@ export default function InventoryManagement() {
   const [poSearch, setPoSearch] = useState("");
   const [finishedGoodSearch, setFinishedGoodSearch] = useState("");
   const [subProductPage, setSubProductPage] = useState(1);
+  const [selectedExcel, setSelectedExcel] = useState<File | null>(null);
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false);
 
   const {
     data: purchaseRequests,
@@ -248,6 +250,22 @@ export default function InventoryManagement() {
     }
   };
 
+  const handleExcelUpload = async () => {
+    if (!selectedExcel) return;
+    try {
+      setIsUploadingExcel(true);
+      await materialsApi.importFromExcel(selectedExcel);
+      showSuccessToast("Nhập nguyên vật liệu từ Excel thành công!");
+      setSelectedExcel(null);
+      refetchInvData();
+    } catch (error) {
+      console.error("Error importing excel:", error);
+      showErrorToast("Có lỗi xảy ra khi nhập file Excel");
+    } finally {
+      setIsUploadingExcel(false);
+    }
+  };
+
   const tabItems = [
     {
       key: "1",
@@ -328,98 +346,71 @@ export default function InventoryManagement() {
       ),
       children: (
         <div className="pt-4">
-          <div className="mb-4">
-            <div className="relative">
-              <BsSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={poSearch}
-                onChange={(e) => { setPoSearch(e.target.value); setPoPage(1); }}
-                placeholder="🔍 Tìm theo mã, tên vật liệu, nhà cung cấp..."
-                className="w-full border-2 border-blue-200 bg-blue-50/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-white transition placeholder:text-gray-400 shadow-sm"
-              />
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30">
+            <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-6 shadow-sm">
+              <BsFileEarmarkExcel className="w-10 h-10" />
             </div>
-          </div>
-          <div className="space-y-4 w-full overflow-y-auto">
-            {paginatedPOs.map((po: any) => {
-              const etaDateObj = new Date(
-                po.etaDate
-                  ? po.etaDate
-                  : new Date(new Date(po.createdAt).setDate(
-                      new Date(po.createdAt).getDate()
-                    ))
-              );
-              
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const etaDateOnly = new Date(etaDateObj);
-              etaDateOnly.setHours(0, 0, 0, 0);
-              const isDisabled = etaDateOnly.getTime() > today.getTime();
-
-              return (
-                <div
-                  key={po.purchaseId}
-                  className="border border-blue-200 bg-blue-50 rounded-lg p-4"
-                >
-                  <div className="mb-3">
-                    {po.items.map((item: any) => (
-                      <div
-                        key={item.material_id}
-                        className="flex mb-1 justify-between items-center"
-                      >
-                        <div className="text-gray-900">
-                          Mã đặt hàng: {po.purchaseId} - {item.materialName}
-                        </div>
-                        <div className="text-gray-500 text-sm">
-                          SL: {item.qtyOrdered} {item.unit}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="text-gray-500 text-sm">
-                      Nhà cung cấp: {po.supplierName}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      Dự kiến giao: {etaDateObj.toLocaleDateString("vi-VN")}
-                      {isDisabled && (
-                        <span className="text-red-500 ml-2 italic">(Chưa giao hàng)</span>
-                      )}
-                    </div>
+            <h3 className="text-gray-900 font-semibold text-lg mb-2">Nhập nguyên vật liệu từ file Excel</h3>
+            <p className="text-gray-500 max-w-sm mb-6">
+              Vui lòng tải lên file định dạng .xlsx hoặc .xls chứa danh sách nguyên vật liệu cần nhập kho.
+            </p>
+            
+            <input 
+              type="file" 
+              id="excel-upload" 
+              accept=".xlsx, .xls" 
+              className="hidden" 
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  setSelectedExcel(e.target.files[0]);
+                }
+              }} 
+            />
+            
+            {!selectedExcel ? (
+              <label 
+                htmlFor="excel-upload" 
+                className="cursor-pointer bg-white border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center gap-2"
+              >
+                <BsCloudUpload className="w-5 h-5" />
+                Chọn file Excel
+              </label>
+            ) : (
+              <div className="flex flex-col items-center w-full max-w-md">
+                <div className="w-full bg-white border border-blue-200 rounded-lg p-3 flex justify-between items-center mb-4 shadow-sm">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <BsFileEarmarkExcel className="w-6 h-6 text-green-600 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-700 truncate">{selectedExcel.name}</span>
                   </div>
-                  <button
-                    onClick={() => handleReceive(po.purchaseId)}
-                    disabled={isDisabled}
-                    className={`w-full text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 ${
-                      isDisabled 
-                        ? "bg-gray-400 cursor-not-allowed opacity-60" 
-                        : "bg-green-600 hover:bg-green-700"
-                    }`}
+                  <button 
+                    onClick={() => setSelectedExcel(null)}
+                    className="text-gray-400 hover:text-red-500 p-1 transition-colors"
                   >
-                    <BiPackage className="w-4 h-4" />
-                    Nhập kho
+                    ✕
                   </button>
                 </div>
-              );
-            })}
-
-            {orderedPOs.length === 0 && (
-              <div className="text-gray-400 text-center py-8 text-sm">
-                Không có đơn hàng chờ nhập
+                <button 
+                  onClick={handleExcelUpload} 
+                  disabled={isUploadingExcel} 
+                  className={`w-full text-white px-6 py-3 rounded-xl font-semibold shadow-md transition-all flex justify-center items-center gap-2 ${
+                    isUploadingExcel ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 hover:shadow-lg"
+                  }`}
+                >
+                  {isUploadingExcel ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <BsCloudUpload className="w-5 h-5" />
+                      Xác nhận nhập kho
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>
-
-          {/* ===== Pagination Ant Design (1 2 3 4 5 …) ===== */}
-          {orderedPOs.length > ITEMS_PER_PAGE && (
-            <div className="mt-4 flex justify-center">
-              <Pagination
-                current={poPage}
-                pageSize={ITEMS_PER_PAGE}
-                total={orderedPOs.length}
-                onChange={(page) => setPoPage(page)}
-                showSizeChanger={false}
-              />
-            </div>
-          )}
         </div>
       ),
     },

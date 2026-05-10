@@ -29,4 +29,13 @@ export const materialsApi = {
             `/api/MissingMaterials/paged?page=${page}&pageSize=${pageSize}`
         ),
 
+    importFromExcel: (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return http.post<any>("/api/Materials/import-material-from-excel", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+    },
 };
