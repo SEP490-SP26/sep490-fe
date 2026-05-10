@@ -1433,6 +1433,9 @@ export default function ProductionDetailPage() {
                                 <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
                                   Số lượng ước tính
                                 </th>
+                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
+                                  Số lượng thực tế
+                                </th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">
                                   ĐVT
                                 </th>
@@ -1442,7 +1445,7 @@ export default function ProductionDetailPage() {
                               {stage.input_materials.length === 0 ? (
                                 <tr>
                                   <td
-                                    colSpan={3}
+                                    colSpan={4}
                                     className="px-3 py-4 text-center text-gray-400 text-xs"
                                   >
                                     Không có dữ liệu
@@ -1464,6 +1467,15 @@ export default function ProductionDetailPage() {
                                             ? m.estimated_quantity.toFixed(2)
                                             : m.estimated_quantity.toLocaleString("vi-VN")
                                           : m.estimated_quantity}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                                        {m.actual_quantity !== null && m.actual_quantity !== undefined
+                                          ? typeof m.actual_quantity === "number"
+                                            ? m.actual_quantity % 1 !== 0
+                                              ? m.actual_quantity.toFixed(2)
+                                              : m.actual_quantity.toLocaleString("vi-VN")
+                                            : m.actual_quantity
+                                          : "—"}
                                       </td>
                                       <td className="px-3 py-2.5 text-center text-gray-500">
                                         {m.unit}
@@ -1605,13 +1617,14 @@ export default function ProductionDetailPage() {
             ) : (
               <div className="overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: '60vh' }}>
                 {(() => {
-                  const combinedInputs: { name: string; quantity: number | string; unit: string }[] = [];
+                  const combinedInputs: { name: string; quantity: number | string; actual_quantity?: number | string; unit: string }[] = [];
                   
                   if (qtyInputStage?.input_materials) {
                     qtyInputStage.input_materials.forEach((mat: any) => {
                       combinedInputs.push({
                         name: mat.name || mat.code || "Nguyên liệu",
                         quantity: mat.estimated_quantity ?? mat.quantity,
+                        actual_quantity: mat.actual_quantity,
                         unit: mat.unit
                       });
                     });
@@ -1627,7 +1640,8 @@ export default function ProductionDetailPage() {
                           <thead className="bg-gray-50">
                             <tr>
                               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
-                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Số lượng</th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Số lượng ước tính</th>
+                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Số lượng thực tế</th>
                               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">ĐVT</th>
                             </tr>
                           </thead>
@@ -1637,6 +1651,15 @@ export default function ProductionDetailPage() {
                                 <td className="px-3 py-2 text-gray-800 font-medium">{item.name}</td>
                                 <td className="px-3 py-2 text-right text-gray-600">
                                   {typeof item.quantity === "number" ? item.quantity.toLocaleString("vi-VN") : item.quantity}
+                                </td>
+                                <td className="px-3 py-2 text-right font-medium text-blue-600">
+                                  {item.actual_quantity !== null && item.actual_quantity !== undefined
+                                    ? typeof item.actual_quantity === "number"
+                                      ? item.actual_quantity % 1 !== 0
+                                        ? item.actual_quantity.toFixed(2)
+                                        : item.actual_quantity.toLocaleString("vi-VN")
+                                      : item.actual_quantity
+                                    : "—"}
                                 </td>
                                 <td className="px-3 py-2 text-center text-gray-500">{item.unit}</td>
                               </tr>

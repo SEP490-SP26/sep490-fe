@@ -52,6 +52,7 @@ interface RequestItem {
   delivery_date: string;
   process_status: ProductionStatus;
   delivery_note: string | null;
+  require_remaining_before_delivery: boolean;
 }
 
 interface PagedResponse {
@@ -66,7 +67,7 @@ interface PagedResponse {
 ======================= */
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  Finished: { label: "Chờ liên hệ khách hàng", color: "green" },
+  Finished: { label: "Chờ thanh toán", color: "purple" },
   InProcessing: { label: "Đang sản xuất", color: "blue" },
   Scheduled: { label: "Đã lên lịch", color: "orange" },
   PendingPaid: { label: "Chờ thanh toán", color: "purple" },
@@ -79,7 +80,6 @@ const DISPLAY_STATUSES: ProductionStatus[] = ["Finished", "PendingPaid", "Paid",
 
 const TAB_ITEMS = [
   { key: "all", label: "Tất cả" },
-  { key: "Finished", label: "Chờ liên hệ" },
   { key: "PendingPaid", label: "Chờ thanh toán" },
   { key: "Paid", label: "Sẵn sàng giao" },
   { key: "Delivery", label: "Đang vận chuyển" },
@@ -147,6 +147,7 @@ const FinishProduction: React.FC = () => {
         delivery_date: r.delivery_date,
         process_status: normalizeStatus(r.process_status),
         delivery_note: r.delivery_note,
+        require_remaining_before_delivery: r.require_remaining_before_delivery ?? true,
       }));
 
       const filtered = mapped.filter((o) =>
@@ -172,9 +173,11 @@ const FinishProduction: React.FC = () => {
 
   const filteredData = useMemo(() => {
     return data
-      .filter((o) =>
-        activeTab === "all" ? true : o.process_status === activeTab
-      )
+      .filter((o) => {
+        if (activeTab === "all") return true;
+        if (activeTab === "PendingPaid") return o.process_status === "PendingPaid" || o.process_status === "Finished";
+        return o.process_status === activeTab;
+      })
       .filter((o) => {
         if (!searchKeyword) return true;
         const kw = searchKeyword.toLowerCase();
@@ -200,9 +203,9 @@ const FinishProduction: React.FC = () => {
 
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = { all: data.length };
-    for (const s of DISPLAY_STATUSES) {
-      counts[s] = data.filter((o) => o.process_status === s).length;
-    }
+    counts["PendingPaid"] = data.filter((o) => o.process_status === "PendingPaid" || o.process_status === "Finished").length;
+    counts["Paid"] = data.filter((o) => o.process_status === "Paid").length;
+    counts["Delivery"] = data.filter((o) => o.process_status === "Delivery").length;
     return counts;
   }, [data]);
 
@@ -302,11 +305,16 @@ const FinishProduction: React.FC = () => {
         let disabled = true;
 
         if (status === "Finished") {
-          text = "Chờ tư vấn viên liên hệ với khách hàng";
+          text = "Chờ thanh toán";
           disabled = true;
         } else if (status === "PendingPaid") {
-          text = "Chờ khách hàng thanh toán để vận chuyển";
-          disabled = true;
+          if (record.require_remaining_before_delivery) {
+            text = "Chờ khách hàng thanh toán để vận chuyển";
+            disabled = true;
+          } else {
+            text = "Bàn giao cho đơn vị vận chuyển";
+            disabled = false;
+          }
         } else if (status === "Paid") {
           text = "Bàn giao cho đơn vị vận chuyển";
           disabled = false;
