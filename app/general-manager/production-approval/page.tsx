@@ -66,6 +66,7 @@ function ProductionApprovalContent() {
       } else {
         message.success("Đã gửi yêu cầu cho Manager duyệt phương thức sản xuất!");
       }
+
       setIsModalVisible(false);
       setGmNote("");
       refetch();

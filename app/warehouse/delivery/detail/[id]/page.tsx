@@ -363,7 +363,7 @@ export default function WarehouseDeliveryDetailPage() {
               size="large"
               icon={<SendOutlined />}
               block
-              disabled={!isImporting}
+              disabled={!isFinished}
               loading={transferring}
               onClick={handleTransfer}
               style={{
