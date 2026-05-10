@@ -44,7 +44,7 @@ import { useCustomer } from "@/context/CustomerContext";
 import { formatVietnameseNumber } from "@/utils/format";
 import { disabledDate } from "@/utils/vietnamHolidays";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import authApiRequest from "@/apiRequests/auth";
 import axios from "@/apiRequests/axios";
 import { useAuth } from "@/lib/auth-context";
@@ -115,6 +115,120 @@ export default function GuestOrderPage() {
   const [selectedAddress, setSelectedAddress] = useState<
     AddressResult | undefined
   >(undefined);
+  const [apiUser, setApiUser] = useState<any>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [useNewAddress, setUseNewAddress] = useState(false);
+
+  const customerAddresses = useMemo(() => {
+    let apiAddresses: any[] = [];
+    if (apiUser?.address) {
+      let rawAddresses: any = apiUser.address;
+      if (typeof rawAddresses === 'string') {
+        try {
+          const parsed = JSON.parse(rawAddresses);
+          if (Array.isArray(parsed)) {
+            rawAddresses = parsed;
+          } else {
+            rawAddresses = [rawAddresses];
+          }
+        } catch {
+          rawAddresses = [rawAddresses];
+        }
+      }
+
+      if (Array.isArray(rawAddresses)) {
+        apiAddresses = rawAddresses
+          .filter((addr): addr is string => typeof addr === 'string' && addr.trim() !== '')
+          .map((addrStr, index) => ({
+            id: `api-${index}`,
+            label: `Địa chỉ hệ thống ${index + 1}`,
+            provinceCode: '',
+            provinceName: '',
+            districtCode: '',
+            districtName: '',
+            streetAddress: addrStr,
+            isDefault: index === 0 && (!customer?.addresses || customer.addresses.length === 0),
+            formattedAddress: addrStr,
+          }));
+      } else if (typeof rawAddresses === 'string' && rawAddresses.trim() !== '') {
+        apiAddresses = [{
+          id: `api-0`,
+          label: 'Địa chỉ hệ thống',
+          provinceCode: '',
+          provinceName: '',
+          districtCode: '',
+          districtName: '',
+          streetAddress: rawAddresses,
+          isDefault: !customer?.addresses || customer.addresses.length === 0,
+          formattedAddress: rawAddresses,
+        }];
+      }
+    }
+
+    const localAddresses = customer?.addresses || [];
+    const combined = [...apiAddresses, ...localAddresses];
+
+    if (combined.length > 0) {
+      if (!combined.some(a => a.isDefault)) {
+        combined[0].isDefault = true;
+      }
+    }
+    return combined;
+  }, [apiUser, customer]);
+
+  useEffect(() => {
+    if ((isLoggedIn || isAuthenticated) && customerAddresses.length > 0) {
+      const defaultAddr = customerAddresses.find((a) => a.isDefault) || customerAddresses[0];
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
+        const addressStr = defaultAddr.formattedAddress || `${defaultAddr.streetAddress}${defaultAddr.districtName ? `, ${defaultAddr.districtName}` : ''}${defaultAddr.provinceName ? `, ${defaultAddr.provinceName}` : ''}`;
+        
+        form.setFieldValue("shippingAddress", addressStr);
+        setSelectedAddress({
+          formattedAddress: addressStr,
+          lat: defaultAddr.lat || 0,
+          lng: defaultAddr.lng || 0,
+        } as any);
+        setUseNewAddress(false);
+      }
+    } else {
+      setUseNewAddress(true);
+    }
+  }, [customerAddresses, isLoggedIn, isAuthenticated, form]);
+
+  const handleSelectAddressChange = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    const addr = customerAddresses.find((a) => a.id === addressId);
+    if (addr) {
+      const addressStr = addr.formattedAddress || `${addr.streetAddress}${addr.districtName ? `, ${addr.districtName}` : ''}${addr.provinceName ? `, ${addr.provinceName}` : ''}`;
+      form.setFieldValue("shippingAddress", addressStr);
+      setSelectedAddress({
+        formattedAddress: addressStr,
+        lat: addr.lat || 0,
+        lng: addr.lng || 0,
+      } as any);
+    }
+  };
+
+  const handleToggleNewAddress = () => {
+    const isNew = !useNewAddress;
+    setUseNewAddress(isNew);
+    if (isNew) {
+      form.setFieldValue("shippingAddress", "");
+      setSelectedAddress(undefined);
+    } else {
+      const addr = customerAddresses.find((a) => a.id === selectedAddressId) || customerAddresses[0];
+      if (addr) {
+        const addressStr = addr.formattedAddress || `${addr.streetAddress}${addr.districtName ? `, ${addr.districtName}` : ''}${addr.provinceName ? `, ${addr.provinceName}` : ''}`;
+        form.setFieldValue("shippingAddress", addressStr);
+        setSelectedAddress({
+          formattedAddress: addressStr,
+          lat: addr.lat || 0,
+          lng: addr.lng || 0,
+        } as any);
+      }
+    }
+  };
 
   // Check if basic info is filled to enable other fields
   const [isBasicInfoFilled, setIsBasicInfoFilled] = useState(false);
@@ -206,6 +320,7 @@ export default function GuestOrderPage() {
         const res = await authApiRequest.getUserById(user.user_id);
         const userData = (res as any)?.data || res;
         if (userData) {
+          setApiUser(userData);
           form.setFieldsValue({
             customerName: userData.full_name || user.full_name,
             phone: userData.phone_number || "",
@@ -225,18 +340,6 @@ export default function GuestOrderPage() {
       });
       setIsVerified(true);
       setIsOtpSent(false);
-
-      if (customer.addresses && customer.addresses.length > 0) {
-        const defaultAddr = customer.addresses.find((a) => a.isDefault) || customer.addresses[0];
-        const addressStr = defaultAddr.formattedAddress || `${defaultAddr.streetAddress}, ${defaultAddr.districtName}, ${defaultAddr.provinceName}`;
-
-        form.setFieldValue("shippingAddress", addressStr);
-        setSelectedAddress({
-          formattedAddress: addressStr,
-          lat: defaultAddr.lat || 0,
-          lng: defaultAddr.lng || 0,
-        } as any);
-      }
     } else if (emailParam && verifiedParam === "true") {
       form.setFieldValue("email", emailParam);
       setIsVerified(true);
@@ -729,26 +832,59 @@ export default function GuestOrderPage() {
                       className={`pt-4 border-t ${!isVerified ? "opacity-50 pointer-events-none" : ""
                         }`}
                     >
-                      <div className={`${labelStyle} mb-3`}>
-                        Địa chỉ giao hàng <span className="text-red-500">*</span>
-                      </div>
-                      {/* {!isVerified && (
-                        <div className="text-sm text-orange-500 mb-2">
-                          Vui lòng xác thực email trước
+                      <div className="flex justify-between items-center mb-3">
+                        <div className={`${labelStyle}`}>
+                          Địa chỉ giao hàng <span className="text-red-500">*</span>
                         </div>
-                      )} */}
-                      <AddressMapPicker
-                        value={selectedAddress}
-                        onChange={(address) => {
-                          setSelectedAddress(address);
-                          form.setFieldValue(
-                            "shippingAddress",
-                            address.formattedAddress
-                          );
-                        }}
-                        showMap={false}
-                        placeholder="Tìm kiếm địa chỉ tại Việt Nam..."
-                      />
+                        {(isLoggedIn || isAuthenticated) && customerAddresses.length > 0 && (
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={handleToggleNewAddress}
+                          >
+                            {useNewAddress ? "Chọn địa chỉ đã lưu" : "Nhập địa chỉ mới"}
+                          </Button>
+                        )}
+                      </div>
+
+                      {(isLoggedIn || isAuthenticated) && !useNewAddress && customerAddresses.length > 0 ? (
+                        <div className="space-y-3">
+                          <Select
+                            className="w-full"
+                            value={selectedAddressId}
+                            onChange={handleSelectAddressChange}
+                            placeholder="Chọn địa chỉ giao hàng từ tài khoản"
+                          >
+                            {customerAddresses.map((addr) => (
+                              <Select.Option key={addr.id} value={addr.id}>
+                                <div className="flex items-center">
+                                  <span className="font-medium">{addr.label}</span>
+                                  {addr.isDefault && (
+                                    <span className="ml-2 text-xs text-blue-500">(Mặc định)</span>
+                                  )}
+                                  <span className="ml-2 text-gray-500 text-sm truncate">
+                                    - {addr.streetAddress}
+                                  </span>
+                                </div>
+                              </Select.Option>
+                            ))}
+                          </Select> 
+                        </div>
+                      ) : (
+                        <AddressMapPicker
+                          value={selectedAddress}
+                          onChange={(address) => {
+                            setSelectedAddress(address);
+                            form.setFieldValue(
+                              "shippingAddress",
+                              address.formattedAddress
+                            );
+                          }}
+                          showMap={false}
+                          placeholder="Tìm kiếm địa chỉ tại Việt Nam..."
+                        />
+                      )}
+
                       <Form.Item
                         name="shippingAddress"
                         rules={[

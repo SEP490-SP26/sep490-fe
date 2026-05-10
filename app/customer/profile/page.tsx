@@ -4,41 +4,41 @@ import AddressMapPicker, { AddressResult } from '@/components/AddressMapPicker'
 import { ShippingAddress, useCustomer } from '@/context/CustomerContext'
 import { Order, useProduction } from '@/context/ProductionContext'
 import {
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    CloseCircleOutlined,
-    DeleteOutlined,
-    EditOutlined,
-    EnvironmentOutlined,
-    EyeOutlined,
-    HistoryOutlined,
-    HomeOutlined,
-    LogoutOutlined,
-    MailOutlined,
-    PhoneOutlined,
-    PlusOutlined,
-    SafetyOutlined,
-    SaveOutlined,
-    StarFilled,
-    StarOutlined,
-    SyncOutlined,
-    UserOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  EnvironmentOutlined,
+  EyeOutlined,
+  HistoryOutlined,
+  HomeOutlined,
+  LogoutOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  PlusOutlined,
+  SafetyOutlined,
+  SaveOutlined,
+  StarFilled,
+  StarOutlined,
+  SyncOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import {
-    Avatar,
-    Button,
-    Card,
-    Descriptions,
-    Empty,
-    Form,
-    Input,
-    message,
-    Modal,
-    Popconfirm,
-    Table,
-    Tabs,
-    Tag,
-    Typography
+  Avatar,
+  Button,
+  Card,
+  Descriptions,
+  Empty,
+  Form,
+  Input,
+  message,
+  Modal,
+  Popconfirm,
+  Table,
+  Tabs,
+  Tag,
+  Typography
 } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
@@ -66,6 +66,8 @@ export default function CustomerProfilePage() {
   const [apiUser, setApiUser] = useState<any>(null)
   const [loadingUser, setLoadingUser] = useState(false)
 
+  const [triggerFetch, setTriggerFetch] = useState(0)
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (isAuthenticated && user?.user_id) {
@@ -82,17 +84,82 @@ export default function CustomerProfilePage() {
       }
     }
     fetchUserData()
-  }, [isAuthenticated, user])
+  }, [isAuthenticated, user, triggerFetch])
 
   const customer = useMemo(() => {
     if (apiUser) {
+      let apiAddresses: ShippingAddress[] = []
+      if (apiUser.address) {
+        let rawAddresses: any = apiUser.address
+        if (typeof rawAddresses === 'string') {
+          try {
+            const parsed = JSON.parse(rawAddresses)
+            if (Array.isArray(parsed)) {
+              rawAddresses = parsed
+            } else {
+              rawAddresses = [rawAddresses]
+            }
+          } catch {
+            rawAddresses = [rawAddresses]
+          }
+        }
+
+        if (Array.isArray(rawAddresses)) {
+          apiAddresses = rawAddresses
+            .filter((addr): addr is string => typeof addr === 'string' && addr.trim() !== '')
+            .map((addrStr, index) => ({
+              id: `api-${index}`,
+              label: ` Địa chỉ ${index + 1}.`,
+              provinceCode: '',
+              provinceName: '',
+              districtCode: '',
+              districtName: '',
+              streetAddress: addrStr,
+              isDefault: index === 0 && (!localCustomer?.addresses || localCustomer.addresses.length === 0),
+              formattedAddress: addrStr,
+            }))
+        } else if (typeof rawAddresses === 'string' && rawAddresses.trim() !== '') {
+          apiAddresses = [{
+            id: `api-0`,
+            label: 'Địa chỉ tài khoản',
+            provinceCode: '',
+            provinceName: '',
+            districtCode: '',
+            districtName: '',
+            streetAddress: rawAddresses,
+            isDefault: !localCustomer?.addresses || localCustomer.addresses.length === 0,
+            formattedAddress: rawAddresses,
+          }]
+        }
+      }
+
+      const combinedAddresses = [...apiAddresses, ...(localCustomer?.addresses || [])]
+
+      if (combinedAddresses.length > 0) {
+        const hasDefault = combinedAddresses.some((a) => a.isDefault)
+        if (!hasDefault) {
+          combinedAddresses[0].isDefault = true
+        } else {
+          let foundDefault = false
+          combinedAddresses.forEach((a) => {
+            if (a.isDefault) {
+              if (foundDefault) {
+                a.isDefault = false
+              } else {
+                foundDefault = true
+              }
+            }
+          })
+        }
+      }
+
       return {
         id: apiUser.user_id?.toString() || localCustomer?.id,
         name: apiUser.full_name || localCustomer?.name,
         phone: apiUser.phone_number || localCustomer?.phone,
         email: apiUser.email || localCustomer?.email,
         createdAt: apiUser.created_at || localCustomer?.createdAt,
-        addresses: localCustomer?.addresses || []
+        addresses: combinedAddresses
       }
     }
     return localCustomer;
@@ -119,18 +186,18 @@ export default function CustomerProfilePage() {
     }
   }, [isLoading, isLoggedIn, router])
 
-// Thay vì useEffect + state, dùng useMemo để tính toán trực tiếp
-const myOrders = useMemo(() => {
-  if (!customer?.phone || !orders.length) return []
-  
-  return orders
-    .filter((o) => o.customer_phone === customer.phone)
-    .sort(
-      (a, b) =>
-        new Date(b.created_at || '').getTime() -
-        new Date(a.created_at || '').getTime()
-    )
-}, [customer, orders]) // dependencies giống như useEffect
+  // Thay vì useEffect + state, dùng useMemo để tính toán trực tiếp
+  const myOrders = useMemo(() => {
+    if (!customer?.phone || !orders.length) return []
+
+    return orders
+      .filter((o) => o.customer_phone === customer.phone)
+      .sort(
+        (a, b) =>
+          new Date(b.created_at || '').getTime() -
+          new Date(a.created_at || '').getTime()
+      )
+  }, [customer, orders]) // dependencies giống như useEffect
 
   // Set form values when customer data loads
   useEffect(() => {
@@ -157,10 +224,25 @@ const myOrders = useMemo(() => {
     })
   }
 
-  const handleSaveProfile = (values: any) => {
+  const handleSaveProfile = async (values: any) => {
+    if (isAuthenticated) {
+      try {
+        await authApiRequest.updateProfile({
+          full_name: values.name,
+          phone_number: values.phone || customer?.phone || '',
+          email: values.email || '',
+        })
+        setTriggerFetch((prev) => prev + 1)
+      } catch (error) {
+        console.error("Failed to update profile in backend", error)
+        message.error("Cập nhật thông tin trên hệ thống thất bại!")
+        return
+      }
+    }
     updateProfile({
       name: values.name,
       email: values.email,
+      phone: values.phone,
     })
     setIsEditing(false)
     message.success('Cập nhật thông tin thành công!')
@@ -187,7 +269,7 @@ const myOrders = useMemo(() => {
     setIsAddressModalOpen(true)
   }
 
-  const handleAddressSubmit = (values: any) => {
+  const handleAddressSubmit = async (values: any) => {
     const addressData = {
       label: values.label,
       provinceCode: '',
@@ -205,6 +287,15 @@ const myOrders = useMemo(() => {
       updateAddress(editingAddress.id, addressData)
       message.success('Cập nhật địa chỉ thành công!')
     } else {
+      if (isAuthenticated) {
+        try {
+          await authApiRequest.addAddress({ address: addressData.streetAddress })
+          setTriggerFetch((prev) => prev + 1)
+        } catch (error) {
+          console.error("Failed to add address in backend", error)
+          message.error("Lưu địa chỉ vào hệ thống thất bại!")
+        }
+      }
       addAddress(addressData)
       message.success('Thêm địa chỉ mới thành công!')
     }
@@ -336,14 +427,13 @@ const myOrders = useMemo(() => {
                       form={form}
                       layout='vertical'
                       onFinish={handleSaveProfile}
-                      disabled={!isEditing}
                     >
                       <Form.Item
                         name='name'
                         label='Họ và tên'
                         rules={[{ required: true }]}
                       >
-                        <Input prefix={<UserOutlined />} />
+                        <Input prefix={<UserOutlined />} disabled={!isEditing} />
                       </Form.Item>
 
                       <Form.Item
@@ -351,11 +441,18 @@ const myOrders = useMemo(() => {
                         label='Email'
                         rules={[{ type: 'email' }]}
                       >
-                        <Input prefix={<MailOutlined />} />
+                        <Input prefix={<MailOutlined />} disabled={!isEditing} />
                       </Form.Item>
 
-                      <Form.Item name='phone' label='Số điện thoại'>
-                        <Input prefix={<PhoneOutlined />} disabled />
+                      <Form.Item
+                        name='phone'
+                        label='Số điện thoại'
+                        rules={[
+                          { required: true, message: 'Vui lòng nhập số điện thoại!' },
+                          { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ!' }
+                        ]}
+                      >
+                        <Input prefix={<PhoneOutlined />} disabled={!isEditing} />
                       </Form.Item>
 
                       <div className='flex gap-2'>
@@ -363,7 +460,11 @@ const myOrders = useMemo(() => {
                           <Button
                             type='primary'
                             icon={<EditOutlined />}
-                            onClick={() => setIsEditing(true)}
+                            htmlType='button'
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setIsEditing(true)
+                            }}
                           >
                             Chỉnh sửa
                           </Button>
@@ -376,7 +477,13 @@ const myOrders = useMemo(() => {
                             >
                               Lưu thay đổi
                             </Button>
-                            <Button onClick={() => setIsEditing(false)}>
+                            <Button
+                              htmlType='button'
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setIsEditing(false)
+                              }}
+                            >
                               Hủy
                             </Button>
                           </>
@@ -417,67 +524,76 @@ const myOrders = useMemo(() => {
                     {(!customer.addresses || customer.addresses.length === 0) ? (
                       <Empty description='Chưa có địa chỉ nào' />
                     ) : (
-                      <div className='space-y-3'>
+                      <div className='space-y-2'>
                         {customer.addresses.map((addr) => (
-                          <Card
-                            key={addr.id}
-                            size='small'
-                            className={`${addr.isDefault ? 'border-blue-400 bg-blue-50' : ''}`}
-                          >
-                            <div className='flex justify-between items-start'>
-                              <div className='flex-1'>
-                                <div className='flex items-center gap-2 mb-1'>
-                                  <HomeOutlined className='text-gray-500' />
-                                  <span className='font-medium'>{addr.label}</span>
-                                  {addr.isDefault && (
-                                    <Tag color='blue' className='ml-2'>
-                                      <StarFilled className='mr-1' />
-                                      Mặc định
-                                    </Tag>
+                          <div className=''>
+                            <Card
+                              key={addr.id}
+                              size='small'
+                              className={`${addr.isDefault ? 'border-blue-400 bg-blue-50' : ''} `}
+                            >
+                              <div className='flex justify-between items-start'>
+                                <div className='flex-1'>
+                                  <div className='flex items-center gap-2 mb-1'>
+                                    <HomeOutlined className='text-gray-500' />
+                                    <span className='font-medium'>{addr.label}</span>
+
+                                    {addr.isDefault && (
+                                      <Tag color='blue' className='ml-2'>
+                                        <StarFilled className='mr-1' />
+                                        Mặc định
+                                      </Tag>
+                                    )}
+                                  </div>
+                                  <div className='text-gray-600 text-sm'>
+                                    {addr.streetAddress}
+                                  </div>
+                                  {(addr.districtName || addr.provinceName) && (
+                                    <div className='text-gray-500 text-sm'>
+                                      {[addr.districtName, addr.provinceName].filter(Boolean).join(', ')}
+                                    </div>
                                   )}
                                 </div>
-                                <div className='text-gray-600 text-sm'>
-                                  {addr.streetAddress}
-                                </div>
-                                <div className='text-gray-500 text-sm'>
-                                  {addr.districtName}, {addr.provinceName}
+                                <div className='flex gap-1'>
+                                  {!addr.id.startsWith('api-') && !addr.isDefault && (
+                                    <Button
+                                      size='small'
+                                      type='text'
+                                      icon={<StarOutlined />}
+                                      onClick={() => handleSetDefault(addr.id)}
+                                      title='Đặt làm mặc định'
+                                    />
+                                  )}
+                                  {!addr.id.startsWith('api-') && (
+                                    <Button
+                                      size='small'
+                                      type='text'
+                                      icon={<EditOutlined />}
+                                      onClick={() => openEditAddressModal(addr)}
+                                    />
+                                  )}
+                                  {!addr.id.startsWith('api-') && (
+                                    <Popconfirm
+                                      title={<span className="text-lg font-medium">Xóa địa chỉ này?</span>}
+                                      onConfirm={() => handleDeleteAddress(addr.id)}
+                                      icon={<DeleteOutlined style={{ color: "#1890ff", width: "30px", height: "30px", display: "flex", justifyContent: "center", alignItems: "center" }} />}
+                                      okText="Xóa"
+                                      cancelText="Hủy"
+                                      okButtonProps={{ className: "bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" }}
+                                      cancelButtonProps={{ className: "text-sm font-medium h-auto py-2 shadow-none border-0" }}
+                                    >
+                                      <Button
+                                        size='small'
+                                        type='text'
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                      />
+                                    </Popconfirm>
+                                  )}
                                 </div>
                               </div>
-                              <div className='flex gap-1'>
-                                {!addr.isDefault && (
-                                  <Button
-                                    size='small'
-                                    type='text'
-                                    icon={<StarOutlined />}
-                                    onClick={() => handleSetDefault(addr.id)}
-                                    title='Đặt làm mặc định'
-                                  />
-                                )}
-                                <Button
-                                  size='small'
-                                  type='text'
-                                  icon={<EditOutlined />}
-                                  onClick={() => openEditAddressModal(addr)}
-                                />
-                                <Popconfirm
-                                  title={<span className="text-lg font-medium">Xóa địa chỉ này?</span>}
-                                  onConfirm={() => handleDeleteAddress(addr.id)}
-                                  icon={<DeleteOutlined style={{ color: "#1890ff", width: "30px", height: "30px", display: "flex", justifyContent: "center", alignItems: "center" }} />}
-                                  okText="Xóa"
-                                  cancelText="Hủy"
-                                  okButtonProps={{ className: "bg-primary text-sm font-medium h-auto py-2 shadow-none border-0" }}
-                                  cancelButtonProps={{ className: "text-sm font-medium h-auto py-2 shadow-none border-0" }}
-                                >
-                                  <Button
-                                    size='small'
-                                    type='text'
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                  />
-                                </Popconfirm>
-                              </div>
-                            </div>
-                          </Card>
+                            </Card>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -563,13 +679,13 @@ const myOrders = useMemo(() => {
             layout='vertical'
             onFinish={handleAddressSubmit}
           >
-            <Form.Item
+            {/* <Form.Item
               name='label'
               label='Tên địa chỉ'
               rules={[{ required: true, message: 'Nhập tên địa chỉ' }]}
             >
               <Input placeholder='VD: Nhà riêng, Công ty, Văn phòng...' />
-            </Form.Item>
+            </Form.Item> */}
 
             <div className='mb-4'>
               <div className='font-medium text-gray-700 mb-2'>Địa chỉ giao hàng <span className='text-red-500'>*</span></div>

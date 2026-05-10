@@ -5,6 +5,7 @@ import {
   LoginResType,
   RegisterResType,
 } from "@/schemaValidations/auth.schema";
+import { update } from "@react-spring/web";
 import axios from "axios";
 
 
@@ -28,6 +29,7 @@ interface UserInfoResponse {
   username: string,
   password_hash: string,
   email: string,
+  address: string[],
   full_name: string,
   role_id: number,
   is_active: boolean,
@@ -56,6 +58,12 @@ const authApiRequest = {
 
   getUserById: (user_id: number) =>
     http.get<UserInfoResponse>(`/get-user-by-id/${user_id}`),
+
+  updateProfile: (body: { full_name: string, phone_number: string, email: string }) =>
+    http.put(`/update-profile`, body),
+
+  addAddress: (body: { address: string }) =>
+    http.post(`/api/User/add-address`, body),
 };
 
 export default authApiRequest;
