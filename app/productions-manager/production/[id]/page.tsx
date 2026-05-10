@@ -26,6 +26,7 @@ import {
   BsEye,
   BsArrowReturnLeft,
   BsLayers,
+  BsPlayCircle,
 } from "react-icons/bs";
 
 
@@ -490,6 +491,7 @@ export default function ProductionDetailPage() {
   const [cancelStage, setCancelStage] = useState<ProductionStage | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [readyLoading, setReadyLoading] = useState<number | null>(null);
 
   // Global Scanner Detection
   const handleQrScannedRef = useRef<any>(null);
@@ -762,6 +764,32 @@ export default function ProductionDetailPage() {
     }
   };
 
+  const handleReadyTask = async (taskId: number) => {
+    try {
+      setReadyLoading(taskId);
+      await tasksApi.readyTask({ task_id: taskId });
+      setPopup({
+        open: true,
+        type: "success",
+        message: "Đã bắt đầu sản xuất công đoạn này",
+      });
+      setTimeout(async () => {
+        setPopup((p) => ({ ...p, open: false }));
+        await queryClient.invalidateQueries({
+          queryKey: ["production-detail", id],
+        });
+      }, 900);
+    } catch (err: any) {
+      setPopup({
+        open: true,
+        type: "error",
+        message: err.message || "Lỗi khi bắt đầu sản xuất",
+      });
+    } finally {
+      setReadyLoading(null);
+    }
+  };
+
   // Keep ref updated
   useEffect(() => {
     handleQrScannedRef.current = handleQrScanned;
@@ -1013,6 +1041,11 @@ export default function ProductionDetailPage() {
         {sortedStages?.filter(s => s.status !== "Finished").map((stage, index) => {
           const isCollapsed = collapsedStages[stage.process_id] ?? true;
           const statusInfo = STATUS_MAP[stage.status];
+          
+          const isStageReached = sortedStages
+            .filter((s) => s.seq_num < stage.seq_num)
+            .every((s) => s.status === "Finished");
+
           return (
             <div
               key={stage.process_id}
@@ -1269,21 +1302,39 @@ export default function ProductionDetailPage() {
                         : "Chưa có dữ liệu scan"}
                     </p>
                     
-                    {["InProcessing", "Ready"].includes(stage.status) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQtyInputValue(stage.output_product?.quantity?.toString() || "");
-                          setQtyError("");
-                          setQtyInputStage(stage);
-                          fetchQrPrepare(stage.task_id);
-                        }}
-                        disabled={qrLoading}
-                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-                      >
-                        <BsClipboardCheck className="w-4 h-4" /> Báo cáo hoàn thành (QR)
-                      </button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {stage.status === "Unassigned" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReadyTask(stage.task_id);
+                          }}
+                          disabled={readyLoading === stage.task_id}
+                          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${
+                            isStageReached
+                              ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                              : "bg-gray-200 hover:bg-gray-300 text-gray-500"
+                          }`}
+                        >
+                          <BsPlayCircle className="w-4 h-4" /> Bắt đầu sản xuất
+                        </button>
+                      )}
+                      {["InProcessing", "Ready"].includes(stage.status) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQtyInputValue(stage.output_product?.quantity?.toString() || "");
+                            setQtyError("");
+                            setQtyInputStage(stage);
+                            fetchQrPrepare(stage.task_id);
+                          }}
+                          disabled={qrLoading}
+                          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                        >
+                          <BsClipboardCheck className="w-4 h-4" /> Báo cáo hoàn thành (QR)
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

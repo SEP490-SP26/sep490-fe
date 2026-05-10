@@ -22,4 +22,6 @@ export const tasksApi = {
     cancelFinish: (taskId: number, body: { reason: string }) =>
         http.post<CommonResType>(`/api/Tasks/cancel-finish/${taskId}`, body),
 
+    readyTask: (body: { task_id: number }) =>
+        http.put<CommonResType>(`/api/Tasks/ready`, body),
 };
