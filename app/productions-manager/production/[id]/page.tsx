@@ -982,7 +982,7 @@ export default function ProductionDetailPage() {
 
       {/* =================== TIMELINE =================== */}
       {sortedStages && sortedStages.length > 0 && (
-        <div className="sticky top-4 z-40 bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-md overflow-x-auto transition-all">
+        <div className="sticky top-0 z-40 bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-md overflow-x-auto transition-all">
           <h2 className="font-semibold mb-6 flex items-center gap-2 text-gray-800">
             <BsClock className="w-5 h-5 text-blue-600" /> Tiến độ công đoạn
           </h2>
@@ -996,7 +996,7 @@ export default function ProductionDetailPage() {
       <h2 className="font-semibold flex items-center gap-2 text-gray-800 text-lg mb-4">
         <BsGear className="w-5 h-5 text-blue-600" /> Chi tiết từng công đoạn
       </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex flex-col gap-6">
         {/* Column 1: Chưa sản xuất */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-50 border border-yellow-200">
