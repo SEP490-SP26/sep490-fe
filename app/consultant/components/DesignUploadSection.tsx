@@ -2,7 +2,7 @@ import { UploadOutlined, EyeOutlined, DeleteOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Col, Form, Modal, Row, Upload, UploadFile, Image as AntImage } from "antd";
 import { RcFile } from "antd/es/upload";
 import { useState } from "react";
-import { Vibrant } from 'node-vibrant/browser';
+import Vibrant from 'node-vibrant';
 
 interface DesignUploadSectionProps {
   designFilePath: string | null;
