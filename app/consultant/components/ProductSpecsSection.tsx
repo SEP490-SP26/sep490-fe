@@ -88,14 +88,14 @@ export default function ProductSpecsSection({
         // Full process except DAN
         return {
           forbidden: ["DAN"],
-          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT"],
+          alwaysDisabled: ["RALO", "IN", "BE", "DUT"],
           warnings: { DAN: "Khay không cần công đoạn Dán (khay xếp gài với nhau)" },
         };
       case "VO_HOP_GACH":
         // Mandatory: RALO,CAT,IN,BOI,BE,DUT,DAN; PHU/CAN optional (PHU preferred over CAN)
         return {
           forbidden: [],
-          alwaysDisabled: ["RALO", "CAT", "IN", "BOI", "BE", "DUT", "DAN"],
+          alwaysDisabled: ["RALO", "IN", "BOI", "BE", "DUT", "DAN"],
           warnings: {
             CAN: "Vỏ hộp gạch hiếm khi cần Cán màng. Nên dùng Phủ (keo nước) thay thế nếu cần.",
           },
@@ -104,7 +104,7 @@ export default function ProductSpecsSection({
         // Max: RALO,CAT,IN,PHU,BE. Forbidden: BOI, DAN. CAN warning.
         return {
           forbidden: ["BOI", "DAN"],
-          alwaysDisabled: ["RALO", "CAT", "IN", "BE"],
+          alwaysDisabled: ["RALO", "IN", "BE"],
           warnings: {
             BOI: "Thẻ màu không cần Bồi (tấm giấy phẳng, không có khối lượng thể tích)",
             DAN: "Thẻ màu không cần Dán (không tạo hình không gian 3D)",
@@ -115,7 +115,7 @@ export default function ProductSpecsSection({
         // Max: RALO,CAT,IN,PHU/CAN,BE,DUT,DAN. Forbidden: BOI.
         return {
           forbidden: ["BOI"],
-          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT", "CAN", 'PHU'],
+          alwaysDisabled: ["RALO", "IN", "BE", "DUT", "CAN", 'PHU'],
           warnings: {
             BOI: "Hộp màu không cần Bồi (giấy Ivory/Duplex đã đủ độ cứng, Bồi làm tăng chi phí và độ dày không cần thiết)",
           },
@@ -123,7 +123,7 @@ export default function ProductSpecsSection({
       default:
         return {
           forbidden: [],
-          alwaysDisabled: ["RALO", "CAT", "IN", "BE", "DUT"],
+          alwaysDisabled: ["RALO", "IN", "BE", "DUT"],
           warnings: {},
         };
     }

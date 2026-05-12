@@ -52,6 +52,24 @@ function ProductionMethodContent() {
     enabled: !!selectedOrderId && isModalVisible,
   });
 
+  const gmRecommendedMethod = statusData?.gm_note
+    ? statusData.gm_note.toUpperCase().includes("NVL") ? "NVL" :
+      statusData.gm_note.toUpperCase().includes("SUB") ? "SUB" :
+      statusData.gm_note.toUpperCase().includes("BOTH") ? "BOTH" : null
+    : null;
+
+  useEffect(() => {
+    if (gmRecommendedMethod) {
+      if (gmRecommendedMethod === "NVL" && statusData?.can_use_nvl) {
+        setMethod("NVL");
+      } else if (gmRecommendedMethod === "SUB" && statusData?.can_use_sub) {
+        setMethod("SUB");
+      } else if (gmRecommendedMethod === "BOTH" && statusData?.can_use_both) {
+        setMethod("BOTH");
+      }
+    }
+  }, [gmRecommendedMethod, statusData]);
+
   // ── POST production-method ───────────────────────────────────────────────────
   const approveMutation = useMutation({
     mutationFn: async () => {
@@ -305,19 +323,26 @@ function ProductionMethodContent() {
                   <div className="flex flex-col gap-3">
                     {/* NVL */}
                     <label
-                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         method === "NVL"
-                          ? "border-green-500 bg-green-50"
+                          ? "border-green-500 bg-green-50/70 shadow-sm"
+                          : gmRecommendedMethod === "NVL"
+                          ? "border-amber-400 bg-amber-50/30 hover:border-green-400"
                           : canNvl
                           ? "border-gray-200 hover:border-green-300"
                           : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
-                      }`}
+                      } ${gmRecommendedMethod === "NVL" ? "ring-2 ring-amber-400/20" : ""}`}
                     >
                       <Radio value="NVL" disabled={!canNvl} className="mt-0.5" />
                       <div>
-                        <div className="font-semibold text-gray-800">
-                          NVL – Sản xuất toàn bộ từ nguyên vật liệu
-                          {!canNvl && <Tag color="default" className="ml-2 text-xs">Không khả dụng</Tag>}
+                        <div className="font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+                          <span>NVL – Sản xuất toàn bộ từ nguyên vật liệu</span>
+                          {!canNvl && <Tag color="default" className="text-xs mr-0">Không khả dụng</Tag>}
+                          {gmRecommendedMethod === "NVL" && (
+                            <Tag color="warning" className="text-xs font-semibold px-2 py-0.5 mr-0">
+                              ★ GM Đề Xuất
+                            </Tag>
+                          )}
                         </div>
                         <div className="text-sm text-gray-500 mt-0.5">
                           Sản xuất sản phẩm từ đầu.
@@ -327,19 +352,26 @@ function ProductionMethodContent() {
 
                     {/* SUB */}
                     <label
-                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         method === "SUB"
-                          ? "border-blue-500 bg-blue-50"
+                          ? "border-blue-500 bg-blue-50/70 shadow-sm"
+                          : gmRecommendedMethod === "SUB"
+                          ? "border-amber-400 bg-amber-50/30 hover:border-blue-400"
                           : canSub
                           ? "border-gray-200 hover:border-blue-300"
                           : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
-                      }`}
+                      } ${gmRecommendedMethod === "SUB" ? "ring-2 ring-amber-400/20" : ""}`}
                     >
                       <Radio value="SUB" disabled={!canSub} className="mt-0.5" />
                       <div>
-                        <div className="font-semibold text-gray-800">
-                          SUB – Dùng bán thành phẩm (đủ số lượng)
-                          {!canSub && <Tag color="default" className="ml-2 text-xs">Không khả dụng</Tag>}
+                        <div className="font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+                          <span>SUB – Dùng bán thành phẩm (đủ số lượng)</span>
+                          {!canSub && <Tag color="default" className="text-xs mr-0">Không khả dụng</Tag>}
+                          {gmRecommendedMethod === "SUB" && (
+                            <Tag color="warning" className="text-xs font-semibold px-2 py-0.5 mr-0">
+                              ★ GM Đề Xuất
+                            </Tag>
+                          )}
                         </div>
                         <div className="text-sm text-gray-500 mt-0.5">
                           Bán thành phẩm đủ số lượng.{" "}
@@ -355,19 +387,26 @@ function ProductionMethodContent() {
 
                     {/* BOTH */}
                     <label
-                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         method === "BOTH"
-                          ? "border-purple-500 bg-purple-50"
+                          ? "border-purple-500 bg-purple-50/70 shadow-sm"
+                          : gmRecommendedMethod === "BOTH"
+                          ? "border-amber-400 bg-amber-50/30 hover:border-purple-400"
                           : canBoth
                           ? "border-gray-200 hover:border-purple-300"
                           : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
-                      }`}
+                      } ${gmRecommendedMethod === "BOTH" ? "ring-2 ring-amber-400/20" : ""}`}
                     >
                       <Radio value="BOTH" disabled={!canBoth} className="mt-0.5" />
                       <div>
-                        <div className="font-semibold text-gray-800">
-                          BOTH – Kết hợp bán thành phẩm + NVL
-                          {!canBoth && <Tag color="default" className="ml-2 text-xs">Không khả dụng</Tag>}
+                        <div className="font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+                          <span>BOTH – Kết hợp bán thành phẩm + NVL</span>
+                          {!canBoth && <Tag color="default" className="text-xs mr-0">Không khả dụng</Tag>}
+                          {gmRecommendedMethod === "BOTH" && (
+                            <Tag color="warning" className="text-xs font-semibold px-2 py-0.5 mr-0">
+                              ★ GM Đề Xuất
+                            </Tag>
+                          )}
                         </div>
                         <div className="text-sm text-gray-500 mt-0.5">
                           Dùng bán thành phẩm trước, sản xuất thêm phần thiếu bằng NVL.

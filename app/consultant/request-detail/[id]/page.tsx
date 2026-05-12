@@ -1586,9 +1586,9 @@ export default function ConsultantRequestDetailPage() {
                     <div
                         className={!allContractsLoaded ? "invisible h-[60vh] overflow-hidden" : "max-h-[90vh] overflow-y-auto p-4 md:p-8"}
                     >
-                        <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <div className="sticky top-0 z-10 mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col">
-                                <h2 className="text-xl font-bold text-slate-800 m-0">Xem trước Báo giá</h2>
+                                <h2 className="text-xl font-bold text-slate-800 m-0">Xem trước Báo giá & Hợp đồng</h2>
                                 {user && (
                                     <div className="flex items-center gap-2 mt-1">
                                         <Tag color="cyan" icon={<UserOutlined />} className="m-0 px-2 py-0.5 rounded-md font-medium border-0">
