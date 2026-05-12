@@ -1802,7 +1802,7 @@ export default function ProductionDetailPage() {
                         setQtyError("");
                       }
                     }}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${qtyError ? 'border-red-500' : ''}`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? 'border-red-500' : ''}`}
                     autoFocus
                   />
                   {qtyError && <span className="text-xs text-red-500 mt-1 block">{qtyError}</span>}

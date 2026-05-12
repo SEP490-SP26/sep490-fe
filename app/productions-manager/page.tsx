@@ -466,7 +466,7 @@ export default function ProdutionManager() {
 
                   <div className="flex items-center gap-3 mb-1">
                     <p className="text-sm font-semibold text-gray-900 truncate">
-                      Mã đơn sản xuất:
+                      Lệnh sản xuất:
                       <span className="text-blue-700 ml-1">
                         {order.code}
                       </span>
@@ -573,7 +573,7 @@ export default function ProdutionManager() {
 
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-gray-900 truncate">
-                    Mã đơn:
+                    Lệnh sản xuất:
                     <span className="text-yellow-600 ml-1">
                       {order.code}
                     </span>
