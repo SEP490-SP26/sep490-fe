@@ -8,10 +8,12 @@ import {
   LinearScale,
   Tooltip,
   Legend,
+  PointElement,
+  LineElement,
 } from "chart.js";
-import { Doughnut } from "react-chartjs-2";
+import { Doughnut, Line } from "react-chartjs-2";
 
-ChartJS.register(ArcElement, CategoryScale, LinearScale, Tooltip, Legend);
+ChartJS.register(ArcElement, CategoryScale, LinearScale, Tooltip, Legend, PointElement, LineElement);
 
 const STATUSES: Record<string, { label: string; color: string; bg: string; desc: string }> = {
   Processing: { label: "Chờ duyệt", color: "#3b82f6", bg: "#eff6ff", desc: "Consultant gửi lên" },
@@ -217,27 +219,37 @@ export default function Dashboard() {
 
   // ── Định nghĩa trạng thái và màu sắc đơn sản xuất ──
   const PROD_STATUSES: Record<string, { label: string; color: string; bg: string }> = {
+    LayoutPending: { label: "Chờ duyệt layout", color: "#f59e0b", bg: "#fffbeb" },
     Scheduled: { label: "Đã lên lịch", color: "#3b82f6", bg: "#eff6ff" },
-    InProcessing: { label: "Đang sản xuất", color: "#f59e0b", bg: "#fffbeb" },
+    InProcessing: { label: "Đang sản xuất", color: "#8b5cf6", bg: "#f5f3ff" },
     Completed: { label: "Hoàn thành", color: "#22c55e", bg: "#f0fdf4" },
     Cancelled: { label: "Đã hủy", color: "#ef4444", bg: "#fef2f2" },
   };
-  const PROD_KEYS = ["Scheduled", "InProcessing", "Completed", "Cancelled"];
+  const PROD_KEYS = ["LayoutPending", "Scheduled", "InProcessing", "Completed", "Cancelled"];
 
   // ── Tính KPI Requests ──
   const counts: Record<string, number> = {};
   KEYS.forEach((k) => { counts[k] = 0; });
 
   filteredOrders.forEach((o: any) => {
-    const s = o.process_status;
-    if (!KEYS.includes(s)) return;
-    counts[s]++;
+    const s = o.process_status?.toLowerCase();
+    if (!s) return;
+    if (s === "processing" || s === "pending") {
+      counts["Processing"]++;
+    } else {
+      counts["Verified"]++;
+      if (s === "waiting") {
+        counts["Waiting"]++;
+      } else if (s === "rejected" || s === "cancel" || s === "declined") {
+        counts["Rejected"]++;
+      }
+    }
   });
 
-  const total = KEYS.reduce((s, k) => s + counts[k], 0);
+  const total = counts["Processing"] + counts["Verified"];
 
   // ── Đã đặt cọc (Accepted) ──
-  const depositedOrders = filteredOrders.filter((o: any) => o.process_status === "Accepted");
+  const depositedOrders = filteredOrders.filter((o: any) => o.process_status?.toLowerCase() === "accepted");
   const depositedCount = depositedOrders.length;
 
   // ── Donut chart Requests ──
@@ -258,6 +270,80 @@ export default function Dashboard() {
       legend: { display: false },
       tooltip: { callbacks: { label: (ctx: any) => ` ${ctx.label}: ${ctx.raw} đơn` } },
     },
+  };
+
+  // ── Line chart Requests ──
+  const requestLineData = useMemo(() => {
+    let labels: string[] = [];
+    let dataCounts: number[] = [];
+    
+    if (selectedYear === "all") {
+      const yearCounts: Record<string, number> = {};
+      filteredOrders.forEach((o: any) => {
+        const d = getOrderDate(o);
+        if (d) {
+          const y = d.getFullYear().toString();
+          yearCounts[y] = (yearCounts[y] || 0) + 1;
+        }
+      });
+      labels = Object.keys(yearCounts).sort();
+      dataCounts = labels.map((l) => yearCounts[l]);
+    } else if (selectedMonth !== "all") {
+      const daysInMonth = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
+      const dayCounts: Record<string, number> = {};
+      for(let i=1; i<=daysInMonth; i++) dayCounts[i.toString()] = 0;
+      
+      filteredOrders.forEach((o: any) => {
+        const d = getOrderDate(o);
+        if (d) {
+          const day = d.getDate().toString();
+          dayCounts[day] = (dayCounts[day] || 0) + 1;
+        }
+      });
+      labels = Object.keys(dayCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      dataCounts = labels.map((l) => dayCounts[l]);
+    } else {
+      const monthCounts: Record<string, number> = {};
+      for(let i=1; i<=12; i++) monthCounts[i.toString()] = 0;
+      
+      filteredOrders.forEach((o: any) => {
+        const d = getOrderDate(o);
+        if (d) {
+          const m = (d.getMonth() + 1).toString();
+          monthCounts[m] = (monthCounts[m] || 0) + 1;
+        }
+      });
+      const sortedMonths = Object.keys(monthCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      labels = sortedMonths.map(m => `Tháng ${m}`);
+      dataCounts = sortedMonths.map(m => monthCounts[m]);
+    }
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Số lượng yêu cầu",
+          data: dataCounts,
+          borderColor: "#8b5cf6",
+          backgroundColor: "#8b5cf680",
+          tension: 0.4,
+        }
+      ]
+    };
+  }, [filteredOrders, selectedYear, selectedMonth]);
+
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
   };
 
   // ── Tính KPI Production Orders ──
@@ -295,6 +381,66 @@ export default function Dashboard() {
       tooltip: { callbacks: { label: (ctx: any) => ` ${ctx.label}: ${ctx.raw} đơn` } },
     },
   };
+
+  // ── Line chart Production Orders ──
+  const prodLineData = useMemo(() => {
+    let labels: string[] = [];
+    let dataCounts: number[] = [];
+    
+    if (selectedYear === "all") {
+      const yearCounts: Record<string, number> = {};
+      filteredProdOrders.forEach((o: any) => {
+        const d = getProdOrderDate(o);
+        if (d) {
+          const y = d.getFullYear().toString();
+          yearCounts[y] = (yearCounts[y] || 0) + 1;
+        }
+      });
+      labels = Object.keys(yearCounts).sort();
+      dataCounts = labels.map((l) => yearCounts[l]);
+    } else if (selectedMonth !== "all") {
+      const daysInMonth = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
+      const dayCounts: Record<string, number> = {};
+      for(let i=1; i<=daysInMonth; i++) dayCounts[i.toString()] = 0;
+      
+      filteredProdOrders.forEach((o: any) => {
+        const d = getProdOrderDate(o);
+        if (d) {
+          const day = d.getDate().toString();
+          dayCounts[day] = (dayCounts[day] || 0) + 1;
+        }
+      });
+      labels = Object.keys(dayCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      dataCounts = labels.map((l) => dayCounts[l]);
+    } else {
+      const monthCounts: Record<string, number> = {};
+      for(let i=1; i<=12; i++) monthCounts[i.toString()] = 0;
+      
+      filteredProdOrders.forEach((o: any) => {
+        const d = getProdOrderDate(o);
+        if (d) {
+          const m = (d.getMonth() + 1).toString();
+          monthCounts[m] = (monthCounts[m] || 0) + 1;
+        }
+      });
+      const sortedMonths = Object.keys(monthCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      labels = sortedMonths.map(m => `Tháng ${m}`);
+      dataCounts = sortedMonths.map(m => monthCounts[m]);
+    }
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Số lượng đơn",
+          data: dataCounts,
+          borderColor: "#3b82f6",
+          backgroundColor: "#3b82f680",
+          tension: 0.4,
+        }
+      ]
+    };
+  }, [filteredProdOrders, selectedYear, selectedMonth]);
 
   // ── Tính toán số liệu Máy móc ──
   const availabilityMap = useMemo(() => {
@@ -572,7 +718,7 @@ export default function Dashboard() {
               </div>
 
               {/* ── Charts row Requests ── */}
-              <div className="max-w-3xl mx-auto w-full mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-4">
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                   <h2 className="text-sm font-bold text-gray-900 mb-0.5">Tỉ lệ theo trạng thái</h2>
                   <div className="text-xs text-gray-400 mb-3">Phân bổ 4 nhóm quản lý</div>
@@ -592,6 +738,14 @@ export default function Dashboard() {
                   </div>
                   <div className="relative mx-auto" style={{ height: 240 }}>
                     <Doughnut data={donutData} options={donutOptions} />
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-sm font-bold text-gray-900 mb-0.5">Biểu đồ yêu cầu theo thời gian</h2>
+                  <div className="text-xs text-gray-400 mb-3">Thống kê số lượng yêu cầu</div>
+                  <div className="relative mx-auto flex flex-col justify-end" style={{ height: 280 }}>
+                    <Line data={requestLineData} options={lineOptions} />
                   </div>
                 </div>
               </div>
@@ -641,7 +795,7 @@ export default function Dashboard() {
                 })}
 
                 {/* Card tổng sản lượng */}
-                <div className="bg-white rounded-2xl p-5 border border-indigo-200">
+                {/* <div className="bg-white rounded-2xl p-5 border border-indigo-200">
                   <div className="text-xs font-bold uppercase tracking-widest mb-2 text-indigo-600">
                     Tổng sản lượng
                   </div>
@@ -657,11 +811,11 @@ export default function Dashboard() {
                   <div className="h-1 rounded-full bg-indigo-100 overflow-hidden">
                     <div className="h-full rounded-full bg-indigo-600 transition-all duration-700 w-full" />
                   </div>
-                </div>
+                </div> */}
               </div>
 
               {/* ── Charts row Production Orders ── */}
-              <div className="max-w-3xl mx-auto w-full mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-4">
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                   <h2 className="text-sm font-bold text-gray-900 mb-0.5">Tỉ lệ theo trạng thái</h2>
                   <div className="text-xs text-gray-400 mb-3">Phân bổ 4 nhóm tiến trình sản xuất</div>
@@ -681,6 +835,14 @@ export default function Dashboard() {
                   </div>
                   <div className="relative mx-auto" style={{ height: 240 }}>
                     <Doughnut data={prodDonutData} options={prodDonutOptions} />
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-sm font-bold text-gray-900 mb-0.5">Biểu đồ đơn hàng theo thời gian</h2>
+                  <div className="text-xs text-gray-400 mb-3">Thống kê số lượng đơn sản xuất</div>
+                  <div className="relative mx-auto flex flex-col justify-end" style={{ height: 280 }}>
+                    <Line data={prodLineData} options={lineOptions} />
                   </div>
                 </div>
               </div>

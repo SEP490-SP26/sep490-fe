@@ -67,7 +67,7 @@ export interface ProductionStage {
   machine: string;
   task_id: number;
   task_name: string;
-  status: "Finished" | "InProcessing" | "Ready" | "Unassigned";
+  status: "Finished" | "InProcessing" | "Ready" | "Unassigned" | "GroupedWaiting";
   assigned_to: string | null;
   assigned_to_name: string | null;
   start_time?: string;
@@ -144,6 +144,12 @@ const STATUS_MAP: Record<
     color: "text-gray-500",
     bg: "bg-gray-50",
     border: "border-gray-200",
+  },
+  GroupedWaiting: {
+    label: "Sản xuất trong lệnh ghép",
+    color: "text-purple-700",
+    bg: "bg-purple-50",
+    border: "border-purple-200",
   },
 };
 
@@ -1318,6 +1324,11 @@ export default function ProductionDetailPage() {
                         >
                           <BsPlayCircle className="w-4 h-4" /> Bắt đầu sản xuất
                         </button>
+                      )}
+                      {stage.status === "GroupedWaiting" && (
+                        <div className="flex items-center justify-center px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-sm font-medium">
+                          Đang sản xuất trong lệnh ghép
+                        </div>
                       )}
                       {["InProcessing", "Ready"].includes(stage.status) && (
                         <button

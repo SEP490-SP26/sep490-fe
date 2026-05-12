@@ -25,24 +25,8 @@ function ProductionApprovalContent() {
   const [selectedMethod, setSelectedMethod] = useState<"NVL" | "SUB" | "BOTH" | null>(null);
 
   const handleSelectMethod = (method: "NVL" | "SUB" | "BOTH") => {
-    setGmNote((prev) => {
-      const cleanNote = prev.replace(/^\[Đề xuất: (NVL|SUB|BOTH)\]\s*/gi, "");
-      return `[Đề xuất: ${method}] ${cleanNote}`;
-    });
+    setSelectedMethod(method);
   };
-
-  useEffect(() => {
-    if (!gmNote) {
-      setSelectedMethod(null);
-      return;
-    }
-    const match = gmNote.match(/^\[Đề xuất: (NVL|SUB|BOTH)\]/i);
-    if (match) {
-      setSelectedMethod(match[1].toUpperCase() as "NVL" | "SUB" | "BOTH");
-    } else {
-      setSelectedMethod(null);
-    }
-  }, [gmNote]);
 
   // ── Danh sách đơn hàng ──────────────────────────────────────────────────────
   const { data: apiData, isLoading, refetch } = useQuery({
@@ -75,10 +59,19 @@ function ProductionApprovalContent() {
 
   // ── PUT start-ready: GM trình duyệt ─────────────────────────────────────────
   const approveMutation = useMutation({
-    mutationFn: async ({ orderId, note }: { orderId: number; note: string }) =>
+    mutationFn: async ({
+      orderId,
+      note,
+      productionMethod,
+    }: {
+      orderId: number;
+      note: string;
+      productionMethod: string | null;
+    }) =>
       productionsApi.updateProduction(orderId, {
         is_production_ready: true,
         gm_note: note,
+        production_method: productionMethod,
       }),
     onSuccess: (_, { orderId }) => {
       // Phân biệt kết quả dựa vào statusData tại thời điểm gửi
@@ -110,6 +103,7 @@ function ProductionApprovalContent() {
   const handleOpen = (orderId: number) => {
     setSelectedOrderId(orderId);
     setGmNote("");
+    setSelectedMethod(null);
     setActiveTab("1");
     setIsModalVisible(true);
   };
@@ -118,6 +112,7 @@ function ProductionApprovalContent() {
     setIsModalVisible(false);
     setSelectedOrderId(null);
     setGmNote("");
+    setSelectedMethod(null);
   };
 
   // Phân tích options khả dụng
@@ -323,7 +318,11 @@ function ProductionApprovalContent() {
               disabled={!anyOption || approveMutation.isPending}
               onClick={() =>
                 selectedOrderId &&
-                approveMutation.mutate({ orderId: selectedOrderId, note: gmNote })
+                approveMutation.mutate({
+                  orderId: selectedOrderId,
+                  note: gmNote,
+                  productionMethod: selectedMethod,
+                })
               }
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${
                 anyOption && !approveMutation.isPending
