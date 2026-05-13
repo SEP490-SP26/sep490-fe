@@ -323,16 +323,17 @@ export default function ProductionDetailPage() {
     const finalQty =
       qtyOverride && qtyOverride > 0 ? qtyOverride : defaultQty;
 
+    const formData = new FormData();
+    formData.append("task_id", stage.task_id.toString());
+    formData.append("ttl_minutes", "30");
+    formData.append("qty_good", finalQty.toString());
+    formData.append("use_manual_input", "true");
+
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/qr`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task_id: stage.task_id,
-          ttl_minutes: 30,
-          qty_good: finalQty,
-        }),
+        body: formData,
       }
     );
 
