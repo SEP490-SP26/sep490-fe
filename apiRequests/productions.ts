@@ -137,4 +137,12 @@ export const productionsApi = {
     mgr_note?: string;
   }) =>
     http.post(`/api/Productions/production-method`, body),
+
+  /** GET /api/GroupProductions/{prodId}/detail — Lấy chi tiết đơn ghép */
+  getGroupProductionDetail: (prodId: number) =>
+    http.get(`/api/GroupProductions/${prodId}/detail`),
+
+  /** POST /api/GroupProductions/{prodId}/start — Bắt đầu sản xuất đơn ghép */
+  startGroupProduction: (prodId: number) =>
+    http.post(`/api/GroupProductions/${prodId}/start`, {}),
 };
