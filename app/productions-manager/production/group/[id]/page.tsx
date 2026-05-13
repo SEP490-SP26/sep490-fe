@@ -312,6 +312,7 @@ function StageCard({
   readyLoading,
   qrLoading,
   allStages,
+  productionStatus,
 }: {
   stage: GroupStage;
   isCollapsed: boolean;
@@ -322,9 +323,11 @@ function StageCard({
   readyLoading: number | null;
   qrLoading: boolean;
   allStages: GroupStage[];
+  productionStatus: string;
 }) {
   const statusInfo = STATUS_MAP[stage.status];
-  const isStageReached = allStages
+  const isProductionActive = productionStatus === "InProcessing";
+  const isStageReached = isProductionActive && allStages
     .filter((s) => s.seq_num < stage.seq_num)
     .every((s) => s.status === "Finished");
   return (
@@ -866,6 +869,7 @@ export default function GroupProductionPage() {
               readyLoading={readyLoading}
               qrLoading={qrLoading}
               allStages={sortedStages ?? []}
+              productionStatus={production?.status ?? ""}
             />
           ))}
         </div>
@@ -895,6 +899,7 @@ export default function GroupProductionPage() {
               readyLoading={readyLoading}
               qrLoading={qrLoading}
               allStages={sortedStages ?? []}
+              productionStatus={production?.status ?? ""}
             />
           ))}
         </div>
