@@ -1584,9 +1584,9 @@ export default function ConsultantRequestDetailPage() {
                         </div>
                     )}
                     <div
-                        className={!allContractsLoaded ? "invisible h-[60vh] overflow-hidden" : "max-h-[90vh] overflow-y-auto p-4 md:p-8"}
+                        className={!allContractsLoaded ? "invisible h-[60vh] overflow-hidden" : "max-h-[90vh] overflow-y-auto"}
                     >
-                        <div className="sticky top-0 z-10 mb-6 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <div className="sticky top-0 z-50 flex justify-between items-center bg-white px-4 md:px-8 py-4 border-b border-slate-200 shadow-sm">
                             <div className="flex flex-col">
                                 <h2 className="text-xl font-bold text-slate-800 m-0">Xem trước Báo giá & Hợp đồng</h2>
                                 {user && (
@@ -1618,6 +1618,8 @@ export default function ConsultantRequestDetailPage() {
                                 </button>
                             </div>
                         </div>
+
+                        <div className="p-4 md:p-8">
 
                         {customerMessage.trim() && (
                             <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
@@ -1756,6 +1758,7 @@ export default function ConsultantRequestDetailPage() {
                         </div>
 
 
+                        </div>
                     </div>
                 </Modal>
 
