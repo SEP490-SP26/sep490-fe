@@ -67,7 +67,7 @@ function ProductionMethodContent() {
     enabled: isModalVisible,
   });
 
-  const gmRecommendedMethod = statusData?.production_method || null;
+  const gmRecommendedMethod = statusData?.gm_proposed_method || statusData?.proposed_production_method || statusData?.production_method || null;
 
   useEffect(() => {
     if (gmRecommendedMethod) {

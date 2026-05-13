@@ -66,12 +66,13 @@ function ProductionApprovalContent() {
     }: {
       orderId: number;
       note: string;
-      productionMethod: string | null;
+      productionMethod: "NVL" | "SUB" | "BOTH";
     }) =>
       productionsApi.updateProduction(orderId, {
         is_production_ready: true,
         gm_note: note,
-        production_method: productionMethod,
+        gm_proposed_method: productionMethod,
+        proposed_production_method: productionMethod,
       }),
     onSuccess: (_, { orderId }) => {
       // Phân biệt kết quả dựa vào statusData tại thời điểm gửi
@@ -315,15 +316,20 @@ function ProductionApprovalContent() {
             </button>
             <button
               type="button"
-              disabled={!anyOption || approveMutation.isPending}
-              onClick={() =>
-                selectedOrderId &&
+              disabled={!anyOption || approveMutation.isPending || (!onlyNvl && !selectedMethod)}
+              onClick={() => {
+                if (!selectedOrderId) return;
+                const methodToSubmit = onlyNvl ? "NVL" : selectedMethod;
+                if (!methodToSubmit) {
+                  message.error("Vui lòng chọn phương án sản xuất");
+                  return;
+                }
                 approveMutation.mutate({
                   orderId: selectedOrderId,
                   note: gmNote,
-                  productionMethod: selectedMethod,
-                })
-              }
+                  productionMethod: methodToSubmit as "NVL" | "SUB" | "BOTH",
+                });
+              }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${
                 anyOption && !approveMutation.isPending
                   ? onlyNvl

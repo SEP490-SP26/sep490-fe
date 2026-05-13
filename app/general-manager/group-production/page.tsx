@@ -2,11 +2,11 @@
 
 import { GroupableOrder, groupProductionsApi } from "@/apiRequests/groupProductions";
 import { productTypesApi } from "@/apiRequests/producttypes";
-import { InfoCircleOutlined, PlayCircleOutlined, ReloadOutlined } from "@ant-design/icons";
+import { InfoCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button, Card, DatePicker, Input, message, Select, Table, Tag, Typography } from "antd";
 import dayjs from "dayjs";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 
 const { Title, Text } = Typography;
 
@@ -25,6 +25,8 @@ export default function GroupProductionPage() {
   const [selectedOrders, setSelectedOrders] = useState<GroupableOrder[]>([]);
   const [plannedStartDate, setPlannedStartDate] = useState<dayjs.Dayjs | null>(dayjs());
   const [note, setNote] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [sortBy, setSortBy] = useState<string>("newest");
 
   const { data: productTypes } = useQuery({
     queryKey: ["product-types"],
@@ -46,6 +48,51 @@ export default function GroupProductionPage() {
     },
   });
 
+  const filteredAndSortedCandidates = useMemo(() => {
+    if (!candidates) return [];
+
+    let result = [...candidates];
+
+    // Search filter: mã đơn hoặc tên sản phẩm
+    if (searchText.trim()) {
+      const term = searchText.toLowerCase().trim();
+      result = result.filter(
+        (o) =>
+          o.order_code?.toLowerCase().includes(term) ||
+          o.product_name?.toLowerCase().includes(term)
+      );
+    }
+
+    // Sort logic
+    result.sort((a, b) => {
+      if (sortBy === "newest") {
+        return b.order_id - a.order_id;
+      }
+      if (sortBy === "oldest") {
+        return a.order_id - b.order_id;
+      }
+      if (sortBy === "delivery_asc") {
+        const dateA = a.delivery_date ? new Date(a.delivery_date).getTime() : 0;
+        const dateB = b.delivery_date ? new Date(b.delivery_date).getTime() : 0;
+        return dateA - dateB;
+      }
+      if (sortBy === "delivery_desc") {
+        const dateA = a.delivery_date ? new Date(a.delivery_date).getTime() : 0;
+        const dateB = b.delivery_date ? new Date(b.delivery_date).getTime() : 0;
+        return dateB - dateA;
+      }
+      if (sortBy === "qty_asc") {
+        return (a.quantity || 0) - (b.quantity || 0);
+      }
+      if (sortBy === "qty_desc") {
+        return (b.quantity || 0) - (a.quantity || 0);
+      }
+      return 0;
+    });
+
+    return result;
+  }, [candidates, searchText, sortBy]);
+
   const createMutation = useMutation({
     mutationFn: async () => {
       if (selectedOrders.length < 2) throw new Error("Phải chọn ít nhất 2 đơn hàng để ghép.");
@@ -53,27 +100,22 @@ export default function GroupProductionPage() {
       if (selectedProcessCodes.length === 0) throw new Error("Vui lòng chọn ít nhất 1 công đoạn ghép.");
 
       // Validation: Check if all selected orders have the selected process codes
-      for (const order of selectedOrders) {
-        const orderProcesses = order.production_process?.split(",") || [];
-        for (const code of selectedProcessCodes) {
-          if (!orderProcesses.includes(code)) {
-            throw new Error(`Đơn hàng ${order.order_code} không có công đoạn ${code}. Không thể ghép!`);
-          }
-        }
-      }
+      // for (const order of selectedOrders) {
+      //   const orderProcesses = order.production_process?.split(",") || [];
+      //   for (const code of selectedProcessCodes) {
+      //     if (!orderProcesses.includes(code)) {
+      //       throw new Error(`Đơn hàng ${order.order_code} không có công đoạn ${code}. Không thể ghép!`);
+      //     }
+      //   }
+      // }
 
       // Create Group Production
-      const res = await groupProductionsApi.confirmProduceOrder({
+      await groupProductionsApi.confirmProduceOrder({
         order_ids: selectedOrders.map(o => o.order_id),
         process_codes: selectedProcessCodes,
         planned_start_date: plannedStartDate.toISOString(),
         note: note,
       });
-
-      const groupProdId = (res as any)?.data?.group_prod_id || (res as any)?.data?.id;
-      if (!groupProdId) {
-        throw new Error("Tạo lệnh ghép thành công nhưng không lấy được ID. Vui lòng kiểm tra danh sách nhóm lệnh.");
-      }
 
     },
     onSuccess: () => {
@@ -135,6 +177,7 @@ export default function GroupProductionPage() {
               onChange={(val) => {
                 setProductTypeId(val);
                 setSelectedOrders([]);
+                setSearchText("");
               }}
               options={(productTypes || []).map((pt: any) => ({
                 label: pt.name,
@@ -152,6 +195,7 @@ export default function GroupProductionPage() {
               onChange={(val) => {
                 setSelectedProcessCodes(val);
                 setSelectedOrders([]);
+                setSearchText("");
               }}
               options={ALLOWED_PROCESS_CODES}
               allowClear
@@ -164,27 +208,63 @@ export default function GroupProductionPage() {
         </div>
       </Card>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Title level={4} className="!mb-0 text-gray-800">Danh sách đơn hàng tiềm năng</Title>
         <Button
           type="primary"
           icon={<ReloadOutlined />}
           onClick={() => refetch()}
-          className="bg-blue-600"
+          className="bg-blue-600 self-start sm:self-auto"
         >
           Tải lại danh sách
         </Button>
       </div>
 
+      {/* Bộ lọc tìm kiếm và sắp xếp */}
+      <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div className="w-full md:flex-1">
+          <Input
+            placeholder="Tìm kiếm theo mã đơn hoặc tên sản phẩm..."
+            prefix={<SearchOutlined className="text-gray-400" />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+            className="w-full"
+            size="large"
+          />
+        </div>
+        <div className="w-full md:w-80 flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600 shrink-0">Sắp xếp:</span>
+          <Select
+            value={sortBy}
+            onChange={(val) => setSortBy(val)}
+            className="w-full"
+            size="large"
+            options={[
+              { label: "Mới nhất (Mã đơn giảm)", value: "newest" },
+              { label: "Cũ nhất (Mã đơn tăng)", value: "oldest" },
+              { label: "Ngày giao gần nhất", value: "delivery_asc" },
+              { label: "Ngày giao xa nhất", value: "delivery_desc" },
+              { label: "Số lượng tăng dần", value: "qty_asc" },
+              { label: "Số lượng giảm dần", value: "qty_desc" },
+            ]}
+          />
+        </div>
+      </div>
+
       <Table
         rowSelection={rowSelection}
         columns={columns}
-        dataSource={candidates || []}
+        dataSource={filteredAndSortedCandidates}
         rowKey="order_id"
         loading={isCandidatesLoading}
         pagination={{ pageSize: 10 }}
         bordered
-        locale={{ emptyText: "Không có đơn hàng nào thỏa mãn điều kiện lọc (cần cùng Product Type và cùng chứa các công đoạn đã chọn)." }}
+        locale={{
+          emptyText: searchText 
+            ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm." 
+            : "Không có đơn hàng nào thỏa mãn điều kiện lọc (cần cùng Product Type và cùng chứa các công đoạn đã chọn)."
+        }}
         className="mb-6 shadow-sm"
       />
 
