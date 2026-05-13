@@ -538,7 +538,7 @@ export default function RequestDetailPage() {
             <div className="bg-white rounded-xl">
               <div className="text-center mb-6 pt-4">
                 <h3 className="text-xl font-bold text-slate-800 m-0">QUÉT MÃ THANH TOÁN</h3>
-                <p className="text-slate-500 text-sm mt-1">Vui lòng quét mã bên dưới để hoàn tất đặt cọc cho Báo giá</p>
+                <p className="text-slate-500 text-sm mt-1">Vui lòng quét mã bên dưới để hoàn tất đặt cọc cho Báo giá {selectedQuoteIndex + 1}</p>
               </div>
 
               <div className="flex flex-col items-center gap-6 px-2">

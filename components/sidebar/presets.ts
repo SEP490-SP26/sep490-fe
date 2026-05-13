@@ -229,7 +229,7 @@ export const generalManagerNavItems: NavItem[] = [
   },
   {
     path: "/group-production",
-    label: "Lệnh ghép (GROUP)",
+    label: "Lệnh ghép",
     icon: FiPackage,
     basePath: "/general-manager",
   },

@@ -6,7 +6,8 @@ import { InfoCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button, Card, DatePicker, Input, message, Select, Table, Tag, Typography } from "antd";
 import dayjs from "dayjs";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { ProductTemplate } from "@/apiRequests/producttypes";
 
 const { Title, Text } = Typography;
 
@@ -15,7 +16,7 @@ const ALLOWED_PROCESS_CODES = [
   { label: "Cán (CAN)", value: "CAN" },
   { label: "Bồi (BOI)", value: "BOI" },
   { label: "Bế (BE)", value: "BE" },
-  { label: "Đột (DUT)", value: "DUT" },
+  { label: "Dứt (DUT)", value: "DUT" },
   { label: "Dán (DAN)", value: "DAN" },
 ];
 
@@ -37,6 +38,37 @@ export default function GroupProductionPage() {
       return [];
     },
   });
+
+  // Fetch templates to auto-fill process codes when a product type is selected
+  const { data: templates } = useQuery({
+    queryKey: ["product-templates", productTypeId],
+    queryFn: async () => {
+      if (!productTypeId) return [];
+      const res = await productTypesApi.getProductTemplete(productTypeId);
+      const list = Array.isArray(res) ? res : ((res as any)?.data || []);
+      return list as ProductTemplate[];
+    },
+    enabled: !!productTypeId,
+  });
+
+  // Auto-fill process codes when product type or templates change
+  useEffect(() => {
+    if (productTypeId && templates && templates.length > 0) {
+      const defaultTemplate = templates[0];
+      if (defaultTemplate.production_processes) {
+        const codes = defaultTemplate.production_processes
+          .split(",")
+          .map((c: string) => c.trim())
+          .filter((code: string) =>
+            ALLOWED_PROCESS_CODES.some((allowed) => allowed.value === code)
+          );
+
+        setSelectedProcessCodes(codes);
+      } else {
+        setSelectedProcessCodes([]);
+      }
+    }
+  }, [templates, productTypeId]);
 
   const { data: candidates, isLoading: isCandidatesLoading, refetch } = useQuery({
     queryKey: ["group-candidates", productTypeId, selectedProcessCodes],
@@ -161,7 +193,7 @@ export default function GroupProductionPage() {
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[80vh] p-6">
       <div className="mb-6 pb-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <Title level={3} className="!mb-1 text-gray-800">Tạo lệnh sản xuất ghép (GROUP)</Title>
+          <Title level={3} className="!mb-1 text-gray-800">Tạo lệnh sản xuất ghép</Title>
           <Text type="secondary">Chọn loại sản phẩm và các công đoạn để lọc danh sách đơn hàng tiềm năng.</Text>
         </div>
       </div>
@@ -176,6 +208,7 @@ export default function GroupProductionPage() {
               value={productTypeId}
               onChange={(val) => {
                 setProductTypeId(val);
+                setSelectedProcessCodes([]); // Reset stages while loading new defaults
                 setSelectedOrders([]);
                 setSearchText("");
               }}
@@ -261,8 +294,8 @@ export default function GroupProductionPage() {
         pagination={{ pageSize: 10 }}
         bordered
         locale={{
-          emptyText: searchText 
-            ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm." 
+          emptyText: searchText
+            ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm."
             : "Không có đơn hàng nào thỏa mãn điều kiện lọc (cần cùng Product Type và cùng chứa các công đoạn đã chọn)."
         }}
         className="mb-6 shadow-sm"
@@ -283,7 +316,7 @@ export default function GroupProductionPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
             <Input.TextArea
-              rows={2}
+              rows={1}
               placeholder="Nhập ghi chú cho lệnh ghép (nếu có)"
               value={note}
               onChange={e => setNote(e.target.value)}

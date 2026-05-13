@@ -18,11 +18,11 @@ import { useSearchParams } from "next/navigation";
 function ProductionMethodContent() {
   const searchParams = useSearchParams();
 
-  const [searchText, setSearchText]       = useState("");
+  const [searchText, setSearchText] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [isModalVisible, setIsModalVisible]   = useState(false);
-  const [method, setMethod]               = useState<ProductionMethod>("NVL");
-  const [mgrNote, setMgrNote]             = useState("");
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [method, setMethod] = useState<ProductionMethod>("NVL");
+  const [mgrNote, setMgrNote] = useState("");
   const [selectedSubId, setSelectedSubId] = useState<number | null>(null);
 
   // ── Danh sách đơn chờ manager duyệt (is_production_ready = false, đã có gm_note) ─
@@ -79,7 +79,7 @@ function ProductionMethodContent() {
         setMethod("BOTH");
       }
     }
-    
+
     if (statusData) {
       const defaultSubId = statusData.selected_sub_product_id ?? statusData.matched_sub_product?.sub_product_id ?? statusData.matched_sub_product?.id ?? null;
       if (defaultSubId && !selectedSubId) {
@@ -98,9 +98,9 @@ function ProductionMethodContent() {
       }
 
       const is_full_process: boolean | null =
-        method === "NVL"  ? true  :
-        method === "SUB"  ? false :
-        null; // BOTH
+        method === "NVL" ? true :
+          method === "SUB" ? false :
+            null; // BOTH
 
       return productionsApi.productionMethod({
         order_id: selectedOrderId,
@@ -112,7 +112,7 @@ function ProductionMethodContent() {
     },
     onSuccess: (res) => {
       message.success("Đã duyệt phương thức sản xuất thành công!");
-      
+
       const responseData = res?.data as any;
       if (responseData && method === "BOTH") {
         Modal.success({
@@ -151,7 +151,7 @@ function ProductionMethodContent() {
 
   // Lọc đơn: Chỉ hiện những order có status là Scheduled và khớp với từ khóa tìm kiếm
   const filteredOrders = (apiData || []).filter((order: any) => {
-    const isScheduled = order.status === "Scheduled";
+    const isScheduled = order.status === "Scheduled" && order.production_method === null || "";
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.code?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -172,13 +172,13 @@ function ProductionMethodContent() {
     setMgrNote("");
   };
 
-  const canNvl  = !!statusData?.can_use_nvl;
-  const canSub  = !!statusData?.can_use_sub;
+  const canNvl = !!statusData?.can_use_nvl;
+  const canSub = !!statusData?.can_use_sub;
   const canBoth = !!statusData?.can_use_both;
 
   const selectedOrder = (apiData || []).find((o: any) => o.order_id === selectedOrderId || o._id === selectedOrderId);
-  const isOrderDisabled = selectedOrder 
-    ? ["InProcessing", "Importing", "Delivery", "Delivered", "Completed", "Finished"].includes(selectedOrder.status) 
+  const isOrderDisabled = selectedOrder
+    ? ["InProcessing", "Importing", "Delivery", "Delivered", "Completed", "Finished"].includes(selectedOrder.status)
     : false;
 
   const orderQuantity = statusData?.order_quantity || 0;
@@ -195,18 +195,18 @@ function ProductionMethodContent() {
       return b.quantity - a.quantity;
     });
 
-  const selectedSubProduct = filteredSubProducts.find((sp: SubProduct) => sp.id === selectedSubId) 
+  const selectedSubProduct = filteredSubProducts.find((sp: SubProduct) => sp.id === selectedSubId)
     || statusData?.matched_sub_product;
 
   const getStatusTag = (status: string) => {
     switch (status) {
-      case "Scheduled":     return <Tag color="orange">Đã lên lịch</Tag>;
+      case "Scheduled": return <Tag color="orange">Đã lên lịch</Tag>;
       case "LayoutPending": return <Tag color="orange">Chờ duyệt layout</Tag>;
-      case "InProcessing":  return <Tag color="blue">Đang sản xuất</Tag>;
-      case "Finished":      return <Tag color="green">Hoàn thành</Tag>;
-      case "Delivered":     return <Tag color="cyan">Đã giao</Tag>;
-      case "Cancelled":     return <Tag color="red">Đã hủy</Tag>;
-      default:              return <Tag>{status || "Mới"}</Tag>;
+      case "InProcessing": return <Tag color="blue">Đang sản xuất</Tag>;
+      case "Finished": return <Tag color="green">Hoàn thành</Tag>;
+      case "Delivered": return <Tag color="cyan">Đã giao</Tag>;
+      case "Cancelled": return <Tag color="red">Đã hủy</Tag>;
+      default: return <Tag>{status || "Mới"}</Tag>;
     }
   };
 
@@ -220,12 +220,12 @@ function ProductionMethodContent() {
       render: (t: string) => <span className="font-semibold text-blue-600">{t}</span>,
     },
     { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
-    { title: "Sản phẩm",   dataIndex: "product_name",  key: "product_name"  },
+    { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
     {
       title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const,
       render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>,
     },
-  
+
     {
       title: "Trạng thái", dataIndex: "status", key: "status",
       render: (s: string) => getStatusTag(s),
@@ -235,13 +235,13 @@ function ProductionMethodContent() {
       render: (d: string) => d ? new Date(d).toLocaleDateString("vi-VN") : "N/A",
     },
     {
-      title: "Thao tác", key: "action", width: 180, align: "center" as const,
+      title: "Thao tác", key: "action", width: 200, align: "center" as const,
       render: (_: any, record: any) => (
         <button
           onClick={() => handleOpen(record.order_id || record._id)}
           className="px-3 py-1 text-sm font-medium border border-blue-800 text-blue-800 rounded hover:bg-blue-50 transition-colors"
         >
-          Chọn Phương Thức SX
+          Chọn phương thức SX
         </button>
       ),
     },
@@ -257,12 +257,12 @@ function ProductionMethodContent() {
 
   /* ── Material table columns ────────────────────────────────────────────────── */
   const materialCols = [
-    { title: "Mã VT",     dataIndex: "material_code", key: "material_code", width: 110 },
-    { title: "Tên vật tư",dataIndex: "material_name", key: "material_name"  },
-    { title: "ĐV",        dataIndex: "unit",           key: "unit", width: 60, align: "center" as const },
-    { title: "Yêu cầu",  dataIndex: "required_qty",   key: "required_qty",  align: "right" as const, render: (v: number) => <span className="font-semibold">{v?.toLocaleString("vi-VN")}</span> },
-    { title: "Hiện có",  dataIndex: "available_qty",  key: "available_qty", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
-    { title: "Còn thiếu",dataIndex: "missing_qty",    key: "missing_qty",   align: "right" as const, render: (v: number) => v > 0 ? <span className="text-red-500 font-bold">{v?.toLocaleString("vi-VN")}</span> : "-" },
+    { title: "Mã VT", dataIndex: "material_code", key: "material_code", width: 110 },
+    { title: "Tên vật tư", dataIndex: "material_name", key: "material_name" },
+    { title: "ĐV", dataIndex: "unit", key: "unit", width: 60, align: "center" as const },
+    { title: "Yêu cầu", dataIndex: "required_qty", key: "required_qty", align: "right" as const, render: (v: number) => <span className="font-semibold">{v?.toLocaleString("vi-VN")}</span> },
+    { title: "Hiện có", dataIndex: "available_qty", key: "available_qty", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
+    { title: "Còn thiếu", dataIndex: "missing_qty", key: "missing_qty", align: "right" as const, render: (v: number) => v > 0 ? <span className="text-red-500 font-bold">{v?.toLocaleString("vi-VN")}</span> : "-" },
     { title: "Tình trạng", key: "st", align: "center" as const, width: 120, render: (_: any, r: any) => r.is_enough ? <Tag color="success" className="mr-0">Đủ cấp</Tag> : <Tag color="error" className="mr-0">Chờ nhập kho</Tag> },
   ];
 
@@ -355,11 +355,10 @@ function ProductionMethodContent() {
               type="button"
               disabled={approveMutation.isPending || isOrderDisabled}
               onClick={() => approveMutation.mutate()}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${
-                !approveMutation.isPending && !isOrderDisabled
-                  ? "bg-blue-800 hover:bg-blue-900"
-                  : "bg-gray-400 cursor-not-allowed opacity-80"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${!approveMutation.isPending && !isOrderDisabled
+                ? "bg-blue-800 hover:bg-blue-900"
+                : "bg-gray-400 cursor-not-allowed opacity-80"
+                }`}
             >
               {approveMutation.isPending && <Spin size="small" />}
               Xác nhận phương thức {method}
@@ -400,15 +399,14 @@ function ProductionMethodContent() {
                   <div className="flex flex-col gap-3">
                     {/* NVL */}
                     <label
-                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        method === "NVL"
-                          ? "border-green-500 bg-green-50/70 shadow-sm"
-                          : gmRecommendedMethod === "NVL"
+                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${method === "NVL"
+                        ? "border-green-500 bg-green-50/70 shadow-sm"
+                        : gmRecommendedMethod === "NVL"
                           ? "border-amber-400 bg-amber-50/30 hover:border-green-400"
                           : canNvl
-                          ? "border-gray-200 hover:border-green-300"
-                          : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
-                      } ${gmRecommendedMethod === "NVL" ? "ring-2 ring-amber-400/20" : ""}`}
+                            ? "border-gray-200 hover:border-green-300"
+                            : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
+                        } ${gmRecommendedMethod === "NVL" ? "ring-2 ring-amber-400/20" : ""}`}
                     >
                       <Radio value="NVL" disabled={!canNvl} className="mt-0.5" />
                       <div>
@@ -429,15 +427,14 @@ function ProductionMethodContent() {
 
                     {/* SUB */}
                     <label
-                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        method === "SUB"
-                          ? "border-blue-500 bg-blue-50/70 shadow-sm"
-                          : gmRecommendedMethod === "SUB"
+                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${method === "SUB"
+                        ? "border-blue-500 bg-blue-50/70 shadow-sm"
+                        : gmRecommendedMethod === "SUB"
                           ? "border-amber-400 bg-amber-50/30 hover:border-blue-400"
                           : canSub
-                          ? "border-gray-200 hover:border-blue-300"
-                          : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
-                      } ${gmRecommendedMethod === "SUB" ? "ring-2 ring-amber-400/20" : ""}`}
+                            ? "border-gray-200 hover:border-blue-300"
+                            : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
+                        } ${gmRecommendedMethod === "SUB" ? "ring-2 ring-amber-400/20" : ""}`}
                     >
                       <Radio value="SUB" disabled={!canSub} className="mt-0.5" />
                       <div>
@@ -464,15 +461,14 @@ function ProductionMethodContent() {
 
                     {/* BOTH */}
                     <label
-                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        method === "BOTH"
-                          ? "border-purple-500 bg-purple-50/70 shadow-sm"
-                          : gmRecommendedMethod === "BOTH"
+                      className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${method === "BOTH"
+                        ? "border-purple-500 bg-purple-50/70 shadow-sm"
+                        : gmRecommendedMethod === "BOTH"
                           ? "border-amber-400 bg-amber-50/30 hover:border-purple-400"
                           : canBoth
-                          ? "border-gray-200 hover:border-purple-300"
-                          : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
-                      } ${gmRecommendedMethod === "BOTH" ? "ring-2 ring-amber-400/20" : ""}`}
+                            ? "border-gray-200 hover:border-purple-300"
+                            : "border-gray-100 bg-gray-50 opacity-40 pointer-events-none"
+                        } ${gmRecommendedMethod === "BOTH" ? "ring-2 ring-amber-400/20" : ""}`}
                     >
                       <Radio value="BOTH" disabled={!canBoth} className="mt-0.5" />
                       <div>
@@ -519,12 +515,12 @@ function ProductionMethodContent() {
                     showSearch
                     optionFilterProp="label"
                   />
-                  
+
                   {selectedSubProduct && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
-                        { label: "Loại sản phẩm",          value: selectedSubProduct.product_type_name },
-                        { label: "Số lượng hiện có",        value: (selectedSubProduct.quantity || 0).toLocaleString("vi-VN") },
+                        { label: "Loại sản phẩm", value: selectedSubProduct.product_type_name },
+                        { label: "Số lượng hiện có", value: (selectedSubProduct.quantity || 0).toLocaleString("vi-VN") },
                         { label: "Kích thước (Rộng × Dài)", value: `${selectedSubProduct.width} × ${selectedSubProduct.length} mm` },
                         { label: "Công đoạn đã hoàn thành", value: selectedSubProduct.product_process },
                       ].map((item) => (
@@ -582,9 +578,9 @@ function ProductionMethodContent() {
                   onChange={(e) => setMgrNote(e.target.value)}
                   disabled={isOrderDisabled}
                   placeholder={
-                    method === "NVL"  ? "Ví dụ: Duyệt sản xuất bằng NVL." :
-                    method === "SUB"  ? "Ví dụ: Duyệt dùng bán thành phẩm." :
-                                       "Ví dụ: Duyệt kết hợp sub_product và NVL."
+                    method === "NVL" ? "Ví dụ: Duyệt sản xuất bằng NVL." :
+                      method === "SUB" ? "Ví dụ: Duyệt dùng bán thành phẩm." :
+                        "Ví dụ: Duyệt kết hợp sub_product và NVL."
                   }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
