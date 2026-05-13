@@ -1,9 +1,11 @@
 "use client";
-
+import { productionsApi } from "@/apiRequests/productions";
+import { tasksApi } from "@/apiRequests/tasks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { getSignalRConnection } from "@/lib/signalr";
 import {
   BsArrowLeft,
   BsClock,
@@ -22,7 +24,6 @@ import {
   BsCollection,
 } from "react-icons/bs";
 import { BiPackage } from "react-icons/bi";
-
 /* =======================
    TYPES
 ======================= */
@@ -33,7 +34,6 @@ export interface GroupInputMaterial {
   estimated_qty: number;
   actual_qty: number;
 }
-
 export interface GroupOutput {
   code: string;
   name: string;
@@ -41,19 +41,16 @@ export interface GroupOutput {
   estimated_qty: number;
   actual_qty: number;
 }
-
 export interface GroupAllocation {
   order_id: number;
   order_code: string;
   qty: number;
 }
-
 export interface GroupLog {
   scanned_at?: string;
   qty_good: number;
   qty_bad?: number;
 }
-
 export interface GroupStage {
   task_id: number;
   seq_num: number;
@@ -69,7 +66,6 @@ export interface GroupStage {
   logs: GroupLog[];
   allocations: GroupAllocation[];
 }
-
 export interface GroupOrder {
   order_id: number;
   order_code: string;
@@ -77,7 +73,6 @@ export interface GroupOrder {
   qty: number;
   status: string;
 }
-
 export interface GroupProductionResponse {
   prod_id: number;
   code: string;
@@ -89,7 +84,6 @@ export interface GroupProductionResponse {
   orders: GroupOrder[];
   stages: GroupStage[];
 }
-
 /* =======================
    STATUS MAPS
 ======================= */
@@ -122,7 +116,6 @@ const STATUS_MAP: Record<
     border: "border-gray-200",
   },
 };
-
 const GROUP_STATUS_MAP: Record<
   string,
   { label: string; color: string; bg: string }
@@ -132,13 +125,11 @@ const GROUP_STATUS_MAP: Record<
   Finished: { label: "Hoàn thành", color: "text-green-700", bg: "bg-green-100" },
   Unassigned: { label: "Chưa phân công", color: "text-gray-600", bg: "bg-gray-100" },
 };
-
 const ORDER_STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   Scheduled: { label: "Đã lên lịch", color: "text-blue-700", bg: "bg-blue-100" },
   InProcessing: { label: "Đang sản xuất", color: "text-yellow-700", bg: "bg-yellow-100" },
   Finished: { label: "Hoàn thành", color: "text-green-700", bg: "bg-green-100" },
 };
-
 /* =======================
    HELPERS
 ======================= */
@@ -152,12 +143,10 @@ function formatDateTime(dateStr?: string | null) {
     minute: "2-digit",
   });
 }
-
 function fmtNum(val: number | null | undefined) {
   if (val == null) return "—";
   return val.toLocaleString("vi-VN");
 }
-
 /* =======================
    QR MODAL
 ======================= */
@@ -174,20 +163,17 @@ function QrModal({
   const [manualToken, setManualToken] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const hasScannedRef = useRef(false);
-
   const focusInput = useCallback(() => {
     if (!hasScannedRef.current && !showManualInput && inputRef.current) {
       inputRef.current.focus();
     }
   }, [showManualInput]);
-
   useEffect(() => {
     hasScannedRef.current = false;
     focusInput();
     const interval = setInterval(focusInput, 500);
     return () => clearInterval(interval);
   }, [token, focusInput]);
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (hasScannedRef.current) return;
     if (e.key === "Enter") {
@@ -198,7 +184,6 @@ function QrModal({
       onConfirm(scannedVal);
     }
   };
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={focusInput}>
       {showManualInput && (
@@ -241,7 +226,6 @@ function QrModal({
     </div>
   );
 }
-
 /* =======================
    TIMELINE
 ======================= */
@@ -249,7 +233,6 @@ function GroupTimeline({ stages }: { stages: GroupStage[] }) {
   const sorted = [...stages].sort((a, b) => a.seq_num - b.seq_num);
   const finishedCount = sorted.filter((s) => s.status === "Finished").length;
   const progressPercent = sorted.length > 0 ? (finishedCount / sorted.length) * 100 : 0;
-
   return (
     <div className="relative">
       <div className="absolute top-5 left-0 right-0 h-1.5 bg-gray-200 rounded-full" />
@@ -287,7 +270,6 @@ function GroupTimeline({ stages }: { stages: GroupStage[] }) {
     </div>
   );
 }
-
 /* =======================
    INFO CARD
 ======================= */
@@ -317,7 +299,6 @@ function InfoCard({
     </div>
   );
 }
-
 /* =======================
    STAGE CARD (shared between finished/unfinished)
 ======================= */
@@ -346,7 +327,6 @@ function StageCard({
   const isStageReached = allStages
     .filter((s) => s.seq_num < stage.seq_num)
     .every((s) => s.status === "Finished");
-
   return (
     <div className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}>
       {/* Header */}
@@ -378,7 +358,6 @@ function StageCard({
             </div>
           </div>
         </div>
-
         <div className="flex items-center gap-4">
           {/* Quick stats */}
           <div className="hidden sm:flex items-center gap-3 text-sm">
@@ -396,7 +375,6 @@ function StageCard({
           {isCollapsed ? <BsChevronDown className="w-5 h-5 text-gray-400" /> : <BsChevronUp className="w-5 h-5 text-gray-400" />}
         </div>
       </div>
-
       {/* Body */}
       {!isCollapsed && (
         <div className="p-5 space-y-5">
@@ -417,7 +395,6 @@ function StageCard({
               </div>
             </div>
           </div>
-
           {/* Materials I/O */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Input */}
@@ -455,7 +432,6 @@ function StageCard({
                 </table>
               </div>
             </div>
-
             {/* Output */}
             <div className="flex flex-col">
               <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
@@ -487,7 +463,6 @@ function StageCard({
               </div>
             </div>
           </div>
-
           {/* Allocations */}
           {stage.allocations && stage.allocations.length > 0 && (
             <div>
@@ -515,7 +490,6 @@ function StageCard({
               </div>
             </div>
           )}
-
           {/* Scan Logs */}
           {stage.logs && stage.logs.length > 0 && (
             <div>
@@ -543,7 +517,6 @@ function StageCard({
               </div>
             </div>
           )}
-
           {/* Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 pt-4 border-t border-gray-100">
             {stage.status === "Unassigned" && (
@@ -591,7 +564,6 @@ function StageCard({
     </div>
   );
 }
-
 /* =======================
    PAGE
 ======================= */
@@ -599,7 +571,6 @@ export default function GroupProductionPage() {
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-
   const [collapsedStages, setCollapsedStages] = useState<Record<number, boolean>>({});
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
@@ -612,15 +583,12 @@ export default function GroupProductionPage() {
     type: "success",
     message: "",
   });
-
   // Global barcode scanner
   const handleQrScannedRef = useRef<((token: string) => void) | null>(null);
-
   useEffect(() => {
     let buffer = "";
     let lastKeyTime = 0;
     let scanTimer: NodeJS.Timeout | null = null;
-
     const finishScan = () => {
       const value = buffer.trim();
       if (value.length >= 6 && handleQrScannedRef.current) {
@@ -628,7 +596,6 @@ export default function GroupProductionPage() {
       }
       buffer = "";
     };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = document.activeElement?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -640,85 +607,42 @@ export default function GroupProductionPage() {
       if (scanTimer) clearTimeout(scanTimer);
       scanTimer = setTimeout(() => finishScan(), 300);
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => { window.removeEventListener("keydown", handleKeyDown); if (scanTimer) clearTimeout(scanTimer); };
   }, []);
-
   const toggleStage = (taskId: number) => {
     setCollapsedStages((prev) => ({ [taskId]: !(prev[taskId] ?? true) }));
   };
-
-  // NOTE: Replace with your actual API call
   const { data: production, isLoading } = useQuery<GroupProductionResponse>({
     queryKey: ["group-production-detail", id],
     queryFn: async () => {
-      // Replace with: return groupProductionsApi.getGroupProductionById(id!.toString());
-      // Using mock data for now
-      return {
-        prod_id: 56,
-        code: "GRP-20260513113219",
-        status: "Unassigned",
-        product_type_id: 1,
-        product_type_name: "Hộp màu",
-        total_qty: 5000,
-        process_codes: "PHU,CAN,BE",
-        orders: [
-          { order_id: 67, order_code: "ORD-00067", single_prod_id: 53, qty: 3000, status: "Scheduled" },
-          { order_id: 61, order_code: "ORD-00061", single_prod_id: 40, qty: 2000, status: "Scheduled" },
-        ],
-        stages: [
-          {
-            task_id: 363, seq_num: 1, process_code: "PHU", process_name: "Phủ",
-            status: "Unassigned", start_time: null, end_time: null,
-            estimated_output_qty: 5000, actual_output_qty: 0,
-            input_materials: [
-              { code: "PREV", name: "Bán thành phẩm từ các order ghép", unit: "tờ", estimated_qty: 5000, actual_qty: 0 },
-              { code: "COATING", name: "Keo/phủ nhập tay", unit: "kg", estimated_qty: 0, actual_qty: 0 },
-            ],
-            outputs: [{ code: "PHU", name: "BTP sau phủ", unit: "tờ", estimated_qty: 5000, actual_qty: 0 }],
-            logs: [], allocations: [],
-          },
-          {
-            task_id: 364, seq_num: 2, process_code: "CAN", process_name: "Cán",
-            status: "Unassigned", start_time: null, end_time: null,
-            estimated_output_qty: 5000, actual_output_qty: 0,
-            input_materials: [
-              { code: "PREV", name: "BTP sau phủ", unit: "tờ", estimated_qty: 5000, actual_qty: 0 },
-              { code: "LAMINATION", name: "Màng cán nhập tay", unit: "kg", estimated_qty: 0, actual_qty: 0 },
-            ],
-            outputs: [{ code: "CAN", name: "BTP sau cán", unit: "tờ", estimated_qty: 5000, actual_qty: 0 }],
-            logs: [], allocations: [],
-          },
-          {
-            task_id: 365, seq_num: 3, process_code: "BE", process_name: "Bế",
-            status: "Unassigned", start_time: null, end_time: null,
-            estimated_output_qty: 5000, actual_output_qty: 0,
-            input_materials: [
-              { code: "PREV", name: "BTP sau cán", unit: "sp", estimated_qty: 5000, actual_qty: 0 },
-            ],
-            outputs: [{ code: "BE", name: "BTP sau bế", unit: "sp", estimated_qty: 5000, actual_qty: 0 }],
-            logs: [], allocations: [],
-          },
-        ],
-      } as GroupProductionResponse;
+      return productionsApi.getGroupProductionDetail(Number(id));
     },
     enabled: !!id,
   });
-
+  // SignalR
+  useEffect(() => {
+    let conn: any;
+    const init = async () => {
+      conn = await getSignalRConnection();
+      const handler = () => {
+        queryClient.invalidateQueries({ queryKey: ["group-production-detail", id] });
+      };
+      conn.on("update-ui", handler);
+      return () => { if (conn) conn.off("update-ui", handler); };
+    };
+    init();
+  }, [queryClient, id]);
   const sortedStages = useMemo(() => production?.stages?.slice().sort((a, b) => a.seq_num - b.seq_num), [production]);
-
   const finishedStages = sortedStages?.filter((s) => s.status === "Finished").length ?? 0;
   const totalStages = sortedStages?.length ?? 0;
   const overallProgress = totalStages > 0 ? Math.round((finishedStages / totalStages) * 100) : 0;
-
   const groupStatus = GROUP_STATUS_MAP[production?.status ?? ""] ?? { label: production?.status, color: "text-gray-700", bg: "bg-gray-100" };
-
   /* ===== HANDLERS ===== */
   const handleStartProduction = async (taskId: number) => {
     try {
       setReadyLoading(taskId);
-      // await tasksApi.readyTask({ task_id: taskId });
+      await tasksApi.readyTask({ task_id: taskId });
       setPopup({ open: true, type: "success", message: "Đã bắt đầu sản xuất công đoạn này" });
       setTimeout(async () => {
         setPopup((p) => ({ ...p, open: false }));
@@ -730,24 +654,21 @@ export default function GroupProductionPage() {
       setReadyLoading(null);
     }
   };
-
   const handleReportQr = async (stage: GroupStage) => {
     try {
       setQrLoading(true);
-      // const data = await tasksApi.createQRByStageId({ task_id: stage.task_id, ttl_minutes: 30, qty_good: stage.estimated_output_qty, materials: [] });
-      // setQrToken(data?.token ?? data?.data?.token);
-      setQrToken("MOCK_QR_TOKEN_" + stage.task_id); // Replace with real token
+      const data = await tasksApi.createQRByStageId({ task_id: stage.task_id, ttl_minutes: 30, qty_good: stage.estimated_output_qty, materials: [] });
+      setQrToken((data as any)?.token ?? (data as any)?.data?.token);
     } catch (err: any) {
       setPopup({ open: true, type: "error", message: err.message || "Lỗi khi tạo QR" });
     } finally {
       setQrLoading(false);
     }
   };
-
   const handleQrScanned = async (scannedToken: string) => {
     try {
       setQrLoading(true);
-      // await tasksApi.finishTask({ token: scannedToken });
+      await tasksApi.finishTask({ token: scannedToken });
       setQrToken(null);
       setPopup({ open: true, type: "success", message: "Hoàn thành công đoạn thành công 🎉" });
       setTimeout(async () => {
@@ -760,7 +681,6 @@ export default function GroupProductionPage() {
       setQrLoading(false);
     }
   };
-
   const handleCancelFinish = async () => {
     if (!cancelStage) return;
     if (!cancelReason.trim()) {
@@ -769,7 +689,7 @@ export default function GroupProductionPage() {
     }
     try {
       setCancelLoading(true);
-      // await tasksApi.cancelFinish(cancelStage.task_id, { reason: cancelReason });
+      await tasksApi.cancelFinish(cancelStage.task_id, { reason: cancelReason });
       setCancelStage(null);
       setCancelReason("");
       setPopup({ open: true, type: "success", message: "Hoàn tác báo cáo thành công" });
@@ -783,11 +703,9 @@ export default function GroupProductionPage() {
       setCancelLoading(false);
     }
   };
-
   useEffect(() => {
     handleQrScannedRef.current = handleQrScanned;
   });
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -798,7 +716,6 @@ export default function GroupProductionPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* BACK */}
@@ -808,7 +725,6 @@ export default function GroupProductionPage() {
       >
         <BsArrowLeft className="w-4 h-4" /> Quay lại danh sách
       </button>
-
       {/* =================== HEADER =================== */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -836,7 +752,6 @@ export default function GroupProductionPage() {
           </div>
         </div>
       </div>
-
       {/* =================== INFO CARDS =================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <InfoCard
@@ -857,7 +772,6 @@ export default function GroupProductionPage() {
           subValue={`${overallProgress}% tiến độ`}
         />
       </div>
-
       {/* =================== ORDERS TABLE =================== */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
@@ -892,7 +806,6 @@ export default function GroupProductionPage() {
           </table>
         </div>
       </div>
-
       {/* =================== OVERALL PROGRESS =================== */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -911,7 +824,6 @@ export default function GroupProductionPage() {
           />
         </div>
       </div>
-
       {/* =================== TIMELINE =================== */}
       {sortedStages && sortedStages.length > 0 && (
         <div className="sticky top-0 z-40 bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-md overflow-x-auto">
@@ -923,12 +835,10 @@ export default function GroupProductionPage() {
           </div>
         </div>
       )}
-
       {/* =================== STAGES =================== */}
       <h2 className="font-semibold flex items-center gap-2 text-gray-800 text-lg mb-4">
         <BsGear className="w-5 h-5 text-blue-600" /> Chi tiết từng công đoạn
       </h2>
-
       <div className="flex flex-col gap-6">
         {/* Chưa hoàn thành */}
         <div className="space-y-4">
@@ -939,13 +849,11 @@ export default function GroupProductionPage() {
               {sortedStages?.filter((s) => s.status !== "Finished").length ?? 0}
             </span>
           </div>
-
           {sortedStages?.filter((s) => s.status !== "Finished").length === 0 && (
             <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">
               Tất cả công đoạn đã hoàn thành 🎉
             </div>
           )}
-
           {sortedStages?.filter((s) => s.status !== "Finished").map((stage) => (
             <StageCard
               key={stage.task_id}
@@ -961,7 +869,6 @@ export default function GroupProductionPage() {
             />
           ))}
         </div>
-
         {/* Đã hoàn thành */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-50 border border-green-200">
@@ -971,13 +878,11 @@ export default function GroupProductionPage() {
               {sortedStages?.filter((s) => s.status === "Finished").length ?? 0}
             </span>
           </div>
-
           {sortedStages?.filter((s) => s.status === "Finished").length === 0 && (
             <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">
               Chưa có công đoạn hoàn thành
             </div>
           )}
-
           {sortedStages?.filter((s) => s.status === "Finished").map((stage) => (
             <StageCard
               key={stage.task_id}
@@ -994,9 +899,7 @@ export default function GroupProductionPage() {
           ))}
         </div>
       </div>
-
       {/* =================== MODALS =================== */}
-
       {/* QR Modal */}
       {qrToken && (
         <QrModal
@@ -1005,7 +908,6 @@ export default function GroupProductionPage() {
           onConfirm={(manualToken) => handleQrScanned(manualToken ?? qrToken)}
         />
       )}
-
       {/* Popup */}
       {popup.open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
@@ -1020,7 +922,6 @@ export default function GroupProductionPage() {
           </div>
         </div>
       )}
-
       {/* Cancel Finish Modal */}
       {cancelStage && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
