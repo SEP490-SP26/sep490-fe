@@ -209,6 +209,12 @@ export default function OrderListPage() {
       completed: "bg-green-100 text-green-800",
       cancelled: "bg-red-100 text-red-800",
       delivered: "bg-teal-100 text-teal-800",
+      Scheduled: "bg-blue-100 text-blue-800",
+      InProcessing: "bg-purple-100 text-purple-800",
+      Finished: "bg-green-100 text-green-800",
+      Cancelled: "bg-red-100 text-red-800",
+      Delivered: "bg-teal-100 text-teal-800",
+      LayoutPending: "bg-amber-100 text-amber-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };
@@ -220,6 +226,7 @@ export default function OrderListPage() {
       Finished: "Hoàn thành",
       Cancelled: "Đã hủy",
       Delivered: "Đã giao",
+      LayoutPending: "Chờ duyệt layout",
     };
     return labels[status] || status;
   };
@@ -338,6 +345,7 @@ export default function OrderListPage() {
                     >
                       <option value="all">Tất cả trạng thái</option>
                       {/* <option value="Pending">Chờ xử lý</option> */}
+                      <option value="LayoutPending">Chờ duyệt layout</option>
                       <option value="Scheduled">Đã lên lịch</option>
                       <option value="InProcessing">Đang sản xuất</option>
                       <option value="Finished">Hoàn thành</option>

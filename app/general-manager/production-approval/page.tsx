@@ -22,6 +22,11 @@ function ProductionApprovalContent() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [gmNote, setGmNote] = useState("");
   const [activeTab, setActiveTab] = useState("1");
+  const [selectedMethod, setSelectedMethod] = useState<"NVL" | "SUB" | "BOTH" | null>(null);
+
+  const handleSelectMethod = (method: "NVL" | "SUB" | "BOTH") => {
+    setSelectedMethod(method);
+  };
 
   // ── Danh sách đơn hàng ──────────────────────────────────────────────────────
   const { data: apiData, isLoading, refetch } = useQuery({
@@ -54,10 +59,19 @@ function ProductionApprovalContent() {
 
   // ── PUT start-ready: GM trình duyệt ─────────────────────────────────────────
   const approveMutation = useMutation({
-    mutationFn: async ({ orderId, note }: { orderId: number; note: string }) =>
+    mutationFn: async ({
+      orderId,
+      note,
+      productionMethod,
+    }: {
+      orderId: number;
+      note: string;
+      productionMethod: string | null;
+    }) =>
       productionsApi.updateProduction(orderId, {
         is_production_ready: true,
         gm_note: note,
+        production_method: productionMethod,
       }),
     onSuccess: (_, { orderId }) => {
       // Phân biệt kết quả dựa vào statusData tại thời điểm gửi
@@ -89,6 +103,7 @@ function ProductionApprovalContent() {
   const handleOpen = (orderId: number) => {
     setSelectedOrderId(orderId);
     setGmNote("");
+    setSelectedMethod(null);
     setActiveTab("1");
     setIsModalVisible(true);
   };
@@ -97,6 +112,7 @@ function ProductionApprovalContent() {
     setIsModalVisible(false);
     setSelectedOrderId(null);
     setGmNote("");
+    setSelectedMethod(null);
   };
 
   // Phân tích options khả dụng
@@ -166,14 +182,50 @@ function ProductionApprovalContent() {
   }, [searchParams]);
 
   /* ── Option badges ─────────────────────────────────────────────────────────── */
-  const OptionBadge = ({ active, label, desc }: { active: boolean; label: string; desc: string }) => (
-    <div className={`flex items-start gap-3 p-3 rounded-lg border ${active ? "border-green-400 bg-green-50" : "border-gray-200 bg-gray-50 opacity-50"}`}>
-      <span className={`mt-0.5 text-lg ${active ? "text-green-600" : "text-gray-400"}`}>
-        {active ? <CheckCircleOutlined /> : <InfoCircleOutlined />}
+  const OptionBadge = ({
+    available,
+    selected,
+    label,
+    desc,
+    onClick,
+  }: {
+    available: boolean;
+    selected: boolean;
+    label: string;
+    desc: string;
+    onClick?: () => void;
+  }) => (
+    <div
+      onClick={available ? onClick : undefined}
+      className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 ${
+        available
+          ? selected
+            ? "border-amber-500 bg-amber-50/70 ring-2 ring-amber-400/30 cursor-pointer scale-[1.01] shadow-sm"
+            : "border-gray-200 bg-white hover:border-amber-400 hover:bg-amber-50/10 cursor-pointer"
+          : "border-gray-150 bg-gray-50 opacity-45 cursor-not-allowed"
+      }`}
+    >
+      <span
+        className={`mt-0.5 text-lg transition-colors ${
+          available ? (selected ? "text-amber-600 font-bold" : "text-gray-400") : "text-gray-300"
+        }`}
+      >
+        {selected ? <CheckCircleOutlined /> : <InfoCircleOutlined />}
       </span>
-      <div>
-        <div className={`font-bold ${active ? "text-green-700" : "text-gray-500"}`}>{label}</div>
-        <div className="text-sm text-gray-600 mt-0.5">{desc}</div>
+      <div className="flex-1">
+        <div
+          className={`font-bold transition-colors ${
+            available ? (selected ? "text-amber-800" : "text-gray-700") : "text-gray-400"
+          }`}
+        >
+          {label}
+        </div>
+        <div className="text-sm text-gray-500 mt-0.5">{desc}</div>
+        {available && selected && (
+          <span className="inline-block mt-2 text-xs font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
+            Đề xuất được chọn
+          </span>
+        )}
       </div>
     </div>
   );
@@ -266,7 +318,11 @@ function ProductionApprovalContent() {
               disabled={!anyOption || approveMutation.isPending}
               onClick={() =>
                 selectedOrderId &&
-                approveMutation.mutate({ orderId: selectedOrderId, note: gmNote })
+                approveMutation.mutate({
+                  orderId: selectedOrderId,
+                  note: gmNote,
+                  productionMethod: selectedMethod,
+                })
               }
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${
                 anyOption && !approveMutation.isPending
@@ -298,19 +354,25 @@ function ProductionApprovalContent() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <OptionBadge
-                    active={canNvl}
+                    available={canNvl}
+                    selected={selectedMethod === "NVL"}
                     label="NVL – Sản xuất từ đầu"
                     desc={`Sản xuất sản phẩm từ nguyên vật liệu.`}
+                    onClick={() => handleSelectMethod("NVL")}
                   />
                   <OptionBadge
-                    active={canSub}
+                    available={canSub}
+                    selected={selectedMethod === "SUB"}
                     label="SUB – Dùng bán thành phẩm"
                     desc={`Dùng bán thành phẩm có sẵn.`}
+                    onClick={() => handleSelectMethod("SUB")}
                   />
                   <OptionBadge
-                    active={canBoth}
+                    available={canBoth}
+                    selected={selectedMethod === "BOTH"}
                     label="BOTH – Kết hợp SUB + NVL"
                     desc="Dùng bán thành phẩm trước, sản xuất thêm phần còn thiếu."
+                    onClick={() => handleSelectMethod("BOTH")}
                   />
                 </div>
 
