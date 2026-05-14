@@ -90,6 +90,9 @@ export interface ProductionReadiness {
   // Ghi chú quản lý
   gm_note: string | null;
   mgr_note: string | null;
+  production_method?: string | null;
+  gm_proposed_method?: string | null;
+  proposed_production_method?: string | null;
 
   // Danh sách chi tiết
   materials: MaterialCheck[];
@@ -121,9 +124,10 @@ export const productionsApi = {
   startReady: (orderId: number) =>
     http.get<ProductionReadiness>(`/api/Productions/start-ready/${orderId}`),
 
-  /** PUT /api/Productions/start-ready/{orderId} — GM xác nhận đưa vào sản xuất (kèm gm_note) */
-  updateProduction: (orderId: number, body: { is_production_ready: boolean; gm_note?: string }) =>
+  /** PUT /api/Productions/start-ready/{orderId} — GM xác nhận đưa vào sản xuất (kèm gm_note & production_method) */
+  updateProduction: (orderId: number, body: { is_production_ready: boolean; gm_note?: string;  gm_proposed_method: ProductionMethod;   proposed_production_method: ProductionMethod }) =>
     http.put(`/api/Productions/start-ready/${orderId}`, body),
+  //thêm 
 
   generateImportReceive: (body: { order_id: number }) =>
     http.post(`/api/Productions/generate-import-receive`, body),
