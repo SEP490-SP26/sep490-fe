@@ -49,9 +49,9 @@ function ProcessingStages({ orderId }: { orderId: number }) {
     );
   }
 
-  const sortedStages = [...detail.stages].sort(
-    (a: any, b: any) => a.seq_num - b.seq_num
-  );
+  const sortedStages = [...detail.stages]
+    .filter((s: any) => s.status !== "GroupedWaiting")
+    .sort((a: any, b: any) => a.seq_num - b.seq_num);
 
   const totalStages = sortedStages.length;
   const finishedCount = sortedStages.filter(
@@ -103,6 +103,81 @@ function ProcessingStages({ orderId }: { orderId: number }) {
         })}
       </div>
     </>
+  );
+}
+
+/* =======================
+   GroupProcessingStages Component
+======================= */
+function GroupProcessingStages({ prodId }: { prodId: number }) {
+  const { data: detail } = useQuery({
+    queryKey: ["group-production-detail", prodId.toString()],
+    queryFn: () => productionsApi.getGroupProductionDetail(prodId),
+    staleTime: 30_000,
+  });
+
+  if (!detail?.stages || detail.stages.length === 0) {
+    return (
+      <div className="flex flex-wrap gap-1.5 mb-4 mt-2">
+        <span className="text-xs text-gray-400">Đang tải công đoạn...</span>
+      </div>
+    );
+  }
+
+  const sortedStages = [...detail.stages].sort(
+    (a: any, b: any) => a.seq_num - b.seq_num
+  );
+
+  const totalStages = sortedStages.length;
+  const finishedCount = sortedStages.filter(
+    (s: any) => s.status === "Finished"
+  ).length;
+  const progressPercent =
+    totalStages > 0 ? Math.round((finishedCount / totalStages) * 100) : 0;
+  return (
+    <div className="mt-3">
+      {/* Progress bar */}
+      <div className="mb-4">
+        <div className="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Tiến độ chung</span>
+          <span className="font-medium text-gray-700">
+            {finishedCount}/{totalStages} công đoạn ({progressPercent}%)
+          </span>
+        </div>
+        <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stage badges */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {sortedStages.map((stage: any, index: number) => {
+          const isFinished = stage.status === "Finished";
+          const isActive =
+            stage.status === "Ready" || stage.status === "InProcessing";
+
+          return (
+            <span
+              key={stage.task_id ?? index}
+              className={`rounded-md px-2 py-0.5 text-xs border flex items-center gap-1 transition-all duration-300
+              ${
+                isFinished
+                  ? "bg-green-100 text-green-700 border-green-300"
+                  : isActive
+                  ? "bg-purple-100 text-purple-700 border-purple-300 animate-pulse"
+                  : "bg-gray-100 text-gray-500 border-gray-300"
+              }`}
+            >
+              {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
+              {stage.process_name}
+            </span>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -171,6 +246,7 @@ export default function ProdutionManager() {
 
   const [scheduledPage, setScheduledPage] = useState(1);
   const [processingPage, setProcessingPage] = useState(1);
+  const [processingGroupedPage, setProcessingGroupedPage] = useState(1);
   const [groupedPage, setGroupedPage] = useState(1);
 
   /* ================== SEARCH FILTER ================== */
@@ -278,23 +354,20 @@ export default function ProdutionManager() {
       return b.progress_percent - a.progress_percent;
     });
 
-  const processingList = [
-    ...filteredOrders
-      .filter((o: any) => o.production_status === "InProcessing")
-      .sort((a: any, b: any) => {
-        if (sortType === "newest") {
-          return b.order_id - a.order_id;
-        }
-        if (sortType === "delivery") {
-          return (
-            new Date(a.delivery_date).getTime() -
-            new Date(b.delivery_date).getTime()
-          );
-        }
-        return b.progress_percent - a.progress_percent;
-      }),
-    ...groupedProcessingList,
-  ];
+  const normalProcessingList = filteredOrders
+    .filter((o: any) => o.production_status === "InProcessing")
+    .sort((a: any, b: any) => {
+      if (sortType === "newest") {
+        return b.order_id - a.order_id;
+      }
+      if (sortType === "delivery") {
+        return (
+          new Date(a.delivery_date).getTime() -
+          new Date(b.delivery_date).getTime()
+        );
+      }
+      return b.progress_percent - a.progress_percent;
+    });
 
   /* ================== PAGINATION DATA ================== */
 
@@ -302,8 +375,12 @@ export default function ProdutionManager() {
     scheduledList.length / ITEMS_PER_PAGE
   );
 
-  const processingTotalPages = Math.ceil(
-    processingList.length / ITEMS_PER_PAGE
+  const normalProcessingTotalPages = Math.ceil(
+    normalProcessingList.length / ITEMS_PER_PAGE
+  );
+
+  const groupedProcessingTotalPages = Math.ceil(
+    groupedProcessingList.length / ITEMS_PER_PAGE
   );
 
   const groupedTotalPages = Math.ceil(
@@ -315,9 +392,14 @@ export default function ProdutionManager() {
     scheduledPage * ITEMS_PER_PAGE
   );
 
-  const processingPageData = processingList.slice(
+  const normalProcessingPageData = normalProcessingList.slice(
     (processingPage - 1) * ITEMS_PER_PAGE,
     processingPage * ITEMS_PER_PAGE
+  );
+
+  const groupedProcessingPageData = groupedProcessingList.slice(
+    (processingGroupedPage - 1) * ITEMS_PER_PAGE,
+    processingGroupedPage * ITEMS_PER_PAGE
   );
 
   const groupedPageData = groupedList.slice(
@@ -454,7 +536,7 @@ export default function ProdutionManager() {
             }`}
         >
           <BsCalendar className="w-4 h-4" />
-          Đã lên lịch
+          Lệnh SX lẻ
           <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold
             ${activeTab === "scheduled" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>
             {scheduledList.length}
@@ -491,7 +573,7 @@ export default function ProdutionManager() {
           Đang sản xuất
           <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold
             ${activeTab === "processing" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-500"}`}>
-            {processingList.length}
+            {normalProcessingList.length + groupedProcessingList.length}
           </span>
         </button>
       </div>
@@ -504,7 +586,7 @@ export default function ProdutionManager() {
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
 
             {scheduledPageData.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-8">Không có đơn nào đã lên lịch.</p>
+              <p className="text-sm text-gray-400 text-center py-8">Không có lệnh sản xuất nào đã lên lịch.</p>
             )}
 
             {scheduledPageData.map((order: any) => (
@@ -519,7 +601,7 @@ export default function ProdutionManager() {
                     <p className="text-sm font-semibold text-gray-900 truncate">
                       Lệnh sản xuất:
                       <span className="text-blue-700 ml-1">
-                        {order.code}
+                        {order.prod_id}
                       </span>
                     </p>
 
@@ -559,7 +641,7 @@ export default function ProdutionManager() {
                       (startMutation.isPending &&
                       startMutation.variables === order.order_id)
                     }
-                    title={!order.is_production_ready ? "Đơn hàng chưa được duyệt sản xuất" : ""}
+                    title={!order.is_production_ready ? "Lệnh sản xuất chưa được duyệt" : ""}
                     className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
                       ${
                         !order.is_production_ready ||
@@ -609,101 +691,125 @@ export default function ProdutionManager() {
 
       {activeTab === "processing" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
-          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
-
-            {processingPageData.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-8">Không có đơn nào đang sản xuất.</p>
-            )}
-
-             {processingPageData.map((order: any, index: number) => {
-              const isGroupOrder = order.order_id === null;
-              return (
-              <div
-                key={`${isGroupOrder ? 'grp' : ''}${order.order_id ?? order.prod_id}-${index}`}
-                className={`rounded-xl border p-4 shadow-sm hover:shadow-md transition ${
-                  isGroupOrder
-                    ? "border-purple-200 bg-purple-50/30 hover:bg-purple-100"
-                    : "border-blue-200 bg-blue-50 hover:bg-blue-100"
-                }`}
-              >
-
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {isGroupOrder ? "Đơn ghép:" : "Lệnh sản xuất:"}
-                    <span className={`ml-1 ${isGroupOrder ? "text-purple-600" : "text-yellow-600"}`}>
-                      {order.code}
-                    </span>
-                    {isGroupOrder && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold border border-purple-200">Ghép</span>
-                    )}
-                  </p>
-
-                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                    SL: {isGroupOrder ? (order.group_total_qty ?? order.quantity) : order.quantity}
-                  </span>
-                </div>
-
-                {!isGroupOrder && order.delivery_date && (
-                  <p
-                    className={`text-xs mb-3 px-2 py-1 rounded-md inline-block border ${getDeliveryColor(
-                      order.delivery_date
-                    )}`}
-                  >
-                    Hạn hoàn thành:
-                    {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
-                  </p>
-                )}
-
-                {isGroupOrder && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {(order.group_process_codes || order.stages?.join(",") || "").split(",").filter(Boolean).map((code: string, i: number) => (
-                      <span key={i} className="rounded-md border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 font-medium">
-                        {code.trim()}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {!isGroupOrder && <ProcessingStages orderId={order.order_id} />}
-
-                <Link
-                  href={isGroupOrder
-                    ? `/productions-manager/production/group/${order.prod_id}`
-                    : `/productions-manager/production/${order.order_id}`
-                  }
-                  className={`flex items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2 text-sm font-medium transition ${
-                    isGroupOrder
-                      ? "border-purple-300 text-purple-700 hover:bg-purple-50"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <BsEye className="w-4 h-4" />
-                  Xem chi tiết
-                </Link>
-
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            
+            {/* Cột 1: Lệnh sản xuất bình thường */}
+            <div className="flex flex-col min-w-0">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-lg text-blue-700 flex items-center gap-2">
+                  <BsPlay className="w-5 h-5" />
+                  Lệnh sản xuất lẻ
+                </h3>
+                <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-bold">{normalProcessingList.length} lệnh</span>
               </div>
-            )})}
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 flex-1">
+                {normalProcessingPageData.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">Không có lệnh sản xuất lẻ nào.</p>
+                )}
+                {normalProcessingPageData.map((order: any, index: number) => {
+                  return (
+                    <div
+                      key={`${order.order_id ?? order.prod_id}-${index}`}
+                      className="rounded-xl border p-4 shadow-sm hover:shadow-md transition border-blue-200 bg-blue-50/50 hover:bg-blue-50"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          Lệnh sản xuất:
+                          <span className="ml-1 text-yellow-600">{order.code}</span>
+                        </p>
+                        <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                          SL: {order.quantity}
+                        </span>
+                      </div>
+                      {order.delivery_date && (
+                        <p className={`text-xs mb-3 px-2 py-1 rounded-md inline-block border ${getDeliveryColor(order.delivery_date)}`}>
+                          Hạn hoàn thành: {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                        </p>
+                      )}
+                      <ProcessingStages orderId={order.order_id} />
+                      <Link
+                        href={`/productions-manager/production/${order.order_id}`}
+                        className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+                      >
+                        <BsEye className="w-4 h-4" />
+                        Xem chi tiết
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+              {normalProcessingTotalPages > 0 && (
+                <div className="flex justify-center mt-4 gap-2 border-t pt-4">
+                  {Array.from({ length: normalProcessingTotalPages }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setProcessingPage(i + 1)}
+                      className={`px-3 py-1 rounded border text-sm ${processingPage === i + 1 ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Cột 2: Lệnh sản xuất ghép */}
+            <div className="flex flex-col min-w-0 border-t xl:border-t-0 xl:border-l border-gray-200 pt-6 xl:pt-0 xl:pl-8">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-lg text-purple-700 flex items-center gap-2">
+                  <BsLayers className="w-5 h-5" />
+                   Lệnh sản xuất ghép
+                </h3>
+                <span className="bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-bold">{groupedProcessingList.length} lệnh</span>
+              </div>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 flex-1">
+                {groupedProcessingPageData.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">Không có lệnh sản xuất ghép nào.</p>
+                )}
+                {groupedProcessingPageData.map((order: any, index: number) => {
+                  return (
+                    <div
+                      key={`grp-${order.prod_id}-${index}`}
+                      className="rounded-xl border p-4 shadow-sm hover:shadow-md transition border-purple-200 bg-purple-50/30 hover:bg-purple-100/50"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          Lệnh sx ghép:
+                          <span className="ml-1 text-purple-600">{order.prod_id}</span>
+                          <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold border border-purple-200">Ghép</span>
+                        </p>
+                        <span className="shrink-0 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+                          SL: {order.group_total_qty ?? order.quantity}
+                        </span>
+                      </div>
+                      <GroupProcessingStages prodId={order.prod_id} />
+                      <Link
+                        href={`/productions-manager/production/group/${order.prod_id}`}
+                        className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 transition"
+                      >
+                        <BsEye className="w-4 h-4" />
+                        Xem chi tiết
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+              {groupedProcessingTotalPages > 0 && (
+                <div className="flex justify-center mt-4 gap-2 border-t pt-4">
+                  {Array.from({ length: groupedProcessingTotalPages }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setProcessingGroupedPage(i + 1)}
+                      className={`px-3 py-1 rounded border text-sm ${processingGroupedPage === i + 1 ? "bg-purple-500 text-white" : "bg-white hover:bg-gray-100"}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
           </div>
-
-          <div className="flex justify-center mt-4 gap-2">
-            {Array.from({ length: processingTotalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setProcessingPage(i + 1)}
-                className={`px-3 py-1 rounded border text-sm
-                ${
-                  processingPage === i + 1
-                    ? "bg-yellow-500 text-white"
-                    : "bg-white hover:bg-gray-100"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
         </div>
       )}
 
@@ -713,7 +819,7 @@ export default function ProdutionManager() {
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
 
             {groupedPageData.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-8">Không có đơn ghép nào.</p>
+              <p className="text-sm text-gray-400 text-center py-8">Không có lệnh sản xuất ghép nào.</p>
             )}
 
             {groupedPageData.map((order: any, index: number) => (
@@ -724,9 +830,9 @@ export default function ProdutionManager() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
                     <p className="text-sm font-semibold text-gray-900 truncate">
-                      Đơn ghép:
+                      Lệnh SX ghép:
                       <span className="text-purple-700 ml-1">
-                        {order.code}
+                        {order.prod_id}
                       </span>
                     </p>
                     <span className="shrink-0 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
@@ -774,7 +880,7 @@ export default function ProdutionManager() {
                       try {
                         setIsManualLoading(true);
                         await productionsApi.startGroupProduction(order.prod_id);
-                        showSuccessToast(`Đã bắt đầu sản xuất đơn ghép ${order.code}`);
+                        showSuccessToast(`Đã bắt đầu sản xuất Lệnh SX ghép ${order.code}`);
                         queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
                       } catch (err: any) {
                         showErrorToast(err.message || "Không thể bắt đầu sản xuất");

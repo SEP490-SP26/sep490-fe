@@ -579,6 +579,7 @@ export default function ProductionDetailPage() {
   const sortedStages = useMemo(() => {
     return production?.stages
       ?.slice()
+      .filter((s) => s.status !== "GroupedWaiting")
       .sort((a, b) => a.seq_num - b.seq_num);
   }, [production]);
 
