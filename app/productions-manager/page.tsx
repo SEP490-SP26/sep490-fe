@@ -471,7 +471,7 @@ export default function ProdutionManager() {
             }`}
         >
           <BsLayers className="w-4 h-4" />
-          Đơn ghép
+          Lệnh SX ghép
           <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold
             ${activeTab === "grouped" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-500"}`}>
             {groupedList.length}
