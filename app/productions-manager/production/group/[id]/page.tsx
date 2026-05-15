@@ -48,8 +48,10 @@ export interface GroupAllocation {
 }
 export interface GroupLog {
   scanned_at?: string;
+  log_time?: string;
   qty_good: number;
   qty_bad?: number;
+  report_image_urls?: string[];
 }
 export interface GroupStage {
   task_id: number;
@@ -506,13 +508,27 @@ function StageCard({
                     <tr>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Thời gian</th>
                       <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Số lượng thành phẩm</th>
+                      <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">Hình ảnh</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stage.logs.map((log, i) => (
                       <tr key={i} className="border-t">
-                        <td className="px-3 py-2.5">{log.scanned_at ? formatDateTime(log.scanned_at) : formatDateTime(stage.end_time)}</td>
+                        <td className="px-3 py-2.5">{formatDateTime(log.log_time || log.scanned_at)}</td>
                         <td className="px-3 py-2.5 text-right text-green-600 font-bold">{log.qty_good}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          {log.report_image_urls && log.report_image_urls.length > 0 ? (
+                            <div className="flex justify-center gap-1 flex-wrap">
+                              {log.report_image_urls.map((url, idx) => (
+                                <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
+                                  <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
