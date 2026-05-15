@@ -1179,9 +1179,9 @@ function ConsultantForm() {
       );
 
       const rush_amount = rushResult.rushAmount;
-      const subtotalWithRush = partialEstimate.base_cost + rush_amount;
+      const subtotalWithRush = partialEstimate.base_cost + rush_amount + partialEstimate.design_cost + partialEstimate.total_process_cost;
       const discount_amount = subtotalWithRush * (discountPercent / 100);
-      const final_total_cost = subtotalWithRush - discount_amount + partialEstimate.design_cost + partialEstimate.total_process_cost;
+      const final_total_cost = subtotalWithRush - discount_amount;
 
       const savedEstimate = {
         ...partialEstimate,

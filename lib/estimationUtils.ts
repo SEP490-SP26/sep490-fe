@@ -900,15 +900,14 @@ export const calculateEstimateForSave = (input: CalculateInput) => {
     const plate_cost = plateResult.cost;
 
     const base_cost = material_cost + plate_cost;
-    const subtotal = base_cost + rush_amount;
-    const discount_amount = subtotal * (Math.max(0, Math.min(discount_percent, 100)) / 100);
-    const final_total_base = subtotal - discount_amount;
     const design_cost =
         override_design_cost !== undefined
             ? override_design_cost
             : (!is_send_design || !design_file_path ? default_design_cost : 0);
 
-    const final_total_cost = final_total_base + totalProcessCost + design_cost;
+    const subtotal = base_cost + rush_amount + totalProcessCost + design_cost;
+    const discount_amount = subtotal * (Math.max(0, Math.min(discount_percent, 100)) / 100);
+    const final_total_cost = subtotal - discount_amount;
 
     return {
         paper_code,

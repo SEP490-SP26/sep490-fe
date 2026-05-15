@@ -527,7 +527,7 @@ export default function RequestDetailPage() {
         footer={null}
         width={500}
         centered
-        destroyOnClose
+        destroyOnHidden={false}
       >
         {loadingQR ? (
           <div className="py-12 flex justify-center items-center">
