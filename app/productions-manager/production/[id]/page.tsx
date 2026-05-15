@@ -420,7 +420,7 @@ function ProductionTimeline({ stages }: { stages: ProductionStage[] }) {
                     : "bg-gray-100 text-gray-400"
                 }`}
               >
-                {STATUS_MAP[stage.status].label}
+                {STATUS_MAP[stage.status]?.label ?? stage.status ?? "—"}
               </span>
             </div>
           );
@@ -579,6 +579,7 @@ export default function ProductionDetailPage() {
   const sortedStages = useMemo(() => {
     return production?.stages
       ?.slice()
+      .filter((s) => s.status !== "GroupedWaiting")
       .sort((a, b) => a.seq_num - b.seq_num);
   }, [production]);
 
@@ -1046,7 +1047,12 @@ export default function ProductionDetailPage() {
 
         {sortedStages?.filter(s => s.status !== "Finished").map((stage, index) => {
           const isCollapsed = collapsedStages[stage.process_id] ?? true;
-          const statusInfo = STATUS_MAP[stage.status];
+          const statusInfo = STATUS_MAP[stage.status] ?? {
+            label: stage.status ?? "Không rõ",
+            color: "text-gray-500",
+            bg: "bg-gray-50",
+            border: "border-gray-200",
+          };
           
           const isStageReached = sortedStages
             .filter((s) => s.seq_num < stage.seq_num)
@@ -1368,7 +1374,12 @@ export default function ProductionDetailPage() {
           )}
           {sortedStages?.filter(s => s.status === "Finished").map((stage, index) => {
             const isCollapsed = collapsedStages[stage.process_id] ?? true;
-            const statusInfo = STATUS_MAP[stage.status];
+            const statusInfo = STATUS_MAP[stage.status] ?? {
+              label: stage.status ?? "Không rõ",
+              color: "text-gray-500",
+              bg: "bg-gray-50",
+              border: "border-gray-200",
+            };
             return (
               <div
                 key={stage.process_id}
