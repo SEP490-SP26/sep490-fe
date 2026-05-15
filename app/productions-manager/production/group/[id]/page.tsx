@@ -327,7 +327,7 @@ function StageCard({
 }) {
   const statusInfo = STATUS_MAP[stage.status];
   const isProductionActive = productionStatus === "InProcessing";
-  const isStageReached = isProductionActive && allStages
+  const isStageReached = allStages
     .filter((s) => s.seq_num < stage.seq_num)
     .every((s) => s.status === "Finished");
   return (
@@ -524,8 +524,8 @@ function StageCard({
           <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 pt-4 border-t border-gray-100">
             {stage.status === "Unassigned" && (
               <button
-                onClick={(e) => { e.stopPropagation(); if (isStageReached) onStartProduction(stage.task_id); }}
-                disabled={readyLoading === stage.task_id || !isStageReached}
+                onClick={(e) => { e.stopPropagation(); onStartProduction(stage.task_id); }}
+                disabled={readyLoading === stage.task_id}
                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${
                   isStageReached
                     ? "bg-indigo-600 hover:bg-indigo-700 text-white"

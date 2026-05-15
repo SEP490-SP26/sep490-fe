@@ -853,17 +853,6 @@ export default function ProductionDetailPage() {
                 {productionStatus.label}
               </span>
             </div>
-            <p className="text-sm text-gray-500">
-              Đơn hàng:{" "}
-              <span className="font-semibold text-gray-700">
-                {production?.order_code}
-              </span>
-              <span className="mx-2">•</span>
-              Khách hàng:{" "}
-              <span className="font-semibold text-gray-700">
-                {production?.customer_name}
-              </span>
-            </p>
           </div>
 
           {deliveryUrgency && (
@@ -879,16 +868,10 @@ export default function ProductionDetailPage() {
       </div>
 
       {/* =================== INFO CARDS =================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <InfoCard
-          icon={<BsBoxSeam className="w-5 h-5" />}
-          label="Sản phẩm"
-          value={production?.product_name ?? "—"}
-          subValue={`${production?.length_mm} × ${production?.width_mm} × ${production?.height_mm} mm`}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <InfoCard
           icon={<BiPackage className="w-5 h-5" />}
-          label="Số lượng đặt hàng"
+          label="Số lượng"
           value={production?.quantity?.toLocaleString("vi-VN") ?? "—"}
         />
         <InfoCard

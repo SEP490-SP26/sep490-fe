@@ -139,7 +139,7 @@ function GroupProcessingStages({ prodId }: { prodId: number }) {
       {/* Progress bar */}
       <div className="mb-4">
         <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Tiến độ chung</span>
+          <span>Tiến độ</span>
           <span className="font-medium text-gray-700">
             {finishedCount}/{totalStages} công đoạn ({progressPercent}%)
           </span>
@@ -274,13 +274,13 @@ export default function ProdutionManager() {
   /* ================== START PRODUCTION ================== */
 
   const startMutation = useMutation({
-    mutationFn: async (orderId: string) => {
+    mutationFn: async ({ orderId, prodId }: { orderId: string; prodId: string }) => {
       const res = await productionsApi.startProduction(orderId);
       if (res.success === false) throw new Error(res.message);
       return res;
     },
-    onSuccess: (_, orderId) => {
-      showSuccessToast(`Đã bắt đầu sản xuất ${orderId}`);
+    onSuccess: (_, variables) => {
+      showSuccessToast(`Lệnh sản xuất đã được bắt đầu ${variables.prodId}`);
       queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
     },
     onError: (err: any) => {
@@ -409,8 +409,8 @@ export default function ProdutionManager() {
 
   /* ================== HANDLERS ================== */
 
-  const handleStart = (orderId: string) => {
-    if (!startMutation.isPending) startMutation.mutate(orderId);
+  const handleStart = (orderId: string, prodId: string) => {
+    if (!startMutation.isPending) startMutation.mutate({ orderId, prodId });
   };
 
   const handleUpdateStage = (scheduleId: string, stage: string) => {
@@ -620,14 +620,25 @@ export default function ProdutionManager() {
                   </p>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {order.stages.map((stage: string, index: number) => (
-                      <span
-                        key={index}
-                        className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
-                      >
-                        {stage}
-                      </span>
-                    ))}
+                    {order.stage_statuses
+                      ? order.stage_statuses
+                          .filter((s: any) => s.status !== "GroupedWaiting")
+                          .map((stage: any, index: number) => (
+                            <span
+                              key={index}
+                              className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
+                            >
+                              {stage.process_name}
+                            </span>
+                          ))
+                      : order.stages.map((stage: string, index: number) => (
+                          <span
+                            key={index}
+                            className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
+                          >
+                            {stage}
+                          </span>
+                        ))}
                   </div>
 
                 </div>
@@ -635,18 +646,18 @@ export default function ProdutionManager() {
                 <div className="flex flex-col gap-2">
 
                   <button
-                    onClick={() => handleStart(order.order_id)}
+                    onClick={() => handleStart(order.order_id, order.prod_id)}
                     disabled={
                       !order.is_production_ready ||
                       (startMutation.isPending &&
-                      startMutation.variables === order.order_id)
+                      startMutation.variables?.orderId === order.order_id)
                     }
                     title={!order.is_production_ready ? "Lệnh sản xuất chưa được duyệt" : ""}
                     className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
                       ${
                         !order.is_production_ready ||
                         (startMutation.isPending &&
-                        startMutation.variables === order.order_id)
+                        startMutation.variables?.orderId === order.order_id)
                           ? "cursor-not-allowed bg-gray-300 text-gray-600"
                           : "bg-yellow-500 text-white hover:bg-yellow-600"
                       }`}
