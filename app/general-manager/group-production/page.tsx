@@ -4,7 +4,7 @@ import { GroupableOrder, groupProductionsApi } from "@/apiRequests/groupProducti
 import { productTypesApi } from "@/apiRequests/producttypes";
 import { InfoCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button, Card, DatePicker, Input, message, Select, Table, Tag, Typography } from "antd";
+import { Button, Card, DatePicker, Input, message, Select, Table, Tag, Typography, Modal, Descriptions, Divider } from "antd";
 import dayjs from "dayjs";
 import React, { useState, useMemo, useEffect } from "react";
 import { ProductTemplate } from "@/apiRequests/producttypes";
@@ -28,6 +28,7 @@ export default function GroupProductionPage() {
   const [note, setNote] = useState("");
   const [searchText, setSearchText] = useState("");
   const [sortBy, setSortBy] = useState<string>("newest");
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   const { data: productTypes } = useQuery({
     queryKey: ["product-types"],
@@ -125,6 +126,31 @@ export default function GroupProductionPage() {
     return result;
   }, [candidates, searchText, sortBy]);
 
+  const maxAllowedStartDate = useMemo(() => {
+    if (selectedOrders.length === 0) return null;
+    
+    const validDates = selectedOrders
+      .map(o => dayjs(o.delivery_date))
+      .filter(d => d.isValid());
+
+    if (validDates.length === 0) return null;
+
+    const nearest = validDates.reduce((min, current) => 
+      current.isBefore(min) ? current : min
+    );
+
+    return nearest.subtract(7, "day");
+  }, [selectedOrders]);
+
+  useEffect(() => {
+    if (plannedStartDate && maxAllowedStartDate) {
+      if (plannedStartDate.isAfter(maxAllowedStartDate, "day")) {
+        setPlannedStartDate(maxAllowedStartDate);
+        message.info("Ngày dự kiến bắt đầu đã được tự động điều chỉnh để đảm bảo cách ngày giao hàng gần nhất ít nhất 7 ngày.");
+      }
+    }
+  }, [maxAllowedStartDate, plannedStartDate]);
+
   const createMutation = useMutation({
     mutationFn: async () => {
       if (selectedOrders.length < 2) throw new Error("Phải chọn ít nhất 2 đơn hàng để ghép.");
@@ -154,6 +180,7 @@ export default function GroupProductionPage() {
       message.success("Đã tạo lệnh sản xuất ghép thành công!");
       setSelectedOrders([]);
       setNote("");
+      setIsReviewModalOpen(false);
       refetch();
     },
     onError: (error: any) => {
@@ -233,10 +260,10 @@ export default function GroupProductionPage() {
               options={ALLOWED_PROCESS_CODES}
               allowClear
             />
-            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+            {/* <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
               <InfoCircleOutlined />
               Lưu ý: Không hỗ trợ ghép RALO, CAT, IN.
-            </div>
+            </div> */}
           </div>
         </div>
       </Card>
@@ -311,6 +338,12 @@ export default function GroupProductionPage() {
               value={plannedStartDate}
               onChange={setPlannedStartDate}
               format="DD/MM/YYYY"
+              disabledDate={(current) => {
+                if (maxAllowedStartDate) {
+                  return current && current.isAfter(maxAllowedStartDate, "day");
+                }
+                return false;
+              }}
             />
           </div>
           <div>
@@ -332,7 +365,7 @@ export default function GroupProductionPage() {
             type="primary"
             size="large"
             icon={<PlayCircleOutlined />}
-            onClick={() => createMutation.mutate()}
+            onClick={() => setIsReviewModalOpen(true)}
             loading={createMutation.isPending}
             disabled={selectedOrders.length < 2 || !plannedStartDate || selectedProcessCodes.length === 0}
             className="bg-green-600 hover:bg-green-700 border-none px-8"
@@ -341,6 +374,59 @@ export default function GroupProductionPage() {
           </Button>
         </div>
       </Card>
+
+      <Modal
+        title={<Title level={4}>Xác nhận Tạo Lệnh Ghép</Title>}
+        open={isReviewModalOpen}
+        onOk={() => createMutation.mutate()}
+        onCancel={() => setIsReviewModalOpen(false)}
+        confirmLoading={createMutation.isPending}
+        okText="Xác nhận Tạo"
+        cancelText="Hủy"
+        width={800}
+        okButtonProps={{ className: "bg-green-600 hover:bg-green-700" }}
+      >
+        <div className="py-2">
+          <Descriptions title="Thông tin chung" bordered column={1} size="small">
+            <Descriptions.Item label="Sản phẩm">{productTypes?.find((pt: any) => pt.product_type_id === productTypeId)?.name || "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Ngày bắt đầu">{plannedStartDate?.format("DD/MM/YYYY")}</Descriptions.Item>
+            <Descriptions.Item label="Công đoạn ghép">
+              {selectedProcessCodes.map(code => (
+                <Tag key={code} color="blue">{code}</Tag>
+              ))}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ghi chú">{note || "(Không có)"}</Descriptions.Item>
+          </Descriptions>
+
+          <Divider>Danh sách đơn hàng ({selectedOrders.length})</Divider>
+          <Table
+            dataSource={selectedOrders}
+            pagination={false}
+            size="small"
+            rowKey="order_id"
+            columns={[
+              { title: "Mã đơn", dataIndex: "order_code", key: "order_code", render: (t) => <span className="font-semibold">{t}</span> },
+              { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name" },
+              { title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right", render: (v) => v?.toLocaleString("vi-VN") },
+              { title: "Ngày giao", dataIndex: "delivery_date", key: "delivery_date", render: (d) => d ? dayjs(d).format("DD/MM/YYYY") : "N/A" },
+            ]}
+          />
+          
+          <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <div className="text-blue-800 flex items-start gap-2">
+              <InfoCircleOutlined className="mt-1" />
+              <div>
+                <p className="font-semibold mb-1">Kiểm tra kỹ trước khi xác nhận:</p>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  <li>Lệnh ghép sẽ được tạo cho {selectedOrders.length} đơn hàng đã chọn.</li>
+                  <li>Các đơn hàng sẽ cùng trải qua các công đoạn: {selectedProcessCodes.join(", ")}.</li>
+                  <li>Ngày dự kiến bắt đầu sản xuất là {plannedStartDate?.format("DD/MM/YYYY")}.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

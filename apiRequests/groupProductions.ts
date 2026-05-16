@@ -65,6 +65,10 @@ export const groupProductionsApi = {
     confirmProduceOrder: (body: GroupProductions) =>
         http.post(`/api/GroupProductions`, body),
 
+    // GET /api/GroupProductions/suggestions?productTypeId=1
+    getSuggestions: (productTypeId: number) =>
+        http.get<GroupableOrderList>(`/api/GroupProductions/suggestions?productTypeId=${productTypeId}`),
+
     // POST /api/GroupProductions/{id}/start
     startGroupProduction: (id: number) =>
         http.post(`/api/GroupProductions/${id}/start`, {}),
