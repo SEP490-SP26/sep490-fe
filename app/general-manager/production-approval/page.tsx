@@ -253,6 +253,21 @@ function ProductionApprovalContent() {
   /* ── Render ────────────────────────────────────────────────────────────────── */
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
+      {/* Loading Overlay */}
+      {approveMutation.isPending && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center">
+            <Spin size="large" tip="Đang xử lý..." />
+            <div className="mt-4 text-gray-700 font-semibold animate-pulse">
+              Hệ thống đang xử lý lệnh sản xuất...
+            </div>
+            <div className="text-gray-400 text-sm mt-1">
+              Vui lòng không đóng trình duyệt
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h1 className="text-2xl font-bold text-gray-900">Duyệt lệnh sản xuất</h1>
