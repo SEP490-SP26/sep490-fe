@@ -54,9 +54,11 @@ export interface OutputProduct {
 }
 
 export interface ScanLog {
-  scanned_at: string;
+  scanned_at?: string;
+  log_time?: string;
   qty_good: number;
-  qty_bad: number;
+  qty_bad?: number;
+  report_image_urls?: string[];
 }
 
 export interface ProductionStage {
@@ -853,17 +855,6 @@ export default function ProductionDetailPage() {
                 {productionStatus.label}
               </span>
             </div>
-            <p className="text-sm text-gray-500">
-              Đơn hàng:{" "}
-              <span className="font-semibold text-gray-700">
-                {production?.order_code}
-              </span>
-              <span className="mx-2">•</span>
-              Khách hàng:{" "}
-              <span className="font-semibold text-gray-700">
-                {production?.customer_name}
-              </span>
-            </p>
           </div>
 
           {deliveryUrgency && (
@@ -879,16 +870,10 @@ export default function ProductionDetailPage() {
       </div>
 
       {/* =================== INFO CARDS =================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <InfoCard
-          icon={<BsBoxSeam className="w-5 h-5" />}
-          label="Sản phẩm"
-          value={production?.product_name ?? "—"}
-          subValue={`${production?.length_mm} × ${production?.width_mm} × ${production?.height_mm} mm`}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <InfoCard
           icon={<BiPackage className="w-5 h-5" />}
-          label="Số lượng đặt hàng"
+          label="Số lượng"
           value={production?.quantity?.toLocaleString("vi-VN") ?? "—"}
         />
         <InfoCard
@@ -1287,16 +1272,32 @@ export default function ProductionDetailPage() {
                               <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
                                 Số lượng thành phẩm
                               </th>
+                              <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
+                                Hình ảnh
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
                             {stage.logs.map((log, i) => (
                               <tr key={i} className="border-t">
                                 <td className="px-3 py-2.5">
-                                  {formatDateTime(stage.end_time)}
+                                  {formatDateTime(log.log_time || log.scanned_at)}
                                 </td>
                                 <td className="px-3 py-2.5 text-right text-green-600 font-bold">
                                   {log.qty_good}
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  {log.report_image_urls && log.report_image_urls.length > 0 ? (
+                                    <div className="flex justify-center gap-1 flex-wrap">
+                                      {log.report_image_urls.map((url, idx) => (
+                                        <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
+                                          <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">—</span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -1617,16 +1618,32 @@ export default function ProductionDetailPage() {
                                 <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
                                   Số lượng thành phẩm
                                 </th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
+                                  Hình ảnh
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               {stage.logs.map((log, i) => (
                                 <tr key={i} className="border-t">
                                   <td className="px-3 py-2.5">
-                                    {formatDateTime(stage.end_time)}
+                                    {formatDateTime(log.log_time || log.scanned_at)}
                                   </td>
                                   <td className="px-3 py-2.5 text-right text-green-600 font-bold">
                                     {log.qty_good}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center">
+                                    {log.report_image_urls && log.report_image_urls.length > 0 ? (
+                                      <div className="flex justify-center gap-1 flex-wrap">
+                                        {log.report_image_urls.map((url, idx) => (
+                                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
+                                            <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">—</span>
+                                    )}
                                   </td>
                                 </tr>
                               ))}
