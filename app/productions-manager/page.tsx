@@ -34,10 +34,10 @@ import { getSignalRConnection } from "@/lib/signalr";
    - Fetches detail API per order to get individual stage status
    - Shows progress bar + Finished/Ready/InProcessing/Unassigned per stage
 ======================= */
-function ProcessingStages({ orderId }: { orderId: number }) {
+function ProcessingStages({ prodId }: { prodId: number }) {
   const { data: detail } = useQuery({
-    queryKey: ["production-detail", orderId.toString()],
-    queryFn: () => productionsApi.getProdyctionByOrderId(orderId.toString()),
+    queryKey: ["production-detail", prodId.toString()],
+    queryFn: () => productionsApi.getProductionByProdId(prodId.toString()),
     staleTime: 30_000,
   });
 
@@ -308,7 +308,7 @@ export default function ProdutionManager() {
 
     const matchOrder =
       !searchOrderId ||
-      o.order_id.toString().includes(searchOrderId);
+      o.prod_id.toString().includes(searchOrderId);
 
     const matchDate =
       !deliveryDate ||
@@ -325,7 +325,7 @@ export default function ProdutionManager() {
 
     const matchSearch =
       !searchOrderId ||
-      (o.code && o.code.toLowerCase().includes(searchOrderId.toLowerCase()));
+      o.prod_id.toString().includes(searchOrderId);
 
     return matchSearch;
   });
@@ -342,7 +342,7 @@ export default function ProdutionManager() {
     .filter((o: any) => o.production_status === "Scheduled")
     .sort((a: any, b: any) => {
       if (sortType === "newest") {
-        return b.order_id - a.order_id;
+        return b.prod_id - a.prod_id;
       }
       if (sortType === "delivery") {
         return (
@@ -358,7 +358,7 @@ export default function ProdutionManager() {
     .filter((o: any) => o.production_status === "InProcessing")
     .sort((a: any, b: any) => {
       if (sortType === "newest") {
-        return b.order_id - a.order_id;
+        return b.prod_id - a.prod_id;
       }
       if (sortType === "delivery") {
         return (
@@ -479,12 +479,12 @@ export default function ProdutionManager() {
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex flex-wrap gap-3 items-end">
 
         <div>
-          <label className="text-xs text-gray-500">Tìm Order ID</label>
+          <label className="text-xs text-gray-500">Tìm theo lệnh sản xuất</label>
           <input
             type="text"
             value={searchOrderId}
             onChange={(e) => setSearchOrderId(e.target.value)}
-            placeholder="Nhập order id..."
+            placeholder="Nhập lệnh sản xuất..."
             className="block border rounded-lg px-3 py-2 text-sm w-[180px]"
           />
         </div>
@@ -610,14 +610,14 @@ export default function ProdutionManager() {
                     </span>
                   </div>
 
-                  <p
+                  {/* <p
                     className={`text-xs mb-3 px-2 py-1 rounded-md inline-block border ${getDeliveryColor(
                       order.delivery_date
                     )}`}
                   >
                     Ngày giao:
                     {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
-                  </p>
+                  </p> */}
 
                   <div className="flex flex-wrap gap-1.5">
                     {order.stage_statuses
@@ -667,7 +667,7 @@ export default function ProdutionManager() {
                   </button>
 
                   <Link
-                    href={`/productions-manager/production/${order.order_id}`}
+                    href={`/productions-manager/production/${order.prod_id}`}
                     className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
                   >
                     <BsEye className="h-3.5 w-3.5" />
@@ -737,9 +737,9 @@ export default function ProdutionManager() {
                           Hạn hoàn thành: {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
                         </p>
                       )}
-                      <ProcessingStages orderId={order.order_id} />
+                      <ProcessingStages prodId={order.prod_id} />
                       <Link
-                        href={`/productions-manager/production/${order.order_id}`}
+                        href={`/productions-manager/production/${order.prod_id}`}
                         className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
                       >
                         <BsEye className="w-4 h-4" />
@@ -856,7 +856,7 @@ export default function ProdutionManager() {
                     <span className="text-xs font-medium text-gray-700">{order.product_name || "—"}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-3">
+                  {/* <div className="flex items-center gap-2 mb-3">
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                       order.group_status === "InProcessing" || order.production_status === "InProcessing"
                         ? "bg-yellow-100 text-yellow-700"
@@ -870,7 +870,7 @@ export default function ProdutionManager() {
                         ? "Hoàn thành"
                         : order.group_status || order.production_status || "Chờ xử lý"}
                     </span>
-                  </div>
+                  </div> */}
 
                   {/* Process codes badges */}
                   <div className="flex flex-wrap gap-1.5">

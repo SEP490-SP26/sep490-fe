@@ -585,18 +585,18 @@ useEffect(() => {
     useQuery<ProductionResponse>({
       queryKey: ["production-detail", id],
       queryFn: async () => {
-        return productionsApi.getProdyctionByOrderId(id!.toString());
+        return productionsApi.getProductionByProdId(id!.toString());
       },
       enabled: !!id,
     });
 
 
   const sortedStages = useMemo(() => {
-    return production?.stages
-      ?.slice()
-      .filter((s) => s.status !== "GroupedWaiting")
-      .sort((a, b) => a.seq_num - b.seq_num);
-  }, [production]);
+  return production?.stages
+    ?.slice()
+    .filter((s) => s.status !== "GroupedWaiting" && s.status !== null)
+    .sort((a, b) => a.seq_num - b.seq_num);
+}, [production]);
 
   //signalr
   useEffect(() => {
