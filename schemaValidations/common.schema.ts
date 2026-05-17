@@ -517,7 +517,12 @@ export interface CreateQRBody {
   task_id: number;
   ttl_minutes: number;
   qty_good: number;
-  materials?: any[];
+  materials_json?: any[];
+  reference_inputs_json?: any[];
+  outputs_json?: any[];
+  use_manual_input?: boolean;
+  reason?: string;
+  images?: File[];
 }
 
 export interface CreateQRResponse {

@@ -188,10 +188,12 @@ function fmtNum(val: number | null | undefined) {
 ======================= */
 function QrModal({
   token,
+  processName,
   onClose,
   onConfirm,
 }: {
   token: string;
+  processName?: string;
   onClose: () => void;
   onConfirm: (manualToken?: string) => void;
 }) {
@@ -226,6 +228,9 @@ function QrModal({
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] shadow-lg">
             <h3 className="font-semibold text-blue-700 mb-3 text-center">Nhập token thủ công</h3>
+            <div className="text-sm text-gray-500 mb-3 p-2 bg-gray-50 rounded border break-all max-h-24 overflow-y-auto">
+              {token}
+            </div>
             <input
               type="text"
               value={manualToken}
@@ -245,7 +250,7 @@ function QrModal({
         </div>
       )}
       <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] text-center shadow-lg">
-        <h3 className="font-semibold text-blue-700 mb-4">Quét QR để hoàn thành công đoạn</h3>
+        <h3 className="font-semibold text-blue-700 mb-4">Quét QR để hoàn thành công đoạn {processName ? processName : ""}</h3>
         <div className="flex justify-center mb-4">
           <QRCodeCanvas value={token} size={220} includeMargin />
         </div>
@@ -649,13 +654,11 @@ function StageCard({
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); onStartProduction(stage.task_id); }}
-                  disabled={readyLoading === stage.task_id || !isProductionActive}
+                  disabled={readyLoading === stage.task_id || !isProductionActive || !allPrevFinished}
                   className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${
-                    !isProductionActive
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"        // production chưa active → disable thật
-                      : allPrevFinished
-                      ? "bg-indigo-600 hover:bg-indigo-700 text-white"         // đủ điều kiện → xanh
-                      : "bg-gray-300 hover:bg-gray-400 text-gray-600 cursor-pointer" // cảnh báo nhưng vẫn click được
+                    !isProductionActive || !allPrevFinished
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"        // production chưa active hoặc chưa xong previous -> disable thật
+                      : "bg-indigo-600 hover:bg-indigo-700 text-white"         // đủ điều kiện -> xanh
                   }`}
                 >
                   {readyLoading === stage.task_id && (
@@ -706,6 +709,7 @@ export default function GroupProductionPage() {
   const queryClient = useQueryClient();
   const [collapsedStages, setCollapsedStages] = useState<Record<number, boolean>>({});
   const [qrToken, setQrToken] = useState<string | null>(null);
+  const [qrProcessName, setQrProcessName] = useState<string>("");
   const [qrLoading, setQrLoading] = useState(false);
   const [readyLoading, setReadyLoading] = useState<number | null>(null);
   const [cancelStage, setCancelStage] = useState<GroupStage | null>(null);
@@ -716,6 +720,21 @@ export default function GroupProductionPage() {
     type: "success",
     message: "",
   });
+
+  const [qtyInputStage, setQtyInputStage] = useState<GroupStage | null>(null);
+  const [qtyInputValue, setQtyInputValue] = useState<string>("");
+  const [qtyError, setQtyError] = useState("");
+  const [prepareLoading, setPrepareLoading] = useState(false);
+  const [qrPrepare, setQrPrepare] = useState<any>(null);
+  const [reportImages, setReportImages] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [reportReason, setReportReason] = useState("");
+
+  useEffect(() => {
+  return () => {
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  };
+}, [previewUrls]);
 
   // Global barcode scanner
   const handleQrScannedRef = useRef<((token: string) => void) | null>(null);
@@ -801,16 +820,79 @@ export default function GroupProductionPage() {
     }
   };
 
-  const handleReportQr = async (stage: GroupStage) => {
+  const handleOpenQtyInput = async (stage: GroupStage) => {
+    setPrepareLoading(true);
+    setQtyInputStage(stage);
+    setQtyInputValue("");
+    setQtyError("");
+    setReportImages([]);
+    setReportReason("");
+    
+    try {
+      const res = await tasksApi.qrPrepare(stage.task_id);
+      setQrPrepare(res.data || res);
+    } catch (err: any) {
+      setQrPrepare(null);
+      setPopup({ open: true, type: "error", message: err.message || "Lỗi khi lấy thông tin gợi ý" });
+    } finally {
+      setPrepareLoading(false);
+    }
+  };
+
+  const handleCreateQr = async () => {
+    if (!qtyInputStage) return;
     try {
       setQrLoading(true);
+
+      const defaultQty = Number(qtyInputStage.estimated_output_qty || 0);
+      const inputVal = Number(qtyInputValue);
+      
+      if (qtyInputValue !== "" && inputVal <= 0) {
+        setQtyError("Số lượng phải lớn hơn 0");
+        return;
+      }
+      
+      const finalQty = qtyInputValue !== "" && inputVal > 0 ? inputVal : defaultQty;
+
+      const isManual = qrPrepare?.is_group_production === true || qrPrepare?.allow_manual_input === true;
+
+      const materials = qrPrepare?.consumable_materials?.map((mat: any) => ({
+        material_id: mat.material_id,
+        quantity_used: isManual ? (mat.estimated_input_qty ?? 0) : 0,
+        quantity_left: 0,
+        is_stock: false,
+      })) ?? [];
+
+      const referenceInputs = qrPrepare?.reference_inputs?.map((x: any) => ({
+        input_code: x.input_code,
+        input_name: x.input_name,
+        unit: x.unit,
+        quantity_used: x.estimated_qty ?? 0,
+        quantity_left: 0
+      })) ?? [];
+
+      const outputs = [{
+        output_code: qrPrepare?.process_code || qtyInputStage.process_code,
+        output_name: `BTP sau ${qrPrepare?.process_name || qtyInputStage.process_name}`,
+        unit: qrPrepare?.production_output_unit || qrPrepare?.qty_unit || qtyInputStage.outputs?.[0]?.unit || "sp",
+        quantity_good: finalQty,
+        quantity_bad: 0
+      }];
+
       const data = await tasksApi.createQRByStageId({
-        task_id: stage.task_id,
+        task_id: qtyInputStage.task_id,
         ttl_minutes: 30,
-        qty_good: stage.estimated_output_qty,
-        materials: [],
+        qty_good: finalQty,
+        materials_json: materials,
+        reference_inputs_json: isManual ? referenceInputs : undefined,
+        outputs_json: isManual ? outputs : undefined,
+        use_manual_input: isManual,
+        images: reportImages,
+        reason: reportReason,
       });
       setQrToken((data as any)?.token ?? (data as any)?.data?.token);
+      setQrProcessName(qtyInputStage.process_name);
+      setQtyInputStage(null);
     } catch (err: any) {
       setPopup({ open: true, type: "error", message: err.message || "Lỗi khi tạo QR" });
     } finally {
@@ -1027,7 +1109,7 @@ export default function GroupProductionPage() {
               isCollapsed={collapsedStages[stage.task_id] ?? true}
               onToggle={() => toggleStage(stage.task_id)}
               onStartProduction={handleStartProduction}
-              onReportQr={handleReportQr}
+              onReportQr={handleOpenQtyInput}
               onCancelFinish={(s) => { setCancelStage(s); setCancelReason(""); }}
               readyLoading={readyLoading}
               qrLoading={qrLoading}
@@ -1063,7 +1145,7 @@ export default function GroupProductionPage() {
               isCollapsed={collapsedStages[stage.task_id] ?? true}
               onToggle={() => toggleStage(stage.task_id)}
               onStartProduction={handleStartProduction}
-              onReportQr={handleReportQr}
+              onReportQr={handleOpenQtyInput}
               onCancelFinish={(s) => { setCancelStage(s); setCancelReason(""); }}
               readyLoading={readyLoading}
               qrLoading={qrLoading}
@@ -1081,11 +1163,194 @@ export default function GroupProductionPage() {
 
       {/* =================== MODALS =================== */}
 
+      {/* Input Output Qty Modal */}
+      {qtyInputStage && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <BsClipboardCheck className="w-5 h-5 text-blue-600" /> Tạo mã QR báo cáo
+              </h3>
+              <button
+                onClick={() => setQtyInputStage(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <BsArrowLeft className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 flex-1 overflow-y-auto">
+              {prepareLoading ? (
+                <div className="flex justify-center py-4">
+                  <span className="text-blue-500 font-medium text-sm">Đang tải dữ liệu...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Thành phẩm đầu ra ước tính</h4>
+                    <div className="flex justify-between items-center text-sm bg-green-50 px-3 py-2 border border-green-200 rounded-lg">
+                      <span className="font-semibold text-green-800">{qtyInputStage.process_name}</span>
+                      <span className="font-bold text-green-700">
+                        {qtyInputStage.estimated_output_qty?.toLocaleString("vi-VN")} sp
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center text-xs mb-2">
+                      <h4 className="font-bold text-gray-700 uppercase">
+                        Số lượng thành phẩm
+                      </h4>
+                      <span className="text-gray-500">
+                        Đơn vị tính: sp
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder={`Mặc định: ${qtyInputStage.estimated_output_qty ?? "--"} sp`}
+                      value={qtyInputValue}
+                      onChange={(e) => {
+                        setQtyInputValue(e.target.value);
+                        if (e.target.value && Number(e.target.value) <= 0) {
+                          setQtyError("Số lượng phải lớn hơn 0");
+                        } else {
+                          setQtyError("");
+                        }
+                      }}
+                      className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? 'border-red-500' : ''}`}
+                      autoFocus
+                    />
+                    {qtyError && <span className="text-xs text-red-500 mt-1 block">{qtyError}</span>}
+                  </div>
+
+<div className="mb-4">
+  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
+    Hình ảnh báo cáo (Tùy chọn, tối đa 4 ảnh)
+  </h4>
+
+  <div className="flex flex-col gap-2">
+    <input
+      id="report-upload"
+      type="file"
+      accept=".jpg,.jpeg,.png,.webp"
+      multiple
+      className="hidden"
+      onChange={(e) => {
+  if (e.target.files) {
+    const files = Array.from(e.target.files).filter((f) =>
+      f.type.startsWith("image/")
+    );
+    const limited = files.slice(0, 4);
+    
+    // Revoke URLs cũ trước
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    
+    const urls = limited.map((f) => URL.createObjectURL(f));
+    setReportImages(limited);
+    setPreviewUrls(urls);
+  }
+  e.target.value = "";
+}}
+    />
+
+    {/* Preview grid */}
+    {reportImages.length > 0 && (
+      <div className="grid grid-cols-4 gap-2">
+        {reportImages.map((file, idx) => {
+          const url = URL.createObjectURL(file);
+          return (
+            <div key={idx} className="relative group aspect-square">
+              <img
+                src={url}
+                alt={`preview-${idx}`}
+                className="w-full h-full object-cover rounded-lg border border-gray-200"
+                onLoad={() => URL.revokeObjectURL(url)}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  URL.revokeObjectURL(previewUrls[idx]);
+                  setReportImages((prev) => prev.filter((_, i) => i !== idx));
+                  setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
+                }}
+                className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
+        {/* Ô thêm ảnh nếu chưa đủ 4 */}
+        {reportImages.length < 4 && (
+          <label
+            htmlFor="report-upload"
+            className="aspect-square flex flex-col items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 text-blue-500 cursor-pointer hover:bg-blue-100 transition text-xs font-medium gap-1"
+          >
+            <span className="text-xl leading-none">+</span>
+            <span>Thêm</span>
+          </label>
+        )}
+      </div>
+    )}
+
+    {/* Button khi chưa có ảnh nào */}
+    {reportImages.length === 0 && (
+      <label
+        htmlFor="report-upload"
+        className="cursor-pointer inline-flex items-center justify-center w-fit px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
+      >
+        Chọn hình ảnh
+      </label>
+    )}
+
+    <p className={`text-xs font-medium ${reportImages.length > 0 ? "text-green-600" : "text-gray-500"}`}>
+      {reportImages.length > 0
+        ? `Đã chọn ${reportImages.length}/4 hình ảnh`
+        : "Chưa chọn hình ảnh nào"}
+    </p>
+  </div>
+</div>
+
+                  <div className="mb-4">
+                    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Ghi chú (Tùy chọn)</h4>
+                    <textarea
+                      placeholder="Nhập lý do/ghi chú (nếu có)..."
+                      value={reportReason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={() => setQtyInputStage(null)}
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleCreateQr}
+                disabled={qrLoading || prepareLoading || !!qtyError}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
+              >
+                {qrLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                <BsClipboardCheck className="w-4 h-4" /> Tạo QR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* QR Modal */}
       {qrToken && (
         <QrModal
           token={qrToken}
-          onClose={() => setQrToken(null)}
+          processName={qrProcessName}
+          onClose={() => { setQrToken(null); setQrProcessName(""); }}
           onConfirm={(manualToken) => handleQrScanned(manualToken ?? qrToken)}
         />
       )}

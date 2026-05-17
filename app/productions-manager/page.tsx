@@ -726,7 +726,7 @@ export default function ProdutionManager() {
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-semibold text-gray-900 truncate">
                           Lệnh sản xuất:
-                          <span className="ml-1 text-yellow-600">{order.code}</span>
+                          <span className="ml-1 text-yellow-600">{order.prod_id}</span>
                         </p>
                         <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
                           SL: {order.quantity}
