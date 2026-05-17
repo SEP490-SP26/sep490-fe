@@ -1902,19 +1902,23 @@ useEffect(() => {
       accept=".jpg,.jpeg,.png,.webp"
       multiple
       className="hidden"
-      onChange={(e) => {
+     onChange={(e) => {
   if (e.target.files) {
-    const files = Array.from(e.target.files).filter((f) =>
+    const newFiles = Array.from(e.target.files).filter((f) =>
       f.type.startsWith("image/")
     );
-    const limited = files.slice(0, 4);
-    
-    // Revoke URLs cũ trước
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    
-    const urls = limited.map((f) => URL.createObjectURL(f));
-    setReportImages(limited);
-    setPreviewUrls(urls);
+    // Cộng dồn ảnh mới vào ảnh cũ, giới hạn tối đa 4
+    setReportImages((prev) => {
+      const combined = [...prev, ...newFiles];
+      return combined.slice(0, 4);
+    });
+    setPreviewUrls((prev) => {
+      const newUrls = newFiles.map((f) => URL.createObjectURL(f));
+      const combined = [...prev, ...newUrls];
+      // Revoke các URL bị cắt bỏ do vượt 4
+      combined.slice(4).forEach((url) => URL.revokeObjectURL(url));
+      return combined.slice(0, 4);
+    });
   }
   e.target.value = "";
 }}
