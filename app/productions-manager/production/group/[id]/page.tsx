@@ -1238,17 +1238,20 @@ export default function GroupProductionPage() {
       className="hidden"
       onChange={(e) => {
   if (e.target.files) {
-    const files = Array.from(e.target.files).filter((f) =>
+    const newFiles = Array.from(e.target.files).filter((f) =>
       f.type.startsWith("image/")
     );
-    const limited = files.slice(0, 4);
-    
-    // Revoke URLs cũ trước
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    
-    const urls = limited.map((f) => URL.createObjectURL(f));
-    setReportImages(limited);
-    setPreviewUrls(urls);
+    setReportImages((prev) => {
+      const combined = [...prev, ...newFiles];
+      return combined.slice(0, 4);
+    });
+    setPreviewUrls((prev) => {
+      const newUrls = newFiles.map((f) => URL.createObjectURL(f));
+      const combined = [...prev, ...newUrls];
+      // Revoke các URL bị cắt bỏ do vượt giới hạn 4
+      combined.slice(4).forEach((url) => URL.revokeObjectURL(url));
+      return combined.slice(0, 4);
+    });
   }
   e.target.value = "";
 }}
@@ -1257,30 +1260,26 @@ export default function GroupProductionPage() {
     {/* Preview grid */}
     {reportImages.length > 0 && (
       <div className="grid grid-cols-4 gap-2">
-        {reportImages.map((file, idx) => {
-          const url = URL.createObjectURL(file);
-          return (
-            <div key={idx} className="relative group aspect-square">
-              <img
-                src={url}
-                alt={`preview-${idx}`}
-                className="w-full h-full object-cover rounded-lg border border-gray-200"
-                onLoad={() => URL.revokeObjectURL(url)}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  URL.revokeObjectURL(previewUrls[idx]);
-                  setReportImages((prev) => prev.filter((_, i) => i !== idx));
-                  setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
-                }}
-                className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold leading-none"
-              >
-                ×
-              </button>
-            </div>
-          );
-        })}
+        {reportImages.map((file, idx) => (
+  <div key={idx} className="relative group aspect-square">
+    <img
+      src={previewUrls[idx]}
+      alt={`preview-${idx}`}
+      className="w-full h-full object-cover rounded-lg border border-gray-200"
+    />
+    <button
+      type="button"
+      onClick={() => {
+        URL.revokeObjectURL(previewUrls[idx]);
+        setReportImages((prev) => prev.filter((_, i) => i !== idx));
+        setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
+      }}
+      className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold leading-none"
+    >
+      ×
+    </button>
+  </div>
+))}
         {/* Ô thêm ảnh nếu chưa đủ 4 */}
         {reportImages.length < 4 && (
           <label
