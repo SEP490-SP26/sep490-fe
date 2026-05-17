@@ -111,6 +111,9 @@ export const productionsApi = {
   getProdyctionByOrderId: (id: string) =>
     http.get(`/api/Productions/detail/${id}`),
 
+  getProductionByProdId: (id: string) =>
+    http.get(`/api/Productions/detail/production/${id}`),
+  
   startProduction: (orderId: string) =>
     http.post(`/api/Productions/start/${orderId}`, { orderId }),
 
