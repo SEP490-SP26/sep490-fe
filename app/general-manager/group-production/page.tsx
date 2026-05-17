@@ -1,6 +1,6 @@
 "use client";
 
-import { GroupableOrder, groupProductionsApi } from "@/apiRequests/groupProductions";
+import { ISuggestionItem, groupProductionsApi } from "@/apiRequests/groupProductions";
 import { productTypesApi } from "@/apiRequests/producttypes";
 import { InfoCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { Button, Card, DatePicker, Input, message, Select, Table, Tag, Typograph
 import dayjs from "dayjs";
 import React, { useState, useMemo, useEffect } from "react";
 import { ProductTemplate } from "@/apiRequests/producttypes";
+import { disabledDate as disablePastAndHolidays } from "@/utils/vietnamHolidays";
 
 const { Title, Text } = Typography;
 
@@ -23,11 +24,10 @@ const ALLOWED_PROCESS_CODES = [
 export default function GroupProductionPage() {
   const [productTypeId, setProductTypeId] = useState<number | null>(null);
   const [selectedProcessCodes, setSelectedProcessCodes] = useState<string[]>([]);
-  const [selectedOrders, setSelectedOrders] = useState<GroupableOrder[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<ISuggestionItem | null>(null);
   const [plannedStartDate, setPlannedStartDate] = useState<dayjs.Dayjs | null>(dayjs());
   const [note, setNote] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [sortBy, setSortBy] = useState<string>("newest");
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   const { data: productTypes } = useQuery({
@@ -71,114 +71,59 @@ export default function GroupProductionPage() {
     }
   }, [templates, productTypeId]);
 
-  const { data: candidates, isLoading: isCandidatesLoading, refetch } = useQuery({
-    queryKey: ["group-candidates", productTypeId, selectedProcessCodes],
+  const { data: suggestions, isLoading: isSuggestionsLoading, refetch } = useQuery({
+    queryKey: ["group-suggestions", productTypeId],
     queryFn: async () => {
-      const codes = selectedProcessCodes.length > 0 ? selectedProcessCodes.join(",") : undefined;
-      const res = await groupProductionsApi.getGroupableOrders(productTypeId || undefined, codes);
-      const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
-      return list.filter((o: any) => o.can_group);
+      if (!productTypeId) return [];
+      const res = await groupProductionsApi.getSuggestions(productTypeId);
+      return Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
     },
+    enabled: !!productTypeId,
   });
 
-  const filteredAndSortedCandidates = useMemo(() => {
-    if (!candidates) return [];
+  const filteredSuggestions = useMemo(() => {
+    if (!suggestions) return [];
 
-    let result = [...candidates];
+    let result = [...suggestions];
 
-    // Search filter: mã đơn hoặc tên sản phẩm
+    // Search filter: department name or reason
     if (searchText.trim()) {
       const term = searchText.toLowerCase().trim();
       result = result.filter(
-        (o) =>
-          o.order_code?.toLowerCase().includes(term) ||
-          o.product_name?.toLowerCase().includes(term)
+        (s) =>
+          s.department_name?.toLowerCase().includes(term) ||
+          s.reason?.toLowerCase().includes(term)
       );
     }
 
-    // Sort logic
-    result.sort((a, b) => {
-      if (sortBy === "newest") {
-        return b.order_id - a.order_id;
-      }
-      if (sortBy === "oldest") {
-        return a.order_id - b.order_id;
-      }
-      if (sortBy === "delivery_asc") {
-        const dateA = a.delivery_date ? new Date(a.delivery_date).getTime() : 0;
-        const dateB = b.delivery_date ? new Date(b.delivery_date).getTime() : 0;
-        return dateA - dateB;
-      }
-      if (sortBy === "delivery_desc") {
-        const dateA = a.delivery_date ? new Date(a.delivery_date).getTime() : 0;
-        const dateB = b.delivery_date ? new Date(b.delivery_date).getTime() : 0;
-        return dateB - dateA;
-      }
-      if (sortBy === "qty_asc") {
-        return (a.quantity || 0) - (b.quantity || 0);
-      }
-      if (sortBy === "qty_desc") {
-        return (b.quantity || 0) - (a.quantity || 0);
-      }
-      return 0;
-    });
+    // Filter by selected process codes (suggestion must contain all selected codes)
+    if (selectedProcessCodes.length > 0) {
+      result = result.filter((s) =>
+        selectedProcessCodes.every((code) => s.suggest_process.includes(code))
+      );
+    }
+
+    // Sort by number of orders descending
+    result.sort((a, b) => b.suggest_order.length - a.suggest_order.length);
 
     return result;
-  }, [candidates, searchText, sortBy]);
-
-  const maxAllowedStartDate = useMemo(() => {
-    if (selectedOrders.length === 0) return null;
-    
-    const validDates = selectedOrders
-      .map(o => dayjs(o.delivery_date))
-      .filter(d => d.isValid());
-
-    if (validDates.length === 0) return null;
-
-    const nearest = validDates.reduce((min, current) => 
-      current.isBefore(min) ? current : min
-    );
-
-    return nearest.subtract(7, "day");
-  }, [selectedOrders]);
-
-  useEffect(() => {
-    if (plannedStartDate && maxAllowedStartDate) {
-      if (plannedStartDate.isAfter(maxAllowedStartDate, "day")) {
-        setPlannedStartDate(maxAllowedStartDate);
-        message.info("Ngày dự kiến bắt đầu đã được tự động điều chỉnh để đảm bảo cách ngày giao hàng gần nhất ít nhất 7 ngày.");
-      }
-    }
-  }, [maxAllowedStartDate, plannedStartDate]);
+  }, [suggestions, searchText, selectedProcessCodes]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (selectedOrders.length < 2) throw new Error("Phải chọn ít nhất 2 đơn hàng để ghép.");
+      if (!selectedSuggestion) throw new Error("Vui lòng chọn một gợi ý để ghép.");
       if (!plannedStartDate) throw new Error("Vui lòng chọn ngày dự kiến bắt đầu.");
-      if (selectedProcessCodes.length === 0) throw new Error("Vui lòng chọn ít nhất 1 công đoạn ghép.");
 
-      // Validation: Check if all selected orders have the selected process codes
-      // for (const order of selectedOrders) {
-      //   const orderProcesses = order.production_process?.split(",") || [];
-      //   for (const code of selectedProcessCodes) {
-      //     if (!orderProcesses.includes(code)) {
-      //       throw new Error(`Đơn hàng ${order.order_code} không có công đoạn ${code}. Không thể ghép!`);
-      //     }
-      //   }
-      // }
-
-      // Create Group Production
       await groupProductionsApi.confirmProduceOrder({
-        order_ids: selectedOrders.map(o => o.order_id),
-        process_codes: selectedProcessCodes,
+        order_ids: selectedSuggestion.suggest_order,
+        process_codes: selectedSuggestion.suggest_process,
         planned_start_date: plannedStartDate.toISOString(),
         note: note,
       });
-
     },
     onSuccess: () => {
       message.success("Đã tạo lệnh sản xuất ghép thành công!");
-      setSelectedOrders([]);
+      setSelectedSuggestion(null);
       setNote("");
       setIsReviewModalOpen(false);
       refetch();
@@ -189,30 +134,48 @@ export default function GroupProductionPage() {
   });
 
   const rowSelection = {
-    selectedRowKeys: selectedOrders.map(o => o.order_id),
-    onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => {
-      setSelectedOrders(selectedRows);
+    type: 'radio' as const,
+    selectedRowKeys: selectedSuggestion ? [selectedSuggestion.reason + selectedSuggestion.suggest_order.join(",")] : [],
+    onChange: (selectedRowKeys: React.Key[], selectedRows: ISuggestionItem[]) => {
+      setSelectedSuggestion(selectedRows[0]);
     },
-    getCheckboxProps: (record: GroupableOrder) => ({
-      disabled: !record.can_group,
-    }),
   };
 
   const columns = [
-    { title: "Mã đơn", dataIndex: "order_code", key: "order_code", render: (t: string) => <span className="font-semibold text-blue-600">{t}</span> },
-    { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name" },
-    { title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
-    { title: "Ngày giao", dataIndex: "delivery_date", key: "delivery_date", render: (d: string) => d ? new Date(d).toLocaleDateString("vi-VN") : "N/A" },
     {
-      title: "Công đoạn", dataIndex: "production_process", key: "production_process", render: (p: string) => (
+      title: "Danh sách Đơn hàng",
+      dataIndex: "suggest_order",
+      key: "suggest_order",
+      render: (orders: number[]) => (
         <div className="flex flex-wrap gap-1">
-          {p?.split(",").map(code => (
-            <Tag key={code} color={selectedProcessCodes.includes(code) ? "blue" : "default"}>
-              {code}
-            </Tag>
+          {orders.map(id => (
+            <Tag key={id} color="cyan">#{id}</Tag>
           ))}
         </div>
       )
+    },
+    {
+      title: "Công đoạn",
+      dataIndex: "suggest_process",
+      key: "suggest_process",
+      render: (processes: string[]) => (
+        <div className="flex flex-wrap gap-1">
+          {processes.map(code => (
+            <Tag key={code} color="blue">{code}</Tag>
+          ))}
+        </div>
+      )
+    },
+    {
+      title: "Phòng ban",
+      dataIndex: "department_name",
+      key: "department_name",
+    },
+    {
+      title: "Lý do / Gợi ý",
+      dataIndex: "reason",
+      key: "reason",
+      render: (text: string) => <span className="text-gray-600">{text}</span>
     },
   ];
 
@@ -220,8 +183,8 @@ export default function GroupProductionPage() {
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[80vh] p-6">
       <div className="mb-6 pb-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <Title level={3} className="!mb-1 text-gray-800">Tạo lệnh sản xuất ghép</Title>
-          <Text type="secondary">Chọn loại sản phẩm và các công đoạn để lọc danh sách đơn hàng tiềm năng.</Text>
+          <Title level={3} className="!mb-1 text-gray-800">Tạo lệnh sản xuất ghép (Từ gợi ý)</Title>
+          <Text type="secondary">Chọn loại sản phẩm để xem các gợi ý ghép đơn hàng tối ưu.</Text>
         </div>
       </div>
 
@@ -235,8 +198,8 @@ export default function GroupProductionPage() {
               value={productTypeId}
               onChange={(val) => {
                 setProductTypeId(val);
-                setSelectedProcessCodes([]); // Reset stages while loading new defaults
-                setSelectedOrders([]);
+                setSelectedProcessCodes([]);
+                setSelectedSuggestion(null);
                 setSearchText("");
               }}
               options={(productTypes || []).map((pt: any) => ({
@@ -246,68 +209,47 @@ export default function GroupProductionPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Lọc theo Công đoạn</label>
             <Select
               mode="multiple"
               className="w-full"
-              placeholder="Chọn các công đoạn ghép (VD: PHU, CAN...)"
+              placeholder="Lọc các gợi ý có chứa công đoạn này"
               value={selectedProcessCodes}
               onChange={(val) => {
                 setSelectedProcessCodes(val);
-                setSelectedOrders([]);
-                setSearchText("");
+                setSelectedSuggestion(null);
               }}
               options={ALLOWED_PROCESS_CODES}
               allowClear
             />
-            {/* <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-              <InfoCircleOutlined />
-              Lưu ý: Không hỗ trợ ghép RALO, CAT, IN.
-            </div> */}
           </div>
         </div>
       </Card>
 
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <Title level={4} className="!mb-0 text-gray-800">Danh sách đơn hàng tiềm năng</Title>
+        <Title level={4} className="!mb-0 text-gray-800">Danh sách gợi ý ghép đơn</Title>
         <Button
           type="primary"
           icon={<ReloadOutlined />}
           onClick={() => refetch()}
           className="bg-blue-600 self-start sm:self-auto"
+          disabled={!productTypeId}
         >
-          Tải lại danh sách
+          Tải lại gợi ý
         </Button>
       </div>
 
-      {/* Bộ lọc tìm kiếm và sắp xếp */}
       <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center">
-        <div className="w-full md:flex-1">
+        <div className="w-full">
           <Input
-            placeholder="Tìm kiếm theo mã đơn hoặc tên sản phẩm..."
+            placeholder="Tìm kiếm theo phòng ban hoặc lý do..."
             prefix={<SearchOutlined className="text-gray-400" />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             allowClear
             className="w-full"
             size="large"
-          />
-        </div>
-        <div className="w-full md:w-80 flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600 shrink-0">Sắp xếp:</span>
-          <Select
-            value={sortBy}
-            onChange={(val) => setSortBy(val)}
-            className="w-full"
-            size="large"
-            options={[
-              { label: "Mới nhất (Mã đơn giảm)", value: "newest" },
-              { label: "Cũ nhất (Mã đơn tăng)", value: "oldest" },
-              { label: "Ngày giao gần nhất", value: "delivery_asc" },
-              { label: "Ngày giao xa nhất", value: "delivery_desc" },
-              { label: "Số lượng tăng dần", value: "qty_asc" },
-              { label: "Số lượng giảm dần", value: "qty_desc" },
-            ]}
+            disabled={!productTypeId}
           />
         </div>
       </div>
@@ -315,15 +257,15 @@ export default function GroupProductionPage() {
       <Table
         rowSelection={rowSelection}
         columns={columns}
-        dataSource={filteredAndSortedCandidates}
-        rowKey="order_id"
-        loading={isCandidatesLoading}
+        dataSource={filteredSuggestions}
+        rowKey={(record) => record.reason + record.suggest_order.join(",")}
+        loading={isSuggestionsLoading}
         pagination={{ pageSize: 10 }}
         bordered
         locale={{
-          emptyText: searchText
-            ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm."
-            : "Không có đơn hàng nào thỏa mãn điều kiện lọc (cần cùng Product Type và cùng chứa các công đoạn đã chọn)."
+          emptyText: !productTypeId 
+            ? "Vui lòng chọn loại sản phẩm để xem gợi ý."
+            : "Không tìm thấy gợi ý nào phù hợp."
         }}
         className="mb-6 shadow-sm"
       />
@@ -338,12 +280,7 @@ export default function GroupProductionPage() {
               value={plannedStartDate}
               onChange={setPlannedStartDate}
               format="DD/MM/YYYY"
-              disabledDate={(current) => {
-                if (maxAllowedStartDate) {
-                  return current && current.isAfter(maxAllowedStartDate, "day");
-                }
-                return false;
-              }}
+              disabledDate={disablePastAndHolidays}
             />
           </div>
           <div>
@@ -359,7 +296,13 @@ export default function GroupProductionPage() {
 
         <div className="flex items-center justify-between border-t border-green-200 pt-4 mt-2">
           <div className="text-green-800">
-            Đã chọn <span className="font-bold text-lg">{selectedOrders.length}</span> đơn hàng để ghép.
+            {selectedSuggestion ? (
+              <span>
+                Đã chọn gợi ý gồm <span className="font-bold text-lg">{selectedSuggestion.suggest_order.length}</span> đơn hàng.
+              </span>
+            ) : (
+              "Vui lòng chọn một gợi ý từ bảng."
+            )}
           </div>
           <Button
             type="primary"
@@ -367,7 +310,7 @@ export default function GroupProductionPage() {
             icon={<PlayCircleOutlined />}
             onClick={() => setIsReviewModalOpen(true)}
             loading={createMutation.isPending}
-            disabled={selectedOrders.length < 2 || !plannedStartDate || selectedProcessCodes.length === 0}
+            disabled={!selectedSuggestion || !plannedStartDate}
             className="bg-green-600 hover:bg-green-700 border-none px-8"
           >
             Tạo Lệnh Ghép
@@ -383,7 +326,7 @@ export default function GroupProductionPage() {
         confirmLoading={createMutation.isPending}
         okText="Xác nhận Tạo"
         cancelText="Hủy"
-        width={800}
+        width={600}
         okButtonProps={{ className: "bg-green-600 hover:bg-green-700" }}
       >
         <div className="py-2">
@@ -391,26 +334,20 @@ export default function GroupProductionPage() {
             <Descriptions.Item label="Sản phẩm">{productTypes?.find((pt: any) => pt.product_type_id === productTypeId)?.name || "N/A"}</Descriptions.Item>
             <Descriptions.Item label="Ngày bắt đầu">{plannedStartDate?.format("DD/MM/YYYY")}</Descriptions.Item>
             <Descriptions.Item label="Công đoạn ghép">
-              {selectedProcessCodes.map(code => (
+              {selectedSuggestion?.suggest_process.map(code => (
                 <Tag key={code} color="blue">{code}</Tag>
               ))}
             </Descriptions.Item>
+            <Descriptions.Item label="Phòng ban">{selectedSuggestion?.department_name}</Descriptions.Item>
             <Descriptions.Item label="Ghi chú">{note || "(Không có)"}</Descriptions.Item>
           </Descriptions>
 
-          <Divider>Danh sách đơn hàng ({selectedOrders.length})</Divider>
-          <Table
-            dataSource={selectedOrders}
-            pagination={false}
-            size="small"
-            rowKey="order_id"
-            columns={[
-              { title: "Mã đơn", dataIndex: "order_code", key: "order_code", render: (t) => <span className="font-semibold">{t}</span> },
-              { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name" },
-              { title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right", render: (v) => v?.toLocaleString("vi-VN") },
-              { title: "Ngày giao", dataIndex: "delivery_date", key: "delivery_date", render: (d) => d ? dayjs(d).format("DD/MM/YYYY") : "N/A" },
-            ]}
-          />
+          <Divider>Danh sách đơn hàng ({selectedSuggestion?.suggest_order.length})</Divider>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {selectedSuggestion?.suggest_order.map(id => (
+              <Tag key={id} color="cyan">Đơn #{id}</Tag>
+            ))}
+          </div>
           
           <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
             <div className="text-blue-800 flex items-start gap-2">
@@ -418,8 +355,8 @@ export default function GroupProductionPage() {
               <div>
                 <p className="font-semibold mb-1">Kiểm tra kỹ trước khi xác nhận:</p>
                 <ul className="list-disc list-inside text-sm space-y-1">
-                  <li>Lệnh ghép sẽ được tạo cho {selectedOrders.length} đơn hàng đã chọn.</li>
-                  <li>Các đơn hàng sẽ cùng trải qua các công đoạn: {selectedProcessCodes.join(", ")}.</li>
+                  <li>Lệnh ghép sẽ được tạo cho {selectedSuggestion?.suggest_order.length} đơn hàng đã chọn.</li>
+                  <li>Các đơn hàng sẽ cùng trải qua các công đoạn: {selectedSuggestion?.suggest_process.join(", ")}.</li>
                   <li>Ngày dự kiến bắt đầu sản xuất là {plannedStartDate?.format("DD/MM/YYYY")}.</li>
                 </ul>
               </div>

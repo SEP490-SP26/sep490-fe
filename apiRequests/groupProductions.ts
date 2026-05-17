@@ -48,6 +48,15 @@ export interface GroupableOrder {
 /** Kiểu dữ liệu mảng các đơn hàng có thể gom nhóm */
 export type GroupableOrderList = GroupableOrder[];
 
+export interface ISuggestionItem {
+  suggest_order: number[];
+  suggest_process: string[];
+  department_code: string;
+  department_name: string;
+  material_key: string | null; // Trường này có thể là string hoặc null
+  reason: string;
+}
+
 export const groupProductionsApi = {
     getGroupableOrders: (productTypeId?: number, processCodes?: string) => {
         const queryParams: string[] = [];
@@ -67,7 +76,7 @@ export const groupProductionsApi = {
 
     // GET /api/GroupProductions/suggestions?productTypeId=1
     getSuggestions: (productTypeId: number) =>
-        http.get<GroupableOrderList>(`/api/GroupProductions/suggestions?productTypeId=${productTypeId}`),
+        http.get<ISuggestionItem[]>(`/api/GroupProductions/suggestions?productTypeId=${productTypeId}`),
 
     // POST /api/GroupProductions/{id}/start
     startGroupProduction: (id: number) =>
