@@ -243,111 +243,94 @@ function QrModal({
   onClose: () => void;
   onConfirm: (manualToken?: string) => void;
 }) {
-  const [showManualInput, setShowManualInput] = useState(false);
   const [manualToken, setManualToken] = useState("");
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const hasScannedRef = useRef(false);
-
-  // Keep focus on the hidden input so barcode scanner input is captured
-  const focusInput = useCallback(() => {
-    if (!hasScannedRef.current && !showManualInput && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [showManualInput]);
 
   useEffect(() => {
-    hasScannedRef.current = false;
-    focusInput();
-    // Re-focus every 500ms in case focus is lost
-    const interval = setInterval(focusInput, 500);
-    return () => clearInterval(interval);
-  }, [token, focusInput]);
+    inputRef.current?.focus();
+  }, [token]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (hasScannedRef.current) return;
-    if (e.key === "Enter") {
-      const scannedVal = e.currentTarget.value.trim();
-      if (!scannedVal) return;
-      hasScannedRef.current = true;
-      inputRef.current?.blur();
-      onConfirm(scannedVal);
-    }
+  const handleCopy = () => {
+    navigator.clipboard.writeText(token);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanToken = manualToken.trim();
+    if (!cleanToken) return;
+    onConfirm(cleanToken);
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      onClick={focusInput}
-    >
-      {showManualInput && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] shadow-lg">
-            <h3 className="font-semibold text-blue-700 mb-3 text-center">
-              Nhập token thủ công
-            </h3>
-            <p className="text-sm text-gray-600 mb-3 text-center">
-              Token cần nhập:
-              <br />
-              <span className="font-mono text-blue-600 break-all">
-                {token}
-              </span>
-            </p>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl border border-blue-100 p-6 w-full max-w-[360px] shadow-2xl animate-in fade-in zoom-in duration-200">
+        <h3 className="font-bold text-lg text-blue-800 mb-2 text-center">
+          Nhập token hoàn thành công đoạn
+        </h3>
+        {processName && (
+          <p className="text-sm text-gray-500 mb-4 text-center font-medium">
+            Công đoạn: <span className="text-blue-600">{processName}</span>
+          </p>
+        )}
+
+        <div className="mb-4 bg-blue-50/50 border border-blue-100 rounded-xl p-3.5 text-center">
+          <p className="text-xs text-gray-500 mb-1.5 uppercase font-semibold tracking-wider">
+            Token cần nhập
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <span className="font-mono text-sm font-bold text-blue-600 break-all select-all">
+              {token}
+            </span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={`flex-shrink-0 text-xs px-2 py-1 rounded transition-all font-medium ${
+                copied
+                  ? "bg-green-100 text-green-700 border border-green-200"
+                  : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+              }`}
+            >
+              {copied ? "Đã chép" : "Sao chép"}
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              Nhập mã token hoặc quét
+            </label>
             <input
+              ref={inputRef}
               type="text"
               value={manualToken}
               onChange={(e) => setManualToken(e.target.value)}
-              placeholder="Nhập token..."
-              className="w-full border rounded-lg px-3 py-2 mb-4"
+              placeholder="Nhập hoặc quét mã token..."
+              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner font-mono text-center font-bold text-gray-800"
               autoFocus
             />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowManualInput(false)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 rounded-lg py-2"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={() => {
-                  if (!manualToken.trim()) return;
-                  onConfirm(manualToken.trim());
-                  setShowManualInput(false);
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2"
-              >
-                Xác nhận
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-      <div className="bg-white rounded-xl border border-blue-200 p-6 w-[340px] text-center shadow-lg">
-        <h3 className="font-semibold text-blue-700 mb-4">
-          Quét QR để hoàn thành công đoạn {processName ? processName : ""}
-        </h3>
-        <div className="flex justify-center mb-4">
-          <QRCodeCanvas value={token} size={220} includeMargin />
-        </div>
-        <input
-          ref={inputRef}
-          onKeyDown={handleKeyDown}
-          autoFocus
-          className="absolute opacity-0 size-1"
-          // Reset value khi blur để sẵn sàng cho lần scan tiếp
-          onBlur={(e) => { e.currentTarget.value = ""; }}
-        />
-        <button
-          onClick={onClose}
-          className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg py-2 transition"
-        >
-          Đóng
-        </button>
-        <button
-          onClick={() => setShowManualInput(true)}
-          className="w-full mt-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-lg py-2 transition"
-        >
-          Nhập token thủ công
-        </button>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 font-semibold rounded-xl py-2.5 text-sm transition-all active:scale-[0.98]"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={!manualToken.trim()}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-blue-300 disabled:to-indigo-300 text-white font-semibold rounded-xl py-2.5 text-sm shadow-md shadow-blue-200 transition-all active:scale-[0.98]"
+            >
+              Xác nhận
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -686,7 +669,7 @@ useEffect(() => {
     try {
       setQrLoading(true);
 
-      const defaultQty = Number(qtyInputStage.output_product?.quantity || 0);
+      const defaultQty = Number(qtyInputStage.output_product?.estimated_quantity || 0);
       const inputVal = Number(qtyInputValue);
       
       if (qtyInputValue !== "" && inputVal <= 0) {
@@ -1429,7 +1412,7 @@ useEffect(() => {
                           disabled={qrLoading}
                           className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
                         >
-                          <BsClipboardCheck className="w-4 h-4" /> Báo cáo hoàn thành (QR)
+                          <BsClipboardCheck className="w-4 h-4" /> Báo cáo hoàn thành
                         </button>
                       )}
                     </div>

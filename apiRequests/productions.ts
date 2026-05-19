@@ -117,6 +117,9 @@ export const productionsApi = {
   startProduction: (orderId: string) =>
     http.post(`/api/Productions/start/${orderId}`, { orderId }),
 
+  startProductionByProdId: (prodId: string) =>
+    http.post(`/api/Productions/start/${prodId}`, { prodId }),
+
   getProductionInformation: (orderId: string) =>
     http.get<ProductionInformationResponse>(`/api/Productions/information/${orderId}`),
 

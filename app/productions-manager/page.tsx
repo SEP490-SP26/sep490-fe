@@ -243,7 +243,7 @@ export default function ProdutionManager() {
   /* ================== START PRODUCTION ================== */
   const startMutation = useMutation({
     mutationFn: async ({ orderId, prodId }: { orderId: string; prodId: string }) => {
-      const res = await productionsApi.startProduction(orderId);
+      const res = await productionsApi.startProductionByProdId(prodId);
       if (res.success === false) throw new Error(res.message);
       return res;
     },
@@ -473,7 +473,7 @@ export default function ProdutionManager() {
               const canStart = order.can_start !== false;
               const isStarting =
                 startMutation.isPending &&
-                startMutation.variables?.orderId === order.order_id;
+                startMutation.variables?.prodId === order.prod_id;
 
               return (
                 <div
