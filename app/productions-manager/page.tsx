@@ -236,6 +236,7 @@ export default function ProdutionManager() {
   /* ================== SEARCH FILTER ================== */
   const [searchOrderId, setSearchOrderId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [canStartFilter, setCanStartFilter] = useState<"all" | "can" | "cannot">("all");
 
   /* ================== SORT ================== */
   const [sortType, setSortType] = useState<"delivery" | "progress" | "newest">("newest");
@@ -282,7 +283,12 @@ export default function ProdutionManager() {
       !deliveryDate ||
       new Date(o.delivery_date).toISOString().slice(0, 10) === deliveryDate;
 
-    return matchOrder && matchDate;
+    const matchCanStart =
+      canStartFilter === "all" ||
+      (canStartFilter === "can" && o.can_start !== false) ||
+      (canStartFilter === "cannot" && o.can_start === false);
+
+    return matchOrder && matchDate && matchCanStart;
   });
 
   // Tất cả lệnh đang sản xuất (lẻ + ghép) đang InProcessing
@@ -352,17 +358,35 @@ export default function ProdutionManager() {
   /* ================== SIGNALR ================== */
   useEffect(() => {
     let conn: any;
+    const events = [
+      "scheduled",
+      "approved-production",
+      "production-ready-cancelled",
+      "finishedProduction",
+      "PendingPaid",
+      "Paid",
+      "update-ui"
+    ];
+    const handler = () => {
+      console.log("🔥 nhận event SignalR cập nhật UI");
+      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["production-detail"] });
+    };
+
     const init = async () => {
       conn = await getSignalRConnection();
-      conn.on("update-ui", () => {
-        console.log("🔥 nhận update-ui");
-        queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
-        queryClient.invalidateQueries({ queryKey: ["production-detail"] });
+      events.forEach((evt) => {
+        conn.on(evt, handler);
       });
     };
     init();
+
     return () => {
-      if (conn) conn.off("update-ui");
+      if (conn) {
+        events.forEach((evt) => {
+          conn.off(evt, handler);
+        });
+      }
     };
   }, [queryClient]);
 
@@ -384,13 +408,16 @@ export default function ProdutionManager() {
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500">Ngày giao</label>
-          <input
-            type="date"
-            value={deliveryDate}
-            onChange={(e) => setDeliveryDate(e.target.value)}
+          <label className="text-xs text-gray-500">Khả năng bắt đầu</label>
+          <select
+            value={canStartFilter}
+            onChange={(e) => setCanStartFilter(e.target.value as any)}
             className="block border rounded-lg px-3 py-2 text-sm"
-          />
+          >
+            <option value="all">Tất cả</option>
+            <option value="can">Có thể bắt đầu</option>
+            <option value="cannot">Chưa thể bắt đầu</option>
+          </select>
         </div>
         <div>
           <label className="text-xs text-gray-500">Sắp xếp</label>
@@ -400,7 +427,7 @@ export default function ProdutionManager() {
             className="block border rounded-lg px-3 py-2 text-sm"
           >
             <option value="newest">Mới nhất</option>
-            <option value="delivery">Ngày giao</option>
+            <option value="delivery">Hạn hoàn thành</option>
             <option value="progress">Tiến độ</option>
           </select>
         </div>
@@ -408,6 +435,7 @@ export default function ProdutionManager() {
           onClick={() => {
             setSearchOrderId("");
             setDeliveryDate("");
+            setCanStartFilter("all");
           }}
           className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200"
         >

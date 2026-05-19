@@ -102,14 +102,31 @@ export default function ConsultantOrdersPage() {
           }
         };
 
-        // Lắng nghe event "pending"
-        conn.on("pending", handleServerEvent);
-        // Bạn có thể thêm các method khác ở đây
-        // conn.on("accepted", handleServerEvent);
-        conn.on("update-ui", handleServerEvent);
+        const events = [
+          "pending",
+          "verified",
+          "declined",
+          "accepted",
+          "waiting",
+          "rejected",
+          "paid",
+          "importing",
+          "pending-paid",
+          "PendingPaid",
+          "remaining-paid",
+          "Paid",
+          "finishedProduction",
+          "update-ui",
+        ];
+
+        events.forEach((evt) => {
+          conn.on(evt, handleServerEvent);
+        });
+
         removeListener = () => {
-          conn.off("pending", handleServerEvent);
-          conn.off("update-ui", handleServerEvent);
+          events.forEach((evt) => {
+            conn.off(evt, handleServerEvent);
+          });
         };
       } catch (err) {
         console.error("SignalR init error in requests page:", err);
