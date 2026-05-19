@@ -88,14 +88,12 @@ export default function GroupProductionPage() {
   const { data: suggestions, isLoading: isSuggestionsLoading, refetch: refetchSuggestions } = useQuery({
     queryKey: ["group-suggestions", productTypeId, selectedProcessCodes, selectedOrders],
     queryFn: async () => {
-      if (!productTypeId) return [];
-      const processCodesStr = selectedProcessCodes.join(",");
-      const orderIdsStr = selectedOrders.map(o => o.order_id).join(",");
-      const res = await groupProductionsApi.getSuggestions(productTypeId, processCodesStr, orderIdsStr);
+      const processCodesStr = selectedProcessCodes.length > 0 ? selectedProcessCodes.join(",") : undefined;
+      const orderIdsStr = selectedOrders.length > 0 ? selectedOrders.map(o => o.order_id).join(",") : undefined;
+      const res = await groupProductionsApi.getSuggestions(productTypeId || undefined, processCodesStr, orderIdsStr);
       const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
       return list;
     },
-    enabled: !!productTypeId,
   });
 
   const handlePreviewSuggestion = (suggestion: ISuggestionGroup) => {

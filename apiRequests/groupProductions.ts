@@ -129,9 +129,21 @@ export const groupProductionsApi = {
     confirmProduceOrder: (body: GroupProductions) =>
         http.post(`/api/GroupProductions`, body),
 
-    // GET /api/GroupProductions/suggestions?productTypeId=1
-    getSuggestions: (productTypeId: number, processCodes: string, orderIds: string) =>
-        http.get<ISuggestionGroup[]>(`/api/GroupProductions/suggestions?productTypeId=${productTypeId}&processCodes=${processCodes}&orderIds=${orderIds}`),
+    // GET /api/GroupProductions/suggestions
+    getSuggestions: (productTypeId?: number, processCodes?: string, orderIds?: string) => {
+        const queryParams: string[] = [];
+        if (productTypeId !== undefined && productTypeId !== null) {
+            queryParams.push(`productTypeId=${productTypeId}`);
+        }
+        if (processCodes) {
+            queryParams.push(`processCodes=${processCodes}`);
+        }
+        if (orderIds) {
+            queryParams.push(`orderIds=${orderIds}`);
+        }
+        const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
+        return http.get<ISuggestionGroup[]>(`/api/GroupProductions/suggestions${queryString}`);
+    },
 
     // POST /api/GroupProductions/{id}/start
     startGroupProduction: (id: number) =>
