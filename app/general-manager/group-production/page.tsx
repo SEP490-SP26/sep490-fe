@@ -4,7 +4,7 @@ import { GroupableOrder, groupProductionsApi } from "@/apiRequests/groupProducti
 import { productTypesApi } from "@/apiRequests/producttypes";
 import { InfoCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button, Card, DatePicker, Input, message, Select, Table, Tag, Typography, Modal, Descriptions, Divider } from "antd";
+import { Button, Card, DatePicker, Input, message, Select, Table, Tag, Typography, Modal, Descriptions, Divider, Tabs } from "antd";
 import dayjs from "dayjs";
 import React, { useState, useMemo, useEffect } from "react";
 import { ProductTemplate } from "@/apiRequests/producttypes";
@@ -81,6 +81,43 @@ export default function GroupProductionPage() {
       return list.filter((o: any) => o.can_group);
     },
   });
+
+  const { data: suggestions, isLoading: isSuggestionsLoading, refetch: refetchSuggestions } = useQuery({
+    queryKey: ["group-suggestions", productTypeId],
+    queryFn: async () => {
+      if (!productTypeId) return [];
+      const res = await groupProductionsApi.getSuggestions(productTypeId);
+      const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
+      return list;
+    },
+    enabled: !!productTypeId,
+  });
+
+  const suggestionColumns = [
+    { title: "Tiêu chí ghép", dataIndex: "reason", key: "reason", render: (t: string) => <span className="font-semibold text-green-600">{t}</span> },
+    { 
+      title: "ID Đơn hàng", 
+      dataIndex: "suggest_order", 
+      key: "suggest_order",
+      render: (orders: number[]) => (
+        <div className="flex flex-wrap gap-1">
+          {orders?.map(id => <Tag key={id} color="blue">{id}</Tag>)}
+        </div>
+      )
+    },
+    { 
+      title: "Công đoạn", 
+      dataIndex: "suggest_process", 
+      key: "suggest_process",
+      render: (processes: string[]) => (
+        <div className="flex flex-wrap gap-1">
+          {processes?.map(p => <Tag key={p} color="purple">{p}</Tag>)}
+        </div>
+      )
+    },
+    { title: "Phòng ban", dataIndex: "department_name", key: "department_name" },
+    { title: "Mã vật tư", dataIndex: "material_key", key: "material_key", render: (t: string) => t ? <Tag>{t}</Tag> : <span className="text-gray-400">N/A</span> },
+  ];
 
   const filteredAndSortedCandidates = useMemo(() => {
     if (!candidates) return [];
@@ -227,154 +264,191 @@ export default function GroupProductionPage() {
       </div>
 
       <Card className="mb-6 shadow-sm border-blue-100 bg-blue-50/30">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Loại sản phẩm (Bắt buộc)</label>
-            <Select
-              className="w-full"
-              placeholder="Chọn loại sản phẩm"
-              value={productTypeId}
-              onChange={(val) => {
-                setProductTypeId(val);
-                setSelectedProcessCodes([]); // Reset stages while loading new defaults
-                setSelectedOrders([]);
-                setSearchText("");
-              }}
-              options={(productTypes || []).map((pt: any) => ({
-                label: pt.name,
-                value: pt.product_type_id
-              }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
-            <Select
-              mode="multiple"
-              className="w-full"
-              placeholder="Chọn các công đoạn ghép (VD: PHU, CAN...)"
-              value={selectedProcessCodes}
-              onChange={(val) => {
-                setSelectedProcessCodes(val);
-                setSelectedOrders([]);
-                setSearchText("");
-              }}
-              options={ALLOWED_PROCESS_CODES}
-              allowClear
-            />
-            {/* <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-              <InfoCircleOutlined />
-              Lưu ý: Không hỗ trợ ghép RALO, CAT, IN.
-            </div> */}
-          </div>
-        </div>
-      </Card>
-
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <Title level={4} className="!mb-0 text-gray-800">Danh sách đơn hàng tiềm năng</Title>
-        <Button
-          type="primary"
-          icon={<ReloadOutlined />}
-          onClick={() => refetch()}
-          className="bg-blue-600 self-start sm:self-auto"
-        >
-          Tải lại danh sách
-        </Button>
-      </div>
-
-      {/* Bộ lọc tìm kiếm và sắp xếp */}
-      <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center">
-        <div className="w-full md:flex-1">
-          <Input
-            placeholder="Tìm kiếm theo mã đơn hoặc tên sản phẩm..."
-            prefix={<SearchOutlined className="text-gray-400" />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-            className="w-full"
-            size="large"
-          />
-        </div>
-        <div className="w-full md:w-80 flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600 shrink-0">Sắp xếp:</span>
+        <div className="w-full md:w-1/2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Loại sản phẩm (Bắt buộc)</label>
           <Select
-            value={sortBy}
-            onChange={(val) => setSortBy(val)}
             className="w-full"
-            size="large"
-            options={[
-              { label: "Mới nhất (Mã đơn giảm)", value: "newest" },
-              { label: "Cũ nhất (Mã đơn tăng)", value: "oldest" },
-              { label: "Ngày giao gần nhất", value: "delivery_asc" },
-              { label: "Ngày giao xa nhất", value: "delivery_desc" },
-              { label: "Số lượng tăng dần", value: "qty_asc" },
-              { label: "Số lượng giảm dần", value: "qty_desc" },
-            ]}
+            placeholder="Chọn loại sản phẩm"
+            value={productTypeId}
+            onChange={(val) => {
+              setProductTypeId(val);
+              setSelectedProcessCodes([]); // Reset stages while loading new defaults
+              setSelectedOrders([]);
+              setSearchText("");
+            }}
+            options={(productTypes || []).map((pt: any) => ({
+              label: pt.name,
+              value: pt.product_type_id
+            }))}
           />
         </div>
-      </div>
-
-      <Table
-        rowSelection={rowSelection}
-        columns={columns}
-        dataSource={filteredAndSortedCandidates}
-        rowKey="order_id"
-        loading={isCandidatesLoading}
-        pagination={{ pageSize: 10 }}
-        bordered
-        locale={{
-          emptyText: searchText
-            ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm."
-            : "Không có đơn hàng nào thỏa mãn điều kiện lọc (cần cùng Product Type và cùng chứa các công đoạn đã chọn)."
-        }}
-        className="mb-6 shadow-sm"
-      />
-
-      <Card className="border-green-100 bg-green-50/30 shadow-sm">
-        <Title level={4} className="!mb-4 text-green-800">Xác nhận tạo lệnh ghép</Title>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
-            <DatePicker
-              className="w-40 [&_input]:text-right"
-              value={plannedStartDate}
-              onChange={setPlannedStartDate}
-              format="DD/MM/YYYY"
-              disabledDate={(current) => {
-                if (maxAllowedStartDate && current && current.isAfter(maxAllowedStartDate, "day")) {
-                  return true;
-                }
-                return vietnamHolidaysDisabledDate(current);
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
-            <Input.TextArea
-              rows={1}
-              placeholder="Nhập ghi chú cho lệnh ghép (nếu có)"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-green-200 pt-4 mt-2">
-          <div className="text-green-800">
-            Đã chọn <span className="font-bold text-lg">{selectedOrders.length}</span> đơn hàng để ghép.
-          </div>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlayCircleOutlined />}
-            onClick={() => setIsReviewModalOpen(true)}
-            loading={createMutation.isPending}
-            disabled={selectedOrders.length < 2 || !plannedStartDate || selectedProcessCodes.length === 0}
-            className="bg-green-600 hover:bg-green-700 border-none px-8"
-          >
-            Tạo Lệnh Ghép
-          </Button>
-        </div>
       </Card>
+
+      <Tabs
+        defaultActiveKey="suggestions"
+        className="mb-6"
+        items={[
+          {
+            key: "suggestions",
+            label: "Gợi ý ghép đơn",
+            children: (
+              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <Title level={4} className="!mb-0 text-gray-800">Danh sách gợi ý ghép đơn</Title>
+                  <Button
+                    type="primary"
+                    icon={<ReloadOutlined />}
+                    onClick={() => refetchSuggestions()}
+                    className="bg-blue-600 self-start sm:self-auto"
+                  >
+                    Tải lại danh sách
+                  </Button>
+                </div>
+                <Table
+                  columns={suggestionColumns}
+                  dataSource={suggestions}
+                  rowKey={(record, index) => index?.toString() || ""}
+                  loading={isSuggestionsLoading}
+                  pagination={{ pageSize: 10 }}
+                  bordered
+                  locale={{ emptyText: "Không có gợi ý ghép đơn nào cho loại sản phẩm này." }}
+                />
+              </div>
+            )
+          },
+          {
+            key: "manual",
+            label: "Tự tạo lệnh ghép",
+            children: (
+              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
+                  <Select
+                    mode="multiple"
+                    className="w-full"
+                    placeholder="Chọn các công đoạn ghép (VD: PHU, CAN...)"
+                    value={selectedProcessCodes}
+                    onChange={(val) => {
+                      setSelectedProcessCodes(val);
+                      setSelectedOrders([]);
+                      setSearchText("");
+                    }}
+                    options={ALLOWED_PROCESS_CODES}
+                    allowClear
+                  />
+                </div>
+
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <Title level={4} className="!mb-0 text-gray-800">Danh sách đơn hàng tiềm năng</Title>
+                  <Button
+                    type="primary"
+                    icon={<ReloadOutlined />}
+                    onClick={() => refetch()}
+                    className="bg-blue-600 self-start sm:self-auto"
+                  >
+                    Tải lại danh sách
+                  </Button>
+                </div>
+
+                {/* Bộ lọc tìm kiếm và sắp xếp */}
+                <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center">
+                  <div className="w-full md:flex-1">
+                    <Input
+                      placeholder="Tìm kiếm theo mã đơn hoặc tên sản phẩm..."
+                      prefix={<SearchOutlined className="text-gray-400" />}
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      allowClear
+                      className="w-full"
+                      size="large"
+                    />
+                  </div>
+                  <div className="w-full md:w-80 flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600 shrink-0">Sắp xếp:</span>
+                    <Select
+                      value={sortBy}
+                      onChange={(val) => setSortBy(val)}
+                      className="w-full"
+                      size="large"
+                      options={[
+                        { label: "Mới nhất (Mã đơn giảm)", value: "newest" },
+                        { label: "Cũ nhất (Mã đơn tăng)", value: "oldest" },
+                        { label: "Ngày giao gần nhất", value: "delivery_asc" },
+                        { label: "Ngày giao xa nhất", value: "delivery_desc" },
+                        { label: "Số lượng tăng dần", value: "qty_asc" },
+                        { label: "Số lượng giảm dần", value: "qty_desc" },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <Table
+                  rowSelection={rowSelection}
+                  columns={columns}
+                  dataSource={filteredAndSortedCandidates}
+                  rowKey="order_id"
+                  loading={isCandidatesLoading}
+                  pagination={{ pageSize: 10 }}
+                  bordered
+                  locale={{
+                    emptyText: searchText
+                      ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm."
+                      : "Không có đơn hàng nào thỏa mãn điều kiện lọc (cần cùng Product Type và cùng chứa các công đoạn đã chọn)."
+                  }}
+                  className="mb-6 shadow-sm"
+                />
+
+                <Card className="border-green-100 bg-green-50/30 shadow-sm mt-6">
+                  <Title level={4} className="!mb-4 text-green-800">Xác nhận tạo lệnh ghép</Title>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
+                      <DatePicker
+                        className="w-40 [&_input]:text-right"
+                        value={plannedStartDate}
+                        onChange={setPlannedStartDate}
+                        format="DD/MM/YYYY"
+                        disabledDate={(current) => {
+                          if (maxAllowedStartDate && current && current.isAfter(maxAllowedStartDate, "day")) {
+                            return true;
+                          }
+                          return vietnamHolidaysDisabledDate(current);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
+                      <Input.TextArea
+                        rows={1}
+                        placeholder="Nhập ghi chú cho lệnh ghép (nếu có)"
+                        value={note}
+                        onChange={e => setNote(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-green-200 pt-4 mt-2">
+                    <div className="text-green-800">
+                      Đã chọn <span className="font-bold text-lg">{selectedOrders.length}</span> đơn hàng để ghép.
+                    </div>
+                    <Button
+                      type="primary"
+                      size="large"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => setIsReviewModalOpen(true)}
+                      loading={createMutation.isPending}
+                      disabled={selectedOrders.length < 2 || !plannedStartDate || selectedProcessCodes.length === 0}
+                      className="bg-green-600 hover:bg-green-700 border-none px-8"
+                    >
+                      Tạo Lệnh Ghép
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )
+          }
+        ]}
+      />
 
       <Modal
         title={<Title level={4}>Xác nhận Tạo Lệnh Ghép</Title>}
