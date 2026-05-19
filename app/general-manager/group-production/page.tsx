@@ -333,9 +333,9 @@ export default function GroupProductionPage() {
         <Title level={4} className="!mb-4 text-green-800">Xác nhận tạo lệnh ghép</Title>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến bắt đầu</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
             <DatePicker
-              className="w-full"
+              className="w-40 [&_input]:text-right"
               value={plannedStartDate}
               onChange={setPlannedStartDate}
               format="DD/MM/YYYY"
