@@ -350,7 +350,7 @@ export default function ConsultantOrdersPage() {
     () =>
       sortOrders(
         filterBySearch(
-          allOrders.filter((o) => o.process_status?.toLowerCase() === "layoutpending")
+          allOrders.filter((o) => o.process_status?.toLowerCase() === "accepted" && o.print_ready_file === null)
         )
       ),
     [allOrders, sortOrders, filterBySearch]
@@ -748,37 +748,6 @@ export default function ConsultantOrdersPage() {
       ),
     },
     {
-      key: "layoutpending",
-      label: (
-        <span>
-          Duyệt layout
-          {layoutPendingOrders.length > 0 && (
-            <Tag color="blue" className="ml-2">
-              {layoutPendingOrders.length}
-            </Tag>
-          )}
-        </span>
-      ),
-      children: (
-        <Table
-          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
-          dataSource={layoutPendingOrders}
-          rowKey="order_request_id"
-          pagination={{
-            pageSize: 5,
-            showTotal: (total) => `Tổng ${total} đơn`,
-          }}
-          locale={{ emptyText: <Empty description="Không có đơn chờ duyệt layout" /> }}
-          bordered
-          size="middle"
-          onRow={(record) => ({
-            onClick: () => router.push(`/consultant/request-detail/${record.order_request_id}`),
-            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
-          })}
-        />
-      ),
-    },
-    {
       key: "waiting",
       label: (
         <span>
@@ -866,6 +835,37 @@ export default function ConsultantOrdersPage() {
           locale={{ emptyText: <Empty description="Không có đơn chờ tạo" /> }}
           bordered
           size="middle"
+        />
+      ),
+    },
+    {
+      key: "layoutpending",
+      label: (
+        <span>
+          Duyệt bố cục
+          {layoutPendingOrders.length > 0 && (
+            <Tag color="blue" className="ml-2">
+              {layoutPendingOrders.length}
+            </Tag>
+          )}
+        </span>
+      ),
+      children: (
+        <Table
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
+          dataSource={layoutPendingOrders}
+          rowKey="order_request_id"
+          pagination={{
+            pageSize: 5,
+            showTotal: (total) => `Tổng ${total} đơn`,
+          }}
+          locale={{ emptyText: <Empty description="Không có đơn chờ duyệt layout" /> }}
+          bordered
+          size="middle"
+          onRow={(record) => ({
+            onClick: () => router.push(`/consultant/request-detail/${record.order_request_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
         />
       ),
     },

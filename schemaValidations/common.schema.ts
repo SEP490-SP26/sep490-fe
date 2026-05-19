@@ -358,6 +358,7 @@ export interface OrderRequest {
   is_check_contract?: boolean;
   contract_check_note?: string;
   assign_name?: string | null;
+  print_ready_file?: string | null;
 }
 
 
