@@ -1,6 +1,6 @@
 "use client";
 
-import { GroupableOrder, groupProductionsApi } from "@/apiRequests/groupProductions";
+import { GroupableOrder, groupProductionsApi, ISuggestionGroup, IPreview } from "@/apiRequests/groupProductions";
 import { productTypesApi } from "@/apiRequests/producttypes";
 import { InfoCircleOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -30,6 +30,9 @@ export default function GroupProductionPage() {
   const [searchText, setSearchText] = useState("");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<IPreview | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [createPayload, setCreatePayload] = useState<any>(null);
 
   const { data: productTypes } = useQuery({
     queryKey: ["product-types"],
@@ -83,15 +86,28 @@ export default function GroupProductionPage() {
   });
 
   const { data: suggestions, isLoading: isSuggestionsLoading, refetch: refetchSuggestions } = useQuery({
-    queryKey: ["group-suggestions", productTypeId],
+    queryKey: ["group-suggestions", productTypeId, selectedProcessCodes, selectedOrders],
     queryFn: async () => {
       if (!productTypeId) return [];
-      const res = await groupProductionsApi.getSuggestions(productTypeId);
+      const processCodesStr = selectedProcessCodes.join(",");
+      const orderIdsStr = selectedOrders.map(o => o.order_id).join(",");
+      const res = await groupProductionsApi.getSuggestions(productTypeId, processCodesStr, orderIdsStr);
       const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
       return list;
     },
     enabled: !!productTypeId,
   });
+
+  const handlePreviewSuggestion = (suggestion: ISuggestionGroup) => {
+    setPreviewData(suggestion.preview);
+    setCreatePayload({
+      order_ids: suggestion.suggest_order,
+      process_codes: suggestion.suggest_process,
+      planned_start_date: suggestion.suggested_planned_start_date,
+      note: suggestion.note || "",
+    });
+    setIsReviewModalOpen(true);
+  };
 
   const suggestionColumns = [
     { title: "Tiêu chí ghép", dataIndex: "reason", key: "reason", render: (t: string) => <span className="font-semibold text-green-600">{t}</span> },
@@ -117,6 +133,15 @@ export default function GroupProductionPage() {
     },
     { title: "Phòng ban", dataIndex: "department_name", key: "department_name" },
     { title: "Mã vật tư", dataIndex: "material_key", key: "material_key", render: (t: string) => t ? <Tag>{t}</Tag> : <span className="text-gray-400">N/A</span> },
+    { 
+      title: "Hành động", 
+      key: "action", 
+      render: (_: any, record: ISuggestionGroup) => (
+        <Button type="primary" size="small" onClick={() => handlePreviewSuggestion(record)} className="bg-blue-600">
+          Xem & Tạo lệnh
+        </Button>
+      ) 
+    }
   ];
 
   const filteredAndSortedCandidates = useMemo(() => {
@@ -189,37 +214,41 @@ export default function GroupProductionPage() {
     }
   }, [maxAllowedStartDate, plannedStartDate]);
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      if (selectedOrders.length < 2) throw new Error("Phải chọn ít nhất 2 đơn hàng để ghép.");
-      if (!plannedStartDate) throw new Error("Vui lòng chọn ngày dự kiến bắt đầu.");
-      if (selectedProcessCodes.length === 0) throw new Error("Vui lòng chọn ít nhất 1 công đoạn ghép.");
-
-      // Validation: Check if all selected orders have the selected process codes
-      // for (const order of selectedOrders) {
-      //   const orderProcesses = order.production_process?.split(",") || [];
-      //   for (const code of selectedProcessCodes) {
-      //     if (!orderProcesses.includes(code)) {
-      //       throw new Error(`Đơn hàng ${order.order_code} không có công đoạn ${code}. Không thể ghép!`);
-      //     }
-      //   }
-      // }
-
-      // Create Group Production
-      await groupProductionsApi.confirmProduceOrder({
+  const handlePreviewManual = async () => {
+    try {
+      setIsPreviewLoading(true);
+      const payload = {
         order_ids: selectedOrders.map(o => o.order_id),
         process_codes: selectedProcessCodes,
-        planned_start_date: plannedStartDate.toISOString(),
+        planned_start_date: plannedStartDate!.toISOString(),
         note: note,
-      });
+      };
+      const res = await groupProductionsApi.getPreview(payload);
+      const data = (res as any).data || res;
+      setPreviewData(data);
+      setCreatePayload(payload);
+      setIsReviewModalOpen(true);
+    } catch (error: any) {
+      message.error(error?.response?.data?.message || error.message || "Lỗi khi lấy thông tin preview.");
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
 
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      if (!createPayload) throw new Error("Không có dữ liệu tạo lệnh.");
+      await groupProductionsApi.confirmProduceOrder(createPayload);
     },
     onSuccess: () => {
       message.success("Đã tạo lệnh sản xuất ghép thành công!");
       setSelectedOrders([]);
       setNote("");
       setIsReviewModalOpen(false);
+      setPreviewData(null);
+      setCreatePayload(null);
       refetch();
+      refetchSuggestions();
     },
     onError: (error: any) => {
       message.error(error?.response?.data?.message || error.message || "Có lỗi xảy ra.");
@@ -435,12 +464,12 @@ export default function GroupProductionPage() {
                       type="primary"
                       size="large"
                       icon={<PlayCircleOutlined />}
-                      onClick={() => setIsReviewModalOpen(true)}
-                      loading={createMutation.isPending}
+                      onClick={handlePreviewManual}
+                      loading={isPreviewLoading}
                       disabled={selectedOrders.length < 2 || !plannedStartDate || selectedProcessCodes.length === 0}
                       className="bg-green-600 hover:bg-green-700 border-none px-8"
                     >
-                      Tạo Lệnh Ghép
+                      Xem trước & Tạo
                     </Button>
                   </div>
                 </Card>
@@ -454,53 +483,83 @@ export default function GroupProductionPage() {
         title={<Title level={4}>Xác nhận Tạo Lệnh Ghép</Title>}
         open={isReviewModalOpen}
         onOk={() => createMutation.mutate()}
-        onCancel={() => setIsReviewModalOpen(false)}
+        onCancel={() => {
+          setIsReviewModalOpen(false);
+          setPreviewData(null);
+          setCreatePayload(null);
+        }}
         confirmLoading={createMutation.isPending}
         okText="Xác nhận Tạo"
         cancelText="Hủy"
-        width={800}
+        width={900}
         okButtonProps={{ className: "bg-green-600 hover:bg-green-700" }}
       >
-        <div className="py-2">
-          <Descriptions title="Thông tin chung" bordered column={1} size="small">
-            <Descriptions.Item label="Sản phẩm">{productTypes?.find((pt: any) => pt.product_type_id === productTypeId)?.name || "N/A"}</Descriptions.Item>
-            <Descriptions.Item label="Ngày bắt đầu">{plannedStartDate?.format("DD/MM/YYYY")}</Descriptions.Item>
-            <Descriptions.Item label="Công đoạn ghép">
-              {selectedProcessCodes.map(code => (
-                <Tag key={code} color="blue">{code}</Tag>
-              ))}
-            </Descriptions.Item>
-            <Descriptions.Item label="Ghi chú">{note || "(Không có)"}</Descriptions.Item>
-          </Descriptions>
+        {previewData && (
+          <div className="py-2 max-h-[70vh] overflow-y-auto pr-2">
+            <Descriptions title="Thông tin tổng quan" bordered column={{ xs: 1, sm: 2 }} size="small" className="mb-6">
+              <Descriptions.Item label="Ngày bắt đầu">{dayjs(previewData.suggested_planned_start_date).format("DD/MM/YYYY")}</Descriptions.Item>
+              <Descriptions.Item label="Ngày kết thúc dự kiến">{dayjs(previewData.estimated_finish_date).format("DD/MM/YYYY")}</Descriptions.Item>
+              <Descriptions.Item label="Hạn giao hàng chung">{dayjs(previewData.common_delivery_deadline).format("DD/MM/YYYY")}</Descriptions.Item>
+              <Descriptions.Item label="Tổng thời gian">{previewData.total_duration_days} ngày</Descriptions.Item>
+              <Descriptions.Item label="Đạt tiến độ?">
+                {previewData.can_meet_common_deadline ? (
+                  <Tag color="green">Đạt</Tag>
+                ) : (
+                  <Tag color="red">Trễ {previewData.days_late_if_any} ngày</Tag>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="Công đoạn ghép">
+                <div className="flex flex-wrap gap-1">
+                  {previewData.selected_process_codes.map(code => (
+                    <Tag key={code} color="blue">{code}</Tag>
+                  ))}
+                </div>
+              </Descriptions.Item>
+            </Descriptions>
 
-          <Divider>Danh sách đơn hàng ({selectedOrders.length})</Divider>
-          <Table
-            dataSource={selectedOrders}
-            pagination={false}
-            size="small"
-            rowKey="order_id"
-            columns={[
-              { title: "Mã đơn", dataIndex: "order_code", key: "order_code", render: (t) => <span className="font-semibold">{t}</span> },
-              { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name" },
-              { title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right", render: (v) => v?.toLocaleString("vi-VN") },
-              { title: "Ngày giao", dataIndex: "delivery_date", key: "delivery_date", render: (d) => d ? dayjs(d).format("DD/MM/YYYY") : "N/A" },
-            ]}
-          />
-          
-          <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <div className="text-blue-800 flex items-start gap-2">
-              <InfoCircleOutlined className="mt-1" />
-              <div>
-                <p className="font-semibold mb-1">Kiểm tra kỹ trước khi xác nhận:</p>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                  <li>Lệnh ghép sẽ được tạo cho {selectedOrders.length} đơn hàng đã chọn.</li>
-                  <li>Các đơn hàng sẽ cùng trải qua các công đoạn: {selectedProcessCodes.join(", ")}.</li>
-                  <li>Ngày dự kiến bắt đầu sản xuất là {plannedStartDate?.format("DD/MM/YYYY")}.</li>
-                </ul>
-              </div>
+            <Divider>Danh sách đơn hàng ({previewData.order_ids.length})</Divider>
+            <div className="flex flex-wrap gap-2 mb-6">
+               {previewData.order_ids.map(id => <Tag key={id} color="purple">ID: {id}</Tag>)}
             </div>
+
+            <Divider>Tiến trình dự kiến</Divider>
+            <Table
+              dataSource={previewData.timeline}
+              pagination={false}
+              size="small"
+              rowKey={(r, i) => `${r.dept_code}-${i}`}
+              columns={[
+                { title: "Giai đoạn", dataIndex: "stage_type", key: "stage_type", render: (t) => {
+                    const label = t === 'SINGLE_PRIVATE' ? 'Chạy riêng (trước)' : t === 'GROUP' ? 'Ghép' : t === 'SPLIT' ? 'Chạy riêng (sau)' : t;
+                    const color = t === 'SINGLE_PRIVATE' ? 'orange' : t === 'GROUP' ? 'green' : 'blue';
+                    return <Tag color={color}>{label}</Tag>;
+                }},
+                { title: "Công đoạn", dataIndex: "process_codes", key: "process_codes", render: (codes: string[]) => codes?.join(", ") },
+                { title: "Phòng ban", dataIndex: "dept_name", key: "dept_name" },
+                { title: "Bắt đầu", dataIndex: "planned_start_date", key: "planned_start_date", render: (d) => dayjs(d).format("DD/MM/YYYY") },
+                { title: "Kết thúc", dataIndex: "planned_end_date", key: "planned_end_date", render: (d) => dayjs(d).format("DD/MM/YYYY") },
+                { title: "Thời gian", dataIndex: "duration_days", key: "duration_days", render: (d) => `${d} ngày` },
+              ]}
+              className="mb-6"
+            />
+            
+            {previewData.notes && previewData.notes.length > 0 && (
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-2">
+                <div className="text-blue-800 flex items-start gap-2">
+                  <InfoCircleOutlined className="mt-1" />
+                  <div>
+                    <p className="font-semibold mb-1">Ghi chú hệ thống:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {previewData.notes.map((note, index) => (
+                        <li key={index}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </Modal>
     </div>
   );

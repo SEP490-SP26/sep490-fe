@@ -48,13 +48,68 @@ export interface GroupableOrder {
 /** Kiểu dữ liệu mảng các đơn hàng có thể gom nhóm */
 export type GroupableOrderList = GroupableOrder[];
 
-export interface ISuggestionItem {
+// Interface đại diện cho cấu trúc của từng công đoạn (Stage) xuất hiện trong preview
+export interface IStage {
+  dept_code: string;
+  dept_name: string;
+  stage_type: 'SINGLE_PRIVATE' | 'GROUP' | 'SPLIT' | string; // Định nghĩa sẵn các type hoặc string chung
+  process_codes: string[];
+  order_ids: number[];
+  group_prod_id: number | null;
+  split_prod_id: number | null;
+  planned_start_date: string; // Định dạng ISO Date String
+  planned_end_date: string;   // Định dạng ISO Date String
+  duration_days: number;
+  note: string;
+}
+
+// Interface cho object "preview"
+export interface IPreview {
+  order_ids: number[];
+  selected_process_codes: string[];
+  common_delivery_deadline: string;
+  suggested_planned_start_date: string;
+  estimated_finish_date: string;
+  total_duration_days: number;
+  dept1_private_stage: IStage;
+  group_stages: IStage[];
+  split_stages: IStage[];
+  timeline: IStage[];
+  can_meet_common_deadline: boolean;
+  days_late_if_any: number;
+  notes: string[];
+}
+
+// Interface cho từng item trong mảng "auto_split_productions"
+export interface IAutoSplitProduction {
+  order_id: number;
+  order_code: string;
+  single_prod_id: number;
+  department_code: string;
+  department_name: string;
+  process_codes: string[];
+  reason: string;
+}
+
+// Interface chính cho object lớn nhất ở ngoài cùng
+export interface ISuggestionGroup {
+  suggestion_type: string;
   suggest_order: number[];
   suggest_process: string[];
   department_code: string;
   department_name: string;
-  material_key: string | null; // Trường này có thể là string hoặc null
+  material_key: string | null;
   reason: string;
+  product_type_id: number;
+  product_type_name: string;
+  note: string;
+  suggested_planned_start_date: string;
+  common_delivery_deadline: string;
+  estimated_finish_date: string;
+  estimated_total_days: number;
+  preview: IPreview;
+  auto_split_productions: IAutoSplitProduction[];
+  warnings: any[]; // Bạn có thể đổi sang string[] nếu mảng này chỉ chứa text cảnh báo
 }
 
 export const groupProductionsApi = {
@@ -75,10 +130,14 @@ export const groupProductionsApi = {
         http.post(`/api/GroupProductions`, body),
 
     // GET /api/GroupProductions/suggestions?productTypeId=1
-    getSuggestions: (productTypeId: number) =>
-        http.get<ISuggestionItem[]>(`/api/GroupProductions/suggestions?productTypeId=${productTypeId}`),
+    getSuggestions: (productTypeId: number, processCodes: string, orderIds: string) =>
+        http.get<ISuggestionGroup[]>(`/api/GroupProductions/suggestions?productTypeId=${productTypeId}&processCodes=${processCodes}&orderIds=${orderIds}`),
 
     // POST /api/GroupProductions/{id}/start
     startGroupProduction: (id: number) =>
         http.post(`/api/GroupProductions/${id}/start`, {}),
+
+    // POST /api/GroupProductions/preview
+    getPreview: (body: GroupProductions) =>
+        http.post<IPreview>(`/api/GroupProductions/preview`, body),
 }
