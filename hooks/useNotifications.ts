@@ -69,7 +69,17 @@ export const SIGNALR_NOTIFICATION_METHODS: string[] = [
   "importing",
   "confirm-layout",
   "approved-production",
-  "approve-production"
+  "approve-production",
+  "accepted",
+  "pending-paid",
+  "PendingPaid",
+  "remaining-paid",
+  "Paid",
+  "finishedProduction",
+  "Importing",
+  "production-ready-cancelled",
+  "production-method-approved",
+  "update-ui"
 ];
 
 /* ================================================================
@@ -156,6 +166,7 @@ const SUPPORTED_ROLES = [
   "production manager",
   "warehouse manager",
   "general manager",
+  "warehouse",
 ];
 
 /**

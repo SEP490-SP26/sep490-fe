@@ -477,6 +477,7 @@ export default function ProductionDetailPage() {
   const [qtyBadValue, setQtyBadValue] = useState<string>("0");
   const [userToggleManual, setUserToggleManual] = useState<boolean>(false);
   const [materialErrors, setMaterialErrors] = useState<{ [id: number]: string }>({});
+  const [refErrors, setRefErrors] = useState<{ [code: string]: string }>({});
 
   const [collapsedStages, setCollapsedStages] =
     useState<Record<number, boolean>>({});
@@ -588,32 +589,40 @@ useEffect(() => {
 
   //signalr
   useEffect(() => {
-  let conn: any;
-
-  const init = async () => {
-    conn = await getSignalRConnection();
-
+    let conn: any;
+    const events = [
+      "scheduled",
+      "approved-production",
+      "production-ready-cancelled",
+      "finishedProduction",
+      "PendingPaid",
+      "Paid",
+      "update-ui"
+    ];
     const handler = () => {
-      console.log("🔥 nhận update-ui");
-
+      console.log("🔥 nhận event SignalR cập nhật UI");
       // ✅ Refetch lại data
       queryClient.invalidateQueries({
         queryKey: ["production-detail", id],
       });
     };
 
-    conn.on("update-ui", handler);
+    const init = async () => {
+      conn = await getSignalRConnection();
+      events.forEach((evt) => {
+        conn.on(evt, handler);
+      });
+    };
+    init();
 
-    // cleanup đúng chuẩn
     return () => {
       if (conn) {
-        conn.off("update-ui", handler);
+        events.forEach((evt) => {
+          conn.off(evt, handler);
+        });
       }
     };
-  };
-
-  init();
-}, [queryClient, id]);
+  }, [queryClient, id]);
 
   /* ===== COMPUTED ===== */
   const finishedStages =
@@ -650,6 +659,7 @@ useEffect(() => {
       });
       setRefUsed(initRefUsed);
       setRefLeft(initRefLeft);
+      setRefErrors({});
       setQtyBadValue("0");
       setUserToggleManual(false);
     } catch (err: any) {
@@ -669,15 +679,29 @@ useEffect(() => {
     try {
       setQrLoading(true);
 
-      const defaultQty = Number(qtyInputStage.output_product?.estimated_quantity || 0);
-      const inputVal = Number(qtyInputValue);
-      
-      if (qtyInputValue !== "" && inputVal <= 0) {
-        setQtyError("Số lượng phải lớn hơn 0");
+      const maxTotal = Number(qtyInputStage.output_product?.estimated_quantity ?? qtyInputStage.output_product?.quantity ?? 0);
+      const goodVal = qtyInputValue === "" ? maxTotal : Number(qtyInputValue);
+      const badVal = qtyBadValue === "" ? 0 : Number(qtyBadValue);
+
+      if (qtyInputValue !== "" && (Number(qtyInputValue) < 0 || Number(qtyInputValue) > maxTotal)) {
+        setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
+        setQrLoading(false);
         return;
       }
-      
-      const finalQty = qtyInputValue !== "" && inputVal > 0 ? inputVal : defaultQty;
+
+      if (qtyBadValue !== "" && (Number(qtyBadValue) < 0 || Number(qtyBadValue) > maxTotal)) {
+        setQtyError(`Số lượng hỏng phải từ 0 đến ${maxTotal}`);
+        setQrLoading(false);
+        return;
+      }
+
+      if (goodVal + badVal !== maxTotal) {
+        setQtyError(`Tổng số lượng đạt và hỏng phải bằng ${maxTotal}`);
+        setQrLoading(false);
+        return;
+      }
+
+      const finalQty = goodVal;
 
       const isGroup = qrPrepare?.is_group_production === true;
       const allowManual = qrPrepare?.allow_manual_input === true;
@@ -692,19 +716,39 @@ useEffect(() => {
           const leftVal = materialQtys[mat.material_id];
           const usedVal = materialUsed[mat.material_id];
           
-          if (leftVal && leftVal !== "") {
-            if (Number(leftVal) < 0) {
-              setMaterialErrors((prev) => ({ ...prev, [mat.material_id]: "Số lượng không hợp lệ" }));
-              return;
-            }
+          if (leftVal === "" || usedVal === "" || leftVal === undefined || usedVal === undefined) {
+            setQtyError(`Vui lòng nhập đầy đủ thông tin cho vật liệu tiêu hao ${mat.material_name}`);
+            setQrLoading(false);
+            return;
           }
-          if (isManualMode && usedVal && usedVal !== "") {
-            if (Number(usedVal) < 0) {
-              setMaterialErrors((prev) => ({ ...prev, [mat.material_id]: "Số lượng không hợp lệ" }));
-              return;
-            }
+
+          const maxVal = Number(mat.estimated_input_qty || 0);
+          if (Number(leftVal) + Number(usedVal) !== maxVal) {
+            setQtyError(`Tổng thực tế đã dùng và lượng dư của ${mat.material_name} phải bằng ${maxVal}`);
+            setQrLoading(false);
+            return;
           }
-          if (materialErrors[mat.material_id]) return;
+        }
+      }
+
+      // Validate BTP (reference inputs)
+      if (isManualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0) {
+        for (const ref of qrPrepare.reference_inputs) {
+          const leftVal = refLeft[ref.input_code];
+          const usedVal = refUsed[ref.input_code];
+
+          if (leftVal === "" || usedVal === "" || leftVal === undefined || usedVal === undefined) {
+            setQtyError(`Vui lòng nhập đầy đủ thông tin cho BTP đầu vào ${ref.input_name}`);
+            setQrLoading(false);
+            return;
+          }
+
+          const maxVal = Number(ref.estimated_qty || 0);
+          if (Number(leftVal) + Number(usedVal) !== maxVal) {
+            setQtyError(`Tổng thực tế đã dùng và lượng dư của ${ref.input_name} phải bằng ${maxVal}`);
+            setQrLoading(false);
+            return;
+          }
         }
       }
 
@@ -1401,7 +1445,9 @@ useEffect(() => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setQtyInputValue(stage.output_product?.quantity?.toString() || "");
+                            const estQty = stage.output_product?.estimated_quantity ?? stage.output_product?.quantity ?? 0;
+                            setQtyInputValue(estQty.toString());
+                            setQtyBadValue("0");
                             setQtyError("");
                             setReportImages([]);
                             setPreviewUrls([]);
@@ -1882,13 +1928,22 @@ useEffect(() => {
                                           onChange={(e) => {
                                             const val = e.target.value;
                                             setMaterialUsed(prev => ({ ...prev, [mat.material_id]: val }));
-                                            if (val && Number(val) < 0) {
-                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
+                                            const maxVal = Number(mat.estimated_input_qty || 0);
+                                            if (val === "") {
+                                              setMaterialQtys(prev => ({ ...prev, [mat.material_id]: "" }));
+                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Vui lòng nhập thực tế đã dùng" }));
                                             } else {
-                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                                              const numUsed = Number(val);
+                                              if (numUsed < 0 || numUsed > maxVal) {
+                                                setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Từ 0 đến ${maxVal}` }));
+                                                setMaterialQtys(prev => ({ ...prev, [mat.material_id]: "" }));
+                                              } else {
+                                                setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                                                setMaterialQtys(prev => ({ ...prev, [mat.material_id]: (maxVal - numUsed).toString() }));
+                                              }
                                             }
                                           }}
-                                          className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500' : ''}`}
+                                          className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500 bg-red-50' : ''}`}
                                         />
                                       </td>
                                     )}
@@ -1901,15 +1956,32 @@ useEffect(() => {
                                         onChange={(e) => {
                                           const val = e.target.value;
                                           setMaterialQtys(prev => ({ ...prev, [mat.material_id]: val }));
-                                          if (val && Number(val) < 0) {
-                                            setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
-                                          } else if (!isManualMode && val && Number(val) > mat.estimated_input_qty) {
-                                            setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Tối đa ${mat.estimated_input_qty}` }));
+                                          const maxVal = Number(mat.estimated_input_qty || 0);
+                                          if (isManualMode) {
+                                            if (val === "") {
+                                              setMaterialUsed(prev => ({ ...prev, [mat.material_id]: "" }));
+                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Vui lòng nhập lượng dư" }));
+                                            } else {
+                                              const numLeft = Number(val);
+                                              if (numLeft < 0 || numLeft > maxVal) {
+                                                setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Từ 0 đến ${maxVal}` }));
+                                                setMaterialUsed(prev => ({ ...prev, [mat.material_id]: "" }));
+                                              } else {
+                                                setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                                                setMaterialUsed(prev => ({ ...prev, [mat.material_id]: (maxVal - numLeft).toString() }));
+                                              }
+                                            }
                                           } else {
-                                            setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                                            if (val && Number(val) < 0) {
+                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Không hợp lệ" }));
+                                            } else if (val && Number(val) > maxVal) {
+                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Tối đa ${maxVal}` }));
+                                            } else {
+                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
+                                            }
                                           }
                                         }}
-                                        className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500' : ''}`}
+                                        className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500 bg-red-50' : ''}`}
                                       />
                                       {materialErrors[mat.material_id] && <span className="text-[10px] text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
                                     </td>
@@ -1950,8 +2022,22 @@ useEffect(() => {
                                         onChange={(e) => {
                                           const val = e.target.value;
                                           setRefUsed(prev => ({ ...prev, [ref.input_code]: val }));
+                                          const maxVal = Number(ref.estimated_qty || 0);
+                                          if (val === "") {
+                                            setRefLeft(prev => ({ ...prev, [ref.input_code]: "" }));
+                                            setRefErrors(prev => ({ ...prev, [ref.input_code]: "Vui lòng nhập thực tế đã dùng" }));
+                                          } else {
+                                            const numUsed = Number(val);
+                                            if (numUsed < 0 || numUsed > maxVal) {
+                                              setRefErrors(prev => ({ ...prev, [ref.input_code]: `Từ 0 đến ${maxVal}` }));
+                                              setRefLeft(prev => ({ ...prev, [ref.input_code]: "" }));
+                                            } else {
+                                              setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
+                                              setRefLeft(prev => ({ ...prev, [ref.input_code]: (maxVal - numUsed).toString() }));
+                                            }
+                                          }
                                         }}
-                                        className="w-full border rounded-lg px-2 py-1 text-sm text-right"
+                                        className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
                                       />
                                     </td>
                                     <td className="px-3 py-2">
@@ -1963,9 +2049,24 @@ useEffect(() => {
                                         onChange={(e) => {
                                           const val = e.target.value;
                                           setRefLeft(prev => ({ ...prev, [ref.input_code]: val }));
+                                          const maxVal = Number(ref.estimated_qty || 0);
+                                          if (val === "") {
+                                            setRefUsed(prev => ({ ...prev, [ref.input_code]: "" }));
+                                            setRefErrors(prev => ({ ...prev, [ref.input_code]: "Vui lòng nhập lượng dư" }));
+                                          } else {
+                                            const numLeft = Number(val);
+                                            if (numLeft < 0 || numLeft > maxVal) {
+                                              setRefErrors(prev => ({ ...prev, [ref.input_code]: `Từ 0 đến ${maxVal}` }));
+                                              setRefUsed(prev => ({ ...prev, [ref.input_code]: "" }));
+                                            } else {
+                                              setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
+                                              setRefUsed(prev => ({ ...prev, [ref.input_code]: (maxVal - numLeft).toString() }));
+                                            }
+                                          }
                                         }}
-                                        className="w-full border rounded-lg px-2 py-1 text-sm text-right"
+                                        className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
                                       />
+                                      {refErrors[ref.input_code] && <span className="text-[10px] text-red-500 mt-1 block">{refErrors[ref.input_code]}</span>}
                                     </td>
                                   </tr>
                                 ))}
@@ -1996,15 +2097,26 @@ useEffect(() => {
                         </div>
                         <input
                           type="number"
-                          min={1}
-                          placeholder={`Mặc định: ${qtyInputStage?.output_product?.quantity ?? "--"} sp`}
+                          min={0}
+                          placeholder={`Mặc định: ${qtyInputStage?.output_product?.estimated_quantity ?? qtyInputStage?.output_product?.quantity ?? "--"} sp`}
                           value={qtyInputValue}
                           onChange={(e) => {
-                            setQtyInputValue(e.target.value);
-                            if (e.target.value && Number(e.target.value) <= 0) {
-                              setQtyError("Số lượng phải lớn hơn 0");
+                            const val = e.target.value;
+                            setQtyInputValue(val);
+                            const maxTotal = Number(qtyInputStage?.output_product?.estimated_quantity ?? qtyInputStage?.output_product?.quantity ?? 0);
+                            
+                            if (val === "") {
+                              setQtyBadValue("");
+                              setQtyError("Vui lòng nhập số lượng đạt");
                             } else {
-                              setQtyError("");
+                              const goodVal = Number(val);
+                              if (goodVal < 0 || goodVal > maxTotal) {
+                                setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
+                                setQtyBadValue("");
+                              } else {
+                                setQtyError("");
+                                setQtyBadValue((maxTotal - goodVal).toString());
+                              }
                             }
                           }}
                           className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? 'border-red-500' : ''}`}
@@ -2028,7 +2140,25 @@ useEffect(() => {
                             min={0}
                             placeholder="Số lượng hỏng"
                             value={qtyBadValue}
-                            onChange={(e) => setQtyBadValue(e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setQtyBadValue(val);
+                              const maxTotal = Number(qtyInputStage?.output_product?.estimated_quantity ?? qtyInputStage?.output_product?.quantity ?? 0);
+                              
+                              if (val === "") {
+                                setQtyInputValue("");
+                                setQtyError("Vui lòng nhập số lượng hỏng");
+                              } else {
+                                const badVal = Number(val);
+                                if (badVal < 0 || badVal > maxTotal) {
+                                  setQtyError(`Số lượng hỏng phải từ 0 đến ${maxTotal}`);
+                                  setQtyInputValue("");
+                                } else {
+                                  setQtyError("");
+                                  setQtyInputValue((maxTotal - badVal).toString());
+                                }
+                              }
+                            }}
                             className="w-full border rounded-lg px-3 py-2 text-sm text-right"
                           />
                         </div>
@@ -2146,7 +2276,13 @@ useEffect(() => {
               </button>
               <button
                 onClick={handleCreateQr}
-                disabled={prepareLoading || qrLoading || !!qtyError || Object.values(materialErrors).some(err => err !== "")}
+                disabled={
+                  prepareLoading ||
+                  qrLoading ||
+                  !!qtyError ||
+                  Object.values(materialErrors).some((err) => err !== "") ||
+                  Object.values(refErrors).some((err) => err !== "")
+                }
                 className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium rounded-lg py-2.5 transition flex items-center justify-center gap-2"
               >
                 {qrLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
