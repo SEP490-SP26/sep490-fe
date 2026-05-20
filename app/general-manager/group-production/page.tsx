@@ -127,7 +127,7 @@ export default function GroupProductionPage() {
       )
     },
     { title: "Phòng ban", dataIndex: "department_name", key: "department_name" },
-    { title: "Mã vật tư", dataIndex: "material_key", key: "material_key", render: (t: string) => t ? <Tag>{t}</Tag> : <span className="text-gray-400">N/A</span> },
+    // { title: "Mã vật tư", dataIndex: "material_key", key: "material_key", render: (t: string) => t ? <Tag>{t}</Tag> : <span className="text-gray-400">N/A</span> },
     {
       title: "Hành động",
       key: "action",
@@ -494,15 +494,15 @@ export default function GroupProductionPage() {
             <Descriptions title="Thông tin tổng quan" bordered column={{ xs: 1, sm: 2 }} size="small" className="mb-6">
               <Descriptions.Item label="Ngày bắt đầu">{dayjs(previewData.suggested_planned_start_date).format("DD/MM/YYYY")}</Descriptions.Item>
               <Descriptions.Item label="Ngày kết thúc dự kiến">{dayjs(previewData.estimated_finish_date).format("DD/MM/YYYY")}</Descriptions.Item>
-              <Descriptions.Item label="Hạn giao hàng chung">{dayjs(previewData.common_delivery_deadline).format("DD/MM/YYYY")}</Descriptions.Item>
+              {/* <Descriptions.Item label="Hạn giao hàng chung">{dayjs(previewData.common_delivery_deadline).format("DD/MM/YYYY")}</Descriptions.Item> */}
               <Descriptions.Item label="Tổng thời gian">{previewData.total_duration_days} ngày</Descriptions.Item>
-              <Descriptions.Item label="Đạt tiến độ?">
+              {/* <Descriptions.Item label="Đạt tiến độ?">
                 {previewData.can_meet_common_deadline ? (
                   <Tag color="green">Đạt</Tag>
                 ) : (
                   <Tag color="red">Trễ {previewData.days_late_if_any} ngày</Tag>
                 )}
-              </Descriptions.Item>
+              </Descriptions.Item> */}
               <Descriptions.Item label="Công đoạn ghép">
                 <div className="flex flex-wrap gap-1">
                   {previewData.selected_process_codes.map(code => (
@@ -512,10 +512,10 @@ export default function GroupProductionPage() {
               </Descriptions.Item>
             </Descriptions>
 
-            <Divider>Danh sách đơn hàng ({previewData.order_ids.length})</Divider>
+            {/* <Divider>Danh sách đơn hàng ({previewData.order_ids.length})</Divider>
             <div className="flex flex-wrap gap-2 mb-6">
               {previewData.order_ids.map(id => <Tag key={id} color="purple">ID: {id}</Tag>)}
-            </div>
+            </div> */}
 
             <Divider>Tiến trình dự kiến</Divider>
             <Table
