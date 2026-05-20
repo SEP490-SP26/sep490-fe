@@ -16,9 +16,6 @@ const ALLOWED_PROCESS_CODES = [
   { label: "Phủ (PHU)", value: "PHU" },
   { label: "Cán (CAN)", value: "CAN" },
   { label: "Bồi (BOI)", value: "BOI" },
-  { label: "Bế (BE)", value: "BE" },
-  { label: "Dứt (DUT)", value: "DUT" },
-  { label: "Dán (DAN)", value: "DAN" },
 ];
 
 export default function GroupProductionPage() {
@@ -109,9 +106,9 @@ export default function GroupProductionPage() {
 
   const suggestionColumns = [
     { title: "Tiêu chí ghép", dataIndex: "reason", key: "reason", render: (t: string) => <span className="font-semibold text-green-600">{t}</span> },
-    { 
-      title: "ID Đơn hàng", 
-      dataIndex: "suggest_order", 
+    {
+      title: "ID Đơn hàng",
+      dataIndex: "suggest_order",
       key: "suggest_order",
       render: (orders: number[]) => (
         <div className="flex flex-wrap gap-1">
@@ -119,9 +116,9 @@ export default function GroupProductionPage() {
         </div>
       )
     },
-    { 
-      title: "Công đoạn", 
-      dataIndex: "suggest_process", 
+    {
+      title: "Công đoạn",
+      dataIndex: "suggest_process",
       key: "suggest_process",
       render: (processes: string[]) => (
         <div className="flex flex-wrap gap-1">
@@ -131,14 +128,14 @@ export default function GroupProductionPage() {
     },
     { title: "Phòng ban", dataIndex: "department_name", key: "department_name" },
     { title: "Mã vật tư", dataIndex: "material_key", key: "material_key", render: (t: string) => t ? <Tag>{t}</Tag> : <span className="text-gray-400">N/A</span> },
-    { 
-      title: "Hành động", 
-      key: "action", 
+    {
+      title: "Hành động",
+      key: "action",
       render: (_: any, record: ISuggestionGroup) => (
         <Button type="primary" size="small" onClick={() => handlePreviewSuggestion(record)} className="bg-blue-600">
           Xem & Tạo lệnh
         </Button>
-      ) 
+      )
     }
   ];
 
@@ -189,14 +186,14 @@ export default function GroupProductionPage() {
 
   const maxAllowedStartDate = useMemo(() => {
     if (selectedOrders.length === 0) return null;
-    
+
     const validDates = selectedOrders
       .map(o => dayjs(o.delivery_date))
       .filter(d => d.isValid());
 
     if (validDates.length === 0) return null;
 
-    const nearest = validDates.reduce((min, current) => 
+    const nearest = validDates.reduce((min, current) =>
       current.isBefore(min) ? current : min
     );
 
@@ -517,7 +514,7 @@ export default function GroupProductionPage() {
 
             <Divider>Danh sách đơn hàng ({previewData.order_ids.length})</Divider>
             <div className="flex flex-wrap gap-2 mb-6">
-               {previewData.order_ids.map(id => <Tag key={id} color="purple">ID: {id}</Tag>)}
+              {previewData.order_ids.map(id => <Tag key={id} color="purple">ID: {id}</Tag>)}
             </div>
 
             <Divider>Tiến trình dự kiến</Divider>
@@ -527,11 +524,13 @@ export default function GroupProductionPage() {
               size="small"
               rowKey={(r, i) => `${r.dept_code}-${i}`}
               columns={[
-                { title: "Giai đoạn", dataIndex: "stage_type", key: "stage_type", render: (t) => {
+                {
+                  title: "Giai đoạn", dataIndex: "stage_type", key: "stage_type", render: (t) => {
                     const label = t === 'SINGLE_PRIVATE' ? 'Chạy riêng (trước)' : t === 'GROUP' ? 'Ghép' : t === 'SPLIT' ? 'Chạy riêng (sau)' : t;
                     const color = t === 'SINGLE_PRIVATE' ? 'orange' : t === 'GROUP' ? 'green' : 'blue';
                     return <Tag color={color}>{label}</Tag>;
-                }},
+                  }
+                },
                 { title: "Công đoạn", dataIndex: "process_codes", key: "process_codes", render: (codes: string[]) => codes?.join(", ") },
                 { title: "Phòng ban", dataIndex: "dept_name", key: "dept_name" },
                 { title: "Bắt đầu", dataIndex: "planned_start_date", key: "planned_start_date", render: (d) => dayjs(d).format("DD/MM/YYYY") },
@@ -540,7 +539,7 @@ export default function GroupProductionPage() {
               ]}
               className="mb-6"
             />
-            
+
             {previewData.notes && previewData.notes.length > 0 && (
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-2">
                 <div className="text-blue-800 flex items-start gap-2">
