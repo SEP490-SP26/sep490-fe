@@ -364,13 +364,6 @@ export default function PaymentSuccess() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setIsPreviewOpen(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-colors font-medium border border-indigo-100 shadow-sm"
-                >
-                  <Eye className="w-4 h-4" />
-                  Xem trước
-                </button>
                 <a
                   href={receiptUrl}
                   download
