@@ -92,7 +92,7 @@ function ProductionApprovalContent() {
   // ── Lọc đơn: LayoutPending / Scheduled và chưa is_production_ready ──────────
   const filteredOrders = (apiData || []).filter((order: any) => {
     const statusMatch =
-      (order.status === "LayoutPending" || order.status === "Scheduled") &&
+      (order.status === "Scheduled") &&
       order.is_production_ready === false;
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -127,13 +127,13 @@ function ProductionApprovalContent() {
 
   const getStatusTag = (status: string) => {
     switch (status) {
-      case "Scheduled":      return <Tag color="orange">Đã lên lịch</Tag>;
-      case "LayoutPending":  return <Tag color="orange">Chờ duyệt layout</Tag>;
-      case "InProcessing":   return <Tag color="blue">Đang sản xuất</Tag>;
-      case "Finished":       return <Tag color="green">Hoàn thành</Tag>;
-      case "Delivered":      return <Tag color="cyan">Đã giao</Tag>;
-      case "Cancelled":      return <Tag color="red">Đã hủy</Tag>;
-      default:               return <Tag>{status || "Mới"}</Tag>;
+      case "Scheduled": return <Tag color="orange">Đã lên lịch</Tag>;
+      case "LayoutPending": return <Tag color="orange">Chờ duyệt layout</Tag>;
+      case "InProcessing": return <Tag color="blue">Đang sản xuất</Tag>;
+      case "Finished": return <Tag color="green">Hoàn thành</Tag>;
+      case "Delivered": return <Tag color="cyan">Đã giao</Tag>;
+      case "Cancelled": return <Tag color="red">Đã hủy</Tag>;
+      default: return <Tag>{status || "Mới"}</Tag>;
     }
   };
 
@@ -147,7 +147,7 @@ function ProductionApprovalContent() {
       render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>,
     },
     { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
-    { title: "Sản phẩm",   dataIndex: "product_name",  key: "product_name"  },
+    { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
     {
       title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const,
       render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>,
@@ -198,26 +198,23 @@ function ProductionApprovalContent() {
   }) => (
     <div
       onClick={available ? onClick : undefined}
-      className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 ${
-        available
+      className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 ${available
           ? selected
             ? "border-amber-500 bg-amber-50/70 ring-2 ring-amber-400/30 cursor-pointer scale-[1.01] shadow-sm"
             : "border-gray-200 bg-white hover:border-amber-400 hover:bg-amber-50/10 cursor-pointer"
           : "border-gray-150 bg-gray-50 opacity-45 cursor-not-allowed"
-      }`}
+        }`}
     >
       <span
-        className={`mt-0.5 text-lg transition-colors ${
-          available ? (selected ? "text-amber-600 font-bold" : "text-gray-400") : "text-gray-300"
-        }`}
+        className={`mt-0.5 text-lg transition-colors ${available ? (selected ? "text-amber-600 font-bold" : "text-gray-400") : "text-gray-300"
+          }`}
       >
         {selected ? <CheckCircleOutlined /> : <InfoCircleOutlined />}
       </span>
       <div className="flex-1">
         <div
-          className={`font-bold transition-colors ${
-            available ? (selected ? "text-amber-800" : "text-gray-700") : "text-gray-400"
-          }`}
+          className={`font-bold transition-colors ${available ? (selected ? "text-amber-800" : "text-gray-700") : "text-gray-400"
+            }`}
         >
           {label}
         </div>
@@ -233,19 +230,19 @@ function ProductionApprovalContent() {
 
   /* ── Material table columns ────────────────────────────────────────────────── */
   const materialColumns = [
-    { title: "Mã VT",     dataIndex: "material_code", key: "material_code", width: 110 },
-    { title: "Tên vật tư",dataIndex: "material_name", key: "material_name" },
-    { title: "ĐV",        dataIndex: "unit",          key: "unit", width: 60, align: "center" as const },
-    { title: "Yêu cầu",  dataIndex: "required_qty",  key: "required_qty",  align: "right" as const, render: (v: number) => <span className="font-semibold">{v?.toLocaleString("vi-VN")}</span> },
-    { title: "Hiện có",  dataIndex: "available_qty",  key: "available_qty", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
-    { title: "Còn thiếu",dataIndex: "missing_qty",    key: "missing_qty",   align: "right" as const, render: (v: number) => v > 0 ? <span className="text-red-500 font-bold">{v?.toLocaleString("vi-VN")}</span> : "-" },
+    { title: "Mã VT", dataIndex: "material_code", key: "material_code", width: 110 },
+    { title: "Tên vật tư", dataIndex: "material_name", key: "material_name" },
+    { title: "ĐV", dataIndex: "unit", key: "unit", width: 60, align: "center" as const },
+    { title: "Yêu cầu", dataIndex: "required_qty", key: "required_qty", align: "right" as const, render: (v: number) => <span className="font-semibold">{v?.toLocaleString("vi-VN")}</span> },
+    { title: "Hiện có", dataIndex: "available_qty", key: "available_qty", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
+    { title: "Còn thiếu", dataIndex: "missing_qty", key: "missing_qty", align: "right" as const, render: (v: number) => v > 0 ? <span className="text-red-500 font-bold">{v?.toLocaleString("vi-VN")}</span> : "-" },
     { title: "Trạng thái", key: "status", align: "center" as const, width: 120, render: (_: any, r: any) => r.is_enough ? <Tag color="success" className="mr-0">Đủ cấp</Tag> : <Tag color="error" className="mr-0">Chờ nhập kho</Tag> },
   ];
 
   const machineColumns = [
     { title: "Bước", dataIndex: "seq_num", key: "seq_num", width: 60, align: "center" as const, render: (v: number) => <span className="font-bold text-gray-500">{v}</span> },
     { title: "Quy trình", dataIndex: "process_name", key: "process_name" },
-    { title: "Mã máy",   dataIndex: "machine_code",  key: "machine_code",  render: (v: string) => v ? <Tag color="blue" className="font-mono text-sm mr-0">{v}</Tag> : <span className="italic text-gray-400">Không tìm thấy</span> },
+    { title: "Mã máy", dataIndex: "machine_code", key: "machine_code", render: (v: string) => v ? <Tag color="blue" className="font-mono text-sm mr-0">{v}</Tag> : <span className="italic text-gray-400">Không tìm thấy</span> },
     { title: "Năng lực (rảnh/tổng)", key: "capacity", align: "center" as const, render: (_: any, r: any) => r.machine_found ? <span><span className={r.free_quantity > 0 ? "text-green-600 font-bold" : "text-red-500 font-bold"}>{r.free_quantity}</span><span className="text-gray-300 mx-1">/</span><span className="font-medium">{r.total_quantity}</span></span> : "-" },
     { title: "Đánh giá", key: "avail", align: "center" as const, width: 160, render: (_: any, r: any) => !r.machine_found ? <Tag color="error" className="mr-0">Lỗi cấu hình</Tag> : !r.is_available ? <Tag color="warning" className="mr-0">Quá tải</Tag> : <Tag color="success" className="mr-0">Sẵn sàng</Tag> },
   ];
@@ -345,13 +342,12 @@ function ProductionApprovalContent() {
                   productionMethod: methodToSubmit as "NVL" | "SUB" | "BOTH",
                 });
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${
-                anyOption && !approveMutation.isPending
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors ${anyOption && !approveMutation.isPending
                   ? onlyNvl
                     ? "bg-green-600 hover:bg-green-700"
                     : "bg-amber-700 hover:bg-amber-800"
                   : "bg-gray-400 cursor-not-allowed opacity-80"
-              }`}
+                }`}
             >
               {approveMutation.isPending && <Spin size="small" />}
               {onlyNvl ? "Xác nhận sản xuất từ NVL" : "Trình Manager duyệt phương thức"}
@@ -464,57 +460,57 @@ function ProductionApprovalContent() {
                   },
                   ...(canSub || canBoth
                     ? [
-                        {
-                          key: "3",
-                          label: "Bán thành phẩm",
-                          children: (
-                            <div className="space-y-4 text-sm mt-2">
-                              {statusData.has_matched_sub_product && statusData.matched_sub_product ? (
-                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    {[
-                                      { label: "Loại sản phẩm",          value: statusData.matched_sub_product.product_type_name },
-                                      { label: "Số lượng hiện có",        value: (statusData.matched_sub_product.quantity || 0).toLocaleString("vi-VN") },
-                                      { label: "Kích thước (Rộng × Dài)", value: `${statusData.matched_sub_product.width} × ${statusData.matched_sub_product.length} mm` },
-                                      { label: "Công đoạn đã hoàn thành", value: statusData.matched_sub_product.product_process },
-                                    ].map((item) => (
-                                      <div key={item.label} className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
-                                        <span className="text-gray-500 text-xs">{item.label}</span>
-                                        <span className="font-semibold text-gray-800">{item.value}</span>
-                                      </div>
-                                    ))}
-                                    {statusData.matched_sub_product.description && (
-                                      <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100 col-span-2">
-                                        <span className="text-gray-500 text-xs">Mô tả thêm</span>
-                                        <span className="text-gray-800">{statusData.matched_sub_product.description}</span>
-                                      </div>
-                                    )}
-                                  </div>
+                      {
+                        key: "3",
+                        label: "Bán thành phẩm",
+                        children: (
+                          <div className="space-y-4 text-sm mt-2">
+                            {statusData.has_matched_sub_product && statusData.matched_sub_product ? (
+                              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="grid grid-cols-2 gap-4">
+                                  {[
+                                    { label: "Loại sản phẩm", value: statusData.matched_sub_product.product_type_name },
+                                    { label: "Số lượng hiện có", value: (statusData.matched_sub_product.quantity || 0).toLocaleString("vi-VN") },
+                                    { label: "Kích thước (Rộng × Dài)", value: `${statusData.matched_sub_product.width} × ${statusData.matched_sub_product.length} mm` },
+                                    { label: "Công đoạn đã hoàn thành", value: statusData.matched_sub_product.product_process },
+                                  ].map((item) => (
+                                    <div key={item.label} className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100">
+                                      <span className="text-gray-500 text-xs">{item.label}</span>
+                                      <span className="font-semibold text-gray-800">{item.value}</span>
+                                    </div>
+                                  ))}
+                                  {statusData.matched_sub_product.description && (
+                                    <div className="flex flex-col gap-1 p-3 bg-white rounded shadow-sm border border-gray-100 col-span-2">
+                                      <span className="text-gray-500 text-xs">Mô tả thêm</span>
+                                      <span className="text-gray-800">{statusData.matched_sub_product.description}</span>
+                                    </div>
+                                  )}
                                 </div>
-                              ) : (
-                                <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg bg-gray-50">
-                                  <div className="text-gray-500">{statusData.sub_product_message || "Không có bán thành phẩm phù hợp."}</div>
-                                </div>
-                              )}
+                              </div>
+                            ) : (
+                              <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                                <div className="text-gray-500">{statusData.sub_product_message || "Không có bán thành phẩm phù hợp."}</div>
+                              </div>
+                            )}
 
-                              {/* Vật tư cho BOTH */}
-                              {canBoth && (statusData.remaining_materials_for_both || []).length > 0 && (
-                                <>
-                                  <h4 className="font-bold text-gray-700 mt-4">Vật tư cần thêm (phần NVL trong BOTH)</h4>
-                                  <Table
-                                    dataSource={statusData.remaining_materials_for_both}
-                                    rowKey="material_code"
-                                    pagination={false}
-                                    size="small"
-                                    bordered
-                                    columns={materialColumns}
-                                  />
-                                </>
-                              )}
-                            </div>
-                          ),
-                        },
-                      ]
+                            {/* Vật tư cho BOTH */}
+                            {canBoth && (statusData.remaining_materials_for_both || []).length > 0 && (
+                              <>
+                                <h4 className="font-bold text-gray-700 mt-4">Vật tư cần thêm (phần NVL trong BOTH)</h4>
+                                <Table
+                                  dataSource={statusData.remaining_materials_for_both}
+                                  rowKey="material_code"
+                                  pagination={false}
+                                  size="small"
+                                  bordered
+                                  columns={materialColumns}
+                                />
+                              </>
+                            )}
+                          </div>
+                        ),
+                      },
+                    ]
                     : []),
                 ]}
               />

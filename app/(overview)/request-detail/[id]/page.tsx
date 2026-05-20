@@ -272,6 +272,44 @@ export default function RequestDetailPage() {
     fetchOrderDetail();
   }, [requestId]);
 
+  // Polling để lấy link biên lai thanh toán nếu đã có thanh toán nhưng chưa có link
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const checkReceipt = async () => {
+      try {
+        const response = await requestOrderApi.getDetail(requestId);
+        const orderData = response?.data || response;
+        if (orderData && (orderData.deposit_receipt_path || orderData.remaining_receipt_path)) {
+          setRequestDetail((prev) => prev ? {
+            ...prev,
+            deposit_receipt_path: orderData.deposit_receipt_path,
+            remaining_receipt_path: orderData.remaining_receipt_path,
+            payments: orderData.payments || prev.payments,
+          } : prev);
+        }
+      } catch (error) {
+        // Bỏ qua lỗi polling
+      }
+    };
+
+    const hasCompletedPayment = requestDetail?.payments?.some(
+      (p) => p.status === 'PAID' || p.status === 'COMPLETED'
+    );
+
+    if (
+      hasCompletedPayment &&
+      !requestDetail?.deposit_receipt_path &&
+      !requestDetail?.remaining_receipt_path
+    ) {
+      intervalId = setInterval(checkReceipt, 3000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [requestId, requestDetail?.payments, requestDetail?.deposit_receipt_path, requestDetail?.remaining_receipt_path]);
+
   // Handle design file upload - Sử dụng API update-design-file
   const handleUpload: UploadProps["customRequest"] = async (options) => {
     const { file, onSuccess, onError } = options;
@@ -739,8 +777,8 @@ export default function RequestDetailPage() {
             <DesignFileDisplay designFilePath={requestDetail.design_file_path} requestId={requestDetail.order_request_id} />
 
             {/* Payment Receipts Section */}
-            {(requestDetail.deposit_receipt_path || requestDetail.remaining_receipt_path) && (
-              <div className="flex flex-col gap-3 p-4 bg-orange-50 rounded-xl border border-orange-200 shadow-sm">
+            {(requestDetail.deposit_receipt_path || requestDetail.remaining_receipt_path) ? (
+              <div className="flex flex-col gap-3 p-4 bg-orange-50 rounded-xl border border-orange-200 shadow-sm animate-fade-in-up">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-orange-200 shadow-md">
                     <CreditCardOutlined className="text-orange-600" />
@@ -771,6 +809,27 @@ export default function RequestDetailPage() {
                   </Button>
                 )}
               </div>
+            ) : (
+              requestDetail.payments && requestDetail.payments.some(p => p.status === 'PAID' || p.status === 'COMPLETED') && (
+                <div className="flex flex-col gap-3 p-4 bg-orange-50 rounded-xl border border-orange-200 shadow-sm animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-orange-200 shadow-md">
+                      <SyncOutlined spin className="text-orange-600" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-800">Biên lai thanh toán</div>
+                      <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Đang khởi tạo...</div>
+                    </div>
+                  </div>
+                  <Button
+                    type="primary"
+                    disabled
+                    className="w-full rounded-lg bg-orange-300 border-none shadow-sm h-10 font-medium text-white"
+                  >
+                    Hệ thống đang tạo biên lai
+                  </Button>
+                </div>
+              )
             )}
 
             {/* Receipt Secion */}
