@@ -681,22 +681,10 @@ useEffect(() => {
 
       const maxTotal = Number(qtyInputStage.output_product?.estimated_quantity ?? qtyInputStage.output_product?.quantity ?? 0);
       const goodVal = qtyInputValue === "" ? maxTotal : Number(qtyInputValue);
-      const badVal = qtyBadValue === "" ? 0 : Number(qtyBadValue);
+      const badVal = 0;
 
       if (qtyInputValue !== "" && (Number(qtyInputValue) < 0 || Number(qtyInputValue) > maxTotal)) {
         setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
-        setQrLoading(false);
-        return;
-      }
-
-      if (qtyBadValue !== "" && (Number(qtyBadValue) < 0 || Number(qtyBadValue) > maxTotal)) {
-        setQtyError(`Số lượng hỏng phải từ 0 đến ${maxTotal}`);
-        setQrLoading(false);
-        return;
-      }
-
-      if (goodVal + badVal !== maxTotal) {
-        setQtyError(`Tổng số lượng đạt và hỏng phải bằng ${maxTotal}`);
         setQrLoading(false);
         return;
       }
@@ -705,10 +693,8 @@ useEffect(() => {
 
       const isGroup = qrPrepare?.is_group_production === true;
       const allowManual = qrPrepare?.allow_manual_input === true;
-      const canManual = qrPrepare?.can_use_manual_input === true;
-      const manualOptional = qrPrepare?.manual_input_optional === true;
 
-      const isManualMode = isGroup || allowManual || (canManual && manualOptional && userToggleManual);
+      const isManualMode = isGroup || allowManual;
 
       // Validate materials
       if (qrPrepare && qrPrepare.consumable_materials?.length > 0) {
@@ -787,7 +773,7 @@ useEffect(() => {
         output_name: `BTP sau ${qrPrepare?.process_name || qtyInputStage.process_name}`,
         unit: qrPrepare?.production_output_unit || qrPrepare?.qty_unit || qtyInputStage.output_product?.unit || "sp",
         quantity_good: finalQty,
-        quantity_bad: qtyBadValue === "" ? 0 : Number(qtyBadValue)
+        quantity_bad: 0
       }] : undefined;
 
       const data = await tasksApi.createQRByStageId({
@@ -1870,27 +1856,10 @@ useEffect(() => {
                   );
                 })()}
 
-                {qrPrepare && qrPrepare.can_use_manual_input && qrPrepare.manual_input_optional && (
-                  <div className="flex items-center justify-between p-3 bg-blue-50/50 border border-blue-100 rounded-xl mb-4">
-                    <span className="text-xs font-bold text-blue-800 uppercase">Nhập thủ công (Tùy chọn)</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={userToggleManual}
-                        onChange={(e) => setUserToggleManual(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-                )}
-
                 {(() => {
                   const isGroup = qrPrepare?.is_group_production === true;
                   const allowManual = qrPrepare?.allow_manual_input === true;
-                  const canManual = qrPrepare?.can_use_manual_input === true;
-                  const manualOptional = qrPrepare?.manual_input_optional === true;
-                  const isManualMode = isGroup || allowManual || (canManual && manualOptional && userToggleManual);
+                  const isManualMode = isGroup || allowManual;
 
                   return (
                     <>
@@ -2106,16 +2075,13 @@ useEffect(() => {
                             const maxTotal = Number(qtyInputStage?.output_product?.estimated_quantity ?? qtyInputStage?.output_product?.quantity ?? 0);
                             
                             if (val === "") {
-                              setQtyBadValue("");
                               setQtyError("Vui lòng nhập số lượng đạt");
                             } else {
                               const goodVal = Number(val);
                               if (goodVal < 0 || goodVal > maxTotal) {
                                 setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
-                                setQtyBadValue("");
                               } else {
                                 setQtyError("");
-                                setQtyBadValue((maxTotal - goodVal).toString());
                               }
                             }
                           }}
@@ -2125,44 +2091,7 @@ useEffect(() => {
                         {qtyError && <span className="text-xs text-red-500 mt-1 block">{qtyError}</span>}
                       </div>
 
-                      {isManualMode && (
-                        <div className="mb-4">
-                          <div className="flex justify-between items-center text-xs mb-2">
-                            <h4 className="font-bold text-gray-700 uppercase">
-                              Số lượng hỏng / lỗi
-                            </h4>
-                            <span className="text-gray-500">
-                              Đơn vị tính: {qtyInputStage?.output_product?.unit}
-                            </span>
-                          </div>
-                          <input
-                            type="number"
-                            min={0}
-                            placeholder="Số lượng hỏng"
-                            value={qtyBadValue}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setQtyBadValue(val);
-                              const maxTotal = Number(qtyInputStage?.output_product?.estimated_quantity ?? qtyInputStage?.output_product?.quantity ?? 0);
-                              
-                              if (val === "") {
-                                setQtyInputValue("");
-                                setQtyError("Vui lòng nhập số lượng hỏng");
-                              } else {
-                                const badVal = Number(val);
-                                if (badVal < 0 || badVal > maxTotal) {
-                                  setQtyError(`Số lượng hỏng phải từ 0 đến ${maxTotal}`);
-                                  setQtyInputValue("");
-                                } else {
-                                  setQtyError("");
-                                  setQtyInputValue((maxTotal - badVal).toString());
-                                }
-                              }
-                            }}
-                            className="w-full border rounded-lg px-3 py-2 text-sm text-right"
-                          />
-                        </div>
-                      )}
+
                     </>
                   );
                 })()}

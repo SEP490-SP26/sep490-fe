@@ -921,22 +921,10 @@ export default function GroupProductionPage() {
 
       const maxTotal = Number(qtyInputStage.estimated_output_qty || 0);
       const goodVal = qtyInputValue === "" ? maxTotal : Number(qtyInputValue);
-      const badVal = qtyBadValue === "" ? 0 : Number(qtyBadValue);
+      const badVal = 0;
 
       if (qtyInputValue !== "" && (Number(qtyInputValue) < 0 || Number(qtyInputValue) > maxTotal)) {
         setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
-        setQrLoading(false);
-        return;
-      }
-
-      if (qtyBadValue !== "" && (Number(qtyBadValue) < 0 || Number(qtyBadValue) > maxTotal)) {
-        setQtyError(`Số lượng hỏng phải từ 0 đến ${maxTotal}`);
-        setQrLoading(false);
-        return;
-      }
-
-      if (goodVal + badVal !== maxTotal) {
-        setQtyError(`Tổng số lượng đạt và hỏng phải bằng ${maxTotal}`);
         setQrLoading(false);
         return;
       }
@@ -1021,7 +1009,7 @@ export default function GroupProductionPage() {
         output_name: `BTP sau ${qrPrepare?.process_name || qtyInputStage.process_name}`,
         unit: qrPrepare?.production_output_unit || qrPrepare?.qty_unit || qtyInputStage.outputs?.[0]?.unit || "sp",
         quantity_good: finalQty,
-        quantity_bad: qtyBadValue === "" ? 0 : Number(qtyBadValue)
+        quantity_bad: 0
       }] : undefined;
 
       const data = await tasksApi.createQRByStageId({
@@ -1529,16 +1517,13 @@ export default function GroupProductionPage() {
                         const maxTotal = Number(qtyInputStage.estimated_output_qty || 0);
                         
                         if (val === "") {
-                          setQtyBadValue("");
                           setQtyError("Vui lòng nhập số lượng đạt");
                         } else {
                           const goodVal = Number(val);
                           if (goodVal < 0 || goodVal > maxTotal) {
                             setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
-                            setQtyBadValue("");
                           } else {
                             setQtyError("");
-                            setQtyBadValue((maxTotal - goodVal).toString());
                           }
                         }
                       }}
@@ -1548,42 +1533,7 @@ export default function GroupProductionPage() {
                     {qtyError && <span className="text-xs text-red-500 mt-1 block">{qtyError}</span>}
                   </div>
 
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center text-xs mb-2">
-                      <h4 className="font-bold text-gray-700 uppercase">
-                        Số lượng hỏng / lỗi
-                      </h4>
-                      <span className="text-gray-500">
-                        Đơn vị tính: sp
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      min={0}
-                      placeholder="Số lượng hỏng"
-                      value={qtyBadValue}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setQtyBadValue(val);
-                        const maxTotal = Number(qtyInputStage.estimated_output_qty || 0);
-                        
-                        if (val === "") {
-                          setQtyInputValue("");
-                          setQtyError("Vui lòng nhập số lượng hỏng");
-                        } else {
-                          const badVal = Number(val);
-                          if (badVal < 0 || badVal > maxTotal) {
-                            setQtyError(`Số lượng hỏng phải từ 0 đến ${maxTotal}`);
-                            setQtyInputValue("");
-                          } else {
-                            setQtyError("");
-                            setQtyInputValue((maxTotal - badVal).toString());
-                          }
-                        }
-                      }}
-                      className="w-full border rounded-lg px-3 py-2 text-sm text-right"
-                    />
-                  </div>
+
 
 <div className="mb-4">
   <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
