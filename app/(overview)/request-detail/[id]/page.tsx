@@ -293,9 +293,9 @@ export default function RequestDetailPage() {
       }
     };
 
-    const hasCompletedPayment = requestDetail?.payments?.some(
-      (p) => p.status === 'PAID' || p.status === 'COMPLETED'
-    );
+    const hasCompletedPayment = 
+      requestDetail?.payments?.some((p) => p.status === 'PAID' || p.status === 'COMPLETED') ||
+      ['ACCEPTED', 'PAID', 'COMPLETED'].includes(requestDetail?.process_status?.toUpperCase() || '');
 
     if (
       hasCompletedPayment &&
@@ -810,7 +810,8 @@ export default function RequestDetailPage() {
                 )}
               </div>
             ) : (
-              requestDetail.payments && requestDetail.payments.some(p => p.status === 'PAID' || p.status === 'COMPLETED') && (
+              (requestDetail.payments?.some(p => p.status === 'PAID' || p.status === 'COMPLETED') ||
+               ['ACCEPTED', 'PAID', 'COMPLETED'].includes(requestDetail.process_status?.toUpperCase() || '')) && (
                 <div className="flex flex-col gap-3 p-4 bg-orange-50 rounded-xl border border-orange-200 shadow-sm animate-pulse">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-orange-200 shadow-md">
