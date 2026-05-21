@@ -185,7 +185,7 @@ export default function PurchaseManagement() {
       const initialized = missing_materials.map((m: any, index: number) => ({
         ...m,
         ui_id: `${m.material_id}-${Date.now()}-${index}`, // Simple unique ID
-        quantity: m.needed, // Initialize quantity
+        quantity: m.quantity, // Initialize quantity
         originalNeeded: m.needed // Track original if needed for logic, though splitting changes this context
       }));
       setDisplayMaterials(initialized);

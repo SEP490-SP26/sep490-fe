@@ -55,6 +55,7 @@ export interface OrderRequestDetailItem {
   note: string;
   consultant_note: string | null;
   message_to_customer: string | null;
+  
 
   // --- Quy cách Kỹ thuật & Bình bản ---
   number_of_plates: number;

@@ -248,18 +248,18 @@ export default function ManagerOrdersPage() {
       align: "right" as const,
       render: (date: string) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
     },
-    {
-      title: "Giá Báo (₫)",
-      dataIndex: "final_cost",
-      key: "final_cost",
-      align: "right" as const,
-      render: (val: number) =>
-        val ? (
-          <b className="text-green-600 font-mono">{val.toLocaleString()}</b>
-        ) : (
-          <span className="text-gray-400">-</span>
-        ),
-    },
+    // {
+    //   title: "Giá Báo (₫)",
+    //   dataIndex: "final_cost",
+    //   key: "final_cost",
+    //   align: "right" as const,
+    //   render: (val: number) =>
+    //     val ? (
+    //       <b className="text-green-600 font-mono">{val.toLocaleString()}</b>
+    //     ) : (
+    //       <span className="text-gray-400">-</span>
+    //     ),
+    // },
     {
       title: 'Tiền cọc',
       dataIndex: 'deposit_amount',

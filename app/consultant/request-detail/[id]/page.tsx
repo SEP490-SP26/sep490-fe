@@ -1572,7 +1572,7 @@ export default function ConsultantRequestDetailPage() {
                     open={isPreviewModalOpen}
                     onCancel={() => setIsPreviewModalOpen(false)}
                     footer={null}
-                    width={previewData && previewData.quotes.length > 1 ? 1300 : 700}
+                    width={previewData && previewData.quotes.length > 1 ? 1300 : 1000}
                     centered
                     destroyOnClose
                     className="quote-preview-modal"
@@ -1597,7 +1597,7 @@ export default function ConsultantRequestDetailPage() {
                                     </div>
                                 )}
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 shrink-0">
                                 <button
                                     onClick={() => setIsPreviewModalOpen(false)}
                                     className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-all mr-2"
@@ -1607,7 +1607,7 @@ export default function ConsultantRequestDetailPage() {
                                 <button
                                     disabled={!isContractCommitted || !isAllContractsReviewed || !hasContract || sending}
                                     onClick={handleSendQuote}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap 
                                         ${(!isContractCommitted || !isAllContractsReviewed || !hasContract || sending)
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70 grayscale'
                                             : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-md shadow-emerald-100'
