@@ -100,7 +100,7 @@ export default function ProductionDetailPage() {
   const [qrToken, setQrToken] = useState<string>("");
   // State for Create QR Input Modal
   const [showCreateQRInputModal, setShowCreateQRInputModal] = useState(false);
-  const [qtyGoodInput, setQtyGoodInput] = useState<number | "">("");
+  const [qtyGoodInput, setQtyGoodInput] = useState<string>("");
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
   // State for Finish Task Modal
@@ -119,7 +119,8 @@ export default function ProductionDetailPage() {
   };
 
   const handleCreateQR = async () => {
-    if (!selectedTaskId || qtyGoodInput === "" || Number(qtyGoodInput) < 0) {
+    const goodVal = qtyGoodInput === "" ? 0 : Number(qtyGoodInput);
+    if (!selectedTaskId || goodVal < 0) {
       showErrorToast("Vui lòng nhập số lượng hợp lệ");
       return;
     }
@@ -129,7 +130,7 @@ export default function ProductionDetailPage() {
       const response = await tasksApi.createQRByStageId({
         task_id: selectedTaskId,
         ttl_minutes: 120,
-        qty_good: Number(qtyGoodInput),
+        qty_good: goodVal,
       });
       console.log('response ', response);
       console.log('response.token ', response.token);
@@ -642,8 +643,8 @@ export default function ProductionDetailPage() {
                   type="number"
                   className="w-full border border-gray-300 rounded-md p-2"
                   value={qtyGoodInput}
-                  onChange={(e) => setQtyGoodInput(Number(e.target.value))}
-                  placeholder="Nhập số lượng..."
+                  onChange={(e) => setQtyGoodInput(e.target.value)}
+                  placeholder="Mặc định: 0..."
                   min="0"
                 />
               </div>

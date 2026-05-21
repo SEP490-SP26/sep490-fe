@@ -88,7 +88,7 @@ export interface ProductionStage {
 }
 
 export interface ProductionResponse {
-// --- Định danh và Mã số ---
+  // --- Định danh và Mã số ---
   prod_id: number;
   production_code: string;
   production_status: string;
@@ -287,11 +287,10 @@ function QrModal({
             <button
               type="button"
               onClick={handleCopy}
-              className={`flex-shrink-0 text-xs px-2 py-1 rounded transition-all font-medium ${
-                copied
+              className={`flex-shrink-0 text-xs px-2 py-1 rounded transition-all font-medium ${copied
                   ? "bg-green-100 text-green-700 border border-green-200"
                   : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
-              }`}
+                }`}
             >
               {copied ? "Đã chép" : "Sao chép"}
             </button>
@@ -373,39 +372,36 @@ function ProductionTimeline({ stages }: { stages: ProductionStage[] }) {
             >
               <div
                 className={`w-10 h-10 rounded-full border-2 flex items-center justify-center z-10 text-sm font-bold transition-all duration-300
-                ${
-                  isDone
+                ${isDone
                     ? "bg-green-500 border-green-500 text-white shadow-md shadow-green-200"
                     : isCurrent
-                    ? "bg-white border-blue-500 text-blue-600 shadow-md shadow-blue-200 ring-4 ring-blue-100"
-                    : "bg-white border-gray-300 text-gray-400"
-                }`}
+                      ? "bg-white border-blue-500 text-blue-600 shadow-md shadow-blue-200 ring-4 ring-blue-100"
+                      : "bg-white border-gray-300 text-gray-400"
+                  }`}
               >
                 {stage.seq_num}
               </div>
 
               <span
                 className={`mt-2 text-xs font-semibold leading-tight
-                ${
-                  isDone
+                ${isDone
                     ? "text-green-600"
                     : isCurrent
-                    ? "text-blue-600"
-                    : "text-gray-400"
-                }`}
+                      ? "text-blue-600"
+                      : "text-gray-400"
+                  }`}
               >
                 {stage.process_name}
               </span>
 
               <span
                 className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full font-medium
-                ${
-                  isDone
+                ${isDone
                     ? "bg-green-100 text-green-700"
                     : isCurrent
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-gray-100 text-gray-400"
-                }`}
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-400"
+                  }`}
               >
                 {STATUS_MAP[stage.status]?.label ?? stage.status ?? "—"}
               </span>
@@ -458,7 +454,7 @@ export default function ProductionDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  
+
 
   const [qtyInputStage, setQtyInputStage] =
     useState<ProductionStage | null>(null);
@@ -496,73 +492,73 @@ export default function ProductionDetailPage() {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [readyLoading, setReadyLoading] = useState<number | null>(null);
 
-useEffect(() => {
-  return () => {
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-  };
-}, [previewUrls]);
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
 
 
   // Global Scanner Detection
   const handleQrScannedRef = useRef<any>(null);
 
   useEffect(() => {
-  let buffer = "";
-  let lastKeyTime = 0;
-  let scanTimer: NodeJS.Timeout | null = null;
+    let buffer = "";
+    let lastKeyTime = 0;
+    let scanTimer: NodeJS.Timeout | null = null;
 
-  const finishScan = () => {
-    const value = buffer.trim();
+    const finishScan = () => {
+      const value = buffer.trim();
 
-    if (value.length >= 6 && handleQrScannedRef.current) {
-      handleQrScannedRef.current(value);
-    }
+      if (value.length >= 6 && handleQrScannedRef.current) {
+        handleQrScannedRef.current(value);
+      }
 
-    buffer = "";
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    const tag = document.activeElement?.tagName;
-
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-    const now = Date.now();
-
-    // nếu ngắt quãng quá lâu mới reset
-    if (now - lastKeyTime > 200) {
       buffer = "";
-    }
+    };
 
-    lastKeyTime = now;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = document.activeElement?.tagName;
 
-    if (e.key === "Enter") {
-      e.preventDefault();
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
 
+      const now = Date.now();
+
+      // nếu ngắt quãng quá lâu mới reset
+      if (now - lastKeyTime > 200) {
+        buffer = "";
+      }
+
+      lastKeyTime = now;
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+
+        if (scanTimer) clearTimeout(scanTimer);
+
+        finishScan();
+        return;
+      }
+
+      if (e.key.length === 1) {
+        buffer += e.key;
+      }
+
+      // fallback nếu scanner không gửi Enter
       if (scanTimer) clearTimeout(scanTimer);
 
-      finishScan();
-      return;
-    }
+      scanTimer = setTimeout(() => {
+        finishScan();
+      }, 300);
+    };
 
-    if (e.key.length === 1) {
-      buffer += e.key;
-    }
+    window.addEventListener("keydown", handleKeyDown);
 
-    // fallback nếu scanner không gửi Enter
-    if (scanTimer) clearTimeout(scanTimer);
-
-    scanTimer = setTimeout(() => {
-      finishScan();
-    }, 300);
-  };
-
-  window.addEventListener("keydown", handleKeyDown);
-
-  return () => {
-    window.removeEventListener("keydown", handleKeyDown);
-    if (scanTimer) clearTimeout(scanTimer);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      if (scanTimer) clearTimeout(scanTimer);
+    };
+  }, []);
 
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
@@ -581,11 +577,11 @@ useEffect(() => {
 
 
   const sortedStages = useMemo(() => {
-  return production?.stages
-    ?.slice()
-    .filter((s) => s.status !== "GroupedWaiting" && s.status !== null)
-    .sort((a, b) => a.seq_num - b.seq_num);
-}, [production]);
+    return production?.stages
+      ?.slice()
+      .filter((s) => s.status !== "GroupedWaiting" && s.status !== null)
+      .sort((a, b) => a.seq_num - b.seq_num);
+  }, [production]);
 
   //signalr
   useEffect(() => {
@@ -632,19 +628,34 @@ useEffect(() => {
     totalStages > 0 ? Math.round((finishedStages / totalStages) * 100) : 0;
 
   /* ===== QR LOGIC ===== */
-  const fetchQrPrepare = async (taskId: number) => {
+  const fetchQrPrepare = async (taskId: number, processName?: string) => {
     try {
       setPrepareLoading(true);
       const res = await tasksApi.qrPrepare(taskId);
       const data = res.data ?? res;
+
+      const isPrintStage = (processName || qtyInputStage?.process_name)?.toLowerCase().includes("in");
+      if (isPrintStage && data.consumable_materials) {
+        data.consumable_materials = data.consumable_materials.map((m: any) => {
+          const name = m.material_name?.toLowerCase() || "";
+          const isPaper = name.includes("giấy") || name.includes("giay");
+          return isPaper ? { ...m, _isPaperInPrint: true } : m;
+        });
+      }
+
       setQrPrepare(data);
 
       const initUsed: { [id: number]: string } = {};
       const initLeft: { [id: number]: string } = {};
       const consumable = data.consumable_materials || [];
       consumable.forEach((m: any) => {
-        initUsed[m.material_id] = m.estimated_input_qty != null ? m.estimated_input_qty.toString() : "";
-        initLeft[m.material_id] = "";
+        if (m._isPaperInPrint) {
+          initUsed[m.material_id] = "0";
+          initLeft[m.material_id] = "0";
+        } else {
+          initUsed[m.material_id] = m.estimated_input_qty != null ? m.estimated_input_qty.toString() : "";
+          initLeft[m.material_id] = "";
+        }
       });
       setMaterialUsed(initUsed);
       setMaterialQtys(initLeft);
@@ -680,7 +691,7 @@ useEffect(() => {
       setQrLoading(true);
 
       const maxTotal = Number(qtyInputStage.output_product?.estimated_quantity ?? qtyInputStage.output_product?.quantity ?? 0);
-      const goodVal = qtyInputValue === "" ? maxTotal : Number(qtyInputValue);
+      const goodVal = qtyInputValue === "" ? 0 : Number(qtyInputValue);
       const badVal = 0;
 
       if (qtyInputValue !== "" && (Number(qtyInputValue) < 0 || Number(qtyInputValue) > maxTotal)) {
@@ -699,17 +710,14 @@ useEffect(() => {
       // Validate materials
       if (qrPrepare && qrPrepare.consumable_materials?.length > 0) {
         for (const mat of qrPrepare.consumable_materials) {
-          const leftVal = materialQtys[mat.material_id];
-          const usedVal = materialUsed[mat.material_id];
-          
-          if (leftVal === "" || usedVal === "" || leftVal === undefined || usedVal === undefined) {
-            setQtyError(`Vui lòng nhập đầy đủ thông tin cho vật liệu tiêu hao ${mat.material_name}`);
-            setQrLoading(false);
-            return;
-          }
+          if (mat._isPaperInPrint) continue;
+          const leftVal = materialQtys[mat.material_id] ?? "";
+          const usedVal = materialUsed[mat.material_id] ?? "";
+          const numLeft = leftVal === "" ? 0 : Number(leftVal);
+          const numUsed = usedVal === "" ? 0 : Number(usedVal);
 
           const maxVal = Number(mat.estimated_input_qty || 0);
-          if (Number(leftVal) + Number(usedVal) !== maxVal) {
+          if (numLeft + numUsed !== maxVal) {
             setQtyError(`Tổng thực tế đã dùng và lượng dư của ${mat.material_name} phải bằng ${maxVal}`);
             setQrLoading(false);
             return;
@@ -720,17 +728,13 @@ useEffect(() => {
       // Validate BTP (reference inputs)
       if (isManualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0) {
         for (const ref of qrPrepare.reference_inputs) {
-          const leftVal = refLeft[ref.input_code];
-          const usedVal = refUsed[ref.input_code];
-
-          if (leftVal === "" || usedVal === "" || leftVal === undefined || usedVal === undefined) {
-            setQtyError(`Vui lòng nhập đầy đủ thông tin cho BTP đầu vào ${ref.input_name}`);
-            setQrLoading(false);
-            return;
-          }
+          const leftVal = refLeft[ref.input_code] ?? "";
+          const usedVal = refUsed[ref.input_code] ?? "";
+          const numLeft = leftVal === "" ? 0 : Number(leftVal);
+          const numUsed = usedVal === "" ? 0 : Number(usedVal);
 
           const maxVal = Number(ref.estimated_qty || 0);
-          if (Number(leftVal) + Number(usedVal) !== maxVal) {
+          if (numLeft + numUsed !== maxVal) {
             setQtyError(`Tổng thực tế đã dùng và lượng dư của ${ref.input_name} phải bằng ${maxVal}`);
             setQrLoading(false);
             return;
@@ -744,7 +748,7 @@ useEffect(() => {
           const qtyLeftStr = materialQtys[mat.material_id];
           const qtyUsed = qtyUsedStr === "" || qtyUsedStr === undefined ? 0 : Number(qtyUsedStr);
           const qtyLeft = qtyLeftStr === "" || qtyLeftStr === undefined ? 0 : Number(qtyLeftStr);
-          
+
           return {
             material_id: mat.material_id,
             quantity_used: isManualMode ? qtyUsed : 0,
@@ -758,7 +762,7 @@ useEffect(() => {
         const rLeftStr = refLeft[x.input_code];
         const rUsed = rUsedStr === "" || rUsedStr === undefined ? (x.estimated_qty ?? 0) : Number(rUsedStr);
         const rLeft = rLeftStr === "" || rLeftStr === undefined ? 0 : Number(rLeftStr);
-        
+
         return {
           input_code: x.input_code,
           input_name: x.input_name,
@@ -910,17 +914,17 @@ useEffect(() => {
   const inkTypes = production?.ink_type_names
     ? production.ink_type_names.split(",").map((s) => s.trim())
     : [];
-    //=================
-    const lastStage = sortedStages?.[sortedStages.length - 1];
-    const addDays = (date?: string | null, days: number = 0) => {
-      if (!date) return "";
-      const d = new Date(date);
-      d.setDate(d.getDate() + days);
-      return d.toISOString();
-    };
-    const finalDeadline = lastStage?.planned_end_time
-  ? addDays(lastStage.planned_end_time, 1)
-  : null;
+  //=================
+  const lastStage = sortedStages?.[sortedStages.length - 1];
+  const addDays = (date?: string | null, days: number = 0) => {
+    if (!date) return "";
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d.toISOString();
+  };
+  const finalDeadline = lastStage?.planned_end_time
+    ? addDays(lastStage.planned_end_time, 1)
+    : null;
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* BACK BUTTON */}
@@ -1120,340 +1124,339 @@ useEffect(() => {
             <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-dashed border-gray-200">Tất cả công đoạn đã hoàn thành 🎉</div>
           )}
 
-        {sortedStages?.filter(s => s.status !== "Finished").map((stage, index) => {
-          const isCollapsed = collapsedStages[stage.process_id] ?? true;
-          const statusInfo = STATUS_MAP[stage.status] ?? {
-            label: stage.status ?? "Không rõ",
-            color: "text-gray-500",
-            bg: "bg-gray-50",
-            border: "border-gray-200",
-          };
-          
-          const isStageReached = sortedStages
-            .filter((s) => s.seq_num < stage.seq_num)
-            .every((s) => s.status === "Finished");
+          {sortedStages?.filter(s => s.status !== "Finished").map((stage, index) => {
+            const isCollapsed = collapsedStages[stage.process_id] ?? true;
+            const statusInfo = STATUS_MAP[stage.status] ?? {
+              label: stage.status ?? "Không rõ",
+              color: "text-gray-500",
+              bg: "bg-gray-50",
+              border: "border-gray-200",
+            };
 
-          return (
-            <div
-              key={stage.process_id}
-              className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}
-            >
-              {/* Stage Header */}
+            const isStageReached = sortedStages
+              .filter((s) => s.seq_num < stage.seq_num)
+              .every((s) => s.status === "Finished");
+
+            return (
               <div
-                className={`flex justify-between items-center px-5 py-4 cursor-pointer ${statusInfo.bg}`}
-                onClick={() => toggleStage(stage.process_id)}
+                key={stage.process_id}
+                className={`rounded-2xl border overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md ${statusInfo.border}`}
               >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
-                      stage.status === "Finished"
-                        ? "bg-green-500 border-green-500 text-white"
-                        : stage.status === "InProcessing" ||
-                          stage.status === "Ready"
-                        ? "bg-white border-blue-500 text-blue-600"
-                        : "bg-white border-gray-300 text-gray-400"
-                    }`}
-                  >
+                {/* Stage Header */}
+                <div
+                  className={`flex justify-between items-center px-5 py-4 cursor-pointer ${statusInfo.bg}`}
+                  onClick={() => toggleStage(stage.process_id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${stage.status === "Finished"
+                          ? "bg-green-500 border-green-500 text-white"
+                          : stage.status === "InProcessing" ||
+                            stage.status === "Ready"
+                            ? "bg-white border-blue-500 text-blue-600"
+                            : "bg-white border-gray-300 text-gray-400"
+                        }`}
+                    >
                       {stage.seq_num}
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                      {stage.process_name}
-                      <span className="text-gray-400 font-normal text-sm">
-                        (Phụ trách: Phòng {stage.process_name})
-                      </span>
-                    </h3>
-                    <div className="flex items-center flex-wrap gap-2">
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-md ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}
-                      >
-                        {production?.production_status === "Scheduled"
-                          ? "Chưa bắt đầu sản xuất"
-                          : statusInfo.label}
-                      </span>
-                      {stage.assigned_to_name && (
-                        <span className="text-xs text-gray-600 font-medium flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md border border-gray-200">
-                          <BsPerson className="w-3.5 h-3.5" />
-                          {stage.assigned_to_name}
-                        </span>
-                      )}
-                      {stage.is_taken_sub_product && (
-                        <span className="text-xs font-bold text-teal-700 flex items-center gap-1.5 px-3 py-1 bg-teal-100 rounded-md border border-teal-300 shadow-sm">
-                          Hoàn thành từ bán thành phẩm có sẵn
-                        </span>
-                      )}
-                      <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-md border border-blue-300 shadow-sm">
-                        <BsClock className="w-3.5 h-3.5" />
-                        Dự kiến: {formatDateTime(stage.planned_start_time)} - {formatDateTime(stage.planned_end_time)}
-                      </span>
                     </div>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-3">
-                  {isCollapsed ? (
-                    <BsChevronDown className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <BsChevronUp className="w-5 h-5 text-gray-400" />
-                  )}
-                </div>
-              </div>
-
-              {/* Stage Body */}
-              {!isCollapsed && (
-                <div className="p-5 space-y-5">
-                  {/* Time Info - Actual Time */}
-                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-green-50 rounded-xl p-4 border border-green-100 h-full">
-                      <p className="text-xs text-green-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                        <BsClock className="w-3.5 h-3.5" />
-                        Thời gian thực tế
-                      </p>
-                      <div className="space-y-1.5 text-sm">
-                        <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
-                          <span className="text-gray-500 font-medium">Bắt đầu:</span>
-                          <span className="font-bold text-gray-800">
-                            {formatDateTime(stage.start_time)}
+                    <div className="flex flex-col gap-1.5">
+                      <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                        {stage.process_name}
+                        <span className="text-gray-400 font-normal text-sm">
+                          (Phụ trách: Phòng {stage.process_name})
+                        </span>
+                      </h3>
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-md ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}
+                        >
+                          {production?.production_status === "Scheduled"
+                            ? "Chưa bắt đầu sản xuất"
+                            : statusInfo.label}
+                        </span>
+                        {stage.assigned_to_name && (
+                          <span className="text-xs text-gray-600 font-medium flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-md border border-gray-200">
+                            <BsPerson className="w-3.5 h-3.5" />
+                            {stage.assigned_to_name}
                           </span>
-                        </div>
-                        <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
-                          <span className="text-gray-500 font-medium">Kết thúc:</span>
-                          <span className="font-bold text-gray-800">
-                            {formatDateTime(stage.end_time)}
+                        )}
+                        {stage.is_taken_sub_product && (
+                          <span className="text-xs font-bold text-teal-700 flex items-center gap-1.5 px-3 py-1 bg-teal-100 rounded-md border border-teal-300 shadow-sm">
+                            Hoàn thành từ bán thành phẩm có sẵn
                           </span>
-                        </div>
+                        )}
+                        <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-md border border-blue-300 shadow-sm">
+                          <BsClock className="w-3.5 h-3.5" />
+                          Dự kiến: {formatDateTime(stage.planned_start_time)} - {formatDateTime(stage.planned_end_time)}
+                        </span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* N_UP Info */}
-                    {(stage.process_name.toLowerCase().includes("cắt") || stage.process_name.toLowerCase().includes("in")) && stage.n_up != null && (
-                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 h-full">
-                        <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                          <BsLayers className="w-3.5 h-3.5" />
-                          Thông số kỹ thuật
+                  <div className="flex items-center gap-3">
+                    {isCollapsed ? (
+                      <BsChevronDown className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <BsChevronUp className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Stage Body */}
+                {!isCollapsed && (
+                  <div className="p-5 space-y-5">
+                    {/* Time Info - Actual Time */}
+                    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-100 h-full">
+                        <p className="text-xs text-green-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                          <BsClock className="w-3.5 h-3.5" />
+                          Thời gian thực tế
                         </p>
                         <div className="space-y-1.5 text-sm">
-                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-blue-100">
-                            <span className="text-gray-500 font-medium">Số SP / 1 tờ giấy:</span>
+                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                            <span className="text-gray-500 font-medium">Bắt đầu:</span>
                             <span className="font-bold text-gray-800">
-                              {stage.n_up}
+                              {formatDateTime(stage.start_time)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-green-100">
+                            <span className="text-gray-500 font-medium">Kết thúc:</span>
+                            <span className="font-bold text-gray-800">
+                              {formatDateTime(stage.end_time)}
                             </span>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Materials I/O */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Input Materials */}
-                    <div className="flex flex-col">
-                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                        <BsArrowRight className="w-4 h-4 text-orange-500" />
-                        Nguyên vật liệu đầu vào
-                      </h4>
-                      <div className="border rounded-xl overflow-hidden flex-1">
-                        <table className="w-full text-sm">
-                          <thead className="bg-orange-50">
-                            <tr>
-                              <th className="px-3 py-2.5 text-left text-xs font-semibold text-orange-600">
-                                Tên vật liệu
-                              </th>
-                              <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
-                                Số lượng ước tính
-                              </th>
-                              <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">
-                                ĐVT
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {stage.input_materials.length === 0 ? (
+                      {/* N_UP Info */}
+                      {(stage.process_name.toLowerCase().includes("cắt") || stage.process_name.toLowerCase().includes("in")) && stage.n_up != null && (
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 h-full">
+                          <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                            <BsLayers className="w-3.5 h-3.5" />
+                            Thông số kỹ thuật
+                          </p>
+                          <div className="space-y-1.5 text-sm">
+                            <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-blue-100">
+                              <span className="text-gray-500 font-medium">Số SP / 1 tờ giấy:</span>
+                              <span className="font-bold text-gray-800">
+                                {stage.n_up}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Materials I/O */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Input Materials */}
+                      <div className="flex flex-col">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                          <BsArrowRight className="w-4 h-4 text-orange-500" />
+                          Nguyên vật liệu đầu vào
+                        </h4>
+                        <div className="border rounded-xl overflow-hidden flex-1">
+                          <table className="w-full text-sm">
+                            <thead className="bg-orange-50">
                               <tr>
-                                <td
-                                  colSpan={3}
-                                  className="px-3 py-4 text-center text-gray-400 text-xs"
-                                >
-                                  Không có dữ liệu
-                                </td>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-orange-600">
+                                  Tên vật liệu
+                                </th>
+                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
+                                  Số lượng ước tính
+                                </th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">
+                                  ĐVT
+                                </th>
                               </tr>
-                            ) : (
-                              stage.input_materials.map(
-                                (m: any, i: number) => (
-                                  <tr
-                                    key={i}
-                                    className="border-t hover:bg-orange-50/50 transition"
+                            </thead>
+                            <tbody>
+                              {stage.input_materials.length === 0 ? (
+                                <tr>
+                                  <td
+                                    colSpan={3}
+                                    className="px-3 py-4 text-center text-gray-400 text-xs"
                                   >
-                                    <td className="px-3 py-2.5 text-gray-700">
-                                      {m.name}
-                                    </td>
-                                    <td className="px-3 py-2.5 text-right font-semibold">
-                                      {typeof m.estimated_quantity === "number"
-                                        ? m.estimated_quantity % 1 !== 0
-                                          ? m.estimated_quantity.toFixed(2)
-                                          : m.estimated_quantity.toLocaleString("vi-VN")
-                                        : m.estimated_quantity}
-                                    </td>
-                                    <td className="px-3 py-2.5 text-center text-gray-500">
-                                      {m.unit}
-                                    </td>
-                                  </tr>
+                                    Không có dữ liệu
+                                  </td>
+                                </tr>
+                              ) : (
+                                stage.input_materials.map(
+                                  (m: any, i: number) => (
+                                    <tr
+                                      key={i}
+                                      className="border-t hover:bg-orange-50/50 transition"
+                                    >
+                                      <td className="px-3 py-2.5 text-gray-700">
+                                        {m.name}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-right font-semibold">
+                                        {typeof m.estimated_quantity === "number"
+                                          ? m.estimated_quantity % 1 !== 0
+                                            ? m.estimated_quantity.toFixed(2)
+                                            : m.estimated_quantity.toLocaleString("vi-VN")
+                                          : m.estimated_quantity}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center text-gray-500">
+                                        {m.unit}
+                                      </td>
+                                    </tr>
+                                  )
                                 )
-                              )
-                            )}
-                          </tbody>
-                        </table>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Output Product */}
-                    <div className="flex flex-col">
-                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                        <BsBoxSeam className="w-4 h-4 text-green-500" />
-                        Thành phẩm công đoạn
-                      </h4>
-                      <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col justify-center flex-1">
-                        <p className="font-semibold text-green-800 mb-3">
-                          {stage.output_product.name}
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* Estimated */}
-                          <div className="bg-white border border-green-200 rounded-lg p-3">
-                            <p className="text-xs text-gray-500 mb-1">Ước tính</p>
-                            <p className="text-green-700">
-                              <span className="font-bold text-lg">
-                                {stage.output_product.estimated_quantity.toLocaleString("vi-VN")}
-                              </span>{" "}
-                              <span className="text-sm">{stage.output_product.unit}</span>
-                            </p>
-                          </div>
-                          {/* Actual */}
-                          <div className="bg-white border border-blue-200 rounded-lg p-3">
-                            <p className="text-xs text-gray-500 mb-1">Thực tế</p>
-                            <p className="text-blue-700">
-                              <span className="font-bold text-lg">
-                                {stage.output_product.actual_quantity != null
-                                  ? stage.output_product.actual_quantity.toLocaleString("vi-VN")
-                                  : "—"}
-                              </span>{" "}
-                              <span className="text-sm">{stage.output_product.unit}</span>
-                            </p>
+                      {/* Output Product */}
+                      <div className="flex flex-col">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                          <BsBoxSeam className="w-4 h-4 text-green-500" />
+                          Thành phẩm công đoạn
+                        </h4>
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col justify-center flex-1">
+                          <p className="font-semibold text-green-800 mb-3">
+                            {stage.output_product.name}
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Estimated */}
+                            <div className="bg-white border border-green-200 rounded-lg p-3">
+                              <p className="text-xs text-gray-500 mb-1">Ước tính</p>
+                              <p className="text-green-700">
+                                <span className="font-bold text-lg">
+                                  {stage.output_product.estimated_quantity.toLocaleString("vi-VN")}
+                                </span>{" "}
+                                <span className="text-sm">{stage.output_product.unit}</span>
+                              </p>
+                            </div>
+                            {/* Actual */}
+                            <div className="bg-white border border-blue-200 rounded-lg p-3">
+                              <p className="text-xs text-gray-500 mb-1">Thực tế</p>
+                              <p className="text-blue-700">
+                                <span className="font-bold text-lg">
+                                  {(() => {
+                                    const actVal = stage.output_product.actual_quantity ?? (stage.output_product as any).actual_qty;
+                                    return actVal != null ? actVal.toLocaleString("vi-VN") : "—";
+                                  })()}
+                                </span>{" "}
+                                <span className="text-sm">{stage.output_product.unit}</span>
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Scan Logs */}
-                  {stage.logs && stage.logs.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                        <BsClipboardCheck className="w-4 h-4 text-purple-500" />
-                        Lịch sử scan
-                      </h4>
-                      <div className="border rounded-xl overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead className="bg-purple-50">
-                            <tr>
-                              <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
-                                Thời gian
-                              </th>
-                              <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                                Số lượng thành phẩm
-                              </th>
-                              <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
-                                Hình ảnh
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {stage.logs.map((log, i) => (
-                              <tr key={i} className="border-t">
-                                <td className="px-3 py-2.5">
-                                  {formatDateTime(log.log_time || log.scanned_at)}
-                                </td>
-                                <td className="px-3 py-2.5 text-right text-green-600 font-bold">
-                                  {log.qty_good}
-                                </td>
-                                <td className="px-3 py-2.5 text-center">
-                                  {log.report_image_urls && log.report_image_urls.length > 0 ? (
-                                    <div className="flex justify-center gap-1 flex-wrap">
-                                      {log.report_image_urls.map((url, idx) => (
-                                        <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
-                                          <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
-                                        </a>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <span className="text-gray-400 text-xs">—</span>
-                                  )}
-                                </td>
+                    {/* Scan Logs */}
+                    {stage.logs && stage.logs.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                          <BsClipboardCheck className="w-4 h-4 text-purple-500" />
+                          Lịch sử scan
+                        </h4>
+                        <div className="border rounded-xl overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-purple-50">
+                              <tr>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
+                                  Thời gian
+                                </th>
+                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
+                                  Số lượng thành phẩm
+                                </th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
+                                  Hình ảnh
+                                </th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {stage.logs.map((log, i) => (
+                                <tr key={i} className="border-t">
+                                  <td className="px-3 py-2.5">
+                                    {formatDateTime(log.log_time || log.scanned_at)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right text-green-600 font-bold">
+                                    {log.qty_good}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center">
+                                    {log.report_image_urls && log.report_image_urls.length > 0 ? (
+                                      <div className="flex justify-center gap-1 flex-wrap">
+                                        {log.report_image_urls.map((url, idx) => (
+                                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
+                                            <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Last scan info & Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">
+                      <p className="text-xs text-gray-400">
+                        {stage.last_scan_time
+                          ? `Lần scan cuối: ${formatDateTime(stage.last_scan_time)}`
+                          : "Chưa có dữ liệu scan"}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {stage.status === "Unassigned" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReadyTask(stage.task_id);
+                            }}
+                            disabled={readyLoading === stage.task_id || !isStageReached}
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${isStageReached
+                                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              }`}
+                          >
+                            <BsPlayCircle className="w-4 h-4" /> Bắt đầu sản xuất
+                          </button>
+                        )}
+                        {stage.status === "GroupedWaiting" && (
+                          <div className="flex items-center justify-center px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-sm font-medium">
+                            Đang sản xuất trong lệnh ghép
+                          </div>
+                        )}
+                        {["InProcessing", "Ready"].includes(stage.status) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const estQty = stage.output_product?.estimated_quantity ?? stage.output_product?.quantity ?? 0;
+                              setQtyInputValue(estQty.toString());
+                              setQtyBadValue("0");
+                              setQtyError("");
+                              setReportImages([]);
+                              setPreviewUrls([]);
+                              setReportReason("");
+                              setQtyInputStage(stage);
+                              fetchQrPrepare(stage.task_id, stage.process_name);
+                            }}
+                            disabled={qrLoading}
+                            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                          >
+                            <BsClipboardCheck className="w-4 h-4" /> Báo cáo hoàn thành
+                          </button>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Last scan info & Actions */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">
-                    <p className="text-xs text-gray-400">
-                      {stage.last_scan_time
-                        ? `Lần scan cuối: ${formatDateTime(stage.last_scan_time)}`
-                        : "Chưa có dữ liệu scan"}
-                    </p>
-                    
-                    <div className="flex flex-wrap items-center gap-2">
-                      {stage.status === "Unassigned" && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReadyTask(stage.task_id);
-                          }}
-                          disabled={readyLoading === stage.task_id || !isStageReached}
-                          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${
-                            isStageReached
-                              ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                          }`}
-                        >
-                          <BsPlayCircle className="w-4 h-4" /> Bắt đầu sản xuất
-                        </button>
-                      )}
-                      {stage.status === "GroupedWaiting" && (
-                        <div className="flex items-center justify-center px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-sm font-medium">
-                          Đang sản xuất trong lệnh ghép
-                        </div>
-                      )}
-                      {["InProcessing", "Ready"].includes(stage.status) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const estQty = stage.output_product?.estimated_quantity ?? stage.output_product?.quantity ?? 0;
-                            setQtyInputValue(estQty.toString());
-                            setQtyBadValue("0");
-                            setQtyError("");
-                            setReportImages([]);
-                            setPreviewUrls([]);
-                            setReportReason("");
-                            setQtyInputStage(stage);
-                            fetchQrPrepare(stage.task_id);
-                          }}
-                          disabled={qrLoading}
-                          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-                        >
-                          <BsClipboardCheck className="w-4 h-4" /> Báo cáo hoàn thành
-                        </button>
-                      )}
-                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Column 2: Đã hoàn thành */}
@@ -1488,14 +1491,13 @@ useEffect(() => {
                 >
                   <div className="flex items-center gap-4">
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
-                        stage.status === "Finished"
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${stage.status === "Finished"
                           ? "bg-green-500 border-green-500 text-white"
                           : stage.status === "InProcessing" ||
                             stage.status === "Ready"
-                          ? "bg-white border-blue-500 text-blue-600"
-                          : "bg-white border-gray-300 text-gray-400"
-                      }`}
+                            ? "bg-white border-blue-500 text-blue-600"
+                            : "bg-white border-gray-300 text-gray-400"
+                        }`}
                     >
                       {stage.seq_num}
                     </div>
@@ -1638,13 +1640,13 @@ useEffect(() => {
                                           : m.estimated_quantity}
                                       </td>
                                       <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                                        {m.actual_quantity !== null && m.actual_quantity !== undefined
-                                          ? typeof m.actual_quantity === "number"
-                                            ? m.actual_quantity % 1 !== 0
-                                              ? m.actual_quantity.toFixed(2)
-                                              : m.actual_quantity.toLocaleString("vi-VN")
-                                            : m.actual_quantity
-                                          : "—"}
+                                        {(() => {
+                                          const actVal = m.actual_quantity ?? m.actual_qty ?? (m as any).quantity_used;
+                                          if (actVal === null || actVal === undefined) return "—";
+                                          const n = Number(actVal);
+                                          if (isNaN(n)) return String(actVal);
+                                          return n % 1 !== 0 ? n.toFixed(2) : n.toLocaleString("vi-VN");
+                                        })()}
                                       </td>
                                       <td className="px-3 py-2.5 text-center text-gray-500">
                                         {m.unit}
@@ -1684,9 +1686,10 @@ useEffect(() => {
                               <p className="text-xs text-gray-500 mb-1">Thực tế</p>
                               <p className="text-blue-700">
                                 <span className="font-bold text-lg">
-                                  {stage.output_product.actual_quantity != null
-                                    ? stage.output_product.actual_quantity.toLocaleString("vi-VN")
-                                    : "—"}
+                                  {(() => {
+                                    const actVal = stage.output_product.actual_quantity ?? (stage.output_product as any).actual_qty;
+                                    return actVal != null ? actVal.toLocaleString("vi-VN") : "—";
+                                  })()}
                                 </span>{" "}
                                 <span className="text-sm">{stage.output_product.unit}</span>
                               </p>
@@ -1755,7 +1758,7 @@ useEffect(() => {
                           ? `Lần scan cuối: ${formatDateTime(stage.last_scan_time)}`
                           : "Chưa có dữ liệu scan"}
                       </p>
-                      
+
                       {stage.end_time && (() => {
                         const isExpired = new Date().getTime() - new Date(stage.end_time).getTime() > 5 * 60 * 1000;
                         return (
@@ -1766,11 +1769,10 @@ useEffect(() => {
                               setCancelReason("");
                             }}
                             disabled={isExpired}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border ${
-                              isExpired
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border ${isExpired
                                 ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                                 : "bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
-                            }`}
+                              }`}
                           >
                             <BsArrowReturnLeft className="w-3.5 h-3.5" /> Hoàn tác báo cáo
                           </button>
@@ -1803,20 +1805,20 @@ useEffect(() => {
               <div className="overflow-y-auto pr-2 custom-scrollbar" style={{ maxHeight: '60vh' }}>
                 {(() => {
                   const combinedInputs: { name: string; quantity: number | string; actual_quantity?: number | string; unit: string }[] = [];
-                  
+
                   if (qtyInputStage?.input_materials) {
                     qtyInputStage.input_materials.forEach((mat: any) => {
                       combinedInputs.push({
                         name: mat.name || mat.code || "Nguyên liệu",
                         quantity: mat.estimated_quantity ?? mat.quantity,
-                        actual_quantity: mat.actual_quantity,
+                        actual_quantity: mat.actual_quantity ?? mat.actual_qty ?? mat.quantity_used,
                         unit: mat.unit
                       });
                     });
                   }
-                  
+
                   if (combinedInputs.length === 0) return null;
-                  
+
                   return (
                     <div className="mb-4">
                       <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nguyên liệu đầu vào</h4>
@@ -1881,7 +1883,7 @@ useEffect(() => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {qrPrepare.consumable_materials.map((mat: any) => (
+                                {qrPrepare.consumable_materials.filter((m: any) => !m._isPaperInPrint).map((mat: any) => (
                                   <tr key={mat.material_id} className="border-t">
                                     <td className="px-3 py-2 text-gray-800 font-medium">{mat.material_name}</td>
                                     <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
@@ -2067,22 +2069,17 @@ useEffect(() => {
                         <input
                           type="number"
                           min={0}
-                          placeholder={`Mặc định: ${qtyInputStage?.output_product?.estimated_quantity ?? qtyInputStage?.output_product?.quantity ?? "--"} sp`}
+                          placeholder="Mặc định: 0 sp"
                           value={qtyInputValue}
                           onChange={(e) => {
                             const val = e.target.value;
                             setQtyInputValue(val);
                             const maxTotal = Number(qtyInputStage?.output_product?.estimated_quantity ?? qtyInputStage?.output_product?.quantity ?? 0);
-                            
-                            if (val === "") {
-                              setQtyError("Vui lòng nhập số lượng đạt");
+                            const goodVal = val === "" ? 0 : Number(val);
+                            if (goodVal < 0 || goodVal > maxTotal) {
+                              setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
                             } else {
-                              const goodVal = Number(val);
-                              if (goodVal < 0 || goodVal > maxTotal) {
-                                setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
-                              } else {
-                                setQtyError("");
-                              }
+                              setQtyError("");
                             }
                           }}
                           className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? 'border-red-500' : ''}`}
@@ -2096,93 +2093,93 @@ useEffect(() => {
                   );
                 })()}
 
-<div className="mb-4">
-  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
-    Hình ảnh báo cáo (Tùy chọn, tối đa 4 ảnh)
-  </h4>
+                <div className="mb-4">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
+                    Hình ảnh báo cáo (Tùy chọn, tối đa 4 ảnh)
+                  </h4>
 
-  <div className="flex flex-col gap-2">
-    <input
-      id="report-upload"
-      type="file"
-      accept=".jpg,.jpeg,.png,.webp"
-      multiple
-      className="hidden"
-     onChange={(e) => {
-  if (e.target.files) {
-    const newFiles = Array.from(e.target.files).filter((f) =>
-      f.type.startsWith("image/")
-    );
-    // Cộng dồn ảnh mới vào ảnh cũ, giới hạn tối đa 4
-    setReportImages((prev) => {
-      const combined = [...prev, ...newFiles];
-      return combined.slice(0, 4);
-    });
-    setPreviewUrls((prev) => {
-      const newUrls = newFiles.map((f) => URL.createObjectURL(f));
-      const combined = [...prev, ...newUrls];
-      // Revoke các URL bị cắt bỏ do vượt 4
-      combined.slice(4).forEach((url) => URL.revokeObjectURL(url));
-      return combined.slice(0, 4);
-    });
-  }
-  e.target.value = "";
-}}
-    />
+                  <div className="flex flex-col gap-2">
+                    <input
+                      id="report-upload"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          const newFiles = Array.from(e.target.files).filter((f) =>
+                            f.type.startsWith("image/")
+                          );
+                          // Cộng dồn ảnh mới vào ảnh cũ, giới hạn tối đa 4
+                          setReportImages((prev) => {
+                            const combined = [...prev, ...newFiles];
+                            return combined.slice(0, 4);
+                          });
+                          setPreviewUrls((prev) => {
+                            const newUrls = newFiles.map((f) => URL.createObjectURL(f));
+                            const combined = [...prev, ...newUrls];
+                            // Revoke các URL bị cắt bỏ do vượt 4
+                            combined.slice(4).forEach((url) => URL.revokeObjectURL(url));
+                            return combined.slice(0, 4);
+                          });
+                        }
+                        e.target.value = "";
+                      }}
+                    />
 
-    {/* Preview grid */}
-    {reportImages.length > 0 && (
-      <div className="grid grid-cols-4 gap-2">
-        {reportImages.map((file, idx) => (
-  <div key={idx} className="relative group aspect-square">
-    <img
-      src={previewUrls[idx]}
-      alt={`preview-${idx}`}
-      className="w-full h-full object-cover rounded-lg border border-gray-200"
-    />
-    <button
-      type="button"
-      onClick={() => {
-        URL.revokeObjectURL(previewUrls[idx]);
-        setReportImages((prev) => prev.filter((_, i) => i !== idx));
-        setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
-      }}
-      className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold leading-none"
-    >
-      ×
-    </button>
-  </div>
-))}
-        {/* Ô thêm ảnh nếu chưa đủ 4 */}
-        {reportImages.length < 4 && (
-          <label
-            htmlFor="report-upload"
-            className="aspect-square flex flex-col items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 text-blue-500 cursor-pointer hover:bg-blue-100 transition text-xs font-medium gap-1"
-          >
-            <span className="text-xl leading-none">+</span>
-            <span>Thêm</span>
-          </label>
-        )}
-      </div>
-    )}
+                    {/* Preview grid */}
+                    {reportImages.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {reportImages.map((file, idx) => (
+                          <div key={idx} className="relative group aspect-square">
+                            <img
+                              src={previewUrls[idx]}
+                              alt={`preview-${idx}`}
+                              className="w-full h-full object-cover rounded-lg border border-gray-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                URL.revokeObjectURL(previewUrls[idx]);
+                                setReportImages((prev) => prev.filter((_, i) => i !== idx));
+                                setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold leading-none"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        {/* Ô thêm ảnh nếu chưa đủ 4 */}
+                        {reportImages.length < 4 && (
+                          <label
+                            htmlFor="report-upload"
+                            className="aspect-square flex flex-col items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 text-blue-500 cursor-pointer hover:bg-blue-100 transition text-xs font-medium gap-1"
+                          >
+                            <span className="text-xl leading-none">+</span>
+                            <span>Thêm</span>
+                          </label>
+                        )}
+                      </div>
+                    )}
 
-    {/* Button khi chưa có ảnh nào */}
-    {reportImages.length === 0 && (
-      <label
-        htmlFor="report-upload"
-        className="cursor-pointer inline-flex items-center justify-center w-fit px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
-      >
-        Chọn hình ảnh
-      </label>
-    )}
+                    {/* Button khi chưa có ảnh nào */}
+                    {reportImages.length === 0 && (
+                      <label
+                        htmlFor="report-upload"
+                        className="cursor-pointer inline-flex items-center justify-center w-fit px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
+                      >
+                        Chọn hình ảnh
+                      </label>
+                    )}
 
-    <p className={`text-xs font-medium ${reportImages.length > 0 ? "text-green-600" : "text-gray-500"}`}>
-      {reportImages.length > 0
-        ? `Đã chọn ${reportImages.length}/4 hình ảnh`
-        : "Chưa chọn hình ảnh nào"}
-    </p>
-  </div>
-</div>
+                    <p className={`text-xs font-medium ${reportImages.length > 0 ? "text-green-600" : "text-gray-500"}`}>
+                      {reportImages.length > 0
+                        ? `Đã chọn ${reportImages.length}/4 hình ảnh`
+                        : "Chưa chọn hình ảnh nào"}
+                    </p>
+                  </div>
+                </div>
 
                 <div className="mb-4">
                   <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Ghi chú (Tùy chọn)</h4>
@@ -2239,11 +2236,10 @@ useEffect(() => {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl border border-blue-200 p-6 w-[320px] text-center shadow-lg">
             <h3
-              className={`font-semibold mb-3 ${
-                popup.type === "success"
+              className={`font-semibold mb-3 ${popup.type === "success"
                   ? "text-green-600"
                   : "text-red-600"
-              }`}
+                }`}
             >
               {popup.type === "success" ? "Thành công" : "Lỗi"}
             </h3>
