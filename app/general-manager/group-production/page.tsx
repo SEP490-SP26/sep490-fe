@@ -523,10 +523,10 @@ export default function GroupProductionPage() {
               pagination={false}
               size="small"
               rowKey={(r, i) => `${r.dept_code}-${i}`}
-              columns={[
+              columns={
                 {
                   title: "Giai đoạn", dataIndex: "stage_type", key: "stage_type", render: (t) => {
-                    const label = t === 'SINGLE_PRIVATE' ? 'Chạy riêng (trước)' : t === 'GROUP' ? 'Ghép' : t === 'SPLIT' ? 'Chạy riêng (sau)' : t;
+                    const label = t === 'SINGLE_PRIVATE' ? 'Chạy riêng (trước)' : t === 'GROUP' ? <p className="font-bold">Ghép</p> : t === 'SPLIT' ? 'Chạy riêng (sau)' : t;
                     const color = t === 'SINGLE_PRIVATE' ? 'orange' : t === 'GROUP' ? 'green' : 'blue';
                     return <Tag color={color}>{label}</Tag>;
                   }
@@ -537,7 +537,7 @@ export default function GroupProductionPage() {
                 { title: "Kết thúc", dataIndex: "planned_end_date", key: "planned_end_date", render: (d) => dayjs(d).format("DD/MM/YYYY") },
                 { title: "Thời gian", dataIndex: "duration_days", key: "duration_days", render: (d) => `${d} ngày` },
               ]}
-              className="mb-6"
+            className="mb-6"
             />
 
             {previewData.notes && previewData.notes.length > 0 && (
