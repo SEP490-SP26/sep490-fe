@@ -1,8 +1,24 @@
 import * as signalR from "@microsoft/signalr";
-import { env } from "process";
+
+/** Hub group role khớp BE: RealtimeGroups.ByRole("production manager") */
+export const PRODUCTION_MANAGER_HUB_ROLE = "production manager";
+
+/** Các event SendAsync mà BE bắn cho production manager */
+export const PRODUCTION_MANAGER_SIGNALR_EVENTS = [
+  "scheduled",
+  "approved-production",
+  "production-ready-cancelled",
+  "finishedProduction",
+  "PendingPaid",
+  "Paid",
+  "group-production",
+  "production",
+  "update-ui",
+] as const;
 
 let connection: signalR.HubConnection | null = null;
 let startPromise: Promise<void> | null = null;
+let joinedProductionGroup = false;
 
 export async function getSignalRConnection() {
   if (!connection) {
@@ -37,6 +53,16 @@ export async function getSignalRConnection() {
     }
 
     await startPromise;
+  }
+
+  if (!joinedProductionGroup) {
+    joinedProductionGroup = true;
+    await connection
+      .invoke("JoinByRole", PRODUCTION_MANAGER_HUB_ROLE)
+      .catch((err) => {
+        joinedProductionGroup = false;
+        console.error("❌ SignalR JoinByRole error:", err);
+      });
   }
 
   return connection;

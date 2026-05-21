@@ -9,7 +9,9 @@ import { useRouter } from "next/navigation";
  * Backend gọi: Clients.Group(ByRole("manager")).SendAsync("methodName", { message })
  */
 export interface RoleNotificationEvent {
-  message: string;
+  message?: string;
+  /** BE typo trên event group-production */
+  meassage?: string;
 }
 
 /* ================================================================
@@ -79,6 +81,8 @@ export const SIGNALR_NOTIFICATION_METHODS: string[] = [
   "Importing",
   "production-ready-cancelled",
   "production-method-approved",
+  "group-production",
+  "production",
   "update-ui"
 ];
 
@@ -210,14 +214,15 @@ function genId() {
  * Backend gọi: SendAsync("processing", { message = "Có yêu cầu #123 cần duyệt" })
  */
 function buildNotification(method: string, evt: RoleNotificationEvent): AppNotification {
+  const text = evt.message ?? evt.meassage ?? "";
   return {
     id: genId(),
     title: "Thông báo",
-    message: evt.message,
+    message: text,
     timestamp: new Date(),
     read: false,
     action: method,
-    requestId: extractRequestId(evt.message),
+    requestId: extractRequestId(text),
   };
 }
 
@@ -411,6 +416,15 @@ export function useNotifications({
    10. INTERNAL UTILS
    ================================================================ */
 
+/** Map tên role hiển thị (layout) → group name trên hub BE */
+const ROLE_HUB_MAP: Record<string, string> = {
+  "quản lý sản xuất": "production manager",
+  "quản lý": "manager",
+  "tư vấn": "consultant",
+  "thủ kho": "warehouse manager",
+};
+
 async function joinGroups(conn: signalR.HubConnection, role: string) {
-  await conn.invoke("JoinByRole", role.toLowerCase()).catch(console.error);
+  const hubRole = ROLE_HUB_MAP[role.toLowerCase()] ?? role.toLowerCase();
+  await conn.invoke("JoinByRole", hubRole).catch(console.error);
 }

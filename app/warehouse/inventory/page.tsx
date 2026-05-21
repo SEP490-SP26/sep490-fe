@@ -10,7 +10,7 @@ import { Pagination, Tabs } from "antd";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BiPackage } from "react-icons/bi";
-import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel } from "react-icons/bs";
+import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel, BsDownload } from "react-icons/bs";
 import { subProductsApi, SubProduct } from "@/apiRequests/subproducts";
 import { Table } from "antd";
 
@@ -42,6 +42,7 @@ export default function InventoryManagement() {
   const [subProductPage, setSubProductPage] = useState(1);
   const [selectedExcel, setSelectedExcel] = useState<File | null>(null);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const {
     data: purchaseRequests,
@@ -250,11 +251,24 @@ export default function InventoryManagement() {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      await materialsApi.exportMissingMaterialsExcel(1, 200);
+      showSuccessToast("Tải file Excel thành công!");
+    } catch (error) {
+      console.error("Error exporting excel:", error);
+      showErrorToast("Có lỗi xảy ra khi tải file Excel");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   const handleExcelUpload = async () => {
     if (!selectedExcel) return;
     try {
       setIsUploadingExcel(true);
-      await materialsApi.importFromExcel(selectedExcel);
+      await materialsApi.importStockFromExcel(selectedExcel);
       showSuccessToast("Nhập nguyên vật liệu từ Excel thành công!");
       setSelectedExcel(null);
       refetchInvData();
@@ -352,8 +366,29 @@ export default function InventoryManagement() {
             </div>
             <h3 className="text-gray-900 font-semibold text-lg mb-2">Nhập nguyên vật liệu từ file Excel</h3>
             <p className="text-gray-500 max-w-sm mb-6">
-              Vui lòng tải lên file định dạng .xlsx hoặc .xls chứa danh sách nguyên vật liệu cần nhập kho.
+              Tải file Excel danh sách nguyên vật liệu thiếu, điền số lượng nhập kho rồi upload lại.
             </p>
+
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={isExportingExcel}
+              className={`mb-4 cursor-pointer bg-white border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${
+                isExportingExcel ? "opacity-60 cursor-not-allowed" : ""
+              }`}
+            >
+              {isExportingExcel ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                  Đang tải...
+                </>
+              ) : (
+                <>
+                  <BsDownload className="w-5 h-5" />
+                  Tải file Excel
+                </>
+              )}
+            </button>
             
             <input 
               type="file" 
