@@ -25,4 +25,9 @@ export const subProductsApi = {
     http.get<PagedSubProductsResponse>(
       `/api/SubProducts/paged?page=${page}&pageSize=${pageSize}&isActive=${isActive}`
     ),
+    importPending: (ids: number[]) => {
+      const params = new URLSearchParams();
+      ids.forEach(id => params.append("ids", id.toString()));
+      return http.put<any>(`/api/SubProducts/import-pending?${params.toString()}`, "");
+    },
 };
