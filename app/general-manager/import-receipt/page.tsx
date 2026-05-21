@@ -10,7 +10,8 @@ import {
   Button,
   Spin,
   message,
-  Popconfirm
+  Popconfirm,
+  Modal
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons";
@@ -51,6 +52,8 @@ function ImportReceiptContent() {
   const [customerKeyword, setCustomerKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [createdOrderIds, setCreatedOrderIds] = useState<number[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const { data: apiData, isLoading, refetch } = useQuery({
     queryKey: ["orders", "finished-list"],
@@ -69,8 +72,15 @@ function ImportReceiptContent() {
     mutationFn: async (orderId: number) => {
       return await productionsApi.generateImportReceive({ order_id: orderId });
     },
-    onSuccess: (data, orderId) => {
+    onSuccess: (data: any, orderId) => {
       message.success("Tạo phiếu nhập kho thành công!");
+      
+      const path = data?.data?.import_recieve_path || data?.import_recieve_path;
+      if (path) {
+        setPdfUrl(path);
+        setIsModalVisible(true);
+      }
+
       setCreatedOrderIds((prev) => [...prev, orderId]);
       refetch();
     },
@@ -216,6 +226,45 @@ function ImportReceiptContent() {
           className="shadow-sm rounded-lg overflow-hidden border border-gray-200"
         />
       </div>
+
+      <Modal
+        title={<span className="text-lg font-semibold text-gray-800">Phiếu Nhập Kho</span>}
+        open={isModalVisible}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setPdfUrl(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => {
+              setIsModalVisible(false);
+              setPdfUrl(null);
+            }}
+            className="bg-amber-900 hover:bg-amber-800"
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={800}
+        centered
+        destroyOnClose
+      >
+        {pdfUrl ? (
+          <div className="mt-4 rounded-lg overflow-hidden border border-gray-200">
+            <iframe
+              src={pdfUrl}
+              className="w-full h-[70vh] border-0"
+              title="Phiếu Nhập Kho"
+            />
+          </div>
+        ) : (
+          <div className="flex justify-center items-center h-[70vh]">
+            <Spin size="large" />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

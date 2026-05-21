@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BiPackage } from "react-icons/bi";
 import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel, BsDownload } from "react-icons/bs";
+import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel, BsExclamationTriangle } from "react-icons/bs";
 import { subProductsApi, SubProduct } from "@/apiRequests/subproducts";
 import { Table } from "antd";
 
@@ -40,6 +41,7 @@ export default function InventoryManagement() {
   const [poSearch, setPoSearch] = useState("");
   const [finishedGoodSearch, setFinishedGoodSearch] = useState("");
   const [subProductPage, setSubProductPage] = useState(1);
+  const [missingMaterialPage, setMissingMaterialPage] = useState(1);
   const [selectedExcel, setSelectedExcel] = useState<File | null>(null);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
@@ -115,6 +117,22 @@ export default function InventoryManagement() {
     },
   });
 
+  const {
+    data: missingMaterialsResponse,
+    isPending: isMissingMaterialsPending,
+  } = useQuery({
+    queryKey: ["missing-materials"],
+    queryFn: async () => {
+      try {
+        const response = await materialsApi.getListMissingMaterial(1, 500);
+        return response;
+      } catch (error) {
+        console.error("Error fetching missing materials:", error);
+        return [];
+      }
+    },
+  });
+
   if (isInvPending) {
     return <Loading />;
   }
@@ -155,6 +173,10 @@ export default function InventoryManagement() {
 
   const subProductsList: SubProduct[] = subProductsResponse?.data || [];
   
+  const missingMaterialsList = Array.isArray(missingMaterialsResponse) 
+    ? missingMaterialsResponse 
+    : (missingMaterialsResponse?.data?.items || missingMaterialsResponse?.data || missingMaterialsResponse?.items || []);
+
   const subProductsColumns = [
     {
       title: 'Mã ID',
@@ -202,6 +224,50 @@ export default function InventoryManagement() {
       dataIndex: 'updated_at',
       key: 'updated_at',
       render: (text: string) => <span className="text-gray-500 text-sm">{new Date(text).toLocaleString("vi-VN")}</span>,
+    },
+  ];
+
+  const missingMaterialsColumns = [
+    {
+      title: 'Mã NVL',
+      dataIndex: 'code',
+      key: 'code',
+      render: (text: string) => <span className="font-medium text-gray-500">{text}</span>,
+    },
+    {
+      title: 'Tên nguyên vật liệu',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text: string) => <span className="font-semibold text-gray-900">{text || "Nguyên vật liệu"}</span>,
+    },
+    {
+      title: 'Loại',
+      dataIndex: 'type',
+      key: 'type',
+      render: (text: string) => (
+        <span className="font-medium text-red-700 bg-red-100 rounded-md px-2 py-0.5 border border-red-200">{text || 'N/A'}</span>
+      ),
+    },
+    {
+      title: 'Đơn vị',
+      dataIndex: 'unit',
+      key: 'unit',
+    },
+    {
+      title: 'Tồn kho',
+      dataIndex: 'stock_qty',
+      key: 'stock_qty',
+      render: (text: number) => (
+        <span className="font-bold text-red-600">{text || 0}</span>
+      ),
+    },
+    {
+      title: 'Tồn kho tối thiểu',
+      dataIndex: 'min_stock',
+      key: 'min_stock',
+      render: (text: number) => (
+        <span className="font-bold text-gray-600">{text || 0}</span>
+      ),
     },
   ];
 
@@ -477,6 +543,40 @@ export default function InventoryManagement() {
                 pagination={{ pageSize: 5, showSizeChanger: false, current: subProductPage, onChange: setSubProductPage }}
                 className="border border-gray-200 rounded-lg overflow-hidden [&_.ant-table-thead_th]:!bg-gray-50 [&_.ant-table-thead_th]:!font-semibold"
                 rowClassName="hover:bg-purple-50/50 transition-colors"
+              />
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "4",
+      label: (
+        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
+          <BsExclamationTriangle className="w-5 h-5 text-red-500" />
+          NVL Còn Thiếu
+        </span>
+      ),
+      children: (
+        <div className="pt-4">
+          <div className="w-full overflow-y-auto">
+            {missingMaterialsList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                  <BsExclamationTriangle className="w-8 h-8" />
+                </div>
+                <h3 className="text-gray-900 font-medium text-lg mb-1">Không có dữ liệu</h3>
+                <p className="text-gray-500 max-w-sm">
+                  Hiện không có nguyên vật liệu nào còn thiếu.
+                </p>
+              </div>
+            ) : (
+              <Table
+                columns={missingMaterialsColumns}
+                dataSource={missingMaterialsList.map((item: any) => ({ ...item, key: item.material_id || item.id || Math.random() }))}
+                pagination={{ pageSize: 10, showSizeChanger: false, current: missingMaterialPage, onChange: setMissingMaterialPage }}
+                className="border border-gray-200 rounded-lg overflow-hidden [&_.ant-table-thead_th]:!bg-gray-50 [&_.ant-table-thead_th]:!font-semibold"
+                rowClassName="hover:bg-red-50/50 transition-colors"
               />
             )}
           </div>

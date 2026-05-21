@@ -526,7 +526,7 @@ export default function GroupProductionPage() {
               columns={[
                 {
                   title: "Giai đoạn", dataIndex: "stage_type", key: "stage_type", render: (t) => {
-                    const label = t === 'SINGLE_PRIVATE' ? 'Chạy riêng (trước)' : t === 'GROUP' ? 'Ghép' : t === 'SPLIT' ? 'Chạy riêng (sau)' : t;
+                    const label = t === 'SINGLE_PRIVATE' ? 'Chạy riêng (trước)' : t === 'GROUP' ? <p className="font-bold ">Ghép</p> : t === 'SPLIT' ? 'Chạy riêng (sau)' : t;
                     const color = t === 'SINGLE_PRIVATE' ? 'orange' : t === 'GROUP' ? 'green' : 'blue';
                     return <Tag color={color}>{label}</Tag>;
                   }
