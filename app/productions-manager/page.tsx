@@ -83,13 +83,12 @@ function ProcessingStages({ prodId }: { prodId: number }) {
             <span
               key={stage.process_id ?? index}
               className={`rounded-md px-2 py-0.5 text-xs border flex items-center gap-1 transition-all duration-300
-              ${
-                isFinished
+              ${isFinished
                   ? "bg-green-100 text-green-700 border-green-300"
                   : isActive
-                  ? "bg-blue-100 text-blue-700 border-blue-300 animate-pulse"
-                  : "bg-gray-100 text-gray-500 border-gray-300"
-              }`}
+                    ? "bg-blue-100 text-blue-700 border-blue-300 animate-pulse"
+                    : "bg-gray-100 text-gray-500 border-gray-300"
+                }`}
             >
               {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
               {stage.process_name}
@@ -155,13 +154,12 @@ function GroupProcessingStages({ prodId }: { prodId: number }) {
             <span
               key={stage.task_id ?? index}
               className={`rounded-md px-2 py-0.5 text-xs border flex items-center gap-1 transition-all duration-300
-              ${
-                isFinished
+              ${isFinished
                   ? "bg-green-100 text-green-700 border-green-300"
                   : isActive
-                  ? "bg-purple-100 text-purple-700 border-purple-300 animate-pulse"
-                  : "bg-gray-100 text-gray-500 border-gray-300"
-              }`}
+                    ? "bg-purple-100 text-purple-700 border-purple-300 animate-pulse"
+                    : "bg-gray-100 text-gray-500 border-gray-300"
+                }`}
             >
               {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
               {stage.process_name}
@@ -312,12 +310,24 @@ export default function ProdutionManager() {
   const scheduledList = filteredScheduled
     .filter((o: any) => o.production_status === "Scheduled" || (!o.production_status && !o.group_status))
     .sort((a: any, b: any) => {
+      const aCanStart = a.can_start !== false;
+      const bCanStart = b.can_start !== false;
+
+      // 1. Sort by can_start: true/not false comes first
+      if (aCanStart && !bCanStart) return -1;
+      if (!aCanStart && bCanStart) return 1;
+
+      // 2. Sub-sort by prod_id descending / other criteria when can_start is equal
       if (sortType === "newest") return b.prod_id - a.prod_id;
-      if (sortType === "delivery")
+      if (sortType === "delivery") {
+        if (!a.delivery_date && !b.delivery_date) return b.prod_id - a.prod_id;
+        if (!a.delivery_date) return 1;
+        if (!b.delivery_date) return -1;
         return (
           new Date(a.delivery_date).getTime() -
           new Date(b.delivery_date).getTime()
         );
+      }
       return b.progress_percent - a.progress_percent;
     });
 
@@ -448,10 +458,9 @@ export default function ProdutionManager() {
         <button
           onClick={() => setActiveTab("scheduled")}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors
-            ${
-              activeTab === "scheduled"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            ${activeTab === "scheduled"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
         >
           <BsCalendar className="w-4 h-4" />
@@ -467,10 +476,9 @@ export default function ProdutionManager() {
         <button
           onClick={() => setActiveTab("processing")}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors
-            ${
-              activeTab === "processing"
-                ? "border-yellow-500 text-yellow-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            ${activeTab === "processing"
+              ? "border-yellow-500 text-yellow-600"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
         >
           <BsPlay className="w-4 h-4" />
@@ -507,10 +515,9 @@ export default function ProdutionManager() {
                 <div
                   key={`${order.prod_id}-${index}`}
                   className={`flex items-start justify-between gap-4 rounded-xl border p-4 shadow-sm hover:shadow-md transition
-                    ${
-                      grouped
-                        ? "border-purple-200 bg-purple-50/30"
-                        : "border-gray-200 bg-white"
+                    ${grouped
+                      ? "border-purple-200 bg-purple-50/30"
+                      : "border-gray-200 bg-white"
                     }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -524,11 +531,11 @@ export default function ProdutionManager() {
                         </span>
                       </p>
 
-                      {grouped && (
+                      {/* {grouped && (
                         <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">
                           Ghép
                         </span>
-                      )}
+                      )} */}
 
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold
@@ -539,22 +546,33 @@ export default function ProdutionManager() {
                       </span>
                     </div>
 
+                    {order.delivery_date && (
+                      <p
+                        className={`text-xs my-1.5 px-2 py-0.5 rounded-md inline-block border ${getDeliveryColor(
+                          order.delivery_date
+                        )}`}
+                      >
+                        Hạn hoàn thành:{" "}
+                        {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                      </p>
+                    )}
+
                     {/* Stage badges */}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {grouped
                         ? (order.group_process_codes || "")
-                            .split(",")
-                            .filter(Boolean)
-                            .map((code: string, i: number) => (
-                              <span
-                                key={i}
-                                className="rounded-md border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 font-medium"
-                              >
-                                {code.trim()}
-                              </span>
-                            ))
+                          .split(",")
+                          .filter(Boolean)
+                          .map((code: string, i: number) => (
+                            <span
+                              key={i}
+                              className="rounded-md border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 font-medium"
+                            >
+                              {code.trim()}
+                            </span>
+                          ))
                         : order.stage_statuses
-                        ? order.stage_statuses
+                          ? order.stage_statuses
                             .filter((s: any) => s.status !== "GroupedWaiting" && s.status !== null && s.status !== undefined)
                             .map((stage: any, i: number) => (
                               <span
@@ -564,7 +582,7 @@ export default function ProdutionManager() {
                                 {stage.process_name}
                               </span>
                             ))
-                        : order.stages?.map((stage: string, i: number) => (
+                          : order.stages?.map((stage: string, i: number) => (
                             <span
                               key={i}
                               className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
@@ -606,10 +624,9 @@ export default function ProdutionManager() {
                       disabled={!canStart || isStarting}
                       title={!canStart ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
                       className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
-                        ${
-                          !canStart || isStarting
-                            ? "cursor-not-allowed bg-gray-300 text-gray-500"
-                            : "bg-yellow-500 text-white hover:bg-yellow-600"
+                        ${!canStart || isStarting
+                          ? "cursor-not-allowed bg-gray-300 text-gray-500"
+                          : "bg-yellow-500 text-white hover:bg-yellow-600"
                         }`}
                     >
                       <BsPlay className="h-3.5 w-3.5" />
@@ -623,10 +640,9 @@ export default function ProdutionManager() {
                           : `/productions-manager/production/${order.prod_id}`
                       }
                       className={`flex items-center justify-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold transition
-                        ${
-                          grouped
-                            ? "border-purple-300 text-purple-700 bg-white hover:bg-purple-50"
-                            : "border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
+                        ${grouped
+                          ? "border-purple-300 text-purple-700 bg-white hover:bg-purple-50"
+                          : "border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
                         }`}
                     >
                       <BsEye className="h-3.5 w-3.5" />
@@ -645,10 +661,9 @@ export default function ProdutionManager() {
                 key={i}
                 onClick={() => setScheduledPage(i + 1)}
                 className={`px-3 py-1 rounded border text-sm
-                  ${
-                    scheduledPage === i + 1
-                      ? "bg-blue-500 text-white"
-                      : "bg-white hover:bg-gray-100"
+                  ${scheduledPage === i + 1
+                    ? "bg-blue-500 text-white"
+                    : "bg-white hover:bg-gray-100"
                   }`}
               >
                 {i + 1}
@@ -675,10 +690,9 @@ export default function ProdutionManager() {
                 <div
                   key={`proc-${order.prod_id}-${index}`}
                   className={`rounded-xl border p-4 shadow-sm hover:shadow-md transition
-                    ${
-                      grouped
-                        ? "border-purple-200 bg-purple-50/30 hover:bg-purple-100/50"
-                        : "border-blue-200 bg-blue-50/50 hover:bg-blue-50"
+                    ${grouped
+                      ? "border-purple-200 bg-purple-50/30 hover:bg-purple-100/50"
+                      : "border-blue-200 bg-blue-50/50 hover:bg-blue-50"
                     }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -689,11 +703,11 @@ export default function ProdutionManager() {
                       >
                         {order.prod_id}
                       </span>
-                      {grouped && (
+                      {/* {grouped && (
                         <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold border border-purple-200">
                           Ghép
                         </span>
-                      )}
+                      )} */}
                     </p>
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold
@@ -728,10 +742,9 @@ export default function ProdutionManager() {
                         : `/productions-manager/production/${order.prod_id}`
                     }
                     className={`mt-3 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition
-                      ${
-                        grouped
-                          ? "border-purple-300 text-purple-700 bg-white hover:bg-purple-50"
-                          : "border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
+                      ${grouped
+                        ? "border-purple-300 text-purple-700 bg-white hover:bg-purple-50"
+                        : "border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
                       }`}
                   >
                     <BsEye className="w-4 h-4" />
@@ -749,10 +762,9 @@ export default function ProdutionManager() {
                 key={i}
                 onClick={() => setProcessingPage(i + 1)}
                 className={`px-3 py-1 rounded border text-sm
-                  ${
-                    processingPage === i + 1
-                      ? "bg-yellow-500 text-white"
-                      : "bg-white hover:bg-gray-100"
+                  ${processingPage === i + 1
+                    ? "bg-yellow-500 text-white"
+                    : "bg-white hover:bg-gray-100"
                   }`}
               >
                 {i + 1}

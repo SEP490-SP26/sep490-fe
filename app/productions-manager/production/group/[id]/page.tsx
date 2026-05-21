@@ -241,11 +241,10 @@ function QrModal({
             <button
               type="button"
               onClick={handleCopy}
-              className={`flex-shrink-0 text-xs px-2 py-1 rounded transition-all font-medium ${
-                copied
-                  ? "bg-green-100 text-green-700 border border-green-200"
-                  : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
-              }`}
+              className={`flex-shrink-0 text-xs px-2 py-1 rounded transition-all font-medium ${copied
+                ? "bg-green-100 text-green-700 border border-green-200"
+                : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                }`}
             >
               {copied ? "Đã chép" : "Sao chép"}
             </button>
@@ -313,11 +312,11 @@ function GroupTimeline({ stages }: { stages: GroupStage[] }) {
               <div
                 className={`w-10 h-10 rounded-full border-2 flex items-center justify-center z-10 text-sm font-bold transition-all duration-300
                 ${isDone
-                  ? "bg-green-500 border-green-500 text-white shadow-md shadow-green-200"
-                  : isCurrent
-                  ? "bg-white border-blue-500 text-blue-600 shadow-md shadow-blue-200 ring-4 ring-blue-100"
-                  : "bg-white border-gray-300 text-gray-400"
-                }`}
+                    ? "bg-green-500 border-green-500 text-white shadow-md shadow-green-200"
+                    : isCurrent
+                      ? "bg-white border-blue-500 text-blue-600 shadow-md shadow-blue-200 ring-4 ring-blue-100"
+                      : "bg-white border-gray-300 text-gray-400"
+                  }`}
               >
                 {stage.seq_num}
               </div>
@@ -420,13 +419,12 @@ function StageCard({
       >
         <div className="flex items-center gap-4">
           <div
-            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
-              stage.status === "Finished"
-                ? "bg-green-500 border-green-500 text-white"
-                : stage.status === "InProcessing" || stage.status === "Ready"
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 ${stage.status === "Finished"
+              ? "bg-green-500 border-green-500 text-white"
+              : stage.status === "InProcessing" || stage.status === "Ready"
                 ? "bg-white border-blue-500 text-blue-600"
                 : "bg-white border-gray-300 text-gray-400"
-            }`}
+              }`}
           >
             {stage.seq_num}
           </div>
@@ -515,7 +513,10 @@ function StageCard({
                           <td className="px-3 py-2.5 text-gray-700">{m.name}</td>
                           <td className="px-3 py-2.5 text-right font-semibold">{fmtNum(m.estimated_qty)}</td>
                           <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                            {m.actual_qty != null && m.actual_qty > 0 ? fmtNum(m.actual_qty) : "—"}
+                            {(() => {
+                              const act = m.actual_qty ?? m.actual_qty ?? (m as any).quantity_used;
+                              return act != null ? fmtNum(act) : "—";
+                            })()}
                           </td>
                           <td className="px-3 py-2.5 text-center text-gray-500">{m.unit}</td>
                         </tr>
@@ -546,7 +547,12 @@ function StageCard({
                       <div className="bg-white border border-blue-200 rounded-lg p-3">
                         <p className="text-xs text-gray-500 mb-1">Thực tế</p>
                         <p className="text-blue-700">
-                          <span className="font-bold text-lg">{out.actual_qty > 0 ? fmtNum(out.actual_qty) : "—"}</span>{" "}
+                          <span className="font-bold text-lg">
+                            {(() => {
+                              const act = out.actual_qty ?? out.actual_qty;
+                              return act != null ? fmtNum(act) : "—";
+                            })()}
+                          </span>{" "}
                           <span className="text-sm">{out.unit}</span>
                         </p>
                       </div>
@@ -598,7 +604,6 @@ function StageCard({
                     <tr>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Thời gian</th>
                       <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Số lượng thành phẩm</th>
-                      <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">Hình ảnh</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -606,19 +611,6 @@ function StageCard({
                       <tr key={i} className="border-t">
                         <td className="px-3 py-2.5">{formatDateTime(log.log_time || log.scanned_at)}</td>
                         <td className="px-3 py-2.5 text-right text-green-600 font-bold">{log.qty_good}</td>
-                        <td className="px-3 py-2.5 text-center">
-                          {log.report_image_urls && log.report_image_urls.length > 0 ? (
-                            <div className="flex justify-center gap-1 flex-wrap">
-                              {log.report_image_urls.map((url, idx) => (
-                                <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
-                                  <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
-                                </a>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-xs">—</span>
-                          )}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -677,11 +669,10 @@ function StageCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onStartProduction(stage.task_id); }}
                   disabled={readyLoading === stage.task_id || !isProductionActive || !allPrevFinished}
-                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${
-                    !isProductionActive || !allPrevFinished
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"        // production chưa active hoặc chưa xong previous -> disable thật
-                      : "bg-indigo-600 hover:bg-indigo-700 text-white"         // đủ điều kiện -> xanh
-                  }`}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm ${!isProductionActive || !allPrevFinished
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"        // production chưa active hoặc chưa xong previous -> disable thật
+                    : "bg-indigo-600 hover:bg-indigo-700 text-white"         // đủ điều kiện -> xanh
+                    }`}
                 >
                   {readyLoading === stage.task_id && (
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -705,11 +696,10 @@ function StageCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onCancelFinish(stage); }}
                   disabled={isExpired}
-                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border ${
-                    isExpired
-                      ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
-                  }`}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm border ${isExpired
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                    }`}
                 >
                   <BsArrowReturnLeft className="w-3.5 h-3.5" /> Hoàn tác báo cáo
                 </button>
@@ -760,10 +750,10 @@ export default function GroupProductionPage() {
   const [reportReason, setReportReason] = useState("");
 
   useEffect(() => {
-  return () => {
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-  };
-}, [previewUrls]);
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
 
   // Global barcode scanner
   const handleQrScannedRef = useRef<((token: string) => void) | null>(null);
@@ -871,25 +861,40 @@ export default function GroupProductionPage() {
   const handleOpenQtyInput = async (stage: GroupStage) => {
     setPrepareLoading(true);
     setQtyInputStage(stage);
-    
+
     const estQty = stage.estimated_output_qty ?? 0;
     setQtyInputValue(estQty.toString());
     setQtyBadValue("0");
     setQtyError("");
     setReportImages([]);
     setReportReason("");
-    
+
     try {
       const res = await tasksApi.qrPrepare(stage.task_id);
       const data = res.data || res;
+
+      const isPrintStage = stage.process_name?.toLowerCase().includes("in");
+      if (isPrintStage && data.consumable_materials) {
+        data.consumable_materials = data.consumable_materials.map((m: any) => {
+          const name = m.material_name?.toLowerCase() || "";
+          const isPaper = name.includes("giấy") || name.includes("giay");
+          return isPaper ? { ...m, _isPaperInPrint: true } : m;
+        });
+      }
+
       setQrPrepare(data);
 
       const initUsed: { [id: number]: string } = {};
       const initLeft: { [id: number]: string } = {};
       const consumable = data.consumable_materials || [];
       consumable.forEach((m: any) => {
-        initUsed[m.material_id] = m.estimated_input_qty != null ? m.estimated_input_qty.toString() : "";
-        initLeft[m.material_id] = "";
+        if (m._isPaperInPrint) {
+          initUsed[m.material_id] = "0";
+          initLeft[m.material_id] = "0";
+        } else {
+          initUsed[m.material_id] = m.estimated_input_qty != null ? m.estimated_input_qty.toString() : "";
+          initLeft[m.material_id] = "";
+        }
       });
       setMaterialUsed(initUsed);
       setMaterialQtys(initLeft);
@@ -920,7 +925,7 @@ export default function GroupProductionPage() {
       setQrLoading(true);
 
       const maxTotal = Number(qtyInputStage.estimated_output_qty || 0);
-      const goodVal = qtyInputValue === "" ? maxTotal : Number(qtyInputValue);
+      const goodVal = qtyInputValue === "" ? 0 : Number(qtyInputValue);
       const badVal = 0;
 
       if (qtyInputValue !== "" && (Number(qtyInputValue) < 0 || Number(qtyInputValue) > maxTotal)) {
@@ -936,17 +941,14 @@ export default function GroupProductionPage() {
       // Validate materials
       if (qrPrepare && qrPrepare.consumable_materials?.length > 0) {
         for (const mat of qrPrepare.consumable_materials) {
-          const leftVal = materialQtys[mat.material_id];
-          const usedVal = materialUsed[mat.material_id];
-          
-          if (leftVal === "" || usedVal === "" || leftVal === undefined || usedVal === undefined) {
-            setQtyError(`Vui lòng nhập đầy đủ thông tin cho vật liệu tiêu hao ${mat.material_name}`);
-            setQrLoading(false);
-            return;
-          }
+          if (mat._isPaperInPrint) continue;
+          const leftVal = materialQtys[mat.material_id] ?? "";
+          const usedVal = materialUsed[mat.material_id] ?? "";
+          const numLeft = leftVal === "" ? 0 : Number(leftVal);
+          const numUsed = usedVal === "" ? 0 : Number(usedVal);
 
           const maxVal = Number(mat.estimated_input_qty || 0);
-          if (Number(leftVal) + Number(usedVal) !== maxVal) {
+          if (numLeft + numUsed !== maxVal) {
             setQtyError(`Tổng thực tế đã dùng và lượng dư của ${mat.material_name} phải bằng ${maxVal}`);
             setQrLoading(false);
             return;
@@ -957,17 +959,13 @@ export default function GroupProductionPage() {
       // Validate BTP (reference inputs)
       if (isManual && qrPrepare && qrPrepare.reference_inputs?.length > 0) {
         for (const ref of qrPrepare.reference_inputs) {
-          const leftVal = refLeft[ref.input_code];
-          const usedVal = refUsed[ref.input_code];
-
-          if (leftVal === "" || usedVal === "" || leftVal === undefined || usedVal === undefined) {
-            setQtyError(`Vui lòng nhập đầy đủ thông tin cho BTP đầu vào ${ref.input_name}`);
-            setQrLoading(false);
-            return;
-          }
+          const leftVal = refLeft[ref.input_code] ?? "";
+          const usedVal = refUsed[ref.input_code] ?? "";
+          const numLeft = leftVal === "" ? 0 : Number(leftVal);
+          const numUsed = usedVal === "" ? 0 : Number(usedVal);
 
           const maxVal = Number(ref.estimated_qty || 0);
-          if (Number(leftVal) + Number(usedVal) !== maxVal) {
+          if (numLeft + numUsed !== maxVal) {
             setQtyError(`Tổng thực tế đã dùng và lượng dư của ${ref.input_name} phải bằng ${maxVal}`);
             setQrLoading(false);
             return;
@@ -980,7 +978,7 @@ export default function GroupProductionPage() {
         const qtyLeftStr = materialQtys[mat.material_id];
         const qtyUsed = qtyUsedStr === "" || qtyUsedStr === undefined ? 0 : Number(qtyUsedStr);
         const qtyLeft = qtyLeftStr === "" || qtyLeftStr === undefined ? 0 : Number(qtyLeftStr);
-        
+
         return {
           material_id: mat.material_id,
           quantity_used: isManual ? qtyUsed : 0,
@@ -994,7 +992,7 @@ export default function GroupProductionPage() {
         const rLeftStr = refLeft[x.input_code];
         const rUsed = rUsedStr === "" || rUsedStr === undefined ? (x.estimated_qty ?? 0) : Number(rUsedStr);
         const rLeft = rLeftStr === "" || rLeftStr === undefined ? 0 : Number(rLeftStr);
-        
+
         return {
           input_code: x.input_code,
           input_name: x.input_name,
@@ -1311,7 +1309,7 @@ export default function GroupProductionPage() {
                 <BsArrowLeft className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-4 flex-1 overflow-y-auto">
               {prepareLoading ? (
                 <div className="flex justify-center py-4">
@@ -1509,22 +1507,17 @@ export default function GroupProductionPage() {
                     <input
                       type="number"
                       min={0}
-                      placeholder={`Mặc định: ${qtyInputStage.estimated_output_qty ?? "--"} sp`}
+                      placeholder="Mặc định: 0 sp"
                       value={qtyInputValue}
                       onChange={(e) => {
                         const val = e.target.value;
                         setQtyInputValue(val);
                         const maxTotal = Number(qtyInputStage.estimated_output_qty || 0);
-                        
-                        if (val === "") {
-                          setQtyError("Vui lòng nhập số lượng đạt");
+                        const goodVal = val === "" ? 0 : Number(val);
+                        if (goodVal < 0 || goodVal > maxTotal) {
+                          setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
                         } else {
-                          const goodVal = Number(val);
-                          if (goodVal < 0 || goodVal > maxTotal) {
-                            setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
-                          } else {
-                            setQtyError("");
-                          }
+                          setQtyError("");
                         }
                       }}
                       className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? 'border-red-500' : ''}`}
@@ -1535,92 +1528,92 @@ export default function GroupProductionPage() {
 
 
 
-<div className="mb-4">
-  <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
-    Hình ảnh báo cáo (Tùy chọn, tối đa 4 ảnh)
-  </h4>
+                  <div className="mb-4">
+                    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
+                      Hình ảnh báo cáo (Tùy chọn, tối đa 4 ảnh)
+                    </h4>
 
-  <div className="flex flex-col gap-2">
-    <input
-      id="report-upload"
-      type="file"
-      accept=".jpg,.jpeg,.png,.webp"
-      multiple
-      className="hidden"
-      onChange={(e) => {
-  if (e.target.files) {
-    const newFiles = Array.from(e.target.files).filter((f) =>
-      f.type.startsWith("image/")
-    );
-    setReportImages((prev) => {
-      const combined = [...prev, ...newFiles];
-      return combined.slice(0, 4);
-    });
-    setPreviewUrls((prev) => {
-      const newUrls = newFiles.map((f) => URL.createObjectURL(f));
-      const combined = [...prev, ...newUrls];
-      // Revoke các URL bị cắt bỏ do vượt giới hạn 4
-      combined.slice(4).forEach((url) => URL.revokeObjectURL(url));
-      return combined.slice(0, 4);
-    });
-  }
-  e.target.value = "";
-}}
-    />
+                    <div className="flex flex-col gap-2">
+                      <input
+                        id="report-upload"
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const newFiles = Array.from(e.target.files).filter((f) =>
+                              f.type.startsWith("image/")
+                            );
+                            setReportImages((prev) => {
+                              const combined = [...prev, ...newFiles];
+                              return combined.slice(0, 4);
+                            });
+                            setPreviewUrls((prev) => {
+                              const newUrls = newFiles.map((f) => URL.createObjectURL(f));
+                              const combined = [...prev, ...newUrls];
+                              // Revoke các URL bị cắt bỏ do vượt giới hạn 4
+                              combined.slice(4).forEach((url) => URL.revokeObjectURL(url));
+                              return combined.slice(0, 4);
+                            });
+                          }
+                          e.target.value = "";
+                        }}
+                      />
 
-    {/* Preview grid */}
-    {reportImages.length > 0 && (
-      <div className="grid grid-cols-4 gap-2">
-        {reportImages.map((file, idx) => (
-  <div key={idx} className="relative group aspect-square">
-    <img
-      src={previewUrls[idx]}
-      alt={`preview-${idx}`}
-      className="w-full h-full object-cover rounded-lg border border-gray-200"
-    />
-    <button
-      type="button"
-      onClick={() => {
-        URL.revokeObjectURL(previewUrls[idx]);
-        setReportImages((prev) => prev.filter((_, i) => i !== idx));
-        setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
-      }}
-      className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold leading-none"
-    >
-      ×
-    </button>
-  </div>
-))}
-        {/* Ô thêm ảnh nếu chưa đủ 4 */}
-        {reportImages.length < 4 && (
-          <label
-            htmlFor="report-upload"
-            className="aspect-square flex flex-col items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 text-blue-500 cursor-pointer hover:bg-blue-100 transition text-xs font-medium gap-1"
-          >
-            <span className="text-xl leading-none">+</span>
-            <span>Thêm</span>
-          </label>
-        )}
-      </div>
-    )}
+                      {/* Preview grid */}
+                      {reportImages.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {reportImages.map((file, idx) => (
+                            <div key={idx} className="relative group aspect-square">
+                              <img
+                                src={previewUrls[idx]}
+                                alt={`preview-${idx}`}
+                                className="w-full h-full object-cover rounded-lg border border-gray-200"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  URL.revokeObjectURL(previewUrls[idx]);
+                                  setReportImages((prev) => prev.filter((_, i) => i !== idx));
+                                  setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs font-bold leading-none"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          {/* Ô thêm ảnh nếu chưa đủ 4 */}
+                          {reportImages.length < 4 && (
+                            <label
+                              htmlFor="report-upload"
+                              className="aspect-square flex flex-col items-center justify-center rounded-lg border border-dashed border-blue-300 bg-blue-50 text-blue-500 cursor-pointer hover:bg-blue-100 transition text-xs font-medium gap-1"
+                            >
+                              <span className="text-xl leading-none">+</span>
+                              <span>Thêm</span>
+                            </label>
+                          )}
+                        </div>
+                      )}
 
-    {/* Button khi chưa có ảnh nào */}
-    {reportImages.length === 0 && (
-      <label
-        htmlFor="report-upload"
-        className="cursor-pointer inline-flex items-center justify-center w-fit px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
-      >
-        Chọn hình ảnh
-      </label>
-    )}
+                      {/* Button khi chưa có ảnh nào */}
+                      {reportImages.length === 0 && (
+                        <label
+                          htmlFor="report-upload"
+                          className="cursor-pointer inline-flex items-center justify-center w-fit px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
+                        >
+                          Chọn hình ảnh
+                        </label>
+                      )}
 
-    <p className={`text-xs font-medium ${reportImages.length > 0 ? "text-green-600" : "text-gray-500"}`}>
-      {reportImages.length > 0
-        ? `Đã chọn ${reportImages.length}/4 hình ảnh`
-        : "Chưa chọn hình ảnh nào"}
-    </p>
-  </div>
-</div>
+                      <p className={`text-xs font-medium ${reportImages.length > 0 ? "text-green-600" : "text-gray-500"}`}>
+                        {reportImages.length > 0
+                          ? `Đã chọn ${reportImages.length}/4 hình ảnh`
+                          : "Chưa chọn hình ảnh nào"}
+                      </p>
+                    </div>
+                  </div>
 
                   <div className="mb-4">
                     <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Ghi chú (Tùy chọn)</h4>
@@ -1645,10 +1638,10 @@ export default function GroupProductionPage() {
               <button
                 onClick={handleCreateQr}
                 disabled={
-                  qrLoading || 
-                  prepareLoading || 
-                  !!qtyError || 
-                  Object.values(materialErrors).some(err => err !== "") || 
+                  qrLoading ||
+                  prepareLoading ||
+                  !!qtyError ||
+                  Object.values(materialErrors).some(err => err !== "") ||
                   Object.values(refErrors).some(err => err !== "")
                 }
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"

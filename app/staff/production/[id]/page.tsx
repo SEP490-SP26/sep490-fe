@@ -321,7 +321,7 @@ export default function ProductionDetailPage() {
     }
 
     const finalQty =
-      qtyOverride && qtyOverride > 0 ? qtyOverride : defaultQty;
+      qtyOverride !== undefined ? qtyOverride : 0;
 
     const formData = new FormData();
     formData.append("task_id", stage.task_id.toString());
@@ -550,8 +550,8 @@ export default function ProductionDetailPage() {
 
       <input
         type="number"
-        min={1}
-        placeholder="Để trống = số lượng mặc định"
+        min={0}
+        placeholder="Mặc định: 0"
         value={qtyInputValue}
         onChange={(e) => setQtyInputValue(e.target.value)}
         className="w-full border rounded-lg px-3 py-2 mb-4"
@@ -570,7 +570,7 @@ export default function ProductionDetailPage() {
           onClick={() => {
             handleCreateQr(
               qtyInputStage,
-              qtyInputValue ? Number(qtyInputValue) : undefined
+              qtyInputValue ? Number(qtyInputValue) : 0
             );
             setQtyInputStage(null);
           }}
