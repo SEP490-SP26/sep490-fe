@@ -10,7 +10,8 @@ import {
   Button,
   Spin,
   message,
-  Popconfirm
+  Popconfirm,
+  Modal
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons";
@@ -50,6 +51,9 @@ function ImportReceiptContent() {
   const queryClient = useQueryClient();
   const [customerKeyword, setCustomerKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [createdOrderIds, setCreatedOrderIds] = useState<number[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const { data: apiData, isLoading, refetch } = useQuery({
     queryKey: ["orders", "finished-list"],
@@ -68,8 +72,16 @@ function ImportReceiptContent() {
     mutationFn: async (orderId: number) => {
       return await productionsApi.generateImportReceive({ order_id: orderId });
     },
-    onSuccess: () => {
+    onSuccess: (data: any, orderId) => {
       message.success("Tạo phiếu nhập kho thành công!");
+      
+      const path = data?.data?.import_recieve_path || data?.import_recieve_path;
+      if (path) {
+        setPdfUrl(path);
+        setIsModalVisible(true);
+      }
+
+      setCreatedOrderIds((prev) => [...prev, orderId]);
       refetch();
     },
     onError: (error: any) => {
@@ -137,27 +149,30 @@ function ImportReceiptContent() {
       key: "action",
       width: 180,
       align: "center",
-      render: (_, record) => (
-        record.status === "Importing" && record.import_recieve_path === null ? (
+      render: (_, record) => {
+        const orderId = record.order_id || (record as any)._id;
+        const isCreated = createdOrderIds.includes(orderId);
+        
+        return record.status === "Importing" && record.import_recieve_path === null && !isCreated ? (
           <Popconfirm
             title="Tạo phiếu nhập kho"
             description="Bạn có chắc chắn muốn tạo phiếu nhập kho cho sản phẩm này không?"
-            onConfirm={() => generateImportMutation.mutate(record.order_id || (record as any)._id)}
+            onConfirm={() => generateImportMutation.mutate(orderId)}
             okText="Tạo phiếu"
             cancelText="Hủy"
             okButtonProps={{ loading: generateImportMutation.isPending }}
           >
             <button
               type="button"
-              disabled={generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)}
+              disabled={generateImportMutation.isPending && generateImportMutation.variables === orderId}
               className="flex items-center gap-2 px-3 py-1.5 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors text-sm font-medium disabled:opacity-50"
             >
-              {(generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)) ? <Spin size="small" /> : <CheckCircleOutlined />}
+              {(generateImportMutation.isPending && generateImportMutation.variables === orderId) ? <Spin size="small" /> : <CheckCircleOutlined />}
               Duyệt nhập kho
             </button>
           </Popconfirm>
-        ) : null
-      ),
+        ) : null;
+      },
     },
   ];
 
@@ -211,6 +226,45 @@ function ImportReceiptContent() {
           className="shadow-sm rounded-lg overflow-hidden border border-gray-200"
         />
       </div>
+
+      <Modal
+        title={<span className="text-lg font-semibold text-gray-800">Phiếu Nhập Kho</span>}
+        open={isModalVisible}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setPdfUrl(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => {
+              setIsModalVisible(false);
+              setPdfUrl(null);
+            }}
+            className="bg-amber-900 hover:bg-amber-800"
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={800}
+        centered
+        destroyOnClose
+      >
+        {pdfUrl ? (
+          <div className="mt-4 rounded-lg overflow-hidden border border-gray-200">
+            <iframe
+              src={pdfUrl}
+              className="w-full h-[70vh] border-0"
+              title="Phiếu Nhập Kho"
+            />
+          </div>
+        ) : (
+          <div className="flex justify-center items-center h-[70vh]">
+            <Spin size="large" />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
