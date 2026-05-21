@@ -50,6 +50,7 @@ function ImportReceiptContent() {
   const queryClient = useQueryClient();
   const [customerKeyword, setCustomerKeyword] = useState("");
   const [deliveryRange, setDeliveryRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [createdOrderIds, setCreatedOrderIds] = useState<number[]>([]);
 
   const { data: apiData, isLoading, refetch } = useQuery({
     queryKey: ["orders", "finished-list"],
@@ -68,8 +69,9 @@ function ImportReceiptContent() {
     mutationFn: async (orderId: number) => {
       return await productionsApi.generateImportReceive({ order_id: orderId });
     },
-    onSuccess: () => {
+    onSuccess: (data, orderId) => {
       message.success("Tạo phiếu nhập kho thành công!");
+      setCreatedOrderIds((prev) => [...prev, orderId]);
       refetch();
     },
     onError: (error: any) => {
@@ -137,27 +139,30 @@ function ImportReceiptContent() {
       key: "action",
       width: 180,
       align: "center",
-      render: (_, record) => (
-        record.status === "Importing" && record.import_recieve_path === null ? (
+      render: (_, record) => {
+        const orderId = record.order_id || (record as any)._id;
+        const isCreated = createdOrderIds.includes(orderId);
+        
+        return record.status === "Importing" && record.import_recieve_path === null && !isCreated ? (
           <Popconfirm
             title="Tạo phiếu nhập kho"
             description="Bạn có chắc chắn muốn tạo phiếu nhập kho cho sản phẩm này không?"
-            onConfirm={() => generateImportMutation.mutate(record.order_id || (record as any)._id)}
+            onConfirm={() => generateImportMutation.mutate(orderId)}
             okText="Tạo phiếu"
             cancelText="Hủy"
             okButtonProps={{ loading: generateImportMutation.isPending }}
           >
             <button
               type="button"
-              disabled={generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)}
+              disabled={generateImportMutation.isPending && generateImportMutation.variables === orderId}
               className="flex items-center gap-2 px-3 py-1.5 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors text-sm font-medium disabled:opacity-50"
             >
-              {(generateImportMutation.isPending && generateImportMutation.variables === (record.order_id || (record as any)._id)) ? <Spin size="small" /> : <CheckCircleOutlined />}
+              {(generateImportMutation.isPending && generateImportMutation.variables === orderId) ? <Spin size="small" /> : <CheckCircleOutlined />}
               Duyệt nhập kho
             </button>
           </Popconfirm>
-        ) : null
-      ),
+        ) : null;
+      },
     },
   ];
 
