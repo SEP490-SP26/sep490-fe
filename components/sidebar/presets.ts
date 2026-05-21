@@ -13,7 +13,7 @@ import {
 } from "react-icons/fi";
 import { LuLayoutDashboard } from "react-icons/lu";
 import { FaSuitcase, FaUserPlus, FaWarehouse } from "react-icons/fa";
-import {MdDashboard} from "react-icons/md";
+import { MdDashboard } from "react-icons/md";
 import { NavItem } from "./Sidebar";
 import { TbTruckDelivery } from "react-icons/tb";
 
@@ -50,7 +50,7 @@ export const consultantNavItems: NavItem[] = [
   {
     path: "/delivery",
     label: "Vận chuyển",
-    icon: TbTruckDelivery ,
+    icon: TbTruckDelivery,
     basePath: "/consultant",
   },
   // {
@@ -128,13 +128,13 @@ export const productionsManagerNavItems: NavItem[] = [
   },
   {
     path: "/",
-    label: "Đơn đã lên lịch",
+    label: "Lệnh SX đã lên lịch",
     icon: FiCalendar,
     basePath: "/productions-manager",
   },
   {
     path: "/finish-production",
-    label: "Đơn đã hoàn thành sản xuất",
+    label: "Lệnh SX đã hoàn thành sản xuất",
     icon: FaSuitcase,
     basePath: "/productions-manager",
   },
@@ -153,7 +153,7 @@ export const warehouseNavItems: NavItem[] = [
     label: "Tổng quan",
     icon: MdDashboard,
     basePath: "/warehouse",
-  },{
+  }, {
     path: "/inventory",
     label: "Nhập kho",
     icon: FaWarehouse,
@@ -205,7 +205,7 @@ export const materialsNavItems: NavItem[] = [
     isLogout: true,
   },
 ]
-;
+  ;
 
 // Preset cho General Manager
 export const generalManagerNavItems: NavItem[] = [
