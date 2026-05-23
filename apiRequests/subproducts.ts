@@ -21,8 +21,12 @@ export interface PagedSubProductsResponse {
 }
 
 export const subProductsApi = {
-  getPaged: (page: number = 1, pageSize: number = 500, isActive: boolean = true) =>
+  getPaged: (page: number = 1, pageSize: number = 500, isActive: boolean, isImported: boolean = false) =>
     http.get<PagedSubProductsResponse>(
-      `/api/SubProducts/paged?page=${page}&pageSize=${pageSize}&isActive=${isActive}`
+      `/api/SubProducts/paged?page=${page}&pageSize=${pageSize}&isActive=${isActive}&isImported=${isImported}`
     ),
+
+  generateImportReceipts: (sub_product_ids: number[]) =>
+    http.put<any>(`/api/SubProducts/generate-import-receipts`, sub_product_ids),
+
 };

@@ -53,12 +53,12 @@ export const consultantNavItems: NavItem[] = [
     icon: TbTruckDelivery,
     basePath: "/consultant",
   },
-  // {
-  //   path: "/history",
-  //   label: "Quản Lý Đơn Hàng",
-  //   icon: FiPackage,
-  //   basePath: "/consultant",
-  // },
+  {
+    path: "/production-tracking",
+    label: "Tiến độ sản xuất",
+    icon: FiBarChart2,
+    basePath: "/consultant",
+  },
   {
     path: "/",
     label: "Đăng xuất",
@@ -210,6 +210,13 @@ export const materialsNavItems: NavItem[] = [
 // Preset cho General Manager
 export const generalManagerNavItems: NavItem[] = [
   {
+    path: "",
+    label: "Tổng quan",
+    icon: LuLayoutDashboard,
+    basePath: "/general-manager",
+    exact: true,
+  },
+  {
     path: "/materials",
     label: "Quản lý nguyên vật liệu",
     icon: FaWarehouse,
@@ -242,6 +249,12 @@ export const generalManagerNavItems: NavItem[] = [
   {
     path: "/import-receipt",
     label: "Nhập kho thành phẩm",
+    icon: FiPackage,
+    basePath: "/general-manager",
+  },
+  {
+    path: "/subproducts-import",
+    label: "Nhập kho bán thành phẩm",
     icon: FiPackage,
     basePath: "/general-manager",
   },
