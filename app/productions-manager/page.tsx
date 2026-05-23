@@ -333,7 +333,6 @@ export default function ProdutionManager() {
       }
       return b.progress_percent - a.progress_percent;
     });
-
   /* ================== PAGINATION DATA ================== */
   const scheduledTotalPages = Math.ceil(scheduledList.length / ITEMS_PER_PAGE);
   const processingTotalPages = Math.ceil(processingList.length / ITEMS_PER_PAGE);
@@ -567,17 +566,25 @@ export default function ProdutionManager() {
                               {code.trim()}
                             </span>
                           ))
-                        : order.stage_statuses
+                          : order.stage_statuses
                           ? order.stage_statuses
                             .filter((s: any) => s.status !== "GroupedWaiting" && s.status !== null && s.status !== undefined)
-                            .map((stage: any, i: number) => (
-                              <span
-                                key={i}
-                                className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
-                              >
-                                {stage.process_name}
-                              </span>
-                            ))
+                            .map((stage: any, i: number) => {
+                              const isFinished = stage.status === "Finished";
+                              return (
+                                <span
+                                  key={i}
+                                  className={`rounded-md border px-2 py-0.5 text-xs flex items-center gap-1
+                                    ${isFinished
+                                      ? "bg-green-100 text-green-700 border-green-300"
+                                      : "bg-gray-50 text-gray-600 border-gray-300"
+                                    }`}
+                                >
+                                  {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
+                                  {stage.process_name}
+                                </span>
+                              );
+                            })
                           : order.stages?.map((stage: string, i: number) => (
                             <span
                               key={i}
@@ -618,16 +625,24 @@ export default function ProdutionManager() {
                         }
                       }}
                       disabled={!canStart || isStarting}
-                      title={!canStart ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
-                        ${!canStart || isStarting
-                          ? "cursor-not-allowed bg-gray-300 text-gray-500"
-                          : "bg-yellow-500 text-white hover:bg-yellow-600"
-                        }`}
-                    >
-                      <BsPlay className="h-3.5 w-3.5" />
-                      Bắt đầu
-                    </button>
+  title={!canStart ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
+  className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
+    ${!canStart || isStarting
+      ? "cursor-not-allowed bg-gray-300 text-gray-500"
+      : "bg-yellow-500 text-white hover:bg-yellow-600"
+    }`}
+>
+  <BsPlay className="h-3.5 w-3.5" />
+  {(() => {
+  const isNvlAllDone =
+    order.production_method === "NVL" &&
+    order.stage_statuses?.length > 0 &&
+    order.stage_statuses
+      .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
+      .every((s: any) => s.status === "Finished");
+  return isNvlAllDone ? "Tiếp tục" : "Bắt đầu";
+})()}
+</button>
 
                     <Link
                       href={
