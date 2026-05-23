@@ -5,7 +5,23 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { getSignalRConnection } from "@/lib/signalr";
+import TokenQrModal from "@/components/production/TokenQrModal";
+import {
+  assembleQrReportBody,
+  getMaterialsSectionTitle,
+  isManualInputMode,
+  parseReportQty,
+  resolveFinalQtyGood,
+  resolveIsStock,
+  resolveQrMode,
+  resolveQtyGoodMax,
+  syncQtyFromLeftInput,
+  validateQrReport,
+} from "@/utils/productionReport";
+import {
+  getSignalRConnection,
+  PRODUCTION_MANAGER_SIGNALR_EVENTS,
+} from "@/lib/signalr";
 import {
   BsArrowLeft,
   BsClock,
@@ -181,112 +197,6 @@ function formatDateTime(dateStr?: string | null) {
 function fmtNum(val: number | null | undefined) {
   if (val == null) return "—";
   return val.toLocaleString("vi-VN");
-}
-
-/* =======================
-   QR MODAL
-======================= */
-function QrModal({
-  token,
-  processName,
-  onClose,
-  onConfirm,
-}: {
-  token: string;
-  processName?: string;
-  onClose: () => void;
-  onConfirm: (manualToken?: string) => void;
-}) {
-  const [manualToken, setManualToken] = useState("");
-  const [copied, setCopied] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, [token]);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(token);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cleanToken = manualToken.trim();
-    if (!cleanToken) return;
-    onConfirm(cleanToken);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl border border-blue-100 p-6 w-full max-w-[360px] shadow-2xl animate-in fade-in zoom-in duration-200">
-        <h3 className="font-bold text-lg text-blue-800 mb-2 text-center">
-          Nhập token hoàn thành công đoạn
-        </h3>
-        {processName && (
-          <p className="text-sm text-gray-500 mb-4 text-center font-medium">
-            Công đoạn: <span className="text-blue-600">{processName}</span>
-          </p>
-        )}
-
-        <div className="mb-4 bg-blue-50/50 border border-blue-100 rounded-xl p-3.5 text-center">
-          <p className="text-xs text-gray-500 mb-1.5 uppercase font-semibold tracking-wider">
-            Token cần nhập
-          </p>
-          <div className="flex items-center justify-center gap-2">
-            <span className="font-mono text-sm font-bold text-blue-600 break-all select-all">
-              {token}
-            </span>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className={`flex-shrink-0 text-xs px-2 py-1 rounded transition-all font-medium ${copied
-                ? "bg-green-100 text-green-700 border border-green-200"
-                : "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
-                }`}
-            >
-              {copied ? "Đã chép" : "Sao chép"}
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              Nhập mã token hoặc quét
-            </label>
-            <input
-              ref={inputRef}
-              type="text"
-              value={manualToken}
-              onChange={(e) => setManualToken(e.target.value)}
-              placeholder="Nhập hoặc quét mã token..."
-              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner font-mono text-center font-bold text-gray-800"
-              autoFocus
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 font-semibold rounded-xl py-2.5 text-sm transition-all active:scale-[0.98]"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={!manualToken.trim()}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-blue-300 disabled:to-indigo-300 text-white font-semibold rounded-xl py-2.5 text-sm shadow-md shadow-blue-200 transition-all active:scale-[0.98]"
-            >
-              Xác nhận
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 }
 
 /* =======================
@@ -798,15 +708,7 @@ export default function GroupProductionPage() {
   // SignalR
   useEffect(() => {
     let conn: any;
-    const events = [
-      "scheduled",
-      "approved-production",
-      "production-ready-cancelled",
-      "finishedProduction",
-      "PendingPaid",
-      "Paid",
-      "update-ui"
-    ];
+    const events = [...PRODUCTION_MANAGER_SIGNALR_EVENTS];
     const handler = () => {
       queryClient.invalidateQueries({ queryKey: ["group-production-detail", id] });
     };
@@ -892,8 +794,9 @@ export default function GroupProductionPage() {
           initUsed[m.material_id] = "0";
           initLeft[m.material_id] = "0";
         } else {
-          initUsed[m.material_id] = m.estimated_input_qty != null ? m.estimated_input_qty.toString() : "";
-          initLeft[m.material_id] = "";
+          const maxVal = Number(m.estimated_input_qty || 0);
+          initLeft[m.material_id] = "0";
+          initUsed[m.material_id] = maxVal.toString();
         }
       });
       setMaterialUsed(initUsed);
@@ -904,8 +807,9 @@ export default function GroupProductionPage() {
       const initRefLeft: { [code: string]: string } = {};
       const refs = data.reference_inputs || [];
       refs.forEach((x: any) => {
-        initRefUsed[x.input_code] = x.estimated_qty != null ? x.estimated_qty.toString() : "0";
+        const maxVal = Number(x.estimated_qty || 0);
         initRefLeft[x.input_code] = "0";
+        initRefUsed[x.input_code] = maxVal.toString();
       });
       setRefUsed(initRefUsed);
       setRefLeft(initRefLeft);
@@ -924,103 +828,50 @@ export default function GroupProductionPage() {
     try {
       setQrLoading(true);
 
-      const maxTotal = Number(qtyInputStage.estimated_output_qty || 0);
-      const goodVal = qtyInputValue === "" ? 0 : Number(qtyInputValue);
-      const badVal = 0;
+      const stageMax = Number(qtyInputStage.estimated_output_qty || 0);
+      const maxQtyGood = resolveQtyGoodMax(qrPrepare, stageMax);
+      const mode = resolveQrMode(qrPrepare, false);
 
-      if (qtyInputValue !== "" && (Number(qtyInputValue) < 0 || Number(qtyInputValue) > maxTotal)) {
-        setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
+      const validationError = validateQrReport({
+        taskId: qtyInputStage.task_id,
+        mode,
+        qrPrepare,
+        qtyInputValue,
+        maxQtyGood,
+        materialQtys,
+        materialUsed,
+        refLeft,
+      });
+      if (validationError) {
+        setQtyError(validationError);
         setQrLoading(false);
         return;
       }
 
-      const finalQty = goodVal;
+      const finalQty = resolveFinalQtyGood(qtyInputValue, qrPrepare?.suggested_qty);
+      const badVal = Number(qtyBadValue || 0);
 
-      const isManual = qrPrepare?.is_group_production === true || qrPrepare?.allow_manual_input === true;
-
-      // Validate materials
-      if (qrPrepare && qrPrepare.consumable_materials?.length > 0) {
-        for (const mat of qrPrepare.consumable_materials) {
-          if (mat._isPaperInPrint) continue;
-          const leftVal = materialQtys[mat.material_id] ?? "";
-          const usedVal = materialUsed[mat.material_id] ?? "";
-          const numLeft = leftVal === "" ? 0 : Number(leftVal);
-          const numUsed = usedVal === "" ? 0 : Number(usedVal);
-
-          const maxVal = Number(mat.estimated_input_qty || 0);
-          if (numLeft + numUsed !== maxVal) {
-            setQtyError(`Tổng thực tế đã dùng và lượng dư của ${mat.material_name} phải bằng ${maxVal}`);
-            setQrLoading(false);
-            return;
-          }
-        }
-      }
-
-      // Validate BTP (reference inputs)
-      if (isManual && qrPrepare && qrPrepare.reference_inputs?.length > 0) {
-        for (const ref of qrPrepare.reference_inputs) {
-          const leftVal = refLeft[ref.input_code] ?? "";
-          const usedVal = refUsed[ref.input_code] ?? "";
-          const numLeft = leftVal === "" ? 0 : Number(leftVal);
-          const numUsed = usedVal === "" ? 0 : Number(usedVal);
-
-          const maxVal = Number(ref.estimated_qty || 0);
-          if (numLeft + numUsed !== maxVal) {
-            setQtyError(`Tổng thực tế đã dùng và lượng dư của ${ref.input_name} phải bằng ${maxVal}`);
-            setQrLoading(false);
-            return;
-          }
-        }
-      }
-
-      const materials = qrPrepare?.consumable_materials?.map((mat: any) => {
-        const qtyUsedStr = materialUsed[mat.material_id];
-        const qtyLeftStr = materialQtys[mat.material_id];
-        const qtyUsed = qtyUsedStr === "" || qtyUsedStr === undefined ? 0 : Number(qtyUsedStr);
-        const qtyLeft = qtyLeftStr === "" || qtyLeftStr === undefined ? 0 : Number(qtyLeftStr);
-
-        return {
-          material_id: mat.material_id,
-          quantity_used: isManual ? qtyUsed : 0,
-          quantity_left: qtyLeft,
-          is_stock: qtyLeft > 0,
-        };
-      }) ?? [];
-
-      const referenceInputs = isManual ? (qrPrepare?.reference_inputs?.map((x: any) => {
-        const rUsedStr = refUsed[x.input_code];
-        const rLeftStr = refLeft[x.input_code];
-        const rUsed = rUsedStr === "" || rUsedStr === undefined ? (x.estimated_qty ?? 0) : Number(rUsedStr);
-        const rLeft = rLeftStr === "" || rLeftStr === undefined ? 0 : Number(rLeftStr);
-
-        return {
-          input_code: x.input_code,
-          input_name: x.input_name,
-          unit: x.unit,
-          quantity_used: rUsed,
-          quantity_left: rLeft
-        };
-      }) ?? []) : undefined;
-
-      const outputs = isManual ? [{
-        output_code: qrPrepare?.process_code || qtyInputStage.process_code,
-        output_name: `BTP sau ${qrPrepare?.process_name || qtyInputStage.process_name}`,
-        unit: qrPrepare?.production_output_unit || qrPrepare?.qty_unit || qtyInputStage.outputs?.[0]?.unit || "sp",
-        quantity_good: finalQty,
-        quantity_bad: 0
-      }] : undefined;
-
-      const data = await tasksApi.createQRByStageId({
-        task_id: qtyInputStage.task_id,
-        ttl_minutes: 30,
-        qty_good: finalQty,
-        materials_json: materials,
-        reference_inputs_json: referenceInputs,
-        outputs_json: outputs,
-        use_manual_input: isManual,
-        images: reportImages,
-        reason: reportReason,
-      });
+      const data = await tasksApi.createQRByStageId(
+        assembleQrReportBody({
+          taskId: qtyInputStage.task_id,
+          mode,
+          qrPrepare,
+          qtyGood: finalQty,
+          materialQtys,
+          materialUsed,
+          refLeft,
+          refUsed,
+          qtyBad: badVal,
+          stageFallback: {
+            process_code: qtyInputStage.process_code,
+            process_name: qtyInputStage.process_name,
+            unit: qtyInputStage.outputs?.[0]?.unit,
+          },
+          reason: reportReason,
+          images: reportImages,
+          ttlMinutes: 60,
+        })
+      );
       setQrToken((data as any)?.token ?? (data as any)?.data?.token);
       setQrProcessName(qtyInputStage.process_name);
       setQtyInputStage(null);
@@ -1317,10 +1168,15 @@ export default function GroupProductionPage() {
                 </div>
               ) : (
                 <>
+                  {(() => {
+                    const mode = resolveQrMode(qrPrepare, false);
+                    const manualMode = isManualInputMode(mode);
+                    return (
+                      <>
                   {qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
-                        Nguyên vật liệu tiêu hao (Nhập thủ công)
+                        {getMaterialsSectionTitle(mode)}
                       </h4>
                       <div className="border rounded-lg overflow-hidden">
                         <table className="w-full text-sm">
@@ -1328,12 +1184,15 @@ export default function GroupProductionPage() {
                             <tr>
                               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
                               <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Đã xuất</th>
-                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Thực tế đã dùng</th>
                               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
+                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {qrPrepare.consumable_materials.map((mat: any) => (
+                            {qrPrepare.consumable_materials.filter((m: any) => !m._isPaperInPrint).map((mat: any) => {
+                              const qtyLeft = parseReportQty(materialQtys[mat.material_id]);
+                              const willStock = resolveIsStock(qtyLeft);
+                              return (
                               <tr key={mat.material_id} className="border-t">
                                 <td className="px-3 py-2 text-gray-800 font-medium">{mat.material_name}</td>
                                 <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
@@ -1343,66 +1202,40 @@ export default function GroupProductionPage() {
                                   <input
                                     type="number"
                                     step="any"
-                                    placeholder="Số lượng dùng"
-                                    value={materialUsed[mat.material_id] ?? ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setMaterialUsed(prev => ({ ...prev, [mat.material_id]: val }));
-                                      const maxVal = Number(mat.estimated_input_qty || 0);
-                                      if (val === "") {
-                                        setMaterialQtys(prev => ({ ...prev, [mat.material_id]: "" }));
-                                        setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Vui lòng nhập thực tế đã dùng" }));
-                                      } else {
-                                        const numUsed = Number(val);
-                                        if (numUsed < 0 || numUsed > maxVal) {
-                                          setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Từ 0 đến ${maxVal}` }));
-                                          setMaterialQtys(prev => ({ ...prev, [mat.material_id]: "" }));
-                                        } else {
-                                          setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
-                                          setMaterialQtys(prev => ({ ...prev, [mat.material_id]: (maxVal - numUsed).toString() }));
-                                        }
-                                      }
-                                    }}
-                                    className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500 bg-red-50' : ''}`}
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    step="any"
                                     placeholder="0"
                                     value={materialQtys[mat.material_id] ?? ""}
                                     onChange={(e) => {
-                                      const val = e.target.value;
-                                      setMaterialQtys(prev => ({ ...prev, [mat.material_id]: val }));
                                       const maxVal = Number(mat.estimated_input_qty || 0);
-                                      if (val === "") {
-                                        setMaterialUsed(prev => ({ ...prev, [mat.material_id]: "" }));
-                                        setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "Vui lòng nhập lượng dư" }));
-                                      } else {
-                                        const numLeft = Number(val);
-                                        if (numLeft < 0 || numLeft > maxVal) {
-                                          setMaterialErrors(prev => ({ ...prev, [mat.material_id]: `Từ 0 đến ${maxVal}` }));
-                                          setMaterialUsed(prev => ({ ...prev, [mat.material_id]: "" }));
-                                        } else {
-                                          setMaterialErrors(prev => ({ ...prev, [mat.material_id]: "" }));
-                                          setMaterialUsed(prev => ({ ...prev, [mat.material_id]: (maxVal - numLeft).toString() }));
-                                        }
-                                      }
+                                      const synced = syncQtyFromLeftInput(maxVal, e.target.value);
+                                      setMaterialQtys(prev => ({ ...prev, [mat.material_id]: synced.left }));
+                                      setMaterialUsed(prev => ({ ...prev, [mat.material_id]: synced.used }));
+                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: synced.error }));
                                     }}
                                     className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500 bg-red-50' : ''}`}
                                   />
                                   {materialErrors[mat.material_id] && <span className="text-[10px] text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
                                 </td>
+                                <td className="px-3 py-2 text-center">
+                                  <span
+                                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                      willStock
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-gray-100 text-gray-500"
+                                    }`}
+                                  >
+                                    {willStock ? "Có" : "Không"}
+                                  </span>
+                                </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
                     </div>
                   )}
 
-                  {qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
+                  {manualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Bán thành phẩm đầu vào</h4>
                       <div className="border rounded-lg overflow-hidden">
@@ -1411,12 +1244,15 @@ export default function GroupProductionPage() {
                             <tr>
                               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">BTP nguồn</th>
                               <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Ước tính</th>
-                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Thực tế đã dùng</th>
                               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
+                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {qrPrepare.reference_inputs.map((ref: any) => (
+                            {qrPrepare.reference_inputs.map((ref: any) => {
+                              const refQtyLeft = parseReportQty(refLeft[ref.input_code]);
+                              const refWillStock = resolveIsStock(refQtyLeft);
+                              return (
                               <tr key={ref.input_code} className="border-t">
                                 <td className="px-3 py-2 text-gray-800 font-medium">{ref.input_name}</td>
                                 <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
@@ -1426,64 +1262,41 @@ export default function GroupProductionPage() {
                                   <input
                                     type="number"
                                     step="any"
-                                    placeholder="Số lượng dùng"
-                                    value={refUsed[ref.input_code] ?? ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRefUsed(prev => ({ ...prev, [ref.input_code]: val }));
-                                      const maxVal = Number(ref.estimated_qty || 0);
-                                      if (val === "") {
-                                        setRefLeft(prev => ({ ...prev, [ref.input_code]: "" }));
-                                        setRefErrors(prev => ({ ...prev, [ref.input_code]: "Vui lòng nhập thực tế đã dùng" }));
-                                      } else {
-                                        const numUsed = Number(val);
-                                        if (numUsed < 0 || numUsed > maxVal) {
-                                          setRefErrors(prev => ({ ...prev, [ref.input_code]: `Từ 0 đến ${maxVal}` }));
-                                          setRefLeft(prev => ({ ...prev, [ref.input_code]: "" }));
-                                        } else {
-                                          setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
-                                          setRefLeft(prev => ({ ...prev, [ref.input_code]: (maxVal - numUsed).toString() }));
-                                        }
-                                      }
-                                    }}
-                                    className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    step="any"
                                     placeholder="0"
                                     value={refLeft[ref.input_code] ?? ""}
                                     onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRefLeft(prev => ({ ...prev, [ref.input_code]: val }));
                                       const maxVal = Number(ref.estimated_qty || 0);
-                                      if (val === "") {
-                                        setRefUsed(prev => ({ ...prev, [ref.input_code]: "" }));
-                                        setRefErrors(prev => ({ ...prev, [ref.input_code]: "Vui lòng nhập lượng dư" }));
-                                      } else {
-                                        const numLeft = Number(val);
-                                        if (numLeft < 0 || numLeft > maxVal) {
-                                          setRefErrors(prev => ({ ...prev, [ref.input_code]: `Từ 0 đến ${maxVal}` }));
-                                          setRefUsed(prev => ({ ...prev, [ref.input_code]: "" }));
-                                        } else {
-                                          setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
-                                          setRefUsed(prev => ({ ...prev, [ref.input_code]: (maxVal - numLeft).toString() }));
-                                        }
-                                      }
+                                      const synced = syncQtyFromLeftInput(maxVal, e.target.value);
+                                      setRefLeft(prev => ({ ...prev, [ref.input_code]: synced.left }));
+                                      setRefUsed(prev => ({ ...prev, [ref.input_code]: synced.used }));
+                                      setRefErrors(prev => ({ ...prev, [ref.input_code]: synced.error }));
                                     }}
                                     className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
                                   />
                                   {refErrors[ref.input_code] && <span className="text-[10px] text-red-500 mt-1 block">{refErrors[ref.input_code]}</span>}
                                 </td>
+                                <td className="px-3 py-2 text-center">
+                                  <span
+                                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                      refWillStock
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-gray-100 text-gray-500"
+                                    }`}
+                                  >
+                                    {refWillStock ? "Có" : "Không"}
+                                  </span>
+                                </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
                     </div>
                   )}
+                      </>
+                    );
+                  })()}
 
                   <div className="mb-4">
                     <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Thành phẩm đầu ra ước tính</h4>
@@ -1501,21 +1314,24 @@ export default function GroupProductionPage() {
                         Số lượng thành phẩm đạt
                       </h4>
                       <span className="text-gray-500">
-                        Đơn vị tính: sp
+                        Đơn vị tính: {qrPrepare?.qty_unit || "sp"}
                       </span>
                     </div>
                     <input
                       type="number"
                       min={0}
-                      placeholder="Mặc định: 0 sp"
+                      placeholder={qrPrepare?.suggested_qty != null ? `Gợi ý: ${qrPrepare.suggested_qty}` : "0"}
                       value={qtyInputValue}
                       onChange={(e) => {
                         const val = e.target.value;
                         setQtyInputValue(val);
-                        const maxTotal = Number(qtyInputStage.estimated_output_qty || 0);
+                        const maxTotal = resolveQtyGoodMax(
+                          qrPrepare,
+                          Number(qtyInputStage.estimated_output_qty || 0)
+                        );
                         const goodVal = val === "" ? 0 : Number(val);
-                        if (goodVal < 0 || goodVal > maxTotal) {
-                          setQtyError(`Số lượng đạt phải từ 0 đến ${maxTotal}`);
+                        if (val !== "" && (goodVal <= 0 || goodVal > maxTotal)) {
+                          setQtyError(`Số lượng đạt phải từ 1 đến ${maxTotal.toLocaleString("vi-VN")}`);
                         } else {
                           setQtyError("");
                         }
@@ -1656,7 +1472,7 @@ export default function GroupProductionPage() {
 
       {/* QR Modal */}
       {qrToken && (
-        <QrModal
+        <TokenQrModal
           token={qrToken}
           processName={qrProcessName}
           onClose={() => { setQrToken(null); setQrProcessName(""); }}

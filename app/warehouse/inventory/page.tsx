@@ -10,7 +10,7 @@ import { Pagination, Tabs } from "antd";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BiPackage } from "react-icons/bi";
-import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel, BsExclamationTriangle } from "react-icons/bs";
+import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel, BsDownload ,BsExclamationTriangle} from "react-icons/bs";
 import { subProductsApi, SubProduct } from "@/apiRequests/subproducts";
 import { Table } from "antd";
 
@@ -43,6 +43,9 @@ export default function InventoryManagement() {
   const [missingMaterialPage, setMissingMaterialPage] = useState(1);
   const [selectedExcel, setSelectedExcel] = useState<File | null>(null);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [selectedSubProductIds, setSelectedSubProductIds] = useState<number[]>([]);
+  const [isImportingSubProducts, setIsImportingSubProducts] = useState(false);
 
   const {
     data: purchaseRequests,
@@ -55,12 +58,17 @@ export default function InventoryManagement() {
       try {
         const response = await purchasesApi.getList(1, 100);
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
+        // Bỏ qua lỗi 404 - không có dữ liệu là bình thường
+        if (error?.status === 404 || error?.status === 400) {
+          return [];
+        }
         console.error("Error fetching purchase orders:", error);
         return [];
       }
     },
     initialData: [],
+    retry: false, // Không retry khi lỗi
   });
 
   const {
@@ -177,6 +185,42 @@ export default function InventoryManagement() {
 
   const subProductsColumns = [
     {
+      title: (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-purple-600 cursor-pointer"
+          checked={
+            subProductsList.length > 0 &&
+            selectedSubProductIds.length === subProductsList.length
+          }
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedSubProductIds(subProductsList.map((item) => item.id));
+            } else {
+              setSelectedSubProductIds([]);
+            }
+          }}
+        />
+      ),
+      key: "select",
+      width: 48,
+      render: (_: any, record: SubProduct) => (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-purple-600 cursor-pointer"
+          checked={selectedSubProductIds.includes(record.id)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedSubProductIds((prev) => [...prev, record.id]);
+            } else {
+              setSelectedSubProductIds((prev) => prev.filter((id) => id !== record.id));
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+    },
+    {
       title: 'Mã ID',
       dataIndex: 'id',
       key: 'id',
@@ -227,44 +271,96 @@ export default function InventoryManagement() {
 
   const missingMaterialsColumns = [
     {
-      title: 'Mã NVL',
-      dataIndex: 'code',
-      key: 'code',
-      render: (text: string) => <span className="font-medium text-gray-500">{text}</span>,
-    },
-    {
       title: 'Tên nguyên vật liệu',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string) => <span className="font-semibold text-gray-900">{text || "Nguyên vật liệu"}</span>,
-    },
-    {
-      title: 'Loại',
-      dataIndex: 'type',
-      key: 'type',
+      dataIndex: 'material_name',
+      key: 'material_name',
+      width: 220,
       render: (text: string) => (
-        <span className="font-medium text-red-700 bg-red-100 rounded-md px-2 py-0.5 border border-red-200">{text || 'N/A'}</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-orange-100 rounded-md flex items-center justify-center flex-shrink-0">
+            <BsExclamationTriangle className="w-3.5 h-3.5 text-orange-500" />
+          </div>
+          <span className="font-semibold text-gray-800 text-sm">{text || "Nguyên vật liệu"}</span>
+        </div>
       ),
     },
     {
       title: 'Đơn vị',
       dataIndex: 'unit',
       key: 'unit',
-    },
-    {
-      title: 'Tồn kho',
-      dataIndex: 'stock_qty',
-      key: 'stock_qty',
-      render: (text: number) => (
-        <span className="font-bold text-red-600">{text || 0}</span>
+      width: 80,
+      render: (text: string) => (
+        <span className="text-sm text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">{text || "—"}</span>
       ),
     },
     {
-      title: 'Tồn kho tối thiểu',
-      dataIndex: 'min_stock',
-      key: 'min_stock',
+      title: 'Cần dùng',
+      dataIndex: 'needed',
+      key: 'needed',
+      width: 100,
+      align: 'right' as const,
       render: (text: number) => (
-        <span className="font-bold text-gray-600">{text || 0}</span>
+        <span className="font-bold text-orange-500 text-sm">{(text || 0).toLocaleString("vi-VN")}</span>
+      ),
+    },
+    {
+      title: 'Hiện có',
+      dataIndex: 'available',
+      key: 'available',
+      width: 100,
+      align: 'right' as const,
+      render: (text: number) => (
+        <span className="font-bold text-blue-500 text-sm">{(text || 0).toLocaleString("vi-VN")}</span>
+      ),
+    },
+    {
+      title: 'Còn thiếu',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 110,
+      align: 'right' as const,
+      render: (text: number) => (
+        <span className="inline-flex items-center gap-1 font-bold text-red-600 text-sm bg-red-50 px-2.5 py-0.5 rounded-lg border border-red-100">
+          -{(text || 0).toLocaleString("vi-VN")}
+        </span>
+      ),
+    },
+    {
+      title: 'Ngày yêu cầu',
+      dataIndex: 'request_date',
+      key: 'request_date',
+      width: 130,
+      render: (text: string) => (
+        <span className="text-gray-500 text-sm">{new Date(text).toLocaleDateString("vi-VN")}</span>
+      ),
+    },
+    {
+      title: 'Tổng tiền',
+      dataIndex: 'total_price',
+      key: 'total_price',
+      width: 130,
+      align: 'right' as const,
+      render: (text: number) => (
+        <span className="font-semibold text-gray-700 text-sm">
+          {text ? text.toLocaleString("vi-VN") + " ₫" : "—"}
+        </span>
+      ),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'is_buy',
+      key: 'is_buy',
+      width: 110,
+      align: 'center' as const,
+      render: (val: boolean) => (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
+          val
+            ? "bg-green-50 text-green-700 border-green-200"
+            : "bg-red-50 text-red-600 border-red-200"
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${val ? "bg-green-500" : "bg-red-500"}`} />
+          {val ? "Đã mua" : "Chưa mua"}
+        </span>
       ),
     },
   ];
@@ -315,11 +411,40 @@ export default function InventoryManagement() {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      await materialsApi.exportMissingMaterialsExcel(1, 200);
+      showSuccessToast("Tải file Excel thành công!");
+    } catch (error) {
+      console.error("Error exporting excel:", error);
+      showErrorToast("Có lỗi xảy ra khi tải file Excel");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
+  const handleImportSubProducts = async () => {
+    if (selectedSubProductIds.length === 0) return;
+    try {
+      setIsImportingSubProducts(true);
+      await subProductsApi.importPending(selectedSubProductIds);
+      showSuccessToast(`Xác nhận nhập kho ${selectedSubProductIds.length} bán thành phẩm thành công!`);
+      setSelectedSubProductIds([]);
+      // refetch subproducts nếu có refetch
+    } catch (error: any) {
+      console.error("Error importing sub products:", error);
+      showErrorToast("Có lỗi xảy ra khi nhập kho bán thành phẩm");
+    } finally {
+      setIsImportingSubProducts(false);
+    }
+  };
+
   const handleExcelUpload = async () => {
     if (!selectedExcel) return;
     try {
       setIsUploadingExcel(true);
-      await materialsApi.importFromExcel(selectedExcel);
+      await materialsApi.importStockFromExcel(selectedExcel);
       showSuccessToast("Nhập nguyên vật liệu từ Excel thành công!");
       setSelectedExcel(null);
       refetchInvData();
@@ -410,31 +535,47 @@ export default function InventoryManagement() {
         </span>
       ),
       children: (
-        <div className="pt-4">
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30">
+        <div className="pt-4 space-y-6">
+          {/* ── Phần upload Excel (giữ nguyên) ── */}
+          <div className="flex flex-col items-center justify-center py-10 px-4 text-center border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30">
             <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-6 shadow-sm">
               <BsFileEarmarkExcel className="w-10 h-10" />
             </div>
             <h3 className="text-gray-900 font-semibold text-lg mb-2">Nhập nguyên vật liệu từ file Excel</h3>
             <p className="text-gray-500 max-w-sm mb-6">
-              Vui lòng tải lên file định dạng .xlsx hoặc .xls chứa danh sách nguyên vật liệu cần nhập kho.
+              Tải file Excel danh sách nguyên vật liệu thiếu, điền số lượng nhập kho rồi upload lại.
             </p>
-            
-            <input 
-              type="file" 
-              id="excel-upload" 
-              accept=".xlsx, .xls" 
-              className="hidden" 
+    
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={isExportingExcel}
+              className={`mb-4 cursor-pointer bg-white border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${
+                isExportingExcel ? "opacity-60 cursor-not-allowed" : ""
+              }`}
+            >
+              {isExportingExcel ? (
+                <><div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />Đang tải...</>
+              ) : (
+                <><BsDownload className="w-5 h-5" />Tải file Excel</>
+              )}
+            </button>
+    
+            <input
+              type="file"
+              id="excel-upload"
+              accept=".xlsx, .xls"
+              className="hidden"
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) {
                   setSelectedExcel(e.target.files[0]);
                 }
-              }} 
+              }}
             />
-            
+    
             {!selectedExcel ? (
-              <label 
-                htmlFor="excel-upload" 
+              <label
+                htmlFor="excel-upload"
                 className="cursor-pointer bg-white border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center gap-2"
               >
                 <BsCloudUpload className="w-5 h-5" />
@@ -447,35 +588,81 @@ export default function InventoryManagement() {
                     <BsFileEarmarkExcel className="w-6 h-6 text-green-600 flex-shrink-0" />
                     <span className="text-sm font-medium text-gray-700 truncate">{selectedExcel.name}</span>
                   </div>
-                  <button 
-                    onClick={() => setSelectedExcel(null)}
-                    className="text-gray-400 hover:text-red-500 p-1 transition-colors"
-                  >
-                    ✕
-                  </button>
+                  <button onClick={() => setSelectedExcel(null)} className="text-gray-400 hover:text-red-500 p-1 transition-colors">✕</button>
                 </div>
-                <button 
-                  onClick={handleExcelUpload} 
-                  disabled={isUploadingExcel} 
+                <button
+                  onClick={handleExcelUpload}
+                  disabled={isUploadingExcel}
                   className={`w-full text-white px-6 py-3 rounded-xl font-semibold shadow-md transition-all flex justify-center items-center gap-2 ${
                     isUploadingExcel ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 hover:shadow-lg"
                   }`}
                 >
                   {isUploadingExcel ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Đang xử lý...
-                    </>
+                    <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Đang xử lý...</>
                   ) : (
-                    <>
-                      <BsCloudUpload className="w-5 h-5" />
-                      Xác nhận nhập kho
-                    </>
+                    <><BsCloudUpload className="w-5 h-5" />Xác nhận nhập kho</>
                   )}
                 </button>
               </div>
             )}
           </div>
+    
+          {/* ── Bảng NVL còn thiếu ── */}
+<div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+  {/* Header section */}
+  <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+    <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+        <BsExclamationTriangle className="w-4 h-4 text-red-500" />
+      </div>
+      <div>
+        <h2 className="text-sm font-semibold text-gray-800">Danh sách nguyên vật liệu còn thiếu</h2>
+        {!isMissingMaterialsPending && missingMaterialsList.length > 0 && (
+          <p className="text-xs text-gray-400 mt-0.5">{missingMaterialsList.length} nguyên vật liệu cần bổ sung</p>
+        )}
+      </div>
+    </div>
+    {!isMissingMaterialsPending && missingMaterialsList.length > 0 && (
+      <span className="text-xs font-semibold bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-full">
+        {missingMaterialsList.filter((i: any) => !i.is_buy).length} chưa mua
+      </span>
+    )}
+  </div>
+
+  {/* Body */}
+  {isMissingMaterialsPending ? (
+    <div className="flex flex-col items-center justify-center py-14 gap-3">
+      <div className="w-8 h-8 border-[3px] border-red-400 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-400">Đang tải dữ liệu...</p>
+    </div>
+  ) : missingMaterialsList.length === 0 ? (
+    <div className="flex flex-col items-center justify-center py-14 px-4 text-center">
+      <div className="w-14 h-14 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-3">
+        <BsExclamationTriangle className="w-6 h-6" />
+      </div>
+      <p className="text-gray-700 font-medium">Không có nguyên vật liệu nào còn thiếu</p>
+      <p className="text-gray-400 text-sm mt-1">Tất cả nguyên vật liệu đều đủ số lượng</p>
+    </div>
+  ) : (
+    <Table
+      columns={missingMaterialsColumns}
+      dataSource={missingMaterialsList.map((item: any) => ({
+        ...item,
+        key: item.material_id || item.id || Math.random(),
+      }))}
+      pagination={{
+        pageSize: 10,
+        showSizeChanger: false,
+        current: missingMaterialPage,
+        onChange: setMissingMaterialPage,
+        className: "px-4",
+      }}
+      className="[&_.ant-table-thead_>_tr_>_th]:!bg-gray-50 [&_.ant-table-thead_>_tr_>_th]:!text-gray-600 [&_.ant-table-thead_>_tr_>_th]:!font-semibold [&_.ant-table-thead_>_tr_>_th]:!text-xs [&_.ant-table-thead_>_tr_>_th]:!uppercase [&_.ant-table-thead_>_tr_>_th]:!tracking-wide [&_.ant-table-thead_>_tr_>_th]:!border-b [&_.ant-table-thead_>_tr_>_th]:!border-gray-200 [&_.ant-table-tbody_>_tr_>_td]:!py-3.5 [&_.ant-table-tbody_>_tr_>_td]:!border-b [&_.ant-table-tbody_>_tr_>_td]:!border-gray-100"
+      rowClassName="hover:!bg-red-50/40 transition-colors"
+      size="middle"
+    />
+  )}
+</div>
         </div>
       ),
     },
@@ -496,52 +683,84 @@ export default function InventoryManagement() {
                   <BsTruck className="w-8 h-8" />
                 </div>
                 <h3 className="text-gray-900 font-medium text-lg mb-1">Chưa có dữ liệu</h3>
-                <p className="text-gray-500 max-w-sm">
-                  Không có dữ liệu bán thành phẩm.
-                </p>
+                <p className="text-gray-500 max-w-sm">Không có dữ liệu bán thành phẩm.</p>
               </div>
             ) : (
-              <Table
-                columns={subProductsColumns}
-                dataSource={subProductsList.map((item) => ({ ...item, key: item.id }))}
-                pagination={{ pageSize: 5, showSizeChanger: false, current: subProductPage, onChange: setSubProductPage }}
-                className="border border-gray-200 rounded-lg overflow-hidden [&_.ant-table-thead_th]:!bg-gray-50 [&_.ant-table-thead_th]:!font-semibold"
-                rowClassName="hover:bg-purple-50/50 transition-colors"
-              />
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "4",
-      label: (
-        <span className="flex items-center gap-2 px-4 py-1 text-base font-medium">
-          <BsExclamationTriangle className="w-5 h-5 text-red-500" />
-          NVL Còn Thiếu
-        </span>
-      ),
-      children: (
-        <div className="pt-4">
-          <div className="w-full overflow-y-auto">
-            {missingMaterialsList.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                  <BsExclamationTriangle className="w-8 h-8" />
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                {/* Header card */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <BsTruck className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-800">Danh sách bán thành phẩm</h2>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {selectedSubProductIds.length > 0
+                          ? `Đã chọn ${selectedSubProductIds.length} / ${subProductsList.length} mục`
+                          : `${subProductsList.length} bán thành phẩm`}
+                      </p>
+                    </div>
+                  </div>
+    
+                  <button
+                    onClick={handleImportSubProducts}
+                    disabled={selectedSubProductIds.length === 0 || isImportingSubProducts}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm border ${
+                      selectedSubProductIds.length === 0 || isImportingSubProducts
+                        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "bg-purple-600 hover:bg-purple-700 text-white border-purple-600 hover:shadow-md"
+                    }`}
+                  >
+                    {isImportingSubProducts ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <BiPackage className="w-4 h-4" />
+                        Xác nhận nhập kho
+                        {selectedSubProductIds.length > 0 && (
+                          <span className="bg-white/20 text-white text-xs font-bold px-1.5 py-0.5 rounded-full ml-0.5">
+                            {selectedSubProductIds.length}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </button>
                 </div>
-                <h3 className="text-gray-900 font-medium text-lg mb-1">Không có dữ liệu</h3>
-                <p className="text-gray-500 max-w-sm">
-                  Hiện không có nguyên vật liệu nào còn thiếu.
-                </p>
+    
+                {/* Table */}
+                <Table
+                  columns={subProductsColumns}
+                  dataSource={subProductsList.map((item) => ({ ...item, key: item.id }))}
+                  pagination={{
+                    pageSize: 5,
+                    showSizeChanger: false,
+                    current: subProductPage,
+                    onChange: setSubProductPage,
+                  }}
+                  className="[&_.ant-table-thead_>_tr_>_th]:!bg-gray-50 [&_.ant-table-thead_>_tr_>_th]:!text-gray-600 [&_.ant-table-thead_>_tr_>_th]:!font-semibold [&_.ant-table-thead_>_tr_>_th]:!text-xs [&_.ant-table-thead_>_tr_>_th]:!uppercase [&_.ant-table-thead_>_tr_>_th]:!tracking-wide [&_.ant-table-tbody_>_tr_>_td]:!py-3.5 [&_.ant-table-tbody_>_tr_>_td]:!border-b [&_.ant-table-tbody_>_tr_>_td]:!border-gray-100"
+                  rowClassName={(record) =>
+                    `transition-colors cursor-pointer ${
+                      selectedSubProductIds.includes(record.id)
+                        ? "!bg-purple-50/60"
+                        : "hover:!bg-purple-50/30"
+                    }`
+                  }
+                  onRow={(record) => ({
+                    onClick: () => {
+                      setSelectedSubProductIds((prev) =>
+                        prev.includes(record.id)
+                          ? prev.filter((id) => id !== record.id)
+                          : [...prev, record.id]
+                      );
+                    },
+                  })}
+                  size="middle"
+                />
               </div>
-            ) : (
-              <Table
-                columns={missingMaterialsColumns}
-                dataSource={missingMaterialsList.map((item: any) => ({ ...item, key: item.material_id || item.id || Math.random() }))}
-                pagination={{ pageSize: 10, showSizeChanger: false, current: missingMaterialPage, onChange: setMissingMaterialPage }}
-                className="border border-gray-200 rounded-lg overflow-hidden [&_.ant-table-thead_th]:!bg-gray-50 [&_.ant-table-thead_th]:!font-semibold"
-                rowClassName="hover:bg-red-50/50 transition-colors"
-              />
             )}
           </div>
         </div>

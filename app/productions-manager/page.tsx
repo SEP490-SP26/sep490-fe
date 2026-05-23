@@ -27,7 +27,10 @@ import { FiZap } from "react-icons/fi";
 
 import { tasksApi } from "@/apiRequests/tasks";
 import Title from "antd/es/typography/Title";
-import { getSignalRConnection } from "@/lib/signalr";
+import {
+  getSignalRConnection,
+  PRODUCTION_MANAGER_SIGNALR_EVENTS,
+} from "@/lib/signalr";
 
 /* =======================
    ProcessingStages Component
@@ -368,19 +371,12 @@ export default function ProdutionManager() {
   /* ================== SIGNALR ================== */
   useEffect(() => {
     let conn: any;
-    const events = [
-      "scheduled",
-      "approved-production",
-      "production-ready-cancelled",
-      "finishedProduction",
-      "PendingPaid",
-      "Paid",
-      "update-ui"
-    ];
+    const events = [...PRODUCTION_MANAGER_SIGNALR_EVENTS];
     const handler = () => {
       console.log("🔥 nhận event SignalR cập nhật UI");
       queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
       queryClient.invalidateQueries({ queryKey: ["production-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["group-production-detail"] });
     };
 
     const init = async () => {

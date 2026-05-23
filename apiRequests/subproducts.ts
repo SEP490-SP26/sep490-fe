@@ -26,7 +26,13 @@ export const subProductsApi = {
       `/api/SubProducts/paged?page=${page}&pageSize=${pageSize}&isActive=${isActive}&isImported=${isImported}`
     ),
 
+
   generateImportReceipts: (sub_product_ids: number[]) =>
     http.put<any>(`/api/SubProducts/generate-import-receipts`, sub_product_ids),
 
+    importPending: (ids: number[]) => {
+      const params = new URLSearchParams();
+      ids.forEach(id => params.append("ids", id.toString()));
+      return http.put<any>(`/api/SubProducts/import-pending?${params.toString()}`, "");
+    },
 };
