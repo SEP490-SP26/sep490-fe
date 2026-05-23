@@ -31,10 +31,14 @@ const { Title } = Typography;
 type ProductionStatus = "Finished" | "InProcessing" | "Scheduled" | "Importing";
 
 interface StageStatus {
+  seq_num?: number;
+  process_name?: string;
+  status?: string;
   end_time: string | null;
 }
 
 interface ProductionOrder {
+  prod_id: number;
   order_id: number;
   code: string;
   customer_name: string;
@@ -44,6 +48,9 @@ interface ProductionOrder {
   current_stage: string | null;
   production_status: ProductionStatus;
   stage_statuses?: StageStatus[];
+  stages?: string[];
+  actual_start_date?: string | null;
+  end_date?: string | null;
 }
 
 interface ProductionResponse {
@@ -58,7 +65,7 @@ interface ProductionResponse {
 ======================= */
 
 const statusConfig: Record<
-  ProductionStatus,
+  string,
   { label: string; color: string }
 > = {
   Finished: { label: "Hoàn thành", color: "green" },
@@ -68,10 +75,15 @@ const statusConfig: Record<
 };
 
 /* =======================
-   Helper
+   Helper – lấy ngày kết thúc thực tế
+   Ưu tiên: end_date → end_time lớn nhất trong stage_statuses → delivery_date
 ======================= */
 
-const getCompletionDate = (o: ProductionOrder): Dayjs => {
+const getCompletionDate = (o: ProductionOrder): Dayjs | null => {
+  // Ưu tiên end_date trên record
+  if (o.end_date) return dayjs(o.end_date);
+
+  // Fallback: end_time lớn nhất trong stage_statuses
   if (o.stage_statuses && o.stage_statuses.length > 0) {
     let latestTime: Dayjs | null = null;
     for (const s of o.stage_statuses) {
@@ -84,7 +96,8 @@ const getCompletionDate = (o: ProductionOrder): Dayjs => {
     }
     if (latestTime) return latestTime;
   }
-  return dayjs(o.delivery_date);
+
+  return null;
 };
 
 /* =======================
@@ -98,7 +111,8 @@ const FinishProduction: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [deliveryRange, setDeliveryRange] =
+  // Lọc theo ngày hoàn thành (end_date)
+  const [completionRange, setCompletionRange] =
     useState<[Dayjs | null, Dayjs | null] | null>(null);
 
   /* =======================
@@ -109,8 +123,7 @@ const FinishProduction: React.FC = () => {
     const fetchProductions = async () => {
       try {
         setLoading(true);
-        const res: ProductionResponse =
-          await productionsApi.getAllProduction();
+        const res: ProductionResponse = await productionsApi.getAllProduction();
         setData(res.data || []);
       } catch (err) {
         console.error("Fetch production error:", err);
@@ -123,29 +136,31 @@ const FinishProduction: React.FC = () => {
   }, []);
 
   /* =======================
-     Filter FINISHED only
+     Filter FINISHED / IMPORTING only
   ======================= */
 
   const filteredData = useMemo(() => {
     return data
-      .filter((o) => o.production_status === "Finished" || o.production_status === "Importing")
+      .filter(
+        (o) =>
+          o.production_status === "Finished" ||
+          o.production_status === "Importing"
+      )
       .filter((o) => {
         if (!searchKeyword) return true;
         const kw = searchKeyword.toLowerCase();
-        const matchCustomer = o.customer_name?.toLowerCase().includes(kw);
-        const matchCode = o.code?.toLowerCase().includes(kw);
-        const matchProduct = o.product_name?.toLowerCase().includes(kw);
-        return matchCustomer || matchCode || matchProduct;
+        return o.prod_id?.toString().toLowerCase().includes(kw);
       })
       .filter((o) => {
-        if (!deliveryRange?.[0] || !deliveryRange?.[1]) return true;
-        const d = getCompletionDate(o);
+        if (!completionRange?.[0] || !completionRange?.[1]) return true;
+        const completionDate = getCompletionDate(o);
+        if (!completionDate) return false;
         return (
-          d.isSameOrAfter(deliveryRange[0], "day") &&
-          d.isSameOrBefore(deliveryRange[1], "day")
+          completionDate.isSameOrAfter(completionRange[0], "day") &&
+          completionDate.isSameOrBefore(completionRange[1], "day")
         );
       });
-  }, [data, searchKeyword, deliveryRange]);
+  }, [data, searchKeyword, completionRange]);
 
   /* =======================
      Columns
@@ -153,37 +168,88 @@ const FinishProduction: React.FC = () => {
 
   const columns: ColumnsType<ProductionOrder> = [
     {
-      title: "Mã đơn",
-      dataIndex: "code",
-      width: 120,
-      render: (v) => <strong>{v}</strong>,
-    },
-    {
-      title: "Khách hàng",
-      dataIndex: "customer_name",
-    },
-    {
-      title: "Sản phẩm",
-      dataIndex: "product_name",
+      title: "Lệnh sản xuất",
+      dataIndex: "prod_id",
+      width: 130,
+      align: "center",
+      render: (v) => <strong>#{v}</strong>,
     },
     {
       title: "Số lượng",
       dataIndex: "quantity",
+      width: 100,
       align: "right",
+      render: (v) => v?.toLocaleString("vi-VN"),
+    },
+    {
+      title: "Công đoạn",
+      key: "stages",
+      render: (_: any, record: ProductionOrder) => {
+        if (!record.stage_statuses || record.stage_statuses.length === 0) {
+          return (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {record.stages?.map((s, i) => (
+                <Tag key={i}>{s}</Tag>
+              ))}
+            </div>
+          );
+        }
+
+        const sorted = [...record.stage_statuses].sort(
+          (a: any, b: any) => (a.seq_num ?? 0) - (b.seq_num ?? 0)
+        );
+
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {sorted.map((stage: any, i: number) => {
+              const isFinished = stage.status === "Finished";
+              const isActive =
+                stage.status === "Ready" || stage.status === "InProcessing";
+              return (
+                <Tag
+                  key={i}
+                  color={
+                    isFinished ? "success" : isActive ? "processing" : "default"
+                  }
+                >
+                  {stage.process_name}
+                </Tag>
+              );
+            })}
+          </div>
+        );
+      },
+    },
+    {
+      title: "Ngày bắt đầu",
+      key: "start_date",
+      width: 130,
+      align: "center",
+      render: (_: any, record: ProductionOrder) => {
+        if (!record.actual_start_date) return <span style={{ color: "#bbb" }}>—</span>;
+        return dayjs(record.actual_start_date).format("DD/MM/YYYY");
+      },
     },
     {
       title: "Ngày hoàn thành",
       key: "completion_date",
-      render: (_, record: ProductionOrder) => getCompletionDate(record).format("DD/MM/YYYY"),
+      width: 140,
+      align: "center",
+      render: (_: any, record: ProductionOrder) => {
+        const d = getCompletionDate(record);
+        if (!d) return <span style={{ color: "#bbb" }}>—</span>;
+        return d.format("DD/MM/YYYY");
+      },
     },
     {
       title: "Trạng thái",
       dataIndex: "production_status",
-      render: (status: ProductionStatus) => (
-        <Tag color={statusConfig[status].color}>
-          {statusConfig[status].label}
-        </Tag>
-      ),
+      width: 130,
+      align: "center",
+      render: (status: string) => {
+        const cfg = statusConfig[status] ?? { label: status, color: "default" };
+        return <Tag color={cfg.color}>{cfg.label}</Tag>;
+      },
     },
   ];
 
@@ -206,7 +272,7 @@ const FinishProduction: React.FC = () => {
     >
       {/* Header */}
       <Title level={4} style={{ marginBottom: 20 }}>
-        📦 Đơn sản xuất hoàn thành
+        Lệnh sản xuất đã hoàn thành
       </Title>
 
       {/* Filters */}
@@ -221,30 +287,34 @@ const FinishProduction: React.FC = () => {
         wrap
       >
         <Input
-          placeholder="🔍 Tìm mã đơn, khách hàng, sản phẩm..."
+          placeholder="🔍 Tìm lệnh sản xuất (ID)"
           allowClear
-          style={{ width: 300 }}
+          style={{ width: 240 }}
           onChange={(e) => setSearchKeyword(e.target.value)}
         />
 
         <DatePicker.RangePicker
           format="DD/MM/YYYY"
-          placeholder={["Từ ngày", "Đến ngày"]}
-          onChange={(dates) => setDeliveryRange(dates as any)}
+          placeholder={["Hoàn thành từ ngày", "Đến ngày"]}
+          onChange={(dates) =>
+            setCompletionRange(dates as [Dayjs | null, Dayjs | null] | null)
+          }
         />
       </Space>
 
       {/* Table */}
       <Spin spinning={loading}>
         <Table
-          rowKey="order_id"
+          rowKey="prod_id"
           columns={columns}
           dataSource={filteredData}
-          pagination={{ pageSize: 5 }}
+          pagination={{ pageSize: 10 }}
           bordered
           onRow={(record) => ({
             onClick: () => {
-              router.push(`/productions-manager/production/${record.order_id}`);
+              router.push(
+                `/productions-manager/production/${record.prod_id}`
+              );
             },
             style: {
               cursor: "pointer",

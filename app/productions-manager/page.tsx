@@ -181,6 +181,24 @@ export default function ProdutionManager() {
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
   const [isManualLoading, setIsManualLoading] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; prodId: number | null }>({
+    open: false,
+    prodId: null,
+  });
+
+  const handleMarkImporting = async (prodId: number) => {
+    setConfirmModal({ open: false, prodId: null });
+    setIsManualLoading(true);
+    try {
+      await productionsApi.markImporting(prodId);
+      showSuccessToast(`Đã xác nhận lấy từ bán thành phẩm cho lệnh SX ${prodId}`);
+      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+    } catch (err: any) {
+      showErrorToast(err.message || "Không thể xác nhận");
+    } finally {
+      setIsManualLoading(false);
+    }
+  };
 
   const isLoading = isFetching > 0 || isMutating > 0 || isManualLoading;
 
@@ -566,7 +584,7 @@ export default function ProdutionManager() {
                               {code.trim()}
                             </span>
                           ))
-                          : order.stage_statuses
+                        : order.stage_statuses
                           ? order.stage_statuses
                             .filter((s: any) => s.status !== "GroupedWaiting" && s.status !== null && s.status !== undefined)
                             .map((stage: any, i: number) => {
@@ -603,46 +621,52 @@ export default function ProdutionManager() {
                           try {
                             setIsManualLoading(true);
                             await productionsApi.startGroupProduction(order.prod_id);
-                            showSuccessToast(
-                              `Đã bắt đầu sản xuất Lệnh SX ghép ${order.prod_id}`
-                            );
-                            queryClient.invalidateQueries({
-                              queryKey: ["scheduledOrders"],
-                            });
+                            showSuccessToast(`Đã bắt đầu sản xuất Lệnh SX ghép ${order.prod_id}`);
+                            queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
                           } catch (err: any) {
-                            showErrorToast(
-                              err.message || "Không thể bắt đầu sản xuất"
-                            );
+                            showErrorToast(err.message || "Không thể bắt đầu sản xuất");
                           } finally {
                             setIsManualLoading(false);
                           }
                         } else {
-                          if (!isStarting)
-                            startMutation.mutate({
-                              orderId: order.order_id,
-                              prodId: order.prod_id,
-                            });
+                          const isNvlAllDone =
+                            order.production_method === "SUB" &&
+                            order.stage_statuses?.length > 0 &&
+                            order.stage_statuses
+                              .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
+                              .every((s: any) => s.status === "Finished");
+
+                          if (isNvlAllDone) {
+                            // Mở confirm popup thay vì gọi API ngay
+                            setConfirmModal({ open: true, prodId: order.prod_id });
+                          } else {
+                            if (!isStarting)
+                              startMutation.mutate({
+                                orderId: order.order_id,
+                                prodId: order.prod_id,
+                              });
+                          }
                         }
                       }}
                       disabled={!canStart || isStarting}
-  title={!canStart ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
-  className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
+                      title={!canStart ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
+                      className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
     ${!canStart || isStarting
-      ? "cursor-not-allowed bg-gray-300 text-gray-500"
-      : "bg-yellow-500 text-white hover:bg-yellow-600"
-    }`}
->
-  <BsPlay className="h-3.5 w-3.5" />
-  {(() => {
-  const isNvlAllDone =
-    order.production_method === "NVL" &&
-    order.stage_statuses?.length > 0 &&
-    order.stage_statuses
-      .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
-      .every((s: any) => s.status === "Finished");
-  return isNvlAllDone ? "Tiếp tục" : "Bắt đầu";
-})()}
-</button>
+                          ? "cursor-not-allowed bg-gray-300 text-gray-500"
+                          : "bg-yellow-500 text-white hover:bg-yellow-600"
+                        }`}
+                    >
+                      <BsPlay className="h-3.5 w-3.5" />
+                      {(() => {
+                        const isNvlAllDone =
+                          order.production_method === "SUB" &&
+                          order.stage_statuses?.length > 0 &&
+                          order.stage_statuses
+                            .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
+                            .every((s: any) => s.status === "Finished");
+                        return isNvlAllDone ? "Xác nhận hoàn thành từ BTP" : "Bắt đầu";
+                      })()}
+                    </button>
 
                     <Link
                       href={
@@ -784,7 +808,36 @@ export default function ProdutionManager() {
           </div>
         </div>
       )}
-
+      {/* ===== CONFIRM MODAL ===== */}
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-[360px] max-w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100">
+                <BsCheckCircleFill className="w-5 h-5 text-yellow-500" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-800">Xác nhận</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Xác nhận lệnh sản xuất đã được lấy từ bán thành phẩm
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmModal({ open: false, prodId: null })}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => handleMarkImporting(confirmModal.prodId!)}
+                className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-semibold hover:bg-yellow-600 transition"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <LoadingOverlay isLoading={isLoading} />
     </div>
   );

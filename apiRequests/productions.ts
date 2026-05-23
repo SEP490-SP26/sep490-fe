@@ -63,12 +63,12 @@ export interface ProductionReadiness {
   production_id: number;
   product_type_id: number;
   order_quantity: number;
-  
+
   // Trạng thái tổng quát
   is_production_ready: boolean;
   has_enough_material: boolean;
   has_free_machine: boolean;
-  
+
   // Thông số kỹ thuật in
   request_print_width_mm: number;
   request_print_length_mm: number;
@@ -113,12 +113,16 @@ export const productionsApi = {
 
   getProductionByProdId: (id: string) =>
     http.get(`/api/Productions/detail/production/${id}`),
-  
+
   startProduction: (orderId: string) =>
     http.post(`/api/Productions/start/${orderId}`, { orderId }),
 
   startProductionByProdId: (prodId: string) =>
     http.post(`/api/Productions/start/${prodId}`, { prodId }),
+
+  /** PUT /api/Productions/mark-importing/{prodId} */
+  markImporting: (prodId: number) =>
+    http.put(`/api/Productions/mark-importing/${prodId}`, {}),
 
   getProductionInformation: (orderId: string) =>
     http.get<ProductionInformationResponse>(`/api/Productions/information/${orderId}`),
@@ -131,7 +135,7 @@ export const productionsApi = {
     http.get<ProductionReadiness>(`/api/Productions/start-ready/${orderId}`),
 
   /** PUT /api/Productions/start-ready/{orderId} — GM xác nhận đưa vào sản xuất (kèm gm_note & production_method) */
-  updateProduction: (orderId: number, body: { is_production_ready: boolean; gm_note?: string;  gm_proposed_method: ProductionMethod;   proposed_production_method: ProductionMethod }) =>
+  updateProduction: (orderId: number, body: { is_production_ready: boolean; gm_note?: string; gm_proposed_method: ProductionMethod; proposed_production_method: ProductionMethod }) =>
     http.put(`/api/Productions/start-ready/${orderId}`, body),
   //thêm 
 
