@@ -523,6 +523,12 @@ export default function ProdutionManager() {
               const isStarting =
                 startMutation.isPending &&
                 startMutation.variables?.prodId === order.prod_id;
+              const isNvlAllDone =
+                order.production_method === "SUB" &&
+                order.stage_statuses?.length > 0 &&
+                order.stage_statuses
+                  .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
+                  .every((s: any) => s.status === "Finished");
 
               return (
                 <div
@@ -629,15 +635,7 @@ export default function ProdutionManager() {
                             setIsManualLoading(false);
                           }
                         } else {
-                          const isNvlAllDone =
-                            order.production_method === "SUB" &&
-                            order.stage_statuses?.length > 0 &&
-                            order.stage_statuses
-                              .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
-                              .every((s: any) => s.status === "Finished");
-
                           if (isNvlAllDone) {
-                            // Mở confirm popup thay vì gọi API ngay
                             setConfirmModal({ open: true, prodId: order.prod_id });
                           } else {
                             if (!isStarting)
@@ -648,24 +646,16 @@ export default function ProdutionManager() {
                           }
                         }
                       }}
-                      disabled={!canStart || isStarting}
-                      title={!canStart ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
+                      disabled={(isNvlAllDone ? false : !canStart) || isStarting}
+                      title={!canStart && !isNvlAllDone ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
                       className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
-    ${!canStart || isStarting
+    ${(isNvlAllDone ? false : !canStart) || isStarting
                           ? "cursor-not-allowed bg-gray-300 text-gray-500"
                           : "bg-yellow-500 text-white hover:bg-yellow-600"
                         }`}
                     >
                       <BsPlay className="h-3.5 w-3.5" />
-                      {(() => {
-                        const isNvlAllDone =
-                          order.production_method === "SUB" &&
-                          order.stage_statuses?.length > 0 &&
-                          order.stage_statuses
-                            .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
-                            .every((s: any) => s.status === "Finished");
-                        return isNvlAllDone ? "Xác nhận hoàn thành từ BTP" : "Bắt đầu";
-                      })()}
+                      {isNvlAllDone ? "Xác nhận hoàn thành từ BTP" : "Bắt đầu"}
                     </button>
 
                     <Link
