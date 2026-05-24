@@ -11,6 +11,7 @@ export interface SubProduct {
   is_active: boolean;
   description: string;
   updated_at: string;
+  import_file?: string | null;
 }
 
 export interface PagedSubProductsResponse {
