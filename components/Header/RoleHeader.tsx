@@ -19,7 +19,7 @@ interface RoleHeaderProps {
   theme?: "default" | "purple" | "blue" | "amber";
 }
 
-const HUB_URL = "https://mmes-sep490-84gr.onrender.com/hubs/realtime";
+const HUB_URL = "https://mmes-sep490.onrender.com/hubs/realtime";
 //const HUB_URL = "https://localhost:7109/hubs/realtime";
 export default function RoleHeader({
   userInfo,
@@ -75,9 +75,9 @@ export default function RoleHeader({
   const isBlue = theme === "blue";
   const isAmber = theme === "amber";
   const isDarkTheme = isPurple || isBlue || isAmber;
-  
-  const headerBgClass = isPurple 
-    ? "bg-purple-900 text-white border-purple-800" 
+
+  const headerBgClass = isPurple
+    ? "bg-purple-900 text-white border-purple-800"
     : isBlue
       ? "bg-blue-900 text-white border-blue-800"
       : isAmber
@@ -120,10 +120,10 @@ export default function RoleHeader({
               size="default"
               src={userInfo?.avatar}
               icon={!userInfo?.avatar && <UserOutlined />}
-              className={isPurple 
-                ? "bg-purple-800 text-white border border-purple-700" 
-                : isBlue 
-                  ? "bg-blue-800 text-white border border-blue-700" 
+              className={isPurple
+                ? "bg-purple-800 text-white border border-purple-700"
+                : isBlue
+                  ? "bg-blue-800 text-white border border-blue-700"
                   : isAmber
                     ? "bg-amber-800 text-white border border-amber-700"
                     : "bg-primary/10 text-primary border border-primary/20"}

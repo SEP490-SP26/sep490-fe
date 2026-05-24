@@ -18,7 +18,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { productionsApi } from "@/apiRequests/productions";
 
-const API_BASE = "https://mmes-sep490-84gr.onrender.com/api/Requests/get-by-order-id";
+const API_BASE = "https://mmes-sep490.onrender.com/api/Requests/get-by-order-id";
 
 interface OrderRequest {
   order_request_id: number;
