@@ -66,12 +66,13 @@ function SubProductsImportContent() {
   });
 
   const filteredData = useMemo(() => {
-    return (apiData || []).filter((item: SubProduct) =>
-      keyword
+    return (apiData || []).filter((item: SubProduct) => {
+      if (item.import_file !== null) return false;
+      return keyword
         ? item.product_type_name?.toLowerCase().includes(keyword.toLowerCase()) ||
           item.id.toString().includes(keyword)
-        : true
-    );
+        : true;
+    });
   }, [apiData, keyword]);
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
