@@ -94,7 +94,7 @@ export default function AdminUserPage() {
   ======================= */
   const fetchUsers = () => {
     setLoading(true);
-    fetch("https://mmes-sep490-84gr.onrender.com/get-all-user", {
+    fetch("https://mmes-sep490.onrender.com/get-all-user", {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((res) => res.json())
@@ -161,7 +161,7 @@ export default function AdminUserPage() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("https://mmes-sep490-84gr.onrender.com/api/User/upload-users", {
+      const res = await fetch("https://mmes-sep490.onrender.com/api/User/upload-users", {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: formData,
@@ -200,7 +200,7 @@ export default function AdminUserPage() {
     setSubmitting(true);
     try {
       const res = await fetch(
-        `https://mmes-sep490-84gr.onrender.com/admin-update-user/${selectedUser.user_id}`,
+        `https://mmes-sep490.onrender.com/admin-update-user/${selectedUser.user_id}`,
         {
           method: "POST",
           headers: {

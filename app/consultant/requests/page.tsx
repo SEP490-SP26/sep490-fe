@@ -93,7 +93,7 @@ export default function ConsultantOrdersPage() {
 
     const initSignalR = async () => {
       try {
-        const hubUrl = "https://mmes-sep490-84gr.onrender.com/hubs/realtime";
+        const hubUrl = "https://mmes-sep490.onrender.com/hubs/realtime";
         const conn = await getHubConnection(hubUrl);
 
         const handleServerEvent = () => {
@@ -768,7 +768,7 @@ export default function ConsultantOrdersPage() {
       key: "waiting",
       label: (
         <span>
-          Chờ KH xác nhận
+          Chờ xác nhận
           {waitingConfirmOrders.length > 0 && (
             <Tag color="orange" className="ml-2">
               {waitingConfirmOrders.length}
@@ -801,7 +801,7 @@ export default function ConsultantOrdersPage() {
       key: "declined",
       label: (
         <span>
-          Yêu cầu chỉnh sửa
+          Chỉnh sửa
           {declinedOrders.length > 0 && (
             <Tag color="orange" className="ml-2">
               {declinedOrders.length}
@@ -890,7 +890,7 @@ export default function ConsultantOrdersPage() {
       key: "rejected_contract",
       label: (
         <span>
-          Hợp đồng bị từ chối
+          Từ chối
           {rejectedContractOrders.length > 0 && (
             <Tag color="red" className="ml-2">
               {rejectedContractOrders.length}

@@ -1373,7 +1373,7 @@ export default function ConsultantRequestDetailPage() {
                                                     <div className="flex items-center gap-3">
                                                         <h3 className="text-sm uppercase tracking-wider font-bold text-red-800 mb-4 flex items-center gap-2">
                                                             <FileTextOutlined className="text-red-500" />
-                                                            Hợp đồng bị từ chối
+                                                            Từ chối
                                                         </h3>
                                                     </div>
                                                 </div>
@@ -1621,141 +1621,141 @@ export default function ConsultantRequestDetailPage() {
 
                         <div className="p-4 md:p-8">
 
-                        {customerMessage.trim() && (
-                            <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                                <h3 className="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-2">
-                                    <SendOutlined />
-                                    Lời nhắn cho khách hàng
-                                </h3>
-                                <div className="text-sm text-slate-700 whitespace-pre-wrap">
-                                    {customerMessage}
+                            {customerMessage.trim() && (
+                                <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                                    <h3 className="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-2">
+                                        <SendOutlined />
+                                        Lời nhắn cho khách hàng
+                                    </h3>
+                                    <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                                        {customerMessage}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                        <div className={`grid grid-cols-1 ${previewData && previewData.quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-8 w-full`}>
-                            {(previewData?.quotes || []).sort((a, b) => a.estimate_id - b.estimate_id).map((quote, index) => {
-                                return (
-                                    <div key={quote.estimate_id} className="flex flex-col gap-6">
-                                        <QuoteCard
-                                            quote={quote}
-                                            index={index}
-                                            totalQuotes={previewData?.quotes.length}
-                                            compact={true}
-                                        />
+                            )}
+                            <div className={`grid grid-cols-1 ${previewData && previewData.quotes.length > 1 ? "xl:grid-cols-2" : ""} gap-8 w-full`}>
+                                {(previewData?.quotes || []).sort((a, b) => a.estimate_id - b.estimate_id).map((quote, index) => {
+                                    return (
+                                        <div key={quote.estimate_id} className="flex flex-col gap-6">
+                                            <QuoteCard
+                                                quote={quote}
+                                                index={index}
+                                                totalQuotes={previewData?.quotes.length}
+                                                compact={true}
+                                            />
 
-                                        {/* Bản xem trước Hợp đồng */}
-                                        <div className="mt-8 pt-6 border-t border-slate-100 px-6 pb-6 bg-slate-50 flex-1">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-sm font-bold uppercase text-slate-800 flex items-center gap-2 m-0 tracking-wide">
-                                                    <FileTextOutlined className="text-blue-600" />
-                                                    Bản Hợp đồng {previewData?.quotes && previewData.quotes.length > 1 ? index + 1 : ""}
-                                                </h3>
-                                                <div className="flex items-center gap-2">
-                                                    {reviewedContracts.has(quote.estimate_id) ? (
-                                                        <Tag color="success" className="m-0 border-0 rounded px-2 font-medium">
-                                                            Đã xác nhận
-                                                        </Tag>
-                                                    ) : (
-                                                        <Tag color="default" className="m-0 border-0 rounded px-2 font-medium">
-                                                            Chưa xác nhận
-                                                        </Tag>
-                                                    )}
+                                            {/* Bản xem trước Hợp đồng */}
+                                            <div className="mt-8 pt-6 border-t border-slate-100 px-6 pb-6 bg-slate-50 flex-1">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-sm font-bold uppercase text-slate-800 flex items-center gap-2 m-0 tracking-wide">
+                                                        <FileTextOutlined className="text-blue-600" />
+                                                        Bản Hợp đồng {previewData?.quotes && previewData.quotes.length > 1 ? index + 1 : ""}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2">
+                                                        {reviewedContracts.has(quote.estimate_id) ? (
+                                                            <Tag color="success" className="m-0 border-0 rounded px-2 font-medium">
+                                                                Đã xác nhận
+                                                            </Tag>
+                                                        ) : (
+                                                            <Tag color="default" className="m-0 border-0 rounded px-2 font-medium">
+                                                                Chưa xác nhận
+                                                            </Tag>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
 
-                                            <div
-                                                className="bg-white border-2 border-slate-200 rounded-xl overflow-hidden shadow-inner relative flex flex-col"
-                                            >
-                                                {(quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
-                                                    <div className="flex flex-col">
-                                                        {/* Hợp đồng Web Viewer - Cloudinary/Iframe */}
-                                                        <div
-                                                            className="w-full h-[600px] bg-slate-100 rounded-t-lg relative contract-scroll-container"
-                                                            onScroll={(e) => {
-                                                                const el = e.currentTarget;
-                                                                if (el.scrollHeight - Math.abs(el.scrollTop) <= el.clientHeight + 50) {
-                                                                    setReviewedContracts(prev => new Set([...prev, quote.estimate_id]));
-                                                                }
-                                                            }}
-                                                        >
-                                                            <div className="contract-scroll-content">
-                                                                {(() => {
-                                                                    const contractUrl = quote.customer_signed_contract_path || quote.consultant_contract_path;
-                                                                    if (!contractUrl) return null;
-                                                                    const isImage = contractUrl.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i);
-                                                                    const isDoc = contractUrl.toLowerCase().match(/\.(doc|docx)$/i);
+                                                <div
+                                                    className="bg-white border-2 border-slate-200 rounded-xl overflow-hidden shadow-inner relative flex flex-col"
+                                                >
+                                                    {(quote.consultant_contract_path || quote.customer_signed_contract_path) ? (
+                                                        <div className="flex flex-col">
+                                                            {/* Hợp đồng Web Viewer - Cloudinary/Iframe */}
+                                                            <div
+                                                                className="w-full h-[600px] bg-slate-100 rounded-t-lg relative contract-scroll-container"
+                                                                onScroll={(e) => {
+                                                                    const el = e.currentTarget;
+                                                                    if (el.scrollHeight - Math.abs(el.scrollTop) <= el.clientHeight + 50) {
+                                                                        setReviewedContracts(prev => new Set([...prev, quote.estimate_id]));
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <div className="contract-scroll-content">
+                                                                    {(() => {
+                                                                        const contractUrl = quote.customer_signed_contract_path || quote.consultant_contract_path;
+                                                                        if (!contractUrl) return null;
+                                                                        const isImage = contractUrl.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|bmp)$/i);
+                                                                        const isDoc = contractUrl.toLowerCase().match(/\.(doc|docx)$/i);
 
-                                                                    return isImage ? (
-                                                                        <div className="w-full flex justify-center bg-slate-200">
-                                                                            <img
-                                                                                src={contractUrl}
-                                                                                alt={`Hợp đồng #${index + 1}`}
-                                                                                className="max-w-full h-auto object-contain bg-white shadow-sm"
+                                                                        return isImage ? (
+                                                                            <div className="w-full flex justify-center bg-slate-200">
+                                                                                <img
+                                                                                    src={contractUrl}
+                                                                                    alt={`Hợp đồng #${index + 1}`}
+                                                                                    className="max-w-full h-auto object-contain bg-white shadow-sm"
+                                                                                    onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
+                                                                                />
+                                                                            </div>
+                                                                        ) : (
+                                                                            <iframe
+                                                                                src={isDoc ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
+                                                                                className="w-full border-0 rounded-t-lg shadow-sm pointer-events-none"
+                                                                                style={{ height: '2600px' }}
+                                                                                title={`Hợp đồng #${index + 1}`}
                                                                                 onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
                                                                             />
-                                                                        </div>
-                                                                    ) : (
-                                                                        <iframe
-                                                                            src={isDoc ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
-                                                                            className="w-full border-0 rounded-t-lg shadow-sm pointer-events-none"
-                                                                            style={{ height: '2600px' }}
-                                                                            title={`Hợp đồng #${index + 1}`}
-                                                                            onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
-                                                                        />
-                                                                    );
-                                                                })()}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Bản sao lưu HTML để đảm bảo scroll tracking (hoặc nội dung đi kèm) */}
-                                                        {quote.email_html && (
-                                                            <div className="p-8 border-t border-slate-100 bg-white">
-                                                                <div className="mb-6 flex items-center gap-2 text-indigo-800 font-bold text-xs uppercase tracking-widest border-b border-indigo-100 pb-2">
-                                                                    <InfoCircleOutlined className="text-indigo-500" />
-                                                                    Nội dung chi tiết (Scrollable)
+                                                                        );
+                                                                    })()}
                                                                 </div>
-                                                                <div
-                                                                    className="contract-content prose prose-sm max-w-none text-slate-700 leading-relaxed font-serif"
-                                                                    dangerouslySetInnerHTML={{ __html: quote.email_html }}
-                                                                />
                                                             </div>
-                                                        )}
 
-                                                        {/* Nút xác nhận cho từng hợp đồng đã được thay thế bằng scroll qua toàn bộ modal */}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50 text-slate-400 font-sans h-[400px]">
-                                                        <FileTextOutlined style={{ fontSize: 64 }} className="mb-4 opacity-10" />
-                                                        <p className="m-0 text-base font-medium">Đang chuẩn bị file Hợp đồng...</p>
-                                                        <p className="m-0 text-sm opacity-60">Dữ liệu hợp đồng chưa được Cloudinary xử lý xong</p>
-                                                    </div>
-                                                )}
+                                                            {/* Bản sao lưu HTML để đảm bảo scroll tracking (hoặc nội dung đi kèm) */}
+                                                            {quote.email_html && (
+                                                                <div className="p-8 border-t border-slate-100 bg-white">
+                                                                    <div className="mb-6 flex items-center gap-2 text-indigo-800 font-bold text-xs uppercase tracking-widest border-b border-indigo-100 pb-2">
+                                                                        <InfoCircleOutlined className="text-indigo-500" />
+                                                                        Nội dung chi tiết (Scrollable)
+                                                                    </div>
+                                                                    <div
+                                                                        className="contract-content prose prose-sm max-w-none text-slate-700 leading-relaxed font-serif"
+                                                                        dangerouslySetInnerHTML={{ __html: quote.email_html }}
+                                                                    />
+                                                                </div>
+                                                            )}
+
+                                                            {/* Nút xác nhận cho từng hợp đồng đã được thay thế bằng scroll qua toàn bộ modal */}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center py-20 bg-slate-50 text-slate-400 font-sans h-[400px]">
+                                                            <FileTextOutlined style={{ fontSize: 64 }} className="mb-4 opacity-10" />
+                                                            <p className="m-0 text-base font-medium">Đang chuẩn bị file Hợp đồng...</p>
+                                                            <p className="m-0 text-sm opacity-60">Dữ liệu hợp đồng chưa được Cloudinary xử lý xong</p>
+                                                        </div>
+                                                    )}
+
+                                                </div>
 
                                             </div>
-
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
 
-                        <div className={`mt-8 bg-amber-50 border ${isAllContractsReviewed ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-6 flex items-center justify-between gap-4 shadow-sm`}>
-                            <Checkbox
-                                checked={isContractCommitted}
-                                onChange={(e) => setIsContractCommitted(e.target.checked)}
-                                className="text-amber-800 font-semibold"
-                                disabled={!isAllContractsReviewed}
-                            >
-                                <span className="text-base">
-                                    Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
-                                </span>
-                            </Checkbox>
-                            {!isAllContractsReviewed && (
-                                <Tag color="warning" className="m-0 px-3 py-1 rounded-full font-medium pulse-animation">
-                                    Vui lòng lướt hết tất cả các hợp đồng để có thể xác nhận
-                                </Tag>
-                            )}
-                        </div>
+                            <div className={`mt-8 bg-amber-50 border ${isAllContractsReviewed ? 'border-amber-200' : 'border-slate-200 opacity-60'} rounded-xl p-6 flex items-center justify-between gap-4 shadow-sm`}>
+                                <Checkbox
+                                    checked={isContractCommitted}
+                                    onChange={(e) => setIsContractCommitted(e.target.checked)}
+                                    className="text-amber-800 font-semibold"
+                                    disabled={!isAllContractsReviewed}
+                                >
+                                    <span className="text-base">
+                                        Xác nhận đã cam kết chuẩn bị hợp đồng đúng với báo giá nếu có sai sót thì sẽ chịu toàn bộ trách nhiệm
+                                    </span>
+                                </Checkbox>
+                                {!isAllContractsReviewed && (
+                                    <Tag color="warning" className="m-0 px-3 py-1 rounded-full font-medium pulse-animation">
+                                        Vui lòng lướt hết tất cả các hợp đồng để có thể xác nhận
+                                    </Tag>
+                                )}
+                            </div>
 
 
                         </div>

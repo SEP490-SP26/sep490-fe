@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
-const API_BASE = "https://mmes-sep490-84gr.onrender.com";
+const API_BASE = "https://mmes-sep490.onrender.com";
 
 function ResetPasswordForm() {
   const params = useSearchParams();
@@ -125,8 +125,8 @@ function ResetPasswordForm() {
           <div className="w-[380px] rounded-xl bg-white shadow-2xl overflow-hidden">
             <div
               className={`px-5 py-3 text-white font-semibold ${popup.type === "success"
-                  ? "bg-green-600"
-                  : "bg-red-600"
+                ? "bg-green-600"
+                : "bg-red-600"
                 }`}
             >
               {popup.title}

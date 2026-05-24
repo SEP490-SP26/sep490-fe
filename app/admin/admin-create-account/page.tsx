@@ -77,7 +77,7 @@ export default function AdminCreateUser() {
       }
 
       const res = await fetch(
-        "https://mmes-sep490-84gr.onrender.com/admin-create-new-user",
+        "https://mmes-sep490.onrender.com/admin-create-new-user",
         {
           method: "POST",
           headers: {
@@ -228,8 +228,8 @@ export default function AdminCreateUser() {
             {message && (
               <div
                 className={`rounded-lg px-4 py-3 text-sm ${message.type === "success"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
                   }`}
               >
                 {message.text}
