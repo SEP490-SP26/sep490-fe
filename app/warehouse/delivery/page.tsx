@@ -131,7 +131,7 @@ const FinishProduction: React.FC = () => {
     try {
       setLoading(true);
       const res = await fetch(
-        "https://mmes-sep490-84gr.onrender.com/api/Requests/paged?page=1&pageSize=500"
+        "https://mmes-sep490.onrender.com/api/Requests/paged?page=1&pageSize=500"
       );
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
 

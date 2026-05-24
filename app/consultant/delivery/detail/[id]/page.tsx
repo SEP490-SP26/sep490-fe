@@ -21,10 +21,10 @@ import dayjs from "dayjs";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-const API_BASE = "https://mmes-sep490-84gr.onrender.com/api/Requests/get-by-order-id";
-const COST_ESTIMATE_API = "https://mmes-sep490-84gr.onrender.com/api/Requests/get-cost-estimate";
-const DELIVERY_NOTE_API = "https://mmes-sep490-84gr.onrender.com/api/Requests";
-const SEND_EMAIL_API = "https://mmes-sep490-84gr.onrender.com/api/Orders/send-remaining-payment-email";
+const API_BASE = "https://mmes-sep490.onrender.com/api/Requests/get-by-order-id";
+const COST_ESTIMATE_API = "https://mmes-sep490.onrender.com/api/Requests/get-cost-estimate";
+const DELIVERY_NOTE_API = "https://mmes-sep490.onrender.com/api/Requests";
+const SEND_EMAIL_API = "https://mmes-sep490.onrender.com/api/Orders/send-remaining-payment-email";
 
 interface OrderRequest {
   order_request_id: number;

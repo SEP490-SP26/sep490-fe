@@ -162,15 +162,20 @@ function ProductionApprovalContent() {
     },
     {
       title: "Thao tác", key: "action", width: 180, align: "center" as const,
-      render: (_: any, record: any) => (
-        <button
-          onClick={() => handleOpen(record.order_id || record._id)}
-          disabled={record.status === "Finished" || record.status === "Delivered"}
-          className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
-        >
-          Trình duyệt SX
-        </button>
-      ),
+      render: (_: any, record: any) => {
+        if (record.proposed_production_method != null) {
+          return null;
+        }
+        return (
+          <button
+            onClick={() => handleOpen(record.order_id || record._id)}
+            disabled={record.status === "Finished" || record.status === "Delivered"}
+            className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
+          >
+            Trình duyệt SX
+          </button>
+        );
+      },
     },
   ];
 

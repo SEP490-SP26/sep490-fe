@@ -101,8 +101,8 @@ export default function PaymentSuccess() {
     const fetchData = async () => {
       try {
         const [orderRes, estimateRes] = await Promise.all([
-          fetch(`https://mmes-sep490-84gr.onrender.com/api/Orders/detail/${orderId}`),
-          fetch(`https://mmes-sep490-84gr.onrender.com/api/Requests/get-cost-estimate/${orderId}`),
+          fetch(`https://mmes-sep490.onrender.com/api/Orders/detail/${orderId}`),
+          fetch(`https://mmes-sep490.onrender.com/api/Requests/get-cost-estimate/${orderId}`),
           //fetch(`https://localhost:7109/api/Orders/detail/${orderId}`),
           //fetch(`https://localhost:7109/api/Requests/get-cost-estimate/${orderId}`)
         ]);
@@ -118,12 +118,12 @@ export default function PaymentSuccess() {
         setEstimate(estimateData);
 
         try {
-          const payosRes = await fetch(`https://mmes-sep490-84gr.onrender.com/api/Orders/create-payos-remaining-link/${orderId}`);
+          const payosRes = await fetch(`https://mmes-sep490.onrender.com/api/Orders/create-payos-remaining-link/${orderId}`);
           if (payosRes.ok) {
             const pData = await payosRes.json();
             setPayosData(pData);
             if (pData.order_code) {
-              setReceiptUrl(`https://mmes-sep490-84gr.onrender.com/api/Payments/payment-receipt-docx/${pData.order_code}`);
+              setReceiptUrl(`https://mmes-sep490.onrender.com/api/Payments/payment-receipt-docx/${pData.order_code}`);
             }
           }
         } catch (e) {

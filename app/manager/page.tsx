@@ -94,7 +94,7 @@ export default function Dashboard() {
     return orders.filter((o) => {
       const date = getOrderDate(o);
       if (!date) return selectedYear === "all" && selectedMonth === "all" && selectedQuarter === "all";
-      
+
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
       const quarter = Math.ceil(month / 3);
@@ -158,14 +158,14 @@ export default function Dashboard() {
         setLoading(true);
         // Fetch Requests (Yêu cầu báo giá)
         const resReqs = await fetch(
-          "https://mmes-sep490-84gr.onrender.com/api/Requests/paged?page=1&pageSize=500"
+          "https://mmes-sep490.onrender.com/api/Requests/paged?page=1&pageSize=500"
         );
         const dataReqs = await resReqs.json();
         setOrders((dataReqs.data || []).filter((o: any) => o.product_name));
 
         // Fetch Production Orders (Đơn hàng sản xuất)
         const resOrders = await fetch(
-          "https://mmes-sep490-84gr.onrender.com/api/Orders/paged?page=1&pageSize=500"
+          "https://mmes-sep490.onrender.com/api/Orders/paged?page=1&pageSize=500"
         );
         const dataOrders = await resOrders.json();
         setProdOrders(dataOrders.data || []);
@@ -173,7 +173,7 @@ export default function Dashboard() {
         // Fetch Machines
         try {
           const resMachines = await fetch(
-            "https://mmes-sep490-84gr.onrender.com/api/Machine/get-all-machines"
+            "https://mmes-sep490.onrender.com/api/Machine/get-all-machines"
           );
           const dataMachines = await resMachines.json();
           setMachines(Array.isArray(dataMachines) ? dataMachines : (dataMachines.data || []));
@@ -184,7 +184,7 @@ export default function Dashboard() {
         // Fetch Machine Snapshot
         try {
           const resSnapshot = await fetch(
-            "https://mmes-sep490-84gr.onrender.com/api/Machine/availability-snapshot"
+            "https://mmes-sep490.onrender.com/api/Machine/availability-snapshot"
           );
           const dataSnapshot = await resSnapshot.json();
           setMachineSnapshot(dataSnapshot || null);
@@ -196,7 +196,7 @@ export default function Dashboard() {
         try {
           const token = localStorage.getItem("token");
           const resUsers = await fetch(
-            "https://mmes-sep490-84gr.onrender.com/get-all-user",
+            "https://mmes-sep490.onrender.com/get-all-user",
             {
               headers: token ? { Authorization: `Bearer ${token}` } : {},
             }
@@ -276,7 +276,7 @@ export default function Dashboard() {
   const requestLineData = useMemo(() => {
     let labels: string[] = [];
     let dataCounts: number[] = [];
-    
+
     if (selectedYear === "all") {
       const yearCounts: Record<string, number> = {};
       filteredOrders.forEach((o: any) => {
@@ -291,8 +291,8 @@ export default function Dashboard() {
     } else if (selectedMonth !== "all") {
       const daysInMonth = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
       const dayCounts: Record<string, number> = {};
-      for(let i=1; i<=daysInMonth; i++) dayCounts[i.toString()] = 0;
-      
+      for (let i = 1; i <= daysInMonth; i++) dayCounts[i.toString()] = 0;
+
       filteredOrders.forEach((o: any) => {
         const d = getOrderDate(o);
         if (d) {
@@ -300,12 +300,12 @@ export default function Dashboard() {
           dayCounts[day] = (dayCounts[day] || 0) + 1;
         }
       });
-      labels = Object.keys(dayCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      labels = Object.keys(dayCounts).sort((a, b) => parseInt(a) - parseInt(b));
       dataCounts = labels.map((l) => dayCounts[l]);
     } else {
       const monthCounts: Record<string, number> = {};
-      for(let i=1; i<=12; i++) monthCounts[i.toString()] = 0;
-      
+      for (let i = 1; i <= 12; i++) monthCounts[i.toString()] = 0;
+
       filteredOrders.forEach((o: any) => {
         const d = getOrderDate(o);
         if (d) {
@@ -313,7 +313,7 @@ export default function Dashboard() {
           monthCounts[m] = (monthCounts[m] || 0) + 1;
         }
       });
-      const sortedMonths = Object.keys(monthCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      const sortedMonths = Object.keys(monthCounts).sort((a, b) => parseInt(a) - parseInt(b));
       labels = sortedMonths.map(m => `Tháng ${m}`);
       dataCounts = sortedMonths.map(m => monthCounts[m]);
     }
@@ -386,7 +386,7 @@ export default function Dashboard() {
   const prodLineData = useMemo(() => {
     let labels: string[] = [];
     let dataCounts: number[] = [];
-    
+
     if (selectedYear === "all") {
       const yearCounts: Record<string, number> = {};
       filteredProdOrders.forEach((o: any) => {
@@ -401,8 +401,8 @@ export default function Dashboard() {
     } else if (selectedMonth !== "all") {
       const daysInMonth = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
       const dayCounts: Record<string, number> = {};
-      for(let i=1; i<=daysInMonth; i++) dayCounts[i.toString()] = 0;
-      
+      for (let i = 1; i <= daysInMonth; i++) dayCounts[i.toString()] = 0;
+
       filteredProdOrders.forEach((o: any) => {
         const d = getProdOrderDate(o);
         if (d) {
@@ -410,12 +410,12 @@ export default function Dashboard() {
           dayCounts[day] = (dayCounts[day] || 0) + 1;
         }
       });
-      labels = Object.keys(dayCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      labels = Object.keys(dayCounts).sort((a, b) => parseInt(a) - parseInt(b));
       dataCounts = labels.map((l) => dayCounts[l]);
     } else {
       const monthCounts: Record<string, number> = {};
-      for(let i=1; i<=12; i++) monthCounts[i.toString()] = 0;
-      
+      for (let i = 1; i <= 12; i++) monthCounts[i.toString()] = 0;
+
       filteredProdOrders.forEach((o: any) => {
         const d = getProdOrderDate(o);
         if (d) {
@@ -423,7 +423,7 @@ export default function Dashboard() {
           monthCounts[m] = (monthCounts[m] || 0) + 1;
         }
       });
-      const sortedMonths = Object.keys(monthCounts).sort((a,b) => parseInt(a) - parseInt(b));
+      const sortedMonths = Object.keys(monthCounts).sort((a, b) => parseInt(a) - parseInt(b));
       labels = sortedMonths.map(m => `Tháng ${m}`);
       dataCounts = sortedMonths.map(m => monthCounts[m]);
     }
@@ -595,11 +595,10 @@ export default function Dashboard() {
           <div className="flex flex-wrap border-b border-gray-200 mb-6 w-full gap-y-1">
             <button
               onClick={() => setActiveSection("requests")}
-              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-                activeSection === "requests"
+              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "requests"
                   ? "border-violet-600 text-violet-600 font-extrabold"
                   : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
+                }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5A3.375 3.375 0 0 0 10.125 2.25H9.75m4.5 15.75H15m-1.5-6H15m-1.5-3H15m-1.5-3H15M9 21v-1.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875V21m-9.75-11.25H8.25m0 0H8.25m0 0h-.008v-.008H8.25v.008ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -608,11 +607,10 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveSection("orders")}
-              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-                activeSection === "orders"
+              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "orders"
                   ? "border-violet-600 text-violet-600 font-extrabold"
                   : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
+                }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -621,11 +619,10 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveSection("machines")}
-              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-                activeSection === "machines"
+              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "machines"
                   ? "border-violet-600 text-violet-600 font-extrabold"
                   : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
+                }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774a1.125 1.125 0 0 1 .12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738a1.125 1.125 0 0 1-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527a1.125 1.125 0 0 1-1.448-.12l-.774-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.527-.738a1.125 1.125 0 0 1 .12-1.45l.774-.773a1.125 1.125 0 0 1 1.448-.12l.738.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
@@ -635,11 +632,10 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setActiveSection("employees")}
-              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-                activeSection === "employees"
+              className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "employees"
                   ? "border-violet-600 text-violet-600 font-extrabold"
                   : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
+                }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m0 0a8.967 8.967 0 0 1-2.312-6.086c0-3.442 2.777-6.25 6.2-6.25 2.775 0 5.14 1.845 6.0 4.414m-11 5.822a11.963 11.963 0 0 0 4.053-1.393M9 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
@@ -1076,8 +1072,8 @@ export default function Dashboard() {
                   const roleName = ROLE_MAP[e.role_id] || "Staff";
                   const initial = e.full_name ? e.full_name.charAt(0).toUpperCase() : (e.username ? e.username.charAt(0).toUpperCase() : "?");
                   const colors = [
-                    "bg-blue-500 text-white", "bg-purple-500 text-white", 
-                    "bg-indigo-500 text-white", "bg-pink-500 text-white", 
+                    "bg-blue-500 text-white", "bg-purple-500 text-white",
+                    "bg-indigo-500 text-white", "bg-pink-500 text-white",
                     "bg-violet-500 text-white", "bg-teal-500 text-white"
                   ];
                   const colorIdx = (e.user_id || 0) % colors.length;
@@ -1097,9 +1093,8 @@ export default function Dashboard() {
                         <p className="text-xs text-gray-400 truncate mt-0.5">@{e.username}</p>
                         <p className="text-xs text-gray-500 truncate mt-0.5">{e.email || "Không có email"}</p>
                         <div className="mt-3">
-                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
-                            ROLE_COLOR[roleName] || "bg-gray-50 text-gray-600 border-gray-100"
-                          }`}>
+                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${ROLE_COLOR[roleName] || "bg-gray-50 text-gray-600 border-gray-100"
+                            }`}>
                             {roleName}
                           </span>
                         </div>

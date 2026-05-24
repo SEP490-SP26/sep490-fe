@@ -30,7 +30,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 const { Title } = Typography;
 
 // ✅ Đổi sang API mới
-const API_URL = "https://mmes-sep490-84gr.onrender.com/api/Requests/paged";
+const API_URL = "https://mmes-sep490.onrender.com/api/Requests/paged";
 
 // ✅ Interface cập nhật theo response của API mới
 interface Order {
