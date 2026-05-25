@@ -671,7 +671,7 @@ export default function ProdutionManager() {
                         }`}
                     >
                       <BsPlay className="h-3.5 w-3.5" />
-                      {isNvlAllDone ? "Xác nhận hoàn thành từ BTP" : "Bắt đầu"}
+                      {isNvlAllDone ? "Sản xuất từ Bán thành phẩm có sẵn" : "Bắt đầu"}
                     </button>
 
                     <Link
