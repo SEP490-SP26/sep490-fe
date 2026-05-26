@@ -1199,10 +1199,35 @@ export default function ProductionApprovalPage() {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[80vh] p-6">
-      <div className="mb-6 pb-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="mb-6 pb-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-4">
         <div>
           <Title level={3} className="!mb-1 text-gray-800">Quản lý sản xuất</Title>
           <Text type="secondary">Duyệt lệnh và quản lý ghép đơn sản xuất</Text>
+        </div>
+        <div className="flex gap-4">
+          <div 
+            className={`px-4 py-2 rounded-lg border flex items-center gap-3 transition-colors ${
+              suggestionsCount > 0 
+                ? "bg-green-50 border-green-200 cursor-pointer hover:bg-green-100" 
+                : "bg-gray-50 border-gray-200"
+            }`}
+            onClick={() => {
+              if (suggestionsCount > 0) setActiveTab("suggestions");
+            }}
+          >
+            <div className="bg-white p-2 rounded-full shadow-sm">
+              <InfoCircleOutlined className={suggestionsCount > 0 ? "text-green-600 text-lg" : "text-gray-400 text-lg"} />
+            </div>
+            <div>
+              <div className={`text-xs font-semibold uppercase tracking-wider ${suggestionsCount > 0 ? "text-green-600" : "text-gray-500"}`}>
+                Gợi ý ghép lệnh
+              </div>
+              <div className={`text-sm font-medium ${suggestionsCount > 0 ? "text-green-800" : "text-gray-600"}`}>
+                <span className="text-lg font-bold mr-1">{suggestionsCount}</span> 
+                cần xử lý
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
