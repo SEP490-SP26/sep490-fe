@@ -954,7 +954,7 @@ export default function GroupProductionPage() {
             <div className="flex items-center gap-3 mb-2">
               <span className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold border border-purple-200">
                 <BsCollection className="w-3.5 h-3.5" />
-                Lệnh sản xuất ghép
+                Lệnh sản xuất
               </span>
             </div>
             <div className="flex items-center gap-3 mb-2">
@@ -984,7 +984,7 @@ export default function GroupProductionPage() {
         />
         <InfoCard
           icon={<BsCollection className="w-5 h-5" />}
-          label="Số đơn hàng ghép"
+          label="Số đơn hàng"
           value={`${production?.orders?.length ?? 0} đơn hàng`}
         />
         <InfoCard
@@ -1173,127 +1173,125 @@ export default function GroupProductionPage() {
                     const manualMode = isManualInputMode(mode);
                     return (
                       <>
-                  {qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
-                        {getMaterialsSectionTitle(mode)}
-                      </h4>
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
-                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Đã xuất</th>
-                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
-                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {qrPrepare.consumable_materials.filter((m: any) => !m._isPaperInPrint).map((mat: any) => {
-                              const qtyLeft = parseReportQty(materialQtys[mat.material_id]);
-                              const willStock = resolveIsStock(qtyLeft);
-                              return (
-                              <tr key={mat.material_id} className="border-t">
-                                <td className="px-3 py-2 text-gray-800 font-medium">{mat.material_name}</td>
-                                <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
-                                  {mat.estimated_input_qty} {mat.unit}
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    placeholder="0"
-                                    value={materialQtys[mat.material_id] ?? ""}
-                                    onChange={(e) => {
-                                      const maxVal = Number(mat.estimated_input_qty || 0);
-                                      const synced = syncQtyFromLeftInput(maxVal, e.target.value);
-                                      setMaterialQtys(prev => ({ ...prev, [mat.material_id]: synced.left }));
-                                      setMaterialUsed(prev => ({ ...prev, [mat.material_id]: synced.used }));
-                                      setMaterialErrors(prev => ({ ...prev, [mat.material_id]: synced.error }));
-                                    }}
-                                    className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500 bg-red-50' : ''}`}
-                                  />
-                                  {materialErrors[mat.material_id] && <span className="text-[10px] text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
-                                </td>
-                                <td className="px-3 py-2 text-center">
-                                  <span
-                                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                      willStock
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-gray-100 text-gray-500"
-                                    }`}
-                                  >
-                                    {willStock ? "Có" : "Không"}
-                                  </span>
-                                </td>
-                              </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
+                        {qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
+                              {getMaterialsSectionTitle(mode)}
+                            </h4>
+                            <div className="border rounded-lg overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tên vật liệu</th>
+                                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Đã xuất</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {qrPrepare.consumable_materials.filter((m: any) => !m._isPaperInPrint).map((mat: any) => {
+                                    const qtyLeft = parseReportQty(materialQtys[mat.material_id]);
+                                    const willStock = resolveIsStock(qtyLeft);
+                                    return (
+                                      <tr key={mat.material_id} className="border-t">
+                                        <td className="px-3 py-2 text-gray-800 font-medium">{mat.material_name}</td>
+                                        <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
+                                          {mat.estimated_input_qty} {mat.unit}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          <input
+                                            type="number"
+                                            step="any"
+                                            placeholder="0"
+                                            value={materialQtys[mat.material_id] ?? ""}
+                                            onChange={(e) => {
+                                              const maxVal = Number(mat.estimated_input_qty || 0);
+                                              const synced = syncQtyFromLeftInput(maxVal, e.target.value);
+                                              setMaterialQtys(prev => ({ ...prev, [mat.material_id]: synced.left }));
+                                              setMaterialUsed(prev => ({ ...prev, [mat.material_id]: synced.used }));
+                                              setMaterialErrors(prev => ({ ...prev, [mat.material_id]: synced.error }));
+                                            }}
+                                            className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${materialErrors[mat.material_id] ? 'border-red-500 bg-red-50' : ''}`}
+                                          />
+                                          {materialErrors[mat.material_id] && <span className="text-[10px] text-red-500 mt-1 block">{materialErrors[mat.material_id]}</span>}
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                          <span
+                                            className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${willStock
+                                                ? "bg-emerald-100 text-emerald-700"
+                                                : "bg-gray-100 text-gray-500"
+                                              }`}
+                                          >
+                                            {willStock ? "Có" : "Không"}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
 
-                  {manualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Bán thành phẩm đầu vào</h4>
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">BTP nguồn</th>
-                              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Ước tính</th>
-                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
-                              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {qrPrepare.reference_inputs.map((ref: any) => {
-                              const refQtyLeft = parseReportQty(refLeft[ref.input_code]);
-                              const refWillStock = resolveIsStock(refQtyLeft);
-                              return (
-                              <tr key={ref.input_code} className="border-t">
-                                <td className="px-3 py-2 text-gray-800 font-medium">{ref.input_name}</td>
-                                <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
-                                  {ref.estimated_qty} {ref.unit}
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    step="any"
-                                    placeholder="0"
-                                    value={refLeft[ref.input_code] ?? ""}
-                                    onChange={(e) => {
-                                      const maxVal = Number(ref.estimated_qty || 0);
-                                      const synced = syncQtyFromLeftInput(maxVal, e.target.value);
-                                      setRefLeft(prev => ({ ...prev, [ref.input_code]: synced.left }));
-                                      setRefUsed(prev => ({ ...prev, [ref.input_code]: synced.used }));
-                                      setRefErrors(prev => ({ ...prev, [ref.input_code]: synced.error }));
-                                    }}
-                                    className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
-                                  />
-                                  {refErrors[ref.input_code] && <span className="text-[10px] text-red-500 mt-1 block">{refErrors[ref.input_code]}</span>}
-                                </td>
-                                <td className="px-3 py-2 text-center">
-                                  <span
-                                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                      refWillStock
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-gray-100 text-gray-500"
-                                    }`}
-                                  >
-                                    {refWillStock ? "Có" : "Không"}
-                                  </span>
-                                </td>
-                              </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
+                        {manualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Bán thành phẩm đầu vào</h4>
+                            <div className="border rounded-lg overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">BTP nguồn</th>
+                                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Ước tính</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {qrPrepare.reference_inputs.map((ref: any) => {
+                                    const refQtyLeft = parseReportQty(refLeft[ref.input_code]);
+                                    const refWillStock = resolveIsStock(refQtyLeft);
+                                    return (
+                                      <tr key={ref.input_code} className="border-t">
+                                        <td className="px-3 py-2 text-gray-800 font-medium">{ref.input_name}</td>
+                                        <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
+                                          {ref.estimated_qty} {ref.unit}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                          <input
+                                            type="number"
+                                            step="any"
+                                            placeholder="0"
+                                            value={refLeft[ref.input_code] ?? ""}
+                                            onChange={(e) => {
+                                              const maxVal = Number(ref.estimated_qty || 0);
+                                              const synced = syncQtyFromLeftInput(maxVal, e.target.value);
+                                              setRefLeft(prev => ({ ...prev, [ref.input_code]: synced.left }));
+                                              setRefUsed(prev => ({ ...prev, [ref.input_code]: synced.used }));
+                                              setRefErrors(prev => ({ ...prev, [ref.input_code]: synced.error }));
+                                            }}
+                                            className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
+                                          />
+                                          {refErrors[ref.input_code] && <span className="text-[10px] text-red-500 mt-1 block">{refErrors[ref.input_code]}</span>}
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                          <span
+                                            className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${refWillStock
+                                                ? "bg-emerald-100 text-emerald-700"
+                                                : "bg-gray-100 text-gray-500"
+                                              }`}
+                                          >
+                                            {refWillStock ? "Có" : "Không"}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
                       </>
                     );
                   })()}

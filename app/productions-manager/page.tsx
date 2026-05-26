@@ -174,10 +174,43 @@ function GroupProcessingStages({ prodId }: { prodId: number }) {
   );
 }
 
+function unwrapProductionDetail(res: unknown) {
+  if (res && typeof res === "object" && "data" in res && (res as { data?: unknown }).data != null) {
+    return (res as { data: unknown }).data as Record<string, unknown>;
+  }
+  return res as Record<string, unknown>;
+}
+
+function isIssueFileUrl(url: string) {
+  return /^https?:\/\//i.test(url.trim());
+}
+
+function mapOrderToModalDetail(order: any) {
+  const stages = (order.stage_statuses ?? [])
+    .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
+    .map((s: any) => ({
+      process_name: s.process_name,
+      status: s.status,
+      seq_num: s.seq_num,
+      actual_output_quantity: s.actual_output_quantity,
+      output_product: s.output_product,
+      input_materials: s.input_materials,
+    }));
+
+  return {
+    prod_id: order.prod_id,
+    quantity: order.group_total_qty ?? order.quantity,
+    stages,
+    sub_product_issue_file: "",
+  };
+}
+
 export default function ProdutionManager() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const bufferRef = useRef("");
+  const modalDismissGuardRef = useRef(false);
+  const modalDetailFetchSeqRef = useRef(0);
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
   const [isManualLoading, setIsManualLoading] = useState(false);
@@ -185,17 +218,77 @@ export default function ProdutionManager() {
     open: false,
     prodId: null,
   });
+  const [prodDetailForModal, setProdDetailForModal] = useState<any>(null);
+  const [isLoadingModalDetail, setIsLoadingModalDetail] = useState(false);
+  const [isConfirmingImport, setIsConfirmingImport] = useState(false);
 
-  const handleMarkImporting = async (prodId: number) => {
+  const openConfirmModal = (order: any) => {
+    if (modalDismissGuardRef.current) return;
+    const prodId = Number(order.prod_id);
+    setConfirmModal({ open: true, prodId });
+    setProdDetailForModal(mapOrderToModalDetail(order));
+    setIsLoadingModalDetail(true);
+  };
+
+  const closeConfirmModal = () => {
+    modalDetailFetchSeqRef.current += 1;
     setConfirmModal({ open: false, prodId: null });
+    setProdDetailForModal(null);
+    setIsLoadingModalDetail(false);
+    modalDismissGuardRef.current = true;
+    window.setTimeout(() => {
+      modalDismissGuardRef.current = false;
+    }, 300);
+  };
+
+  useEffect(() => {
+    if (!confirmModal.open || confirmModal.prodId == null) return;
+
+    const fetchSeq = ++modalDetailFetchSeqRef.current;
+    const prodId = confirmModal.prodId;
+
+    productionsApi
+      .getProductionByProdId(prodId.toString())
+      .then((res) => {
+        if (fetchSeq !== modalDetailFetchSeqRef.current) return;
+        const data = unwrapProductionDetail(res);
+        setProdDetailForModal((prev: any) => ({
+          ...(prev ?? { prod_id: prodId }),
+          prod_id: (data.prod_id as number) ?? prodId,
+          quantity: (data.quantity as number) ?? prev?.quantity,
+          stages: Array.isArray(data.stages) && data.stages.length > 0 ? data.stages : prev?.stages,
+          sub_product_issue_file: (data.sub_product_issue_file as string) ?? "",
+        }));
+      })
+      .catch(() => {
+        /* giữ dữ liệu từ danh sách lệnh */
+      })
+      .finally(() => {
+        if (fetchSeq === modalDetailFetchSeqRef.current) {
+          setIsLoadingModalDetail(false);
+        }
+      });
+
+    return () => {
+      modalDetailFetchSeqRef.current += 1;
+    };
+  }, [confirmModal.open, confirmModal.prodId]);
+
+  const handleConfirmMarkImporting = async () => {
+    const prodId = confirmModal.prodId;
+    if (prodId == null || Number.isNaN(prodId) || isConfirmingImport) return;
+
+    setIsConfirmingImport(true);
     setIsManualLoading(true);
     try {
       await productionsApi.markImporting(prodId);
+      closeConfirmModal();
       showSuccessToast(`Đã xác nhận lấy từ bán thành phẩm cho lệnh SX ${prodId}`);
       queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
     } catch (err: any) {
       showErrorToast(err.message || "Không thể xác nhận");
     } finally {
+      setIsConfirmingImport(false);
       setIsManualLoading(false);
     }
   };
@@ -213,7 +306,6 @@ export default function ProdutionManager() {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   /* ================== TABS ================== */
-  // Gộp thành 2 tab: "scheduled" (Lệnh sản xuất) và "processing" (Đang sản xuất)
   const [activeTab, setActiveTab] = useState<"scheduled" | "processing">("scheduled");
 
   /* ================== SCAN QR ================== */
@@ -287,7 +379,6 @@ export default function ProdutionManager() {
 
   /* ================== FILTER DATA ================== */
 
-  // Tất cả lệnh sản xuất (lẻ + ghép) chưa InProcessing
   const filteredScheduled = scheduledOrder.filter((o: any) => {
     if (
       o.production_status === "InProcessing" ||
@@ -310,7 +401,6 @@ export default function ProdutionManager() {
     return matchOrder && matchDate && matchCanStart;
   });
 
-  // Tất cả lệnh đang sản xuất (lẻ + ghép) đang InProcessing
   const processingList = scheduledOrder
     .filter(
       (o: any) =>
@@ -334,11 +424,9 @@ export default function ProdutionManager() {
       const aCanStart = a.can_start !== false;
       const bCanStart = b.can_start !== false;
 
-      // 1. Sort by can_start: true/not false comes first
       if (aCanStart && !bCanStart) return -1;
       if (!aCanStart && bCanStart) return 1;
 
-      // 2. Sub-sort by prod_id descending / other criteria when can_start is equal
       if (sortType === "newest") return b.prod_id - a.prod_id;
       if (sortType === "delivery") {
         if (!a.delivery_date && !b.delivery_date) return b.prod_id - a.prod_id;
@@ -351,6 +439,7 @@ export default function ProdutionManager() {
       }
       return b.progress_percent - a.progress_percent;
     });
+
   /* ================== PAGINATION DATA ================== */
   const scheduledTotalPages = Math.ceil(scheduledList.length / ITEMS_PER_PAGE);
   const processingTotalPages = Math.ceil(processingList.length / ITEMS_PER_PAGE);
@@ -518,7 +607,6 @@ export default function ProdutionManager() {
             {scheduledPageData.map((order: any, index: number) => {
               const grouped = isGrouped(order);
 
-              // Nút bắt đầu disabled khi can_start = false
               const canStart = order.can_start !== false;
               const isStarting =
                 startMutation.isPending &&
@@ -549,12 +637,6 @@ export default function ProdutionManager() {
                           {order.prod_id}
                         </span>
                       </p>
-
-                      {/* {grouped && (
-                        <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">
-                          Ghép
-                        </span>
-                      )} */}
 
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold
@@ -623,6 +705,8 @@ export default function ProdutionManager() {
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={async () => {
+                        if (confirmModal.open || modalDismissGuardRef.current) return;
+
                         if (grouped) {
                           try {
                             setIsManualLoading(true);
@@ -636,7 +720,7 @@ export default function ProdutionManager() {
                           }
                         } else {
                           if (isNvlAllDone) {
-                            setConfirmModal({ open: true, prodId: order.prod_id });
+                            openConfirmModal(order);
                           } else {
                             if (!isStarting)
                               startMutation.mutate({
@@ -646,16 +730,16 @@ export default function ProdutionManager() {
                           }
                         }
                       }}
-                      disabled={(isNvlAllDone ? false : !canStart) || isStarting}
+                      disabled={(isNvlAllDone ? false : !canStart) || isStarting || confirmModal.open}
                       title={!canStart && !isNvlAllDone ? "Lệnh sản xuất chưa đủ điều kiện bắt đầu" : ""}
                       className={`flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition
-    ${(isNvlAllDone ? false : !canStart) || isStarting
+    ${(isNvlAllDone ? false : !canStart) || isStarting || confirmModal.open
                           ? "cursor-not-allowed bg-gray-300 text-gray-500"
                           : "bg-yellow-500 text-white hover:bg-yellow-600"
                         }`}
                     >
                       <BsPlay className="h-3.5 w-3.5" />
-                      {isNvlAllDone ? "Xác nhận hoàn thành từ BTP" : "Bắt đầu"}
+                      {isNvlAllDone ? "Sản xuất từ Bán thành phẩm có sẵn" : "Bắt đầu"}
                     </button>
 
                     <Link
@@ -728,11 +812,6 @@ export default function ProdutionManager() {
                       >
                         {order.prod_id}
                       </span>
-                      {/* {grouped && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold border border-purple-200">
-                          Ghép
-                        </span>
-                      )} */}
                     </p>
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold
@@ -798,36 +877,230 @@ export default function ProdutionManager() {
           </div>
         </div>
       )}
-      {/* ===== CONFIRM MODAL ===== */}
-      {confirmModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-[360px] max-w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100">
-                <BsCheckCircleFill className="w-5 h-5 text-yellow-500" />
+
+      {/* ================= CONFIRM MODAL ================= */}
+      {confirmModal.open && (() => {
+        const detail = prodDetailForModal;
+        const finishedStages = detail?.stages?.filter((s: any) => s.status === "Finished") ?? [];
+        const allVisibleStages = detail?.stages?.filter((s: any) => s.status !== "GroupedWaiting" && s.status != null) ?? [];
+        const nextStage = allVisibleStages.find((s: any) => s.status !== "Finished");
+        const lastFinished = finishedStages[finishedStages.length - 1];
+
+        const issueFileUrl: string = (detail?.sub_product_issue_file ?? "").trim();
+        const hasIssueFileUrl = isIssueFileUrl(issueFileUrl);
+        const isPdf = hasIssueFileUrl && issueFileUrl.toLowerCase().includes(".pdf");
+        const isImage = hasIssueFileUrl && /\.(png|jpe?g|webp|gif)(\?|$)/i.test(issueFileUrl);
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                closeConfirmModal();
+              }
+            }}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-xl w-[500px] max-w-full mx-4 overflow-hidden"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+
+              {/* Header */}
+              <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-gray-100">
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-yellow-100 shrink-0">
+                  <BiPackage className="w-5 h-5 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800">Xác nhận lấy từ bán thành phẩm</h3>
+                  {detail && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Lệnh sản xuất: {detail.prod_id}
+                    </p>
+                  )}
+                </div>
               </div>
-              <h3 className="text-base font-semibold text-gray-800">Xác nhận</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Xác nhận lệnh sản xuất đã được lấy từ bán thành phẩm
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setConfirmModal({ open: false, prodId: null })}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={() => handleMarkImporting(confirmModal.prodId!)}
-                className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-semibold hover:bg-yellow-600 transition"
-              >
-                Xác nhận
-              </button>
+
+              <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                {detail ? (
+                  <>
+                    {/* Công đoạn */}
+                    <div>
+                      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                        Công đoạn đã hoàn thành
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {allVisibleStages.map((s: any, i: number) => {
+                          const done = s.status === "Finished";
+                          return (
+                            <span key={i} className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium border
+                              ${done
+                                ? "bg-green-100 text-green-700 border-green-300"
+                                : "bg-gray-100 text-gray-500 border-gray-200"
+                              }`}>
+                              {done
+                                ? <BsCheckCircleFill className="w-3 h-3" />
+                                : <span className="w-3 h-3 rounded-full border border-gray-400 inline-block" />
+                              }
+                              {s.process_name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Số lượng */}
+                    <div>
+                      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                        Số lượng
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+                          <p className="text-[11px] text-gray-400 mb-0.5">Lệnh sản xuất yêu cầu</p>
+                          <p className="text-lg font-semibold text-gray-800">
+                            {detail.quantity?.toLocaleString("vi-VN")}
+                            <span className="text-xs font-normal text-gray-400 ml-1">sp</span>
+                          </p>
+                        </div>
+                        {lastFinished && (
+                          <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+                            <p className="text-[11px] text-gray-400 mb-0.5">Sản lượng sau BTP</p>
+                            <p className="text-lg font-semibold text-gray-800">
+                              {lastFinished.actual_output_quantity?.toLocaleString("vi-VN") ?? "—"}
+                              <span className="text-xs font-normal text-gray-400 ml-1">
+                                {lastFinished.output_product?.unit ?? ""}
+                              </span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* NVL đầu vào công đoạn tiếp theo */}
+                    {nextStage?.input_materials?.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                          Nguyên liệu đầu vào — {nextStage.process_name}
+                        </p>
+                        <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+                          {nextStage.input_materials.map((m: any, i: number) => (
+                            <div key={i} className="flex justify-between items-center px-3 py-2 bg-white text-sm">
+                              <span className="text-gray-600">{m.name}</span>
+                              <span className="font-medium text-gray-800">
+                                {typeof m.quantity === "number"
+                                  ? m.quantity % 1 === 0
+                                    ? m.quantity.toLocaleString("vi-VN")
+                                    : m.quantity.toFixed(2)
+                                  : m.quantity}{" "}
+                                {m.unit}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Phiếu xuất kho bán thành phẩm */}
+                    <div>
+                      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                        Phiếu xuất kho bán thành phẩm
+                      </p>
+                      {isLoadingModalDetail ? (
+                        <p className="text-sm text-gray-400 text-center py-3 border border-dashed border-gray-200 rounded-lg">
+                          Đang tải phiếu xuất kho...
+                        </p>
+                      ) : !issueFileUrl ? (
+                        <p className="text-sm text-gray-400 text-center py-3 border border-dashed border-gray-200 rounded-lg">
+                          Chưa có phiếu xuất kho
+                        </p>
+                      ) : !hasIssueFileUrl ? (
+                        <p className="text-sm text-gray-600 py-2 px-3 bg-gray-50 border border-gray-200 rounded-lg">
+                          {issueFileUrl}
+                        </p>
+                      ) : isPdf ? (
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            <iframe
+                              src={issueFileUrl}
+                              className="w-full h-[360px]"
+                              title="Phiếu xuất kho"
+                            />
+                            <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex justify-end">
+                              <a
+                                href={issueFileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                <BsEye className="w-3 h-3" />
+                                Mở toàn màn hình
+                              </a>
+                            </div>
+                          </div>
+                        ) : isImage ? (
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            <img
+                              src={issueFileUrl}
+                              alt="Phiếu xuất kho"
+                              className="w-full object-contain max-h-[360px] bg-gray-50"
+                            />
+                            <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex justify-end">
+                              <a
+                                href={issueFileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                <BsEye className="w-3 h-3" />
+                                Mở toàn màn hình
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <a
+                            href={issueFileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline border border-blue-200 rounded-lg px-3 py-2 bg-blue-50"
+                          >
+                            <BsEye className="w-3.5 h-3.5" />
+                            Xem phiếu xuất kho
+                          </a>
+                        )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    Xác nhận lệnh sản xuất đã được lấy từ bán thành phẩm
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => closeConfirmModal()}
+                  disabled={isConfirmingImport}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmMarkImporting()}
+                  disabled={isConfirmingImport || confirmModal.prodId == null}
+                  className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-semibold hover:bg-yellow-600 transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <BsCheckCircleFill className="w-3.5 h-3.5" />
+                  {isConfirmingImport ? "Đang xác nhận..." : "Xác nhận"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
       <LoadingOverlay isLoading={isLoading} />
     </div>
   );
