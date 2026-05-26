@@ -1698,7 +1698,7 @@ export default function ConsultantRequestDetailPage() {
                                                                             <iframe
                                                                                 src={isDoc ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contractUrl)}` : contractUrl}
                                                                                 className="w-full border-0 rounded-t-lg shadow-sm pointer-events-none"
-                                                                                style={{ height: '2600px' }}
+                                                                                style={{ height: previewData?.quotes?.length === 1 ? '3200px' : '2600px' }}
                                                                                 title={`Hợp đồng #${index + 1}`}
                                                                                 onLoad={() => setIframeLoadedMap(prev => ({ ...prev, [quote.estimate_id]: true }))}
                                                                             />

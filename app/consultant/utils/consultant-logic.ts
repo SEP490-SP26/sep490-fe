@@ -212,6 +212,9 @@ export const mapToOrderEstimationResult = (
     coating_glue_weight_kg: costEstimate.cost.coating_glue_weight_kg || 0,
     coating_glue_rate_per_m2: costEstimate.cost.coating_glue_rate_per_m2 || 0,
     coating_type: costEstimate.cost.coating_type || "",
+    coating_material_id: additionalSpecs?.coating_material_id ?? null,
+    coating_material_code: additionalSpecs?.coating_material_code ?? null,
+    coating_material_name: additionalSpecs?.coating_material_name ?? null,
 
     // Mounting
     mounting_glue_cost: costEstimate.cost.mounting_glue_cost || 0,

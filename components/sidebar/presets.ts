@@ -234,12 +234,7 @@ export const generalManagerNavItems: NavItem[] = [
     icon: FiList,
     basePath: "/general-manager",
   },
-  {
-    path: "/group-production",
-    label: "Lệnh ghép",
-    icon: FiPackage,
-    basePath: "/general-manager",
-  },
+
   {
     path: "/purchase",
     label: "Mua nguyên vật liệu",
