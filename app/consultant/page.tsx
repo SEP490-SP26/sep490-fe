@@ -1010,7 +1010,8 @@ function ConsultantForm() {
       form_product,
       is_one_side_box,
       glue_tab,
-      wave_type
+      wave_type,
+      lamination_material
     } = values;
 
     const effectiveWaveType = wave_type && wave_type !== "NONE" ? wave_type : undefined;
@@ -1055,6 +1056,7 @@ function ConsultantForm() {
 
     const selectedMaterial = findMaterialByIdentifier(materials, paper_code);
     const selectedWaveMaterial = findMaterialByIdentifier(materials, effectiveWaveType, 'SÓNG');
+    const selectedLaminationMat = laminationMaterials.find(m => m.code === lamination_material);
 
     if (!selectedMaterial) return null;
 
@@ -1142,7 +1144,7 @@ function ConsultantForm() {
           ? (materialPrices?.coating_glue_keo_nuoc_per_kg ?? 80000)
           : (materialPrices?.coating_glue_keo_dau_per_kg ?? 120000),
         mounting_glue_price_per_kg: materialPrices?.mounting_glue_per_kg ?? 90000,
-        lamination_price_per_kg: materialPrices?.lamination_per_kg ?? 150000,
+        lamination_price_per_kg: selectedLaminationMat?.cost_price ?? materialPrices?.lamination_per_kg ?? 150000,
         default_design_cost: designConfig?.default_design_cost || 0,
         override_design_cost: explicitConfig?.designCost,
 
@@ -1608,6 +1610,11 @@ function ConsultantForm() {
             const selectedLaminationCode = quote.lamination_material;
             const laminationMat = hasCANProcess ? laminationMaterials.find(m => m.code === selectedLaminationCode) || (laminationMaterials.length > 0 ? laminationMaterials[0] : null) : null;
 
+            // Tìm vật liệu phủ nếu công đoạn PHU được chọn
+            const hasPHUProcess = quoteProcesses.includes("PHU");
+            const selectedCoatingType = quote.coating_type;
+            const coatingMat = hasPHUProcess ? glueTypes.find(m => m.code === selectedCoatingType || m.name === selectedCoatingType) || (glueTypes.length > 0 ? glueTypes[0] : null) : null;
+
             const estimationResult = mapToOrderEstimationResult(
               calculations.costEstimate,
               calculations.paperEstimate,
@@ -1631,6 +1638,9 @@ function ConsultantForm() {
                 lamination_material_id: laminationMat?.material_id ?? null,
                 lamination_material_code: laminationMat?.code ?? null,
                 lamination_material_name: laminationMat?.name ?? null,
+                coating_material_id: coatingMat?.material_id ?? null,
+                coating_material_code: coatingMat?.code ?? null,
+                coating_material_name: coatingMat?.name ?? null,
                 number_of_plates: Number(quote.number_of_plates) > 0 ? Number(quote.number_of_plates) + (Number(quote.number_of_plates) < 5 ? 1 : 2) : 0,
               }
             );
@@ -1737,6 +1747,11 @@ function ConsultantForm() {
           const selectedLaminationCode = form.getFieldValue("lamination_material");
           const adjustLaminationMat = adjustHasCAN ? laminationMaterials.find(m => m.code === selectedLaminationCode) || (laminationMaterials.length > 0 ? laminationMaterials[0] : null) : null;
 
+          // Tìm vật liệu phủ nếu công đoạn PHU được chọn
+          const adjustHasPHU = Array.isArray(adjustProcesses) ? adjustProcesses.includes("PHU") : adjustProcesses.includes("PHU");
+          const selectedCoatingType = form.getFieldValue("coating_type");
+          const adjustCoatingMat = adjustHasPHU ? glueTypes.find(m => m.code === selectedCoatingType || m.name === selectedCoatingType) || (glueTypes.length > 0 ? glueTypes[0] : null) : null;
+
           const estimationResult = mapToOrderEstimationResult(
             costEstimate,
             paperEstimate,
@@ -1759,6 +1774,9 @@ function ConsultantForm() {
               lamination_material_id: adjustLaminationMat?.material_id ?? null,
               lamination_material_code: adjustLaminationMat?.code ?? null,
               lamination_material_name: adjustLaminationMat?.name ?? null,
+              coating_material_id: adjustCoatingMat?.material_id ?? null,
+              coating_material_code: adjustCoatingMat?.code ?? null,
+              coating_material_name: adjustCoatingMat?.name ?? null,
               number_of_plates: Number(form.getFieldValue("number_of_plates")) > 0 ? Number(form.getFieldValue("number_of_plates")) + (Number(form.getFieldValue("number_of_plates")) < 5 ? 1 : 2) : 0,
             }
           );

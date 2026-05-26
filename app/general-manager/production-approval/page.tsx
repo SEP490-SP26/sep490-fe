@@ -17,6 +17,7 @@ import {
   Typography,
   Descriptions,
   Divider,
+  Badge,
 } from "antd";
 import {
   SearchOutlined,
@@ -1144,6 +1145,58 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
 export default function ProductionApprovalPage() {
   const [activeTab, setActiveTab] = useState("approval");
 
+  const { data: apiData } = useQuery({
+    queryKey: ["orders", "gm-approval-list"],
+    queryFn: async () => {
+      try {
+        const response = await orderApi.getList(1, 100);
+        return Array.isArray(response.data) ? response.data : [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const pendingCount = (apiData || []).filter(
+    (order: any) => order.status === "Scheduled" && order.is_production_ready === false
+  ).length;
+
+  const approvedCount = (apiData || []).filter(
+    (order: any) =>
+      order.status === "Scheduled" &&
+      (order.production_approval_flow === "AUTO_SINGLE_OPTION" ||
+        order.production_approval_flow === "MANUAL_MANAGER")
+  ).length;
+
+  const { data: suggestionsData } = useQuery({
+    queryKey: ["group-suggestions", "all"],
+    queryFn: async () => {
+      try {
+        const res = await groupProductionsApi.getSuggestions();
+        const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
+        return list;
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: candidatesData } = useQuery({
+    queryKey: ["group-candidates", "all"],
+    queryFn: async () => {
+      try {
+        const res = await groupProductionsApi.getGroupableOrders();
+        const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
+        return list.filter((o: any) => o.can_group);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const suggestionsCount = suggestionsData?.length || 0;
+  const candidatesCount = candidatesData?.length || 0;
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[80vh] p-6">
       <div className="mb-6 pb-4 border-b border-gray-100 flex items-center justify-between">
@@ -1159,7 +1212,12 @@ export default function ProductionApprovalPage() {
         items={[
           {
             key: "approval",
-            label: "Duyệt sản xuất",
+            label: (
+              <span className="flex items-center gap-2">
+                Duyệt sản xuất
+                <Badge count={pendingCount} showZero={false} size="small" />
+              </span>
+            ),
             children: (
               <Suspense
                 fallback={
@@ -1174,7 +1232,12 @@ export default function ProductionApprovalPage() {
           },
           {
             key: "approved",
-            label: "Đã duyệt lệnh sản xuất",
+            label: (
+              <span className="flex items-center gap-2">
+                Đã duyệt lệnh sản xuất
+                <Badge count={approvedCount} showZero={false} size="small" color="blue" />
+              </span>
+            ),
             children: (
               <Suspense
                 fallback={
@@ -1189,12 +1252,22 @@ export default function ProductionApprovalPage() {
           },
           {
             key: "suggestions",
-            label: "Gợi ý ghép đơn",
+            label: (
+              <span className="flex items-center gap-2">
+                Gợi ý ghép đơn
+                <Badge count={suggestionsCount} showZero={false} size="small" color="green" />
+              </span>
+            ),
             children: <GroupProductionTab mode="suggestions" />,
           },
           {
             key: "manual",
-            label: "Tự tạo lệnh ghép",
+            label: (
+              <span className="flex items-center gap-2">
+                Tự tạo lệnh ghép
+                <Badge count={candidatesCount} showZero={false} size="small" color="purple" />
+              </span>
+            ),
             children: <GroupProductionTab mode="manual" />,
           },
         ]}

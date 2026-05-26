@@ -504,6 +504,9 @@ export interface DetailedProductionEstimation {
   coating_glue_rate_per_m2: number;
   coating_sheets_used: number;      // Số tờ thực hiện phủ
   total_coating_area_m2: number;    // Tổng diện tích phủ (m2)
+  coating_material_id: number | null;
+  coating_material_code: string | null;
+  coating_material_name: string | null;
 
   // --- Công đoạn Cán màng (Lamination) ---
   lamination_cost: number;
