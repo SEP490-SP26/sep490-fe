@@ -12,6 +12,7 @@ import {
   LineElement,
 } from "chart.js";
 import { Doughnut, Line } from "react-chartjs-2";
+import * as signalR from "@microsoft/signalr";
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, Tooltip, Legend, PointElement, LineElement);
 
@@ -152,69 +153,107 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Fetch Requests (Yêu cầu báo giá)
+      const resReqs = await fetch(
+        "https://mmes-sep490.onrender.com/api/Requests/paged?page=1&pageSize=500"
+      );
+      const dataReqs = await resReqs.json();
+      setOrders((dataReqs.data || []).filter((o: any) => o.product_name));
+
+      // Fetch Production Orders (Đơn hàng sản xuất)
+      const resOrders = await fetch(
+        "https://mmes-sep490.onrender.com/api/Orders/paged?page=1&pageSize=500"
+      );
+      const dataOrders = await resOrders.json();
+      setProdOrders(dataOrders.data || []);
+
+      // Fetch Machines
       try {
-        setLoading(true);
-        // Fetch Requests (Yêu cầu báo giá)
-        const resReqs = await fetch(
-          "https://mmes-sep490.onrender.com/api/Requests/paged?page=1&pageSize=500"
+        const resMachines = await fetch(
+          "https://mmes-sep490.onrender.com/api/Machine/get-all-machines"
         );
-        const dataReqs = await resReqs.json();
-        setOrders((dataReqs.data || []).filter((o: any) => o.product_name));
-
-        // Fetch Production Orders (Đơn hàng sản xuất)
-        const resOrders = await fetch(
-          "https://mmes-sep490.onrender.com/api/Orders/paged?page=1&pageSize=500"
-        );
-        const dataOrders = await resOrders.json();
-        setProdOrders(dataOrders.data || []);
-
-        // Fetch Machines
-        try {
-          const resMachines = await fetch(
-            "https://mmes-sep490.onrender.com/api/Machine/get-all-machines"
-          );
-          const dataMachines = await resMachines.json();
-          setMachines(Array.isArray(dataMachines) ? dataMachines : (dataMachines.data || []));
-        } catch (err) {
-          console.error("Lỗi fetch machines:", err);
-        }
-
-        // Fetch Machine Snapshot
-        try {
-          const resSnapshot = await fetch(
-            "https://mmes-sep490.onrender.com/api/Machine/availability-snapshot"
-          );
-          const dataSnapshot = await resSnapshot.json();
-          setMachineSnapshot(dataSnapshot || null);
-        } catch (err) {
-          console.error("Lỗi fetch snapshot:", err);
-        }
-
-        // Fetch Employees
-        try {
-          const token = localStorage.getItem("token");
-          const resUsers = await fetch(
-            "https://mmes-sep490.onrender.com/get-all-user",
-            {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-            }
-          );
-          const dataUsers = await resUsers.json();
-          if (Array.isArray(dataUsers)) {
-            setEmployees(dataUsers.filter((u: any) => u.role_id !== 5));
-          }
-        } catch (err) {
-          console.error("Lỗi fetch users:", err);
-        }
-      } catch (e) {
-        console.error("Lỗi fetch dashboard data:", e);
-      } finally {
-        setLoading(false);
+        const dataMachines = await resMachines.json();
+        setMachines(Array.isArray(dataMachines) ? dataMachines : (dataMachines.data || []));
+      } catch (err) {
+        console.error("Lỗi fetch machines:", err);
       }
-    };
+
+      // Fetch Machine Snapshot
+      try {
+        const resSnapshot = await fetch(
+          "https://mmes-sep490.onrender.com/api/Machine/availability-snapshot"
+        );
+        const dataSnapshot = await resSnapshot.json();
+        setMachineSnapshot(dataSnapshot || null);
+      } catch (err) {
+        console.error("Lỗi fetch snapshot:", err);
+      }
+
+      // Fetch Employees
+      try {
+        const token = localStorage.getItem("token");
+        const resUsers = await fetch(
+          "https://mmes-sep490.onrender.com/get-all-user",
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
+        const dataUsers = await resUsers.json();
+        if (Array.isArray(dataUsers)) {
+          setEmployees(dataUsers.filter((u: any) => u.role_id !== 5));
+        }
+      } catch (err) {
+        console.error("Lỗi fetch users:", err);
+      }
+    } catch (e) {
+      console.error("Lỗi fetch dashboard data:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("https://mmes-sep490.onrender.com/hubs/realtime", {
+        accessTokenFactory: () => localStorage.getItem("token") || "",
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection
+      .start()
+      .then(() => {
+        console.log("SignalR Connected");
+
+        connection.on("processing", (data) => {
+          console.log("processing", data);
+
+          // reload UI
+          fetchData();
+        });
+
+        connection.on("update-ui", (data) => {
+          console.log("update-ui", data);
+
+          fetchData();
+        });
+
+        connection.on("consultantCreateRequest", (data) => {
+          console.log("consultantCreateRequest", data);
+
+          fetchData();
+        });
+      })
+      .catch((err) => console.error("SignalR error:", err));
+
+    return () => {
+      connection.stop();
+    };
   }, []);
 
   // ── Định nghĩa trạng thái và màu sắc đơn sản xuất ──
@@ -596,8 +635,8 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("requests")}
               className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "requests"
-                  ? "border-violet-600 text-violet-600 font-extrabold"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                ? "border-violet-600 text-violet-600 font-extrabold"
+                : "border-transparent text-gray-400 hover:text-gray-600"
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -608,8 +647,8 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("orders")}
               className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "orders"
-                  ? "border-violet-600 text-violet-600 font-extrabold"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                ? "border-violet-600 text-violet-600 font-extrabold"
+                : "border-transparent text-gray-400 hover:text-gray-600"
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -620,8 +659,8 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("machines")}
               className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "machines"
-                  ? "border-violet-600 text-violet-600 font-extrabold"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                ? "border-violet-600 text-violet-600 font-extrabold"
+                : "border-transparent text-gray-400 hover:text-gray-600"
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -633,8 +672,8 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("employees")}
               className={`py-3 px-5 font-bold text-sm transition-all border-b-2 flex items-center gap-2 cursor-pointer ${activeSection === "employees"
-                  ? "border-violet-600 text-violet-600 font-extrabold"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                ? "border-violet-600 text-violet-600 font-extrabold"
+                : "border-transparent text-gray-400 hover:text-gray-600"
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
