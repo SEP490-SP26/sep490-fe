@@ -422,6 +422,11 @@ function ProductionMethodContent() {
                         <div className="text-sm text-gray-500 mt-0.5">
                           Sản xuất sản phẩm từ đầu.
                         </div>
+                        {statusData.nvl_estimated_total_cost != null && (
+                          <div className="text-sm font-medium text-green-700 mt-1 bg-green-50/50 p-1 px-2 rounded border border-green-200 inline-block">
+                            Tổng tiền: {statusData.nvl_estimated_total_cost.toLocaleString("vi-VN")} VNĐ
+                          </div>
+                        )}
                       </div>
                     </label>
 
@@ -450,10 +455,16 @@ function ProductionMethodContent() {
                         <div className="text-sm text-gray-500 mt-0.5">
                           Bán thành phẩm đủ số lượng.{" "}
                         </div>
+                        {statusData.sub_estimated_total_cost != null && (
+                          <div className="text-sm font-medium text-blue-700 mt-1 mb-1 bg-blue-50/50 p-1 px-2 rounded border border-blue-200 inline-block">
+                            Tổng tiền: {statusData.sub_estimated_total_cost.toLocaleString("vi-VN")} VNĐ
+                          </div>
+                        )}
                         {statusData.has_matched_sub_product && statusData.matched_sub_product && (
                           <div className="text-xs text-blue-600 mt-1">
                             Sub ID: <strong>{statusData.selected_sub_product_id ?? statusData.matched_sub_product?.sub_product_id ?? statusData.matched_sub_product?.id}</strong> —{" "}
-                            {statusData.matched_sub_product.product_type_name} ({statusData.matched_sub_product.quantity?.toLocaleString("vi-VN")} cái)
+                            {statusData.matched_sub_product.product_type_name} <br />
+                            Yêu cầu: <strong>{statusData.order_quantity?.toLocaleString("vi-VN")}</strong> / Hiện có: <strong>{statusData.matched_sub_product.quantity?.toLocaleString("vi-VN")}</strong>
                           </div>
                         )}
                       </div>
@@ -484,10 +495,16 @@ function ProductionMethodContent() {
                         <div className="text-sm text-gray-500 mt-0.5">
                           Dùng bán thành phẩm trước, sản xuất thêm phần thiếu bằng NVL.
                         </div>
+                        {statusData.both_estimated_total_cost != null && (
+                          <div className="text-sm font-medium text-purple-700 mt-1 mb-1 bg-purple-50/50 p-1 px-2 rounded border border-purple-200 inline-block">
+                            Tổng tiền: {statusData.both_estimated_total_cost.toLocaleString("vi-VN")} VNĐ
+                          </div>
+                        )}
                         {statusData.has_matched_sub_product && statusData.matched_sub_product && (
                           <div className="text-xs text-purple-600 mt-1">
                             Sub ID: <strong>{statusData.selected_sub_product_id ?? statusData.matched_sub_product?.sub_product_id ?? statusData.matched_sub_product?.id}</strong> —{" "}
-                            {statusData.matched_sub_product.product_type_name} ({statusData.matched_sub_product.quantity?.toLocaleString("vi-VN")} cái)
+                            {statusData.matched_sub_product.product_type_name} <br />
+                            Yêu cầu: <strong>{statusData.order_quantity?.toLocaleString("vi-VN")}</strong> / Hiện có: <strong>{statusData.matched_sub_product.quantity?.toLocaleString("vi-VN")}</strong>
                           </div>
                         )}
                       </div>

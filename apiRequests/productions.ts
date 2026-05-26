@@ -98,6 +98,14 @@ export interface ProductionReadiness {
   materials: MaterialCheck[];
   remaining_materials_for_both: any[];
   machines: MachineCheck[];
+
+  // Chi phí dự kiến
+  nvl_estimated_unit_cost?: number;
+  sub_estimated_unit_cost?: number;
+  both_estimated_unit_cost?: number;
+  nvl_estimated_total_cost?: number;
+  sub_estimated_total_cost?: number;
+  both_estimated_total_cost?: number;
 }
 
 export type ProductionMethod = "NVL" | "SUB" | "BOTH";
