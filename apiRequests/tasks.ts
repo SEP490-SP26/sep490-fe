@@ -8,6 +8,26 @@ export interface FinishTaskBody {
     token: string;
 }
 
+export interface ISubTask {
+  task_id: number;
+  prod_id: number;
+  name: string;
+  seq_num: number;
+  status: 'Finished' | 'Unassigned' | string;
+  machine: string;
+  start_time: string | null; // ISO Date String hoặc null
+  end_time: string | null;   // ISO Date String hoặc null
+  planned_start_time: string;
+  planned_end_time: string;
+  process_id: number;
+  reason: string | null;
+  input_mode: 'ESTIMATE' | 'MANUAL' | string;
+  process: any | null; // Hiện tại là null, có thể đổi thành interface cụ thể nếu backend cập nhật
+  prod: any | null;    // Hiện tại là null, có thể đổi thành interface cụ thể nếu backend cập nhật
+  is_taken_sub_product: boolean;
+  task_logs: any[];    // Mảng chứa log, hiện tại đang rỗng []
+}
+
 export const tasksApi = {
 
     createQRByStageId: (body: CreateQRBody) => {
@@ -43,4 +63,6 @@ export const tasksApi = {
 
     readyTask: (body: { task_id: number }) =>
         http.put<CommonResType>(`/api/Tasks/ready`, body),
+
+    getAllTask: () => http.get<ISubTask[]>(`/api/Tasks/get-all-task`),
 };

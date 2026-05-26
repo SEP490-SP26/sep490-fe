@@ -2,13 +2,11 @@
 
 import { orderApi } from "@/apiRequests/order";
 import { productionsApi } from "@/apiRequests/productions";
-import { useQuery } from "@tanstack/react-query";
-import { Table, Tag, Typography, Progress, Button, Empty, Input, Card } from "antd";
-import dayjs from "dayjs";
-import Link from "next/link";
-import { EyeOutlined } from "@ant-design/icons";
-import { useMemo, useState } from "react";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
+import { useQuery } from "@tanstack/react-query";
+import { Card, Empty, Input, Progress, Table, Tag, Typography } from "antd";
+import dayjs from "dayjs";
+import { useMemo, useState } from "react";
 
 const { Title } = Typography;
 
@@ -56,29 +54,28 @@ export default function ProductionTrackingPage() {
   });
 
   const orders = useMemo(() => {
-    // Depending on the API format, it could be orderRes?.data?.data or orderRes?.data
-    let list = (orderRes as any)?.data?.data || (orderRes as any)?.data || [];
+    let list = (orderRes as any)?.data || [];
     if (!Array.isArray(list)) return [];
 
-    list = list.filter((o: any) => 
-      o.status === "InProcessing" || o.status === "Scheduled" || o.status === "Completed" || o.status === "Delivered"
+    list = list.filter((o: any) =>
+      o.status === "InProcessing" || o.status === "Scheduled" || o.status === "Finished" || o.status === "Delivery"
     );
-    
+
     if (searchText) {
       const lowerSearch = searchText.toLowerCase();
-      list = list.filter((o: any) => 
+      list = list.filter((o: any) =>
         o.code?.toLowerCase().includes(lowerSearch) ||
         o.customer_name?.toLowerCase().includes(lowerSearch) ||
         o.product_name?.toLowerCase().includes(lowerSearch)
       );
     }
-    
+
     list.sort((a: any, b: any) => {
       if (a.status === "InProcessing" && b.status !== "InProcessing") return -1;
       if (a.status !== "InProcessing" && b.status === "InProcessing") return 1;
-      return new Date(b.order_date || b.created_at || Date.now()).getTime() - new Date(a.order_date || a.created_at || Date.now()).getTime();
+      return new Date(b.created_at || Date.now()).getTime() - new Date(a.created_at || Date.now()).getTime();
     });
-    
+
     return list;
   }, [orderRes, searchText]);
 
@@ -119,8 +116,8 @@ export default function ProductionTrackingPage() {
         let text = status;
         if (status === "InProcessing") { color = "processing"; text = "Đang sản xuất"; }
         else if (status === "Scheduled") { color = "warning"; text = "Đã lên lịch"; }
-        else if (status === "Completed") { color = "success"; text = "Hoàn thành"; }
-        else if (status === "Delivered") { color = "green"; text = "Đã giao"; }
+        else if (status === "Finished") { color = "success"; text = "Hoàn thành"; }
+        else if (status === "Delivery") { color = "green"; text = "Đã giao"; }
         return <Tag color={color}>{text}</Tag>;
       },
     },
@@ -129,8 +126,8 @@ export default function ProductionTrackingPage() {
       key: "progress",
       width: 200,
       render: (_: any, record: any) => {
-        // If order API provides production_id or prod_id
-        const prodId = record.production_id || record.prod_id;
+        // use production_ids[0] or production_id
+        const prodId = record.production_ids?.[0] || record.production_id;
         if (!prodId) return <span className="text-gray-400 italic">Chưa có Lệnh SX</span>;
         return <ProductionProgress prodId={prodId} />;
       },
@@ -140,27 +137,27 @@ export default function ProductionTrackingPage() {
       key: "end_date",
       width: 150,
       render: (_: any, record: any) => {
-        const endDate = record.production_end_date;
+        const endDate = record.productions?.[0]?.end_date;
         const deliveryDate = record.delivery_date;
-        
+
         if (endDate) return <span className="text-green-600 font-medium">SX: {dayjs(endDate).format("DD/MM/YYYY")}</span>;
         if (deliveryDate) return <span className="text-gray-500">Hẹn: {dayjs(deliveryDate).format("DD/MM/YYYY")}</span>;
         return <span className="text-gray-400">-</span>;
       },
     },
-    {
-      key: "action",
-      align: "center" as const,
-      width: 100,
-      render: (_: any, record: any) => {
-        const id = record.order_id || record._id;
-        return (
-          <Link href={`/consultant/request-detail/${id}`}>
-            <Button size="small" icon={<EyeOutlined />}>Chi Tiết</Button>
-          </Link>
-        )
-      },
-    },
+    // {
+    //   key: "action",
+    //   align: "center" as const,
+    //   width: 100,
+    //   render: (_: any, record: any) => {
+    //     const id = record.order_id || record._id;
+    //     return (
+    //       <Link href={`/consultant/request-detail/${id}`}>
+    //         <Button size="small" icon={<EyeOutlined />}>Chi Tiết</Button>
+    //       </Link>
+    //     )
+    //   },
+    // },
   ];
 
   return (
@@ -192,7 +189,7 @@ export default function ProductionTrackingPage() {
           locale={{ emptyText: <Empty description="Không có đơn hàng nào đang sản xuất" /> }}
         />
       </Card>
-      
+
       <LoadingOverlay isLoading={isPending} />
     </div>
   );

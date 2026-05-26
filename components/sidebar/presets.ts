@@ -139,6 +139,12 @@ export const productionsManagerNavItems: NavItem[] = [
     basePath: "/productions-manager",
   },
   {
+    path: "/tasks",
+    label: "Tổng quan các công đoạn",
+    icon: FiList,
+    basePath: "/productions-manager",
+  },
+  {
     path: "/",
     label: "Đăng xuất",
     icon: FiLogOut,

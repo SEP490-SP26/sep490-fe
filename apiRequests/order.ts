@@ -179,9 +179,72 @@ export interface IOrderPaginationResponse {
   data: IOrder[];
 }
 
+// Interface đại diện cho thông tin một lệnh sản xuất (Production)
+export interface IOrderProduction {
+  prod_id: number;
+  code: string;
+  order_id: number | null;
+  manager_id: number;
+  end_date: string; // Định dạng ISO Date String
+  status: 'Importing' | 'Paid' | 'Delivery' | 'Finished' | string;
+  product_type_id: number;
+  note: string | null;
+  created_at: string;
+  planned_start_date: string;
+  actual_start_date: string | null;
+  is_full_process: boolean | null;
+  sub_product_used_qty: number;
+  import_recieve_path: string | null; // URL dẫn tới file PDF hoặc null
+  sub_product_id: number | null;
+  nvl_qty: number;
+  production_approval_flow: any | null; // Cập nhật interface cụ thể nếu có data
+  prod_method: 'NVL' | string;
+  gm_note: string | null;
+  mgr_note: string | null;
+  prod_kind: 'GROUP' | 'SPLIT' | 'SINGLE' | string;
+  group_process_codes: string | null; // Ví dụ: "PHU,CAN" hoặc "BE,DUT,DAN"
+  group_total_qty: number;
+  gm_proposed_method: string | null;
+}
+
+// Interface đại diện cho chi tiết một Đơn hàng (Order)
+export interface IOrderSummary {
+  order_id: string; // Lưu ý: Trong JSON trường này đang trả về dạng chuỗi "115"
+  code: string;     // Ví dụ: "ORD-00115"
+  customer_name: string;
+  product_name: string;
+  product_id: string;
+  quantity: number;
+  created_at: string;
+  delivery_date: string;
+  status: 'Finished' | 'Delivery' | string;
+  can_fulfill: boolean;
+  missing_materials: any | null;
+  layout_confirmed: boolean;
+  is_production_ready: boolean;
+  is_full_process: boolean | null;
+  production_method: string;
+  sub_product_id: number | null;
+  sub_product_used_qty: number;
+  nvl_qty: number;
+  import_recieve_path: string | null;
+  production_id: number;
+  production_approval_flow: any | null;
+  production_ids: number[]; // Mảng chứa ID các production liên quan
+  productions: IOrderProduction[];
+}
+
+// Interface bao ngoài cùng cho cấu trúc phân trang trả về từ API
+export interface IOrderDashboardResponse {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  data: IOrderSummary[];
+}
+
 export const orderApi = {
-  getList: (page: number = 1, pageSize: number = 10) =>
-    http.get<CommonResType>(`/api/Orders/paged?page=${page}&pageSize=${pageSize}`),
+  getList: (page: number = 1, pageSize: number = 1000) =>
+    http.get<IOrderDashboardResponse>(`/api/Orders/paged?page=${page}&pageSize=${pageSize}`),
 
   getListByStatus: (page: number = 1, pageSize: number = 10, status: string) =>
     http.get<CommonResType>(`/api/Orders/paged?page=${page}&pageSize=${pageSize}&status=${status}`),
