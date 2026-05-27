@@ -127,12 +127,12 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
   // ── Lọc đơn ──────────
   const filteredOrders = (apiData || []).filter((order: any) => {
     let statusMatch = false;
-    
+
     if (mode === "pending") {
       statusMatch = (order.status === "Scheduled") && order.is_production_ready === false;
     } else {
       // mode === "approved"
-      statusMatch = (order.status === "Scheduled") && 
+      statusMatch = (order.status === "Scheduled") &&
         (order.production_approval_flow === "AUTO_SINGLE_OPTION" || order.production_approval_flow === "MANUAL_MANAGER");
     }
 
@@ -204,42 +204,42 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
     },
     ...(mode === "approved"
       ? [
-          {
-            title: "Người duyệt",
-            key: "approval_source",
-            align: "center" as const,
-            render: (_: any, record: any) => {
-              if (record.production_approval_flow === "AUTO_SINGLE_OPTION") {
-                return <Tag color="green">Hệ thống tự duyệt</Tag>;
-              }
-              if (record.production_approval_flow === "MANUAL_MANAGER") {
-                return <Tag color="blue">Manager duyệt</Tag>;
-              }
-              return <Tag>{record.production_approval_flow}</Tag>;
-            },
+        {
+          title: "Người duyệt",
+          key: "approval_source",
+          align: "center" as const,
+          render: (_: any, record: any) => {
+            if (record.production_approval_flow === "AUTO_SINGLE_OPTION") {
+              return <Tag color="green">Hệ thống tự duyệt</Tag>;
+            }
+            if (record.production_approval_flow === "MANUAL_MANAGER") {
+              return <Tag color="blue">Manager duyệt</Tag>;
+            }
+            return <Tag>{record.production_approval_flow}</Tag>;
           },
-        ]
+        },
+      ]
       : []),
     ...(mode === "pending"
       ? [
-          {
-            title: "Thao tác", key: "action", width: 180, align: "center" as const,
-            render: (_: any, record: any) => {
-              if (record.proposed_production_method != null) {
-                return null;
-              }
-              return (
-                <button
-                  onClick={() => handleOpen(record.order_id || record._id)}
-                  disabled={record.status === "Finished" || record.status === "Delivered"}
-                  className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
-                >
-                  Trình duyệt SX
-                </button>
-              );
-            },
+        {
+          title: "Thao tác", key: "action", width: 180, align: "center" as const,
+          render: (_: any, record: any) => {
+            if (record.proposed_production_method != null) {
+              return null;
+            }
+            return (
+              <button
+                onClick={() => handleOpen(record.order_id || record._id)}
+                disabled={record.status === "Finished" || record.status === "Delivered" || record.proposed_production_method != null}
+                className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
+              >
+                Trình duyệt SX
+              </button >
+            );
           },
-        ]
+        },
+      ]
       : []),
   ];
 
@@ -1205,12 +1205,11 @@ export default function ProductionApprovalPage() {
           <Text type="secondary">Duyệt lệnh và quản lý ghép đơn sản xuất</Text>
         </div>
         <div className="flex gap-4">
-          <div 
-            className={`px-4 py-2 rounded-lg border flex items-center gap-3 transition-colors ${
-              suggestionsCount > 0 
-                ? "bg-green-50 border-green-200 cursor-pointer hover:bg-green-100" 
-                : "bg-gray-50 border-gray-200"
-            }`}
+          <div
+            className={`px-4 py-2 rounded-lg border flex items-center gap-3 transition-colors ${suggestionsCount > 0
+              ? "bg-green-50 border-green-200 cursor-pointer hover:bg-green-100"
+              : "bg-gray-50 border-gray-200"
+              }`}
             onClick={() => {
               if (suggestionsCount > 0) setActiveTab("suggestions");
             }}
@@ -1223,7 +1222,7 @@ export default function ProductionApprovalPage() {
                 Gợi ý ghép lệnh
               </div>
               <div className={`text-sm font-medium ${suggestionsCount > 0 ? "text-green-800" : "text-gray-600"}`}>
-                <span className="text-lg font-bold mr-1">{suggestionsCount}</span> 
+                <span className="text-lg font-bold mr-1">{suggestionsCount}</span>
                 cần xử lý
               </div>
             </div>
