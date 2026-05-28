@@ -108,6 +108,124 @@ export interface ProductionReadiness {
   both_estimated_total_cost?: number;
 }
 
+// Chi tiết vật tư đầu vào của từng công đoạn
+export interface IStageInputMaterial {
+  name: string;
+  code: string;
+  quantity: number;
+  estimated_quantity: number;
+  actual_quantity: number | null;
+  quantity_source: 'Estimated' | 'Actual' | string;
+  unit: 'bản' | 'tờ' | 'kg' | 'sp' | string;
+}
+
+// Thông tin thành phẩm / bán thành phẩm đầu ra của công đoạn
+export interface IStageOutputProduct {
+  name: string;
+  code: string;
+  quantity: number;
+  estimated_quantity: number;
+  actual_quantity: number | null;
+  quantity_source: 'Estimated' | 'Actual' | string;
+  unit: 'bản' | 'tờ' | 'kg' | 'sp' | string;
+}
+
+// Nhật ký quét mã / báo cáo tiến độ trong một công đoạn
+export interface IStageLog {
+  log_id: number;
+  task_id: number;
+  action_type: 'Finished' | string;
+  qty_good: number;
+  log_time: string; // ISO Date String
+  scanned_code: string;
+  scanned_by_user_id: number;
+  reason: string | null;
+  comment: string | null;
+  report_image_url: string | null;
+  reference_input_json: string | null;
+  output_json: string | null;
+  report_image_urls: string[];
+  reference_inputs: any[];
+  outputs: any[];
+  material_usages: any[];
+}
+
+// Chi tiết một công đoạn sản xuất (Stage)
+export interface IProductionStage {
+  process_id: number;
+  seq_num: number;
+  process_name: string;
+  process_code: 'RALO' | 'CAT' | 'IN' | 'PHU' | 'CAN' | 'BE' | 'DUT' | 'DAN' | string;
+  machine: string;
+  n_up: number;
+  task_id: number | null;
+  task_name: string | null;
+  status: 'Finished' | 'Unassigned' | null | string;
+  is_taken_sub_product: boolean;
+  assigned_to: number | null;
+  assigned_to_name: string | null;
+  start_time: string | null; // ISO Date String hoặc null nếu chưa chạy
+  end_time: string | null;   // ISO Date String hoặc null nếu chưa chạy
+  planned_start_time: string | null;
+  planned_end_time: string | null;
+  qty_good: number;
+  waste_percent: number;
+  last_scan_time: string | null;
+  estimated_output_quantity: number;
+  actual_output_quantity: number | null;
+  logs: IStageLog[];
+  input_materials: IStageInputMaterial[];
+  output_product: IStageOutputProduct;
+}
+
+// Toàn bộ thông tin của Lệnh sản xuất (Object ngoài cùng)
+export interface IProductionDetailResponse {
+  prod_id: number;
+  production_code: string;
+  production_status: 'Importing' | 'Scheduled' | 'Finished' | string;
+  start_date: string | null;
+  end_date: string; // ISO Date String
+  import_recieve_path: string | null;
+  order_id: number;
+  order_code: string;
+  delivery_date: string;
+  customer_name: string;
+  product_name: string;
+  quantity: number;
+  packaging_standard: string;
+  product_type_id: number;
+  is_full_process: boolean | null;
+  length_mm: number;
+  width_mm: number;
+  height_mm: number;
+  ready_print_file: string | null; // URL file in sẵn sàng
+  ink_type_names: string;          // Danh sách mực, cách nhau bằng dấu phẩy
+  wave_type: string;
+  paper_name: string;
+  coating_type: string;
+  paper_alternative: string | null;
+  wave_alternative: string | null;
+  n_up: number;
+  created_at: string;
+  planned_start_date: string;
+  actual_start_date: string | null;
+  lamination_material_id: number | null;
+  lamination_material_code: string | null;
+  lamination_material_name: string | null;
+  production_method: 'NVL' | string;
+  sub_product_id: number | null;
+  sub_product_used_qty: number;
+  nvl_qty: number;
+  sub_product_process: any | null;
+  production_approval_flow: any | null;
+  all_tasks_finished: boolean;
+  waiting_manual_importing: boolean;
+  is_auto_production_approval: boolean;
+  sub_product_issue_file: string | null;
+  production_approval_label: string | null;
+  stages: IProductionStage[];
+}
+
 export type ProductionMethod = "NVL" | "SUB" | "BOTH";
 
 export const productionsApi = {
@@ -117,7 +235,7 @@ export const productionsApi = {
   getAllProduction: () => http.get("/api/productions/get-all-production?page=1&pageSize=500"),
 
   getProdyctionByOrderId: (id: string) =>
-    http.get(`/api/Productions/detail/${id}`),
+    http.get<IProductionDetailResponse>(`/api/Productions/detail/${id}`),
 
   getProductionByProdId: (id: string) =>
     http.get(`/api/Productions/detail/production/${id}`),

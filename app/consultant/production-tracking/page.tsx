@@ -13,13 +13,15 @@ const { Title } = Typography;
 /* =======================
    ProductionProgress Component
 ======================= */
-function ProductionProgress({ prodId }: { prodId: number }) {
-  const { data: detail } = useQuery({
-    queryKey: ["production-detail", prodId?.toString()],
-    queryFn: () => productionsApi.getProductionByProdId(prodId?.toString()),
+function ProductionProgress({ orderId }: { orderId: number }) {
+  const { data: detailRes } = useQuery({
+    queryKey: ["production-detail", orderId?.toString()],
+    queryFn: () => productionsApi.getProdyctionByOrderId(orderId?.toString()),
     staleTime: 30_000,
-    enabled: !!prodId,
+    enabled: !!orderId,
   });
+
+  const detail = (detailRes as any)?.data || detailRes;
 
   if (!detail?.stages || detail.stages.length === 0) {
     return <span className="text-xs text-gray-400">Đang tải...</span>;
@@ -128,8 +130,9 @@ export default function ProductionTrackingPage() {
       render: (_: any, record: any) => {
         // use production_ids[0] or production_id
         const prodId = record.production_ids?.[0] || record.production_id;
+        const orderId = record.order_id || record.id;
         if (!prodId) return <span className="text-gray-400 italic">Chưa có Lệnh SX</span>;
-        return <ProductionProgress prodId={prodId} />;
+        return <ProductionProgress orderId={orderId} />;
       },
     },
     {
