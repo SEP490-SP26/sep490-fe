@@ -257,12 +257,16 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
     selected,
     label,
     desc,
+    cost,
+    subQty,
     onClick,
   }: {
     available: boolean;
     selected: boolean;
     label: string;
     desc: string;
+    cost?: number;
+    subQty?: number;
     onClick?: () => void;
   }) => (
     <div
@@ -287,7 +291,17 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
         >
           {label}
         </div>
-        <div className="text-sm text-gray-500 mt-0.5">{desc}</div>
+        <div className="text-sm text-gray-500 mt-0.5 mb-1">{desc}</div>
+        {available && cost !== undefined && (
+          <div className="text-sm text-gray-700">
+            Chi phí: <span className="font-semibold text-amber-600">{cost.toLocaleString("vi-VN")} đ</span>
+          </div>
+        )}
+        {available && subQty !== undefined && (
+          <div className="text-sm text-gray-700">
+            SL có sẵn: <span className="font-semibold text-blue-600">{subQty.toLocaleString("vi-VN")}</span>
+          </div>
+        )}
         {available && selected && (
           <span className="inline-block mt-2 text-xs font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
             Đề xuất được chọn
@@ -436,6 +450,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
                     selected={selectedMethod === "NVL"}
                     label="NVL – Sản xuất từ đầu"
                     desc={`Sản xuất sản phẩm từ nguyên vật liệu.`}
+                    cost={statusData.nvl_estimated_total_cost}
                     onClick={() => handleSelectMethod("NVL")}
                   />
                   <OptionBadge
@@ -443,6 +458,8 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
                     selected={selectedMethod === "SUB"}
                     label="SUB – Dùng bán thành phẩm"
                     desc={`Dùng bán thành phẩm có sẵn.`}
+                    cost={statusData.sub_estimated_total_cost}
+                    subQty={statusData.matched_sub_product?.quantity}
                     onClick={() => handleSelectMethod("SUB")}
                   />
                   <OptionBadge
@@ -450,6 +467,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
                     selected={selectedMethod === "BOTH"}
                     label="BOTH – Kết hợp SUB + NVL"
                     desc="Dùng bán thành phẩm trước, sản xuất thêm phần còn thiếu."
+                    cost={statusData.both_estimated_total_cost}
                     onClick={() => handleSelectMethod("BOTH")}
                   />
                 </div>
@@ -868,23 +886,41 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
 
 
       <Card className="mb-6 shadow-sm border-blue-100 bg-blue-50/30">
-        <div className="w-full md:w-1/2">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Loại sản phẩm (Bắt buộc)</label>
-          <Select
-            className="w-full"
-            placeholder="Chọn loại sản phẩm"
-            value={productTypeId}
-            onChange={(val) => {
-              setProductTypeId(val);
-              setSelectedProcessCodes([]); // Reset stages while loading new defaults
-              setSelectedOrders([]);
-              setSearchText("");
-            }}
-            options={(productTypes || []).map((pt: any) => ({
-              label: pt.name,
-              value: pt.product_type_id
-            }))}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Loại sản phẩm (Bắt buộc)</label>
+            <Select
+              className="w-full"
+              placeholder="Chọn loại sản phẩm"
+              value={productTypeId}
+              onChange={(val) => {
+                setProductTypeId(val);
+                setSelectedProcessCodes([]); // Reset stages while loading new defaults
+                setSelectedOrders([]);
+                setSearchText("");
+              }}
+              options={(productTypes || []).map((pt: any) => ({
+                label: pt.name,
+                value: pt.product_type_id
+              }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
+            <Select
+              mode="multiple"
+              className="w-full"
+              placeholder="Chọn các công đoạn ghép (VD: PHU, CAN...)"
+              value={selectedProcessCodes}
+              onChange={(val) => {
+                setSelectedProcessCodes(val);
+                setSelectedOrders([]);
+                setSearchText("");
+              }}
+              options={ALLOWED_PROCESS_CODES}
+              allowClear
+            />
+          </div>
         </div>
       </Card>
 
@@ -924,22 +960,6 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
             label: "Tự tạo lệnh ghép",
             children: (
               <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
-                  <Select
-                    mode="multiple"
-                    className="w-full"
-                    placeholder="Chọn các công đoạn ghép (VD: PHU, CAN...)"
-                    value={selectedProcessCodes}
-                    onChange={(val) => {
-                      setSelectedProcessCodes(val);
-                      setSelectedOrders([]);
-                      setSearchText("");
-                    }}
-                    options={ALLOWED_PROCESS_CODES}
-                    allowClear
-                  />
-                </div>
 
                 <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <Title level={4} className="!mb-0 text-gray-800">Danh sách đơn hàng tiềm năng</Title>

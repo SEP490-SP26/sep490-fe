@@ -82,6 +82,19 @@ export default function GeneralManagerDashboard() {
     }
   };
 
+  const handleViewOrderDetail = async (orderId: string) => {
+    setIsDetailModalVisible(true);
+    setIsDetailLoading(true);
+    try {
+      const res = await productionsApi.getProdyctionByOrderId(orderId);
+      setSelectedProdDetail(res?.data || res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
   // Filter controls for overview chart
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
@@ -902,10 +915,21 @@ export default function GeneralManagerDashboard() {
 
                         {/* Card Footer */}
                         <div className="flex items-center justify-between border-t border-gray-100 pt-2 mt-1 text-[11px]">
-                          <span className="text-gray-400 font-medium">Hạn giao: {formatDate(order.delivery_date)}</span>
-                          <span className={`px-1.5 py-0.5 rounded font-bold border ${getDeliveryColor(order.delivery_date)}`}>
-                            {getRemainingDaysText(order.delivery_date)}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-gray-400 font-medium">Hạn giao: {formatDate(order.delivery_date)}</span>
+                            <span className={`w-fit px-1.5 py-0.5 rounded font-bold border ${getDeliveryColor(order.delivery_date)}`}>
+                              {getRemainingDaysText(order.delivery_date)}
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewOrderDetail(order.order_id.toString());
+                            }}
+                            className="text-amber-800 hover:text-amber-955 font-bold flex items-center gap-0.5 transition-colors"
+                          >
+                            Xem chi tiết <BiChevronRight className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     );
