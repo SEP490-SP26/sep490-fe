@@ -869,7 +869,7 @@ export default function GroupProductionPage() {
           },
           reason: reportReason,
           images: reportImages,
-          ttlMinutes: 60,
+          ttlMinutes: 10,
         })
       );
       setQrToken((data as any)?.token ?? (data as any)?.data?.token);

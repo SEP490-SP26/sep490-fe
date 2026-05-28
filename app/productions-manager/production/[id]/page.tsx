@@ -648,7 +648,7 @@ export default function ProductionDetailPage() {
           },
           reason: reportReason,
           images: reportImages,
-          ttlMinutes: 60,
+          ttlMinutes: 10,
         })
       );
 
