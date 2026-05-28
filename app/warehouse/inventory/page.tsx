@@ -10,7 +10,7 @@ import { Pagination, Tabs } from "antd";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BiPackage } from "react-icons/bi";
-import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel, BsDownload ,BsExclamationTriangle} from "react-icons/bs";
+import { BsSearch, BsTruck, BsCloudUpload, BsFileEarmarkExcel, BsDownload, BsExclamationTriangle, BsFileEarmarkPdf } from "react-icons/bs";
 import { subProductsApi, SubProduct } from "@/apiRequests/subproducts";
 import { Table } from "antd";
 
@@ -126,6 +126,7 @@ export default function InventoryManagement() {
   const {
     data: missingMaterialsResponse,
     isPending: isMissingMaterialsPending,
+    refetch: refetchMissingMaterials,
   } = useQuery({
     queryKey: ["missing-materials"],
     queryFn: async () => {
@@ -179,9 +180,14 @@ export default function InventoryManagement() {
 
   const subProductsList: SubProduct[] = subProductsResponse?.data || [];
   
-  const missingMaterialsList = Array.isArray(missingMaterialsResponse) 
+  const missingMaterialsRaw = Array.isArray(missingMaterialsResponse) 
     ? missingMaterialsResponse 
     : (missingMaterialsResponse?.data?.items || missingMaterialsResponse?.data || missingMaterialsResponse?.items || []);
+
+  // Chỉ hiển thị những item có is_active = true và có file_purpose
+  const missingMaterialsList = missingMaterialsRaw.filter(
+    (item: any) => item.is_active === true && item.file_purpose
+  );
 
   const subProductsColumns = [
     {
@@ -321,7 +327,7 @@ export default function InventoryManagement() {
       align: 'right' as const,
       render: (text: number) => (
         <span className="inline-flex items-center gap-1 font-bold text-red-600 text-sm bg-red-50 px-2.5 py-0.5 rounded-lg border border-red-100">
-          -{(text || 0).toLocaleString("vi-VN")}
+          {(text || 0).toLocaleString("vi-VN")}
         </span>
       ),
     },
@@ -361,6 +367,29 @@ export default function InventoryManagement() {
           <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${val ? "bg-green-500" : "bg-red-500"}`} />
           {val ? "Đã mua" : "Chưa mua"}
         </span>
+      ),
+    },
+    {
+      title: 'Phiếu nhập',
+      dataIndex: 'file_purpose',
+      key: 'file_purpose',
+      width: 120,
+      align: 'center' as const,
+      render: (val: string) => (
+        val ? (
+          <a
+            href={val}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all"
+          >
+            <BsFileEarmarkPdf className="w-3.5 h-3.5 text-red-500" />
+            Xem phiếu
+          </a>
+        ) : (
+          <span className="text-gray-400 text-sm">—</span>
+        )
       ),
     },
   ];
@@ -448,6 +477,7 @@ export default function InventoryManagement() {
       showSuccessToast("Nhập nguyên vật liệu từ Excel thành công!");
       setSelectedExcel(null);
       refetchInvData();
+      refetchMissingMaterials();
     } catch (error) {
       console.error("Error importing excel:", error);
       showErrorToast("Có lỗi xảy ra khi nhập file Excel");
