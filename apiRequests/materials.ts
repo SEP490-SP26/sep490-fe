@@ -9,6 +9,30 @@ interface PaperType {
     code: string;
 }
 
+// Interface đại diện cho thông tin chi tiết của từng nguyên vật liệu thiếu hụt/cần mua
+export interface IMaterialMissingItem {
+  miss_id: number;
+  material_id: number;
+  material_name: string; // Ví dụ: "Giấy C200", "Giấy C350"
+  needed: number;        // Số lượng hệ thống/sản xuất cần
+  available: number;     // Số lượng hiện có trong kho
+  quantity: number;      // Số lượng quyết định mua
+  unit: 'Tờ' | string;   // Đơn vị tính
+  request_date: string;  // Định dạng ISO Date String (Z)
+  total_price: number;   // Tổng chi phí mua sắm
+  is_buy: boolean;
+  file_purpose: string;  // URL link đến file đề xuất PDF trên Cloudinary
+  is_active: boolean;
+}
+
+// Interface bọc ngoài cùng đại diện cho Response phân trang từ API
+export interface IMaterialMissingPaginationResponse {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  data: IMaterialMissingItem[];
+}
+
 export const materialsApi = {
     getAll: () =>
         http.get<Material[]>("/api/Materials/get-all-materials"),
@@ -27,9 +51,14 @@ export const materialsApi = {
         http.get<Material[]>("/api/Materials/get-material-by-type-song"),
 
     getListMissingMaterial: (page: number = 1, pageSize: number = 100) =>
-        http.get<Material[]>(
+        http.get<IMaterialMissingPaginationResponse>(
             `/api/MissingMaterials/paged?page=${page}&pageSize=${pageSize}`
         ),
+
+    generatePurchasePDF: (miss_ids: number[]) =>
+        http.post<any>("/api/MissingMaterials/generate-purchase-pdf", {
+            miss_ids
+        }),
 
     importStockFromExcel: (file: File) => {
         const formData = new FormData();

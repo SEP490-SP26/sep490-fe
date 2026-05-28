@@ -829,58 +829,58 @@ export default function GeneralManagerDashboard() {
                     {paginatedOrdersProgress.map((order: any) => {
                       const statusText = order.status === "InProcessing" ? "Đang sản xuất" : "Đã lên lịch";
 
-                    return (
-                      <div
-                        key={order.order_id}
-                        onClick={() => router.push(`/general-manager/production-approval?orderId=${order.order_id}`)}
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:border-amber-900 hover:shadow-sm transition-all duration-300 cursor-pointer flex flex-col justify-between group"
-                      >
-                        <div>
-                          {/* Card Header */}
-                          <div className="flex justify-between items-start gap-2 mb-2">
-                            <div>
-                              <span className="font-mono text-[10px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                {order.code}
-                              </span>
-                              <h4 className="font-bold text-gray-900 mt-1 truncate group-hover:text-amber-900 transition-colors text-xs">
-                                {order.product_name}
-                              </h4>
-                            </div>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${order.status === "InProcessing" ? "bg-amber-100 text-amber-900" : "bg-blue-100 text-blue-900"
-                              }`}>
-                              {statusText}
-                            </span>
-                          </div>
-
-                          {/* Customer & Quantity */}
-                          <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500 mb-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                            <div>
-                              <p className="font-semibold text-gray-400">Khách hàng</p>
-                              <p className="font-bold text-gray-800 truncate">{order.customer_name}</p>
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-400">Số lượng</p>
-                              <p className="font-bold text-gray-800">{order.quantity.toLocaleString("vi-VN")}</p>
-                            </div>
-                          </div>
-
-                          {/* Progress Stepper Visual */}
-                          <div className="mb-3">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Tiến độ quy trình</p>
-                            <div className="flex items-center justify-between relative mt-3">
-                              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-gray-200 rounded z-0" />
-                              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-green-500 rounded z-0 transition-all duration-500"
-                                style={{ width: order.status === "InProcessing" ? "50%" : "25%" }} />
-
-                              {/* Step 1: Lên lịch */}
-                              <div className="flex flex-col items-center relative z-10">
-                                <div className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold shadow">
-                                  ✓
-                                </div>
-                                <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Đã lên lịch</span>
+                      return (
+                        <div
+                          key={order.order_id}
+                          onClick={() => router.push(`/general-manager/production-approval?orderId=${order.order_id}`)}
+                          className="bg-white rounded-lg border border-gray-200 p-4 hover:border-amber-900 hover:shadow-sm transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+                        >
+                          <div>
+                            {/* Card Header */}
+                            <div className="flex justify-between items-start gap-2 mb-2">
+                              <div>
+                                <span className="font-mono text-[10px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                  {order.code}
+                                </span>
+                                <h4 className="font-bold text-gray-900 mt-1 truncate group-hover:text-amber-900 transition-colors text-xs">
+                                  {order.product_name}
+                                </h4>
                               </div>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${order.status === "InProcessing" ? "bg-amber-100 text-amber-900" : "bg-blue-100 text-blue-900"
+                                }`}>
+                                {statusText}
+                              </span>
+                            </div>
 
-                              {/* Step 2: In ấn
+                            {/* Customer & Quantity */}
+                            <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500 mb-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                              <div>
+                                <p className="font-semibold text-gray-400">Khách hàng</p>
+                                <p className="font-bold text-gray-800 truncate">{order.customer_name}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-400">Số lượng</p>
+                                <p className="font-bold text-gray-800">{order.quantity.toLocaleString("vi-VN")}</p>
+                              </div>
+                            </div>
+
+                            {/* Progress Stepper Visual */}
+                            <div className="mb-3">
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Tiến độ quy trình</p>
+                              <div className="flex items-center justify-between relative mt-3">
+                                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-gray-200 rounded z-0" />
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-green-500 rounded z-0 transition-all duration-500"
+                                  style={{ width: order.status === "InProcessing" ? "50%" : "25%" }} />
+
+                                {/* Step 1: Lên lịch */}
+                                <div className="flex flex-col items-center relative z-10">
+                                  <div className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold shadow">
+                                    ✓
+                                  </div>
+                                  <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Đã lên lịch</span>
+                                </div>
+
+                                {/* Step 2: In ấn
                               <div className="flex flex-col items-center relative z-10">
                                 <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shadow ${order.status === "InProcessing"
                                   ? "bg-green-500 text-white"
@@ -891,49 +891,49 @@ export default function GeneralManagerDashboard() {
                                 <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">In ấn</span>
                               </div> */}
 
-                              {/* Step 3: Gia công */}
-                              <div className="flex flex-col items-center relative z-10">
-                                <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shadow ${order.status === "InProcessing"
-                                  ? "bg-amber-500 text-white animate-pulse"
-                                  : "bg-gray-100 text-gray-400 border border-gray-200"
-                                  }`}>
-                                  2
+                                {/* Step 3: Gia công */}
+                                <div className="flex flex-col items-center relative z-10">
+                                  <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shadow ${order.status === "InProcessing"
+                                    ? "bg-amber-500 text-white animate-pulse"
+                                    : "bg-gray-100 text-gray-400 border border-gray-200"
+                                    }`}>
+                                    2
+                                  </div>
+                                  <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Gia công</span>
                                 </div>
-                                <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Gia công</span>
-                              </div>
 
-                              {/* Step 4: Đóng gói */}
-                              <div className="flex flex-col items-center relative z-10">
-                                <div className="w-4 h-4 rounded-full bg-gray-100 text-gray-400 border border-gray-200 flex items-center justify-center text-[9px] font-bold">
-                                  3
+                                {/* Step 4: Đóng gói */}
+                                <div className="flex flex-col items-center relative z-10">
+                                  <div className="w-4 h-4 rounded-full bg-gray-100 text-gray-400 border border-gray-200 flex items-center justify-center text-[9px] font-bold">
+                                    3
+                                  </div>
+                                  <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Hoàn thành</span>
                                 </div>
-                                <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Hoàn thành</span>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Card Footer */}
-                        <div className="flex items-center justify-between border-t border-gray-100 pt-2 mt-1 text-[11px]">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-gray-400 font-medium">Hạn giao: {formatDate(order.delivery_date)}</span>
-                            <span className={`w-fit px-1.5 py-0.5 rounded font-bold border ${getDeliveryColor(order.delivery_date)}`}>
-                              {getRemainingDaysText(order.delivery_date)}
-                            </span>
+                          {/* Card Footer */}
+                          <div className="flex items-center justify-between border-t border-gray-100 pt-2 mt-1 text-[11px]">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-gray-400 font-medium">Hạn giao: {formatDate(order.delivery_date)}</span>
+                              <span className={`w-fit px-1.5 py-0.5 rounded font-bold border ${getDeliveryColor(order.delivery_date)}`}>
+                                {getRemainingDaysText(order.delivery_date)}
+                              </span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewOrderDetail(order.order_id.toString());
+                              }}
+                              className="text-amber-800 hover:text-amber-955 font-bold flex items-center gap-0.5 transition-colors"
+                            >
+                              Xem chi tiết <BiChevronRight className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewOrderDetail(order.order_id.toString());
-                            }}
-                            className="text-amber-800 hover:text-amber-955 font-bold flex items-center gap-0.5 transition-colors"
-                          >
-                            Xem chi tiết <BiChevronRight className="w-3.5 h-3.5" />
-                          </button>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                   </div>
                   {filteredOrdersProgress.length > pageSizeOrders && (
                     <div className="mt-4 flex justify-end">
@@ -990,6 +990,7 @@ export default function GeneralManagerDashboard() {
                   <thead className="bg-gray-50 text-gray-500 font-bold">
                     <tr className="border-b border-gray-200 uppercase tracking-wider">
                       <th className="px-4 py-2.5">Mã Lệnh</th>
+                      <th className="px-4 py-2.5">Mã Đơn Hàng</th>
                       {/* <th className="px-4 py-2.5">Phân Loại</th> */}
                       <th className="px-4 py-2.5 text-right">Số Lượng</th>
                       {/* <th className="px-4 py-2.5">Khả Năng Bắt Đầu</th> */}
@@ -1001,7 +1002,7 @@ export default function GeneralManagerDashboard() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {filteredCommands.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-8 text-gray-400">
+                        <td colSpan={8} className="text-center py-8 text-gray-400">
                           Không tìm thấy lệnh sản xuất phù hợp
                         </td>
                       </tr>
@@ -1014,6 +1015,9 @@ export default function GeneralManagerDashboard() {
                           <tr key={`${item.prod_id}-${index}`} className="hover:bg-gray-50 transition duration-150">
                             <td className="px-4 py-2.5 font-mono font-bold text-amber-900">
                               {item.prod_id}
+                            </td>
+                            <td className="px-4 py-2.5 font-mono font-medium text-gray-700">
+                              {isGroup ? <span className="">{item.prod_kind}</span> : `${item.prod_kind}-${item.order_id}` || item.order_code || item.code}
                             </td>
                             {/* <td className="px-4 py-2.5">
                               {isGroup ? (
