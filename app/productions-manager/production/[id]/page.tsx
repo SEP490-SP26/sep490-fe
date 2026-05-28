@@ -1804,7 +1804,7 @@ const showManualToggle = canShowManualToggle(qrPrepare) && !isRaloOrCat;
 
                       {manualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
                         <div className="mb-4">
-                          <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Bán thành phẩm còn dư cần nhập kho</h4>
+                          <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nhập kho bán thành phẩm</h4>
                           <div className="border rounded-lg overflow-hidden">
                             <table className="w-full text-sm">
                               <thead className="bg-gray-50">

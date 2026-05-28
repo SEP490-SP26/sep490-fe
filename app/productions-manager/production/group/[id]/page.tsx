@@ -975,17 +975,12 @@ export default function GroupProductionPage() {
       </div>
 
       {/* =================== INFO CARDS =================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-6">
         <InfoCard
           icon={<BiPackage className="w-5 h-5" />}
           label="Tổng số lượng sản xuất"
           value={production?.total_qty?.toLocaleString("vi-VN") ?? "—"}
           subValue="tổng hợp từ tất cả đơn hàng"
-        />
-        <InfoCard
-          icon={<BsCollection className="w-5 h-5" />}
-          label="Số đơn hàng"
-          value={`${production?.orders?.length ?? 0} đơn hàng`}
         />
         <InfoCard
           icon={<BsGear className="w-5 h-5" />}
@@ -1236,7 +1231,7 @@ export default function GroupProductionPage() {
 
                         {manualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
   <div className="mb-4">
-    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Bán thành phẩm dư cần nhập kho</h4>
+    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nhập kho bán thành phẩm</h4>
     <div className="flex flex-col gap-3">
       {qrPrepare.reference_inputs.map((ref: any) => {
         const refQtyLeft = parseReportQty(refLeft[ref.input_code]);
@@ -1252,7 +1247,7 @@ export default function GroupProductionPage() {
                 </p>
               </div>
               <div className="bg-white border border-blue-100 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-gray-400 mb-0.5">Thực tế từ CĐ trước</p>
+                <p className="text-[10px] text-gray-400 mb-0.5">Thực tế từ công đoạn trước</p>
                 <p className="text-sm font-semibold text-blue-600">
                   {ref.actual_qty_prev_stage != null
                     ? Number(ref.actual_qty_prev_stage).toLocaleString("vi-VN")
@@ -1278,7 +1273,7 @@ export default function GroupProductionPage() {
                       if (val !== "" && leftVal > maxLeft) {
                         setRefErrors(prev => ({
                           ...prev,
-                          [ref.input_code]: `Tối đa ${Math.floor(maxLeft).toLocaleString("vi-VN")} (15% TT CĐ trước)`,
+                          [ref.input_code]: `Tối đa ${Math.floor(maxLeft).toLocaleString("vi-VN")} (15% Thânh phẩm thực tế công đoạn trước)`,
                         }));
                       } else {
                         setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
@@ -1337,7 +1332,7 @@ export default function GroupProductionPage() {
     <label className="text-xs font-bold text-gray-700 uppercase flex-1 leading-snug">
       Số lượng TP đầu ra
       <span className="block text-gray-400 font-normal normal-case text-[10px]">
-        (dùng cho CĐ tiếp theo)
+        (dùng cho công đoạn tiếp theo)
       </span>
       {qrPrepare?.qty_unit && (
         <span className="text-blue-600 font-semibold">({qrPrepare.qty_unit})</span>
