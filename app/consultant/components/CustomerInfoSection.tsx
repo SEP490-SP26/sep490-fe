@@ -16,7 +16,7 @@ interface CustomerInfoSectionProps {
 }
 
 const disabledDate: RangePickerProps["disabledDate"] = (current) => {
-  return (current && current < dayjs().add(7, "day").startOf("day")) || isVietnamHoliday(current);
+  return (current && current < dayjs().startOf("day")) || isVietnamHoliday(current);
 };
 
 export default function CustomerInfoSection({
