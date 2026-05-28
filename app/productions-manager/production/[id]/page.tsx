@@ -648,7 +648,7 @@ export default function ProductionDetailPage() {
           },
           reason: reportReason,
           images: reportImages,
-          ttlMinutes: 60,
+          ttlMinutes: 10,
         })
       );
 
@@ -1652,7 +1652,7 @@ export default function ProductionDetailPage() {
       {/* Qty Input Modal */}
       {qtyInputStage && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl border border-blue-200 p-6 w-[400px] max-w-[95vw] shadow-lg max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl border border-blue-200 p-6 w-[720px] max-w-[95vw] shadow-lg max-h-[90vh] flex flex-col">
             <h3 className="font-semibold text-blue-700 mb-4 text-center">
               Nhập thông tin hoàn thành công đoạn: {qtyInputStage?.process_name}
             </h3>
@@ -1721,7 +1721,10 @@ export default function ProductionDetailPage() {
                 {(() => {
                   const mode = resolveQrMode(qrPrepare, userToggleManual);
                   const manualMode = isManualInputMode(mode);
-                  const showManualToggle = canShowManualToggle(qrPrepare);
+                  const isRaloOrCat = ["ralo", "cắt", "cat"].some(kw =>
+  qtyInputStage?.process_name?.toLowerCase().includes(kw)
+);
+const showManualToggle = canShowManualToggle(qrPrepare) && !isRaloOrCat;
 
                   return (
                     <>
@@ -1733,7 +1736,7 @@ export default function ProductionDetailPage() {
                             onChange={(e) => setUserToggleManual(e.target.checked)}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
-                          <span className="font-medium">Nhập thủ công (materials / BTP / output)</span>
+                          <span className="font-medium">Nhập kho bán thành phẩm</span>
                         </label>
                       )}
 
@@ -1801,13 +1804,14 @@ export default function ProductionDetailPage() {
 
                       {manualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
                         <div className="mb-4">
-                          <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Bán thành phẩm đầu vào</h4>
+                          <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nhập kho bán thành phẩm</h4>
                           <div className="border rounded-lg overflow-hidden">
                             <table className="w-full text-sm">
                               <thead className="bg-gray-50">
                                 <tr>
                                   <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">BTP nguồn</th>
                                   <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Ước tính</th>
+                                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Thực tế từ Công Đoạn trước</th>
                                   <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
                                   <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
                                 </tr>
@@ -1822,6 +1826,12 @@ export default function ProductionDetailPage() {
                                     <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
                                       {ref.estimated_qty} {ref.unit}
                                     </td>
+                                    <td className="px-3 py-2 text-right font-medium text-blue-600 whitespace-nowrap">
+                                      {ref.actual_qty_prev_stage != null
+                                        ? Number(ref.actual_qty_prev_stage).toLocaleString("vi-VN")
+                                        : "—"}{" "}
+                                      {ref.unit}
+                                    </td>
                                     <td className="px-3 py-2">
                                       <input
                                         type="number"
@@ -1829,12 +1839,37 @@ export default function ProductionDetailPage() {
                                         placeholder="0"
                                         value={refLeft[ref.input_code] ?? ""}
                                         onChange={(e) => {
-                                          const maxVal = Number(ref.estimated_qty || 0);
-                                          const synced = syncQtyFromLeftInput(maxVal, e.target.value);
-                                          setRefLeft(prev => ({ ...prev, [ref.input_code]: synced.left }));
-                                          setRefUsed(prev => ({ ...prev, [ref.input_code]: synced.used }));
-                                          setRefErrors(prev => ({ ...prev, [ref.input_code]: synced.error }));
-                                        }}
+  const val = e.target.value;
+  const leftVal = val === "" ? 0 : Number(val);
+  const prevActual = ref.actual_qty_prev_stage;
+
+  // Validate: lượng dư không được vượt 15% của actual_qty_prev_stage
+  if (prevActual != null) {
+    const maxLeft = prevActual * 0.15;
+    if (val !== "" && leftVal > maxLeft) {
+      setRefErrors(prev => ({
+        ...prev,
+        [ref.input_code]: `Không được vượt ${maxLeft.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} (15% thực tế CĐ trước)`,
+      }));
+    } else {
+      setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
+    }
+    // Đồng bộ qty_good = actual_qty_prev_stage - lượng_dư
+    const newQtyGood = Math.max(0, prevActual - leftVal);
+    setQtyInputValue(String(newQtyGood));
+    setQtyError(""); // clear qty error khi sync tự động
+  } else {
+    const maxVal = Number(ref.estimated_qty || 0);
+    const synced = syncQtyFromLeftInput(maxVal, val);
+    setRefErrors(prev => ({ ...prev, [ref.input_code]: synced.error }));
+  }
+
+  setRefLeft(prev => ({ ...prev, [ref.input_code]: val }));
+  const usedVal = prevActual != null
+    ? String(Math.max(0, prevActual - leftVal))
+    : String(Math.max(0, Number(ref.estimated_qty || 0) - leftVal));
+  setRefUsed(prev => ({ ...prev, [ref.input_code]: usedVal }));
+}}
                                         className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
                                       />
                                       {refErrors[ref.input_code] && <span className="text-[10px] text-red-500 mt-1 block">{refErrors[ref.input_code]}</span>}
@@ -1860,7 +1895,7 @@ export default function ProductionDetailPage() {
                       )}
 
                       <div className="mb-4">
-                        <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Thành phẩm đầu ra ước tính</h4>
+                        <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Thành phẩm đầu ra được ước tính từ đầu</h4>
                         <div className="flex justify-between items-center text-sm bg-green-50 px-3 py-2 border border-green-200 rounded-lg">
                           <span className="font-semibold text-green-800">{qtyInputStage?.output_product?.name}</span>
                           <span className="font-bold text-green-700">
@@ -1870,42 +1905,62 @@ export default function ProductionDetailPage() {
                       </div>
 
                       <div className="mb-4">
-                        <div className="flex justify-between items-center text-xs mb-2">
-                          <h4 className="font-bold text-gray-700 uppercase">
-                            Số lượng thành phẩm đạt
-                          </h4>
-                          <span className="text-gray-500">
-                            Đơn vị tính: {qtyInputStage?.output_product?.unit}
-                          </span>
-                        </div>
-                        <input
-                          type="number"
-                          min={0}
-                          placeholder="Mặc định: 0 sp"
-                          value={qtyInputValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setQtyInputValue(val);
-                            const maxTotal = resolveQtyGoodMax(
-                              qrPrepare,
-                              Number(
-                                qtyInputStage?.output_product?.estimated_quantity ??
-                                  qtyInputStage?.output_product?.quantity ??
-                                  0
-                              )
-                            );
-                            const goodVal = val === "" ? 0 : Number(val);
-                            if (val !== "" && (goodVal <= 0 || goodVal > maxTotal)) {
-                              setQtyError(`Số lượng đạt phải từ 1 đến ${maxTotal.toLocaleString("vi-VN")}`);
-                            } else {
-                              setQtyError("");
-                            }
-                          }}
-                          className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? 'border-red-500' : ''}`}
-                          autoFocus
-                        />
-                        {qtyError && <span className="text-xs text-red-500 mt-1 block">{qtyError}</span>}
-                      </div>
+  <div className="flex items-center gap-3">
+    <label className="text-xs font-bold text-gray-700 uppercase whitespace-nowrap flex-1">
+      Số lượng TP đầu ra{" "}
+      <span className="text-gray-400 font-normal normal-case">
+        (dùng cho CĐ tiếp theo)
+      </span>
+      {qtyInputStage?.output_product?.unit && (
+        <span className="ml-1 text-blue-600 font-semibold">
+          ({qtyInputStage.output_product.unit})
+        </span>
+      )}
+    </label>
+    <div className="flex flex-col items-end w-48 shrink-0">
+      <input
+        type="number"
+        min={0}
+        placeholder="0"
+        value={qtyInputValue}
+        onChange={(e) => {
+          const val = e.target.value;
+          setQtyInputValue(val);
+          const goodVal = val === "" ? 0 : Number(val);
+          // Lấy actual_qty_prev_stage từ reference_inputs đầu tiên (nếu có)
+          const prevActual = qrPrepare?.reference_inputs?.[0]?.actual_qty_prev_stage;
+          if (prevActual != null) {
+            const min = Math.floor(prevActual * 0.85);
+            if (val !== "" && (goodVal < min || goodVal > prevActual)) {
+              setQtyError(`Phải từ ${min.toLocaleString("vi-VN")} đến ${Number(prevActual).toLocaleString("vi-VN")}`);
+            } else {
+              setQtyError("");
+            }
+          } else {
+            const maxTotal = resolveQtyGoodMax(
+              qrPrepare,
+              Number(
+                qtyInputStage?.output_product?.estimated_quantity ??
+                  qtyInputStage?.output_product?.quantity ??
+                  0
+              )
+            );
+            if (val !== "" && (goodVal <= 0 || goodVal > maxTotal)) {
+              setQtyError(`Số lượng đạt phải từ 1 đến ${maxTotal.toLocaleString("vi-VN")}`);
+            } else {
+              setQtyError("");
+            }
+          }
+        }}
+        className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? "border-red-500" : ""}`}
+        autoFocus
+      />
+      {qtyError && (
+        <span className="text-[10px] text-red-500 mt-0.5 text-right">{qtyError}</span>
+      )}
+    </div>
+  </div>
+</div>
 
 
                     </>
