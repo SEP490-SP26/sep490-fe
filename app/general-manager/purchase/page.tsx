@@ -403,15 +403,7 @@ export default function PurchaseManagement() {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Quản lý Đặt hàng</h1>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowDirectPO(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <BiPlus className="w-4 h-4" />
-              Đặt hàng trực tiếp
-            </button>
-          </div>
+
         </div>
 
         {/* Search Bar */}
