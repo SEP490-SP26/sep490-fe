@@ -102,6 +102,7 @@ export interface ProductionStage {
   input_materials: InputMaterial[];
   output_product: OutputProduct;
   is_taken_sub_product?: boolean;
+  actual_output_quantity?: number | null;
 }
 
 export interface ProductionResponse {
@@ -548,12 +549,17 @@ export default function ProductionDetailPage() {
 
       setQrPrepare(data);
 
-      const suggested =
-        data.suggested_qty ??
-        qtyInputStage?.output_product?.estimated_quantity ??
-        qtyInputStage?.output_product?.quantity;
-      if (suggested != null && suggested !== "") {
-        setQtyInputValue(String(suggested));
+      const prevActual = data.reference_inputs?.[0]?.actual_qty_prev_stage;
+      if (prevActual != null) {
+        setQtyInputValue(String(prevActual));
+      } else {
+        const suggested =
+          data.suggested_qty ??
+          qtyInputStage?.output_product?.estimated_quantity ??
+          qtyInputStage?.output_product?.quantity;
+        if (suggested != null && suggested !== "") {
+          setQtyInputValue(String(suggested));
+        }
       }
 
       const initUsed: { [id: number]: string } = {};
@@ -1547,7 +1553,7 @@ export default function ProductionDetailPage() {
                               <p className="text-blue-700">
                                 <span className="font-bold text-lg">
                                   {(() => {
-                                    const actVal = stage.output_product.actual_quantity ?? (stage.output_product as any).actual_qty;
+                                    const actVal = stage.actual_output_quantity ?? stage.output_product.actual_quantity ?? (stage.output_product as any).actual_qty;
                                     return actVal != null ? actVal.toLocaleString("vi-VN") : "—";
                                   })()}
                                 </span>{" "}
@@ -1740,7 +1746,7 @@ const showManualToggle = canShowManualToggle(qrPrepare) && !isRaloOrCat;
                         </label>
                       )}
 
-                      {qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
+                      {!isRaloOrCat && qrPrepare && qrPrepare.consumable_materials?.length > 0 && (
                         <div className="mb-4">
                           <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">
                             {getMaterialsSectionTitle(mode)}
@@ -1843,21 +1849,19 @@ const showManualToggle = canShowManualToggle(qrPrepare) && !isRaloOrCat;
   const leftVal = val === "" ? 0 : Number(val);
   const prevActual = ref.actual_qty_prev_stage;
 
-  // Validate: lượng dư không được vượt 15% của actual_qty_prev_stage
   if (prevActual != null) {
     const maxLeft = prevActual * 0.15;
     if (val !== "" && leftVal > maxLeft) {
       setRefErrors(prev => ({
         ...prev,
-        [ref.input_code]: `Không được vượt ${maxLeft.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} (15% thực tế CĐ trước)`,
+        [ref.input_code]: `Tối đa ${Math.floor(maxLeft).toLocaleString("vi-VN")} (15% Thành phẩm thực tế công đoạn trước)`,
       }));
     } else {
       setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
     }
-    // Đồng bộ qty_good = actual_qty_prev_stage - lượng_dư
     const newQtyGood = Math.max(0, prevActual - leftVal);
     setQtyInputValue(String(newQtyGood));
-    setQtyError(""); // clear qty error khi sync tự động
+    setQtyError("");
   } else {
     const maxVal = Number(ref.estimated_qty || 0);
     const synced = syncQtyFromLeftInput(maxVal, val);
@@ -1927,12 +1931,17 @@ const showManualToggle = canShowManualToggle(qrPrepare) && !isRaloOrCat;
           const val = e.target.value;
           setQtyInputValue(val);
           const goodVal = val === "" ? 0 : Number(val);
-          // Lấy actual_qty_prev_stage từ reference_inputs đầu tiên (nếu có)
-          const prevActual = qrPrepare?.reference_inputs?.[0]?.actual_qty_prev_stage;
+          const firstRef = qrPrepare?.reference_inputs?.[0];
+          const prevActual = firstRef?.actual_qty_prev_stage;
           if (prevActual != null) {
+            const code = firstRef.input_code;
+            const leftVal = refLeft[code] === "" || refLeft[code] === undefined ? 0 : Number(refLeft[code]);
+            const sum = goodVal + leftVal;
             const min = Math.floor(prevActual * 0.85);
-            if (val !== "" && (goodVal < min || goodVal > prevActual)) {
-              setQtyError(`Phải từ ${min.toLocaleString("vi-VN")} đến ${Number(prevActual).toLocaleString("vi-VN")}`);
+            if (val !== "" && sum > prevActual) {
+              setQtyError(`Tổng số lượng TP đầu ra + Lượng dư (${sum.toLocaleString("vi-VN")}) vượt quá thực tế công đoạn trước (${prevActual.toLocaleString("vi-VN")})`);
+            } else if (val !== "" && goodVal < min) {
+              setQtyError(`Số lượng TP đầu ra không được nhỏ hơn 85% của thực tế công đoạn trước (${min.toLocaleString("vi-VN")})`);
             } else {
               setQtyError("");
             }
