@@ -1394,6 +1394,17 @@ function ConsultantForm() {
   }, [costEstimate, paperEstimate]);
 
   const onFinish = async (values: any) => {
+    const isSendingToManager = isCreateMode ||
+      !(existingOrder?.process_status === "verified" || existingOrder?.process_status === "Verified" ||
+        existingOrder?.process_status === "Processing" || existingOrder?.process_status === "processing");
+
+    if (isSendingToManager) {
+      if (!designFilePath && (!fileList || fileList.length === 0)) {
+        message.error("Vui lòng tải lên file thiết kế trước khi gửi yêu cầu!");
+        return;
+      }
+    }
+
     // 1. Update the CURRENT active tab with the latest values & calculations locally
     // (We don't need to force setQuoteTabs state update if we just want to submit current data)
     const currentCalculations = {
