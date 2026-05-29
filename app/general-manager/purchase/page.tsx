@@ -164,8 +164,8 @@ export default function PurchaseManagement() {
       try {
         const response = await materialsApi.getListMissingMaterial(1, 100);
         // console.log("Response miss data:", response.data);
-        //Chì lấy is_buy = false và isActive = true
-        return response.data.filter((m: any) => m.is_buy === false && m.isActive === true);
+        //Chì lấy is_buy = false và is_active = true
+        return response.data.filter((m: any) => m.is_buy === false && m.is_active === true);
       } catch (error) {
         console.error("Error fetching purchase orders:", error);
         return [];
@@ -710,7 +710,7 @@ export default function PurchaseManagement() {
                   </div>
                 )}
 
-                {missing_materials.length === 0 && (
+                {displayMaterials.length === 0 && (
                   <div className="text-center py-12 text-gray-400">
                     <BsClock className="w-12 h-12 mx-auto mb-3" />
                     <p>Không có vật tư nào cần đặt hàng</p>
