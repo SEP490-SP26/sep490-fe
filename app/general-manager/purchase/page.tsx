@@ -39,6 +39,8 @@ export default function PurchaseManagement() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (needsRefresh) {
@@ -165,7 +167,7 @@ export default function PurchaseManagement() {
         const response = await materialsApi.getListMissingMaterial(1, 100);
         // console.log("Response miss data:", response.data);
         //Chì lấy is_buy = false và is_active = true
-        return response.data.filter((m: any) => m.is_buy === false && m.is_active === true);
+        return response.data.filter((m: any) => !m.file_purpose && m.is_active === true);
       } catch (error) {
         console.error("Error fetching purchase orders:", error);
         return [];
@@ -325,8 +327,14 @@ export default function PurchaseManagement() {
     try {
       const miss_ids = selectedMaterials.map((m) => m.miss_id).filter(Boolean) as number[];
       if (miss_ids.length > 0) {
-        await materialsApi.generatePurchasePDF(miss_ids);
+        const response: any = await materialsApi.generatePurchasePDF(miss_ids);
         showSuccessToast("Tạo phiếu mua nguyên vật liệu thành công!");
+
+        const fileUrl = response?.file_url || response?.data?.file_url;
+        if (fileUrl) {
+          setPdfUrl(fileUrl);
+          setShowPdfModal(true);
+        }
 
         // Reset form
         setSelectedMaterials([]);
@@ -337,7 +345,9 @@ export default function PurchaseManagement() {
         refetchMissingMaterials();
 
         // Kích hoạt làm mới trang thông qua useEffect
-        setNeedsRefresh(true);
+        if (!fileUrl) {
+          setNeedsRefresh(true);
+        }
       } else {
         showWarningToast("Không tìm thấy thông tin vật tư bị thiếu hợp lệ để tạo phiếu");
       }
@@ -1066,6 +1076,28 @@ export default function PurchaseManagement() {
           </div>
         </div>
       )}
+
+      {/* Modal hiển thị PDF */}
+      <Modal
+        title="Phiếu mua nguyên vật liệu"
+        open={showPdfModal}
+        onCancel={() => {
+          setShowPdfModal(false);
+          setNeedsRefresh(true);
+        }}
+        footer={null}
+        width={1000}
+        style={{ top: 20 }}
+      >
+        {pdfUrl && (
+          <iframe
+            src={pdfUrl}
+            style={{ width: "100%", height: "85vh", border: "none" }}
+            title="PDF Viewer"
+          />
+        )}
+      </Modal>
+
       <LoadingOverlay isLoading={isSubmitting} />
     </div>
   );

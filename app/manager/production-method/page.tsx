@@ -396,7 +396,7 @@ function ProductionMethodContent() {
                   className="w-full"
                   disabled={isOrderDisabled}
                 >
-                  <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     {/* NVL */}
                     <label
                       className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${method === "NVL"
