@@ -64,8 +64,8 @@ export function canShowManualToggle(qr: QrPrepareData | null | undefined): boole
 
 export function getMaterialsSectionTitle(mode: QrReportMode): string {
   return isManualInputMode(mode)
-    ? "Nguyên vật liệu tiêu hao (Nhập thủ công)"
-    : "Nguyên liệu dư (ước tính)";
+    ? "Nhập kho nguyên vật liệu"
+    : "Nhập kho nguyên vật liệu";
 }
 
 export function parseReportQty(value: string | undefined): number {

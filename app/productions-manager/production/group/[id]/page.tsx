@@ -869,7 +869,7 @@ export default function GroupProductionPage() {
           },
           reason: reportReason,
           images: reportImages,
-          ttlMinutes: 60,
+          ttlMinutes: 10,
         })
       );
       setQrToken((data as any)?.token ?? (data as any)?.data?.token);
@@ -975,17 +975,12 @@ export default function GroupProductionPage() {
       </div>
 
       {/* =================== INFO CARDS =================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-6">
         <InfoCard
           icon={<BiPackage className="w-5 h-5" />}
           label="Tổng số lượng sản xuất"
           value={production?.total_qty?.toLocaleString("vi-VN") ?? "—"}
           subValue="tổng hợp từ tất cả đơn hàng"
-        />
-        <InfoCard
-          icon={<BsCollection className="w-5 h-5" />}
-          label="Số đơn hàng"
-          value={`${production?.orders?.length ?? 0} đơn hàng`}
         />
         <InfoCard
           icon={<BsGear className="w-5 h-5" />}
@@ -1235,63 +1230,89 @@ export default function GroupProductionPage() {
                         )}
 
                         {manualMode && qrPrepare && qrPrepare.reference_inputs?.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Bán thành phẩm đầu vào</h4>
-                            <div className="border rounded-lg overflow-hidden">
-                              <table className="w-full text-sm">
-                                <thead className="bg-gray-50">
-                                  <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">BTP nguồn</th>
-                                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Ước tính</th>
-                                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Lượng dư</th>
-                                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Nhập kho</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {qrPrepare.reference_inputs.map((ref: any) => {
-                                    const refQtyLeft = parseReportQty(refLeft[ref.input_code]);
-                                    const refWillStock = resolveIsStock(refQtyLeft);
-                                    return (
-                                      <tr key={ref.input_code} className="border-t">
-                                        <td className="px-3 py-2 text-gray-800 font-medium">{ref.input_name}</td>
-                                        <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
-                                          {ref.estimated_qty} {ref.unit}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                          <input
-                                            type="number"
-                                            step="any"
-                                            placeholder="0"
-                                            value={refLeft[ref.input_code] ?? ""}
-                                            onChange={(e) => {
-                                              const maxVal = Number(ref.estimated_qty || 0);
-                                              const synced = syncQtyFromLeftInput(maxVal, e.target.value);
-                                              setRefLeft(prev => ({ ...prev, [ref.input_code]: synced.left }));
-                                              setRefUsed(prev => ({ ...prev, [ref.input_code]: synced.used }));
-                                              setRefErrors(prev => ({ ...prev, [ref.input_code]: synced.error }));
-                                            }}
-                                            className={`w-full border rounded-lg px-2 py-1 text-sm text-right ${refErrors[ref.input_code] ? 'border-red-500 bg-red-50' : ''}`}
-                                          />
-                                          {refErrors[ref.input_code] && <span className="text-[10px] text-red-500 mt-1 block">{refErrors[ref.input_code]}</span>}
-                                        </td>
-                                        <td className="px-3 py-2 text-center">
-                                          <span
-                                            className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${refWillStock
-                                                ? "bg-emerald-100 text-emerald-700"
-                                                : "bg-gray-100 text-gray-500"
-                                              }`}
-                                          >
-                                            {refWillStock ? "Có" : "Không"}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        )}
+  <div className="mb-4">
+    <h4 className="text-xs font-bold text-gray-700 uppercase mb-2">Nhập kho bán thành phẩm</h4>
+    <div className="flex flex-col gap-3">
+      {qrPrepare.reference_inputs.map((ref: any) => {
+        const refQtyLeft = parseReportQty(refLeft[ref.input_code]);
+        const refWillStock = resolveIsStock(refQtyLeft);
+        return (
+          <div key={ref.input_code} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+            <p className="text-sm font-semibold text-gray-800 mb-2">{ref.input_name}</p>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="bg-white border border-gray-100 rounded-lg px-3 py-2">
+                <p className="text-[10px] text-gray-400 mb-0.5">Ước tính</p>
+                <p className="text-sm font-semibold text-gray-700">
+                  {ref.estimated_qty} <span className="text-xs font-normal">{ref.unit}</span>
+                </p>
+              </div>
+              <div className="bg-white border border-blue-100 rounded-lg px-3 py-2">
+                <p className="text-[10px] text-gray-400 mb-0.5">Thực tế từ công đoạn trước</p>
+                <p className="text-sm font-semibold text-blue-600">
+                  {ref.actual_qty_prev_stage != null
+                    ? Number(ref.actual_qty_prev_stage).toLocaleString("vi-VN")
+                    : "—"}{" "}
+                  <span className="text-xs font-normal">{ref.unit}</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
+                <p className="text-[10px] text-gray-500 font-medium mb-1">Lượng dư</p>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="0"
+                  value={refLeft[ref.input_code] ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const leftVal = val === "" ? 0 : Number(val);
+                    const prevActual = ref.actual_qty_prev_stage;
+                    if (prevActual != null) {
+                      const maxLeft = prevActual * 0.15;
+                      if (val !== "" && leftVal > maxLeft) {
+                        setRefErrors(prev => ({
+                          ...prev,
+                          [ref.input_code]: `Tối đa ${Math.floor(maxLeft).toLocaleString("vi-VN")} (15% Thânh phẩm thực tế công đoạn trước)`,
+                        }));
+                      } else {
+                        setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
+                      }
+                      const newQtyGood = Math.max(0, prevActual - leftVal);
+                      setQtyInputValue(String(newQtyGood));
+                      setQtyError("");
+                    } else {
+                      const maxVal = Number(ref.estimated_qty || 0);
+                      const synced = syncQtyFromLeftInput(maxVal, val);
+                      setRefErrors(prev => ({ ...prev, [ref.input_code]: synced.error }));
+                    }
+                    setRefLeft(prev => ({ ...prev, [ref.input_code]: val }));
+                    const usedVal = ref.actual_qty_prev_stage != null
+                      ? String(Math.max(0, ref.actual_qty_prev_stage - leftVal))
+                      : String(Math.max(0, Number(ref.estimated_qty || 0) - leftVal));
+                    setRefUsed(prev => ({ ...prev, [ref.input_code]: usedVal }));
+                  }}
+                  className={`w-full border rounded-lg px-2 py-1.5 text-sm text-right ${refErrors[ref.input_code] ? "border-red-500 bg-red-50" : "border-gray-200"}`}
+                />
+                {refErrors[ref.input_code] && (
+                  <span className="text-[10px] text-red-500 mt-0.5 block">{refErrors[ref.input_code]}</span>
+                )}
+              </div>
+              <div className="shrink-0 text-center">
+                <p className="text-[10px] text-gray-500 font-medium mb-1">Nhập kho</p>
+                <span className={`inline-block text-xs font-semibold px-3 py-1.5 rounded-full ${
+                  refWillStock ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
+                }`}>
+                  {refWillStock ? "Có" : "Không"}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
                       </>
                     );
                   })()}
@@ -1307,38 +1328,55 @@ export default function GroupProductionPage() {
                   </div>
 
                   <div className="mb-4">
-                    <div className="flex justify-between items-center text-xs mb-2">
-                      <h4 className="font-bold text-gray-700 uppercase">
-                        Số lượng thành phẩm đạt
-                      </h4>
-                      <span className="text-gray-500">
-                        Đơn vị tính: {qrPrepare?.qty_unit || "sp"}
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      min={0}
-                      placeholder={qrPrepare?.suggested_qty != null ? `Gợi ý: ${qrPrepare.suggested_qty}` : "0"}
-                      value={qtyInputValue}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setQtyInputValue(val);
-                        const maxTotal = resolveQtyGoodMax(
-                          qrPrepare,
-                          Number(qtyInputStage.estimated_output_qty || 0)
-                        );
-                        const goodVal = val === "" ? 0 : Number(val);
-                        if (val !== "" && (goodVal <= 0 || goodVal > maxTotal)) {
-                          setQtyError(`Số lượng đạt phải từ 1 đến ${maxTotal.toLocaleString("vi-VN")}`);
-                        } else {
-                          setQtyError("");
-                        }
-                      }}
-                      className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? 'border-red-500' : ''}`}
-                      autoFocus
-                    />
-                    {qtyError && <span className="text-xs text-red-500 mt-1 block">{qtyError}</span>}
-                  </div>
+  <div className="flex items-center gap-3">
+    <label className="text-xs font-bold text-gray-700 uppercase flex-1 leading-snug">
+      Số lượng TP đầu ra
+      <span className="block text-gray-400 font-normal normal-case text-[10px]">
+        (dùng cho công đoạn tiếp theo)
+      </span>
+      {qrPrepare?.qty_unit && (
+        <span className="text-blue-600 font-semibold">({qrPrepare.qty_unit})</span>
+      )}
+    </label>
+    <div className="flex flex-col items-end w-36 shrink-0">
+      <input
+        type="number"
+        min={0}
+        placeholder={qrPrepare?.suggested_qty != null ? `Gợi ý: ${qrPrepare.suggested_qty}` : "0"}
+        value={qtyInputValue}
+        onChange={(e) => {
+          const val = e.target.value;
+          setQtyInputValue(val);
+          const goodVal = val === "" ? 0 : Number(val);
+          const prevActual = qrPrepare?.reference_inputs?.[0]?.actual_qty_prev_stage;
+          if (prevActual != null) {
+            const min = Math.floor(prevActual * 0.85);
+            if (val !== "" && (goodVal < min || goodVal > prevActual)) {
+              setQtyError(`Phải từ ${min.toLocaleString("vi-VN")} đến ${Number(prevActual).toLocaleString("vi-VN")}`);
+            } else {
+              setQtyError("");
+            }
+          } else {
+            const maxTotal = resolveQtyGoodMax(
+              qrPrepare,
+              Number(qtyInputStage?.estimated_output_qty || 0)
+            );
+            if (val !== "" && (goodVal <= 0 || goodVal > maxTotal)) {
+              setQtyError(`Số lượng đạt phải từ 1 đến ${maxTotal.toLocaleString("vi-VN")}`);
+            } else {
+              setQtyError("");
+            }
+          }
+        }}
+        className={`w-full border rounded-lg px-3 py-2 text-sm text-right ${qtyError ? "border-red-500" : ""}`}
+        autoFocus
+      />
+      {qtyError && (
+        <span className="text-[10px] text-red-500 mt-0.5 text-right">{qtyError}</span>
+      )}
+    </div>
+  </div>
+</div>
 
 
 

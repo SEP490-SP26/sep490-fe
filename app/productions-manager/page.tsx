@@ -380,9 +380,11 @@ export default function ProdutionManager() {
   /* ================== FILTER DATA ================== */
 
   const filteredScheduled = scheduledOrder.filter((o: any) => {
+    if (o.can_group !== false) return false;
     if (
-      o.production_status === "InProcessing" ||
-      o.group_status === "InProcessing"
+      o.can_group === false &&
+        (o.production_status === "InProcessing" ||
+        o.group_status === "InProcessing")
     )
       return false;
 
@@ -566,7 +568,7 @@ export default function ProdutionManager() {
             }`}
         >
           <BsCalendar className="w-4 h-4" />
-          Lệnh sản xuất
+          Lệnh sản xuất đã lên lịch
           <span
             className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold
             ${activeTab === "scheduled" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}
