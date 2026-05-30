@@ -649,16 +649,25 @@ export default function ProdutionManager() {
                       </span>
                     </div>
 
-                    {order.delivery_date && (
-                      <p
-                        className={`text-xs my-1.5 px-2 py-0.5 rounded-md inline-block border ${getDeliveryColor(
-                          order.delivery_date
-                        )}`}
-                      >
-                        Hạn hoàn thành:{" "}
-                        {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
-                      </p>
-                    )}
+                    {/* Ngày bắt đầu + Hạn hoàn thành */}
+                    <div className="flex flex-wrap gap-2 my-1.5">
+                      {order.planned_start_date && (
+                        <p className="text-xs px-2 py-0.5 rounded-md inline-block border bg-blue-50 text-blue-700 border-blue-200">
+                          Ngày bắt đầu:{" "}
+                          {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
+                        </p>
+                      )}
+                      {order.delivery_date && (
+                        <p
+                          className={`text-xs px-2 py-0.5 rounded-md inline-block border ${getDeliveryColor(
+                            order.delivery_date
+                          )}`}
+                        >
+                          Hạn hoàn thành:{" "}
+                          {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                        </p>
+                      )}
+                    </div>
 
                     {/* Stage badges */}
                     <div className="flex flex-wrap gap-1.5 mt-2">
@@ -824,16 +833,25 @@ export default function ProdutionManager() {
                     </span>
                   </div>
 
-                  {order.delivery_date && (
-                    <p
-                      className={`text-xs mb-3 px-2 py-1 rounded-md inline-block border ${getDeliveryColor(
-                        order.delivery_date
-                      )}`}
-                    >
-                      Hạn hoàn thành:{" "}
-                      {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
-                    </p>
-                  )}
+                  {/* Ngày bắt đầu + Hạn hoàn thành */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {order.planned_start_date && (
+                      <p className="text-xs px-2 py-1 rounded-md inline-block border bg-blue-50 text-blue-700 border-blue-200">
+                        Ngày bắt đầu:{" "}
+                        {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
+                      </p>
+                    )}
+                    {order.delivery_date && (
+                      <p
+                        className={`text-xs px-2 py-1 rounded-md inline-block border ${getDeliveryColor(
+                          order.delivery_date
+                        )}`}
+                      >
+                        Hạn hoàn thành:{" "}
+                        {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                      </p>
+                    )}
+                  </div>
 
                   {grouped ? (
                     <GroupProcessingStages prodId={order.prod_id} />
