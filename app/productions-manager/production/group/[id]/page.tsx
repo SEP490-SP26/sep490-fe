@@ -786,6 +786,11 @@ export default function GroupProductionPage() {
 
       setQrPrepare(data);
 
+      const prevActual = data.reference_inputs?.[0]?.actual_qty_prev_stage;
+      if (prevActual != null) {
+        setQtyInputValue(String(prevActual));
+      }
+
       const initUsed: { [id: number]: string } = {};
       const initLeft: { [id: number]: string } = {};
       const consumable = data.consumable_materials || [];
@@ -1273,7 +1278,7 @@ export default function GroupProductionPage() {
                       if (val !== "" && leftVal > maxLeft) {
                         setRefErrors(prev => ({
                           ...prev,
-                          [ref.input_code]: `Tối đa ${Math.floor(maxLeft).toLocaleString("vi-VN")} (15% Thânh phẩm thực tế công đoạn trước)`,
+                          [ref.input_code]: `Tối đa ${Math.floor(maxLeft).toLocaleString("vi-VN")} (15% Thành phẩm thực tế công đoạn trước)`,
                         }));
                       } else {
                         setRefErrors(prev => ({ ...prev, [ref.input_code]: "" }));
@@ -1348,15 +1353,21 @@ export default function GroupProductionPage() {
           const val = e.target.value;
           setQtyInputValue(val);
           const goodVal = val === "" ? 0 : Number(val);
-          const prevActual = qrPrepare?.reference_inputs?.[0]?.actual_qty_prev_stage;
-          if (prevActual != null) {
-            const min = Math.floor(prevActual * 0.85);
-            if (val !== "" && (goodVal < min || goodVal > prevActual)) {
-              setQtyError(`Phải từ ${min.toLocaleString("vi-VN")} đến ${Number(prevActual).toLocaleString("vi-VN")}`);
+          const firstRef = qrPrepare?.reference_inputs?.[0];
+          const prevActual = firstRef?.actual_qty_prev_stage;
+            if (prevActual != null) {
+              const code = firstRef.input_code;
+              const leftVal = refLeft[code] === "" || refLeft[code] === undefined ? 0 : Number(refLeft[code]);
+              const sum = goodVal + leftVal;
+              const min = Math.floor(prevActual * 0.85);
+              if (val !== "" && sum > prevActual) {
+                setQtyError(`Tổng số lượng TP đầu ra + Lượng dư (${sum.toLocaleString("vi-VN")}) vượt quá thực tế công đoạn trước (${prevActual.toLocaleString("vi-VN")})`);
+              } else if (val !== "" && goodVal < min) {
+                setQtyError(`Số lượng TP đầu ra không được nhỏ hơn 85% của thực tế công đoạn trước (${min.toLocaleString("vi-VN")})`);
+              } else {
+                setQtyError("");
+              }
             } else {
-              setQtyError("");
-            }
-          } else {
             const maxTotal = resolveQtyGoodMax(
               qrPrepare,
               Number(qtyInputStage?.estimated_output_qty || 0)

@@ -77,6 +77,12 @@ export const adminNavItems: NavItem[] = [
     // exact: true,
   },
   {
+    path: "/statistics",
+    label: "Thống kê",
+    icon: FiBarChart2,
+    basePath: "/admin",
+  },
+  {
     path: "/base-configs",
     label: "Cấu hình nguyên liệu",
     icon: FiSettings,
