@@ -3,7 +3,7 @@ import { subProductsApi, SubProduct } from "@/apiRequests/subproducts";
 import Loading from "@/app/(overview)/loading";
 import { useQuery } from "@tanstack/react-query";
 import { Table } from "antd";
-import { BsTruck } from "react-icons/bs";
+import { BsEye, BsTruck } from "react-icons/bs";
 
 export default function SubProductsInventory() {
 
@@ -15,7 +15,7 @@ export default function SubProductsInventory() {
     queryKey: ["subproducts"],
     queryFn: async () => {
       try {
-        const response = await subProductsApi.getPaged(1, 500, true);
+        const response = await subProductsApi.getPaged(1, 500, true, true);
         // The API returns { page, pageSize, data: [...] }
         return response;
       } catch (error) {
@@ -72,6 +72,25 @@ export default function SubProductsInventory() {
       key: 'description',
       ellipsis: true,
     },
+    {
+  title: 'Phiếu nhập kho',
+  dataIndex: 'import_file',
+  key: 'import_file',
+  render: (url: string) =>
+    url ? (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline border border-blue-200 rounded-lg px-2.5 py-1 bg-blue-50"
+      >
+        <BsEye className="w-3.5 h-3.5" />
+        Xem phiếu
+      </a>
+    ) : (
+      <span className="text-gray-400 text-xs">Chưa có</span>
+    ),  
+},
     {
       title: 'Cập nhật lần cuối',
       dataIndex: 'updated_at',

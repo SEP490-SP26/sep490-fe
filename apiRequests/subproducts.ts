@@ -22,7 +22,7 @@ export interface PagedSubProductsResponse {
 }
 
 export const subProductsApi = {
-  getPaged: (page: number = 1, pageSize: number = 500, isActive: boolean, isImported: boolean = false) =>
+  getPaged: (page: number = 1, pageSize: number = 500, isActive: boolean, isImported: boolean) =>
     http.get<PagedSubProductsResponse>(
       `/api/SubProducts/paged?page=${page}&pageSize=${pageSize}&isActive=${isActive}&isImported=${isImported}`
     ),
