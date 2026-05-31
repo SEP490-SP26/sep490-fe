@@ -695,6 +695,18 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
     },
   });
 
+  const suggestedOrderIds = useMemo(() => {
+    const ids = new Set<number>();
+    if (suggestions) {
+      suggestions.forEach((s: any) => {
+        if (Array.isArray(s.suggest_order)) {
+          s.suggest_order.forEach((id: number) => ids.add(id));
+        }
+      });
+    }
+    return ids;
+  }, [suggestions]);
+
   const handlePreviewSuggestion = (suggestion: ISuggestionGroup) => {
     setPreviewData(suggestion.preview);
     setCreatePayload({
@@ -844,8 +856,9 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
       setIsReviewModalOpen(false);
       setPreviewData(null);
       setCreatePayload(null);
-      refetch();
-      refetchSuggestions();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     },
     onError: (error: any) => {
       message.error(error?.response?.data?.message || error.message || "Có lỗi xảy ra.");
@@ -863,7 +876,21 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
   };
 
   const columns = [
-    { title: "Mã đơn", dataIndex: "order_code", key: "order_code", render: (t: string) => <span className="font-semibold text-blue-600">{t}</span> },
+    { 
+      title: "Mã đơn", 
+      dataIndex: "order_code", 
+      key: "order_code", 
+      render: (t: string, record: GroupableOrder) => (
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-blue-600">{t}</span>
+          {suggestedOrderIds.has(record.order_id) && (
+            <Tag color="green" className="m-0 border-green-300 bg-green-100 text-green-700 font-medium" title="Đơn này có gợi ý ghép với đơn khác">
+              Có thể ghép
+            </Tag>
+          )}
+        </div>
+      )
+    },
     { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name" },
     { title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
     { title: "Ngày giao", dataIndex: "delivery_date", key: "delivery_date", render: (d: string) => d ? new Date(d).toLocaleDateString("vi-VN") : "N/A" },
@@ -1013,6 +1040,7 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
                   loading={isCandidatesLoading}
                   pagination={{ pageSize: 10 }}
                   bordered
+                  rowClassName={(record) => suggestedOrderIds.has(record.order_id) ? "bg-green-50/40" : ""}
                   locale={{
                     emptyText: searchText
                       ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm."
