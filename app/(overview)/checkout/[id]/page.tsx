@@ -115,7 +115,6 @@ export default function RequestDetailPage() {
         setPaymentInfo(data);
       }
     } catch (error) {
-      console.error("Error fetching payment QR:", error);
       message.error("Lỗi khi lấy thông tin thanh toán");
       setIsPaymentModalVisible(false);
     } finally {

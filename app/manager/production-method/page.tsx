@@ -149,14 +149,14 @@ function ProductionMethodContent() {
     },
   });
 
-  // Lọc đơn: Chỉ hiện những order có status là Scheduled và khớp với từ khóa tìm kiếm
+  // Lọc đơn: Chỉ hiện những order có status là Scheduled, gm_proposed_method !== null và production_method === null
   const filteredOrders = (apiData || []).filter((order: any) => {
-    const isScheduled = order.status === "Scheduled" && order.production_method === null || "";
+    const isValidOrder = order.status === "Scheduled" && order.production_method === null && order.gm_proposed_method !== null;
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.code?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.product_name?.toLowerCase().includes(searchText.toLowerCase());
-    return isScheduled && searchMatch;
+    return isValidOrder && searchMatch;
   });
 
   const handleOpen = (orderId: number) => {
@@ -396,7 +396,7 @@ function ProductionMethodContent() {
                   className="w-full"
                   disabled={isOrderDisabled}
                 >
-                  <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     {/* NVL */}
                     <label
                       className={`relative flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${method === "NVL"

@@ -228,11 +228,79 @@ export interface IProductionDetailResponse {
 
 export type ProductionMethod = "NVL" | "SUB" | "BOTH";
 
+// Interface chi tiết trạng thái của từng công đoạn (Task/Process)
+export interface IStageStatusDetail {
+  task_id: number;
+  process_id: number;
+  seq_num: number;
+  process_code: 'BE' | 'DUT' | 'DAN' | string; // Mã công đoạn (Bế, Dứt, Dán, v.v.)
+  process_name: string;                         // Tên hiển thị công đoạn
+  status: 'Unassigned' | 'InProcessing' | 'Finished' | string;
+  start_time: string | null;                    // ISO Date String hoặc null
+  end_time: string | null;                      // ISO Date String hoặc null
+  planned_start_time: string;                   // ISO Date String
+  planned_end_time: string;                     // ISO Date String
+  is_current: boolean;                          // Xác định công đoạn hiện tại hệ thống đang xử lý
+}
+
+// Interface đại diện cho một bản ghi đơn hàng/lệnh sản xuất trong danh sách
+export interface IProductionProgressItem {
+  order_id: number;
+  code: string;                                 // Mã đơn hàng (ví dụ: ORD-00122)
+  customer_name: string;
+  product_name: string;
+  quantity: number;
+  delivery_date: string;                        // ISO Date String
+  progress_percent: number;                     // % Tiến độ sản xuất toàn đơn
+  current_stage: string;                        // Tên công đoạn hiện tại (ví dụ: "Bế")
+  status: 'Scheduled' | string;                 // Trạng thái chung
+  production_status: 'Scheduled' | string;      // Trạng thái sản xuất
+  stage_status: 'Unassigned' | string;         // Trạng thái công đoạn hiện tại
+  planned_start_date: string;                   // ISO Date String
+  actual_start_date: string | null;             // ISO Date String hoặc null
+  is_production_ready: boolean;
+  production_method: 'NVL' | string;
+  is_full_process: boolean | null;
+  sub_product_id: number | null;
+  sub_product_used_qty: number;
+  prod_kind: 'SPLIT' | 'GROUP' | 'SINGLE' | string;
+  production_code: string;                      // Mã lệnh sản xuất (ví dụ: SPLD30528130922607)
+  is_group_production: boolean;
+  is_split_production: boolean;
+  gm_note: string | null;
+  mgr_note: string | null;
+  nvl_qty: number;
+  can_start: boolean;
+  can_start_message: string;
+  stage_statuses: IStageStatusDetail[];         // Mảng chi tiết tiến độ các bước nhỏ
+  stages: string[];                             // Danh sách chuỗi tên các công đoạn (ví dụ: ["Bế", "Dứt", "Dán"])
+  prod_id: number;
+  group_status: 'Scheduled' | string;
+  group_process_codes: string;                  // Danh sách mã công đoạn gộp (ví dụ: "BE,DUT,DAN")
+  group_total_qty: number;
+  production_id: number;
+  created_at: string;                           // ISO Date String
+  production_approval_flow: any | null;         // Luồng duyệt (nếu có)
+  is_auto_production_approval: boolean;
+  production_approval_label: string | null;
+  start_date: string | null;
+  end_date: string;                             // ISO Date String
+  order_status: 'Scheduled' | string;
+}
+
+// Interface bọc ngoài cùng đại diện cho Response phân trang trả về từ API
+export interface IProductionProgressPaginationResponse {
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  data: IProductionProgressItem[];
+}
+
 export const productionsApi = {
   getNearestDelivery: () =>
     http.get<NearestDeliveryResponse>("/api/productions/nearest-delivery"),
 
-  getAllProduction: () => http.get("/api/productions/get-all-production?page=1&pageSize=500"),
+  getAllProduction: () => http.get<IProductionProgressPaginationResponse>("/api/productions/get-all-production?page=1&pageSize=500"),
 
   getProdyctionByOrderId: (id: string) =>
     http.get<IProductionDetailResponse>(`/api/Productions/detail/${id}`),

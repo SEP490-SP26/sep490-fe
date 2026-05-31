@@ -6,16 +6,13 @@ import SupplierQuoteCard from "@/components/Card/SupplierQuoteCard ";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { useProduction } from "@/context/ProductionContext";
-import { Material } from "@/lib/estimation.types";
 import {
   showErrorToast,
   showSuccessToast,
   showWarningToast,
 } from "@/utils/toastService";
-import { disabledDate } from "@/utils/vietnamHolidays";
 import { useQuery } from "@tanstack/react-query";
-import { Rate, Spin, Modal, DatePicker } from "antd";
-import dayjs from "dayjs";
+import { Modal, Rate, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { BiEnvelope, BiPlus, BiSearch, BiTime } from "react-icons/bi";
 import { BsCheckCircle, BsClock, BsTruck, BsX } from "react-icons/bs";
@@ -25,6 +22,7 @@ interface SelectedMaterial {
   ui_id: string;
   quantity: number;
   price: number;
+  miss_id?: number;
 }
 
 export default function PurchaseManagement() {
@@ -41,6 +39,8 @@ export default function PurchaseManagement() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (needsRefresh) {
@@ -166,8 +166,8 @@ export default function PurchaseManagement() {
       try {
         const response = await materialsApi.getListMissingMaterial(1, 100);
         // console.log("Response miss data:", response.data);
-        //Chì lấy is_buy = false
-        return response.data.filter((m: any) => m.is_buy === false);
+        //Chì lấy is_buy = false và is_active = true
+        return response.data.filter((m: any) => !m.file_purpose && m.is_active === true);
       } catch (error) {
         console.error("Error fetching purchase orders:", error);
         return [];
@@ -316,62 +316,44 @@ export default function PurchaseManagement() {
 
   // console.log("missing data", missing_materials);
 
-  // Xử lý tạo đơn hàng với nhiều vật tư
+  // Xử lý tạo phiếu mua nguyên vật liệu với nhiều vật tư
   const handleCreateBulkPO = async () => {
     if (selectedMaterials.length === 0) {
-      showWarningToast("Vui lòng chọn ít nhất một vật tư để đặt hàng");
+      showWarningToast("Vui lòng chọn ít nhất một vật tư để tạo phiếu");
       return;
     }
 
-    // if (!supplierId || !deliveryDate) {
-    //   showWarningToast("Vui lòng chọn nhà cung cấp và ngày giao hàng");
-    //   return;
-    // }
-
-
-    const requestBody = {
-      supplier_id: supplierId,
-      // etaDate: deliveryDate?.toISOString(),
-      items: selectedMaterials.map((item: SelectedMaterial) => ({
-        material_id: item.material_id,
-        quantity: item.quantity,
-        supplier_id: supplierId,
-        price: 0,
-      })),
-    };
-
-    console.log("Request body:", requestBody);
-
     setIsSubmitting(true);
     try {
-      const response = await purchasesApi.createPO(requestBody);
-      // console.log("Create PO response:", response);
+      const miss_ids = selectedMaterials.map((m) => m.miss_id).filter(Boolean) as number[];
+      if (miss_ids.length > 0) {
+        const response: any = await materialsApi.generatePurchasePDF(miss_ids);
+        showSuccessToast("Tạo phiếu mua nguyên vật liệu thành công!");
 
-      if (
-        response
-      ) {
-        showSuccessToast("Tạo đơn đặt hàng thành công!");
+        const fileUrl = response?.file_url || response?.data?.file_url;
+        if (fileUrl) {
+          setPdfUrl(fileUrl);
+          setShowPdfModal(true);
+        }
 
         // Reset form
         setSelectedMaterials([]);
         setMaterialQuantities({});
-        // setSupplierId("");
-        // setDeliveryDate(null);
 
-        // Chuyển tab và refetch
-        setActiveTab("ordered");
-        refetchPO();
+        // Refetch data
         setIsDataInitialized(false);
         refetchMissingMaterials();
 
         // Kích hoạt làm mới trang thông qua useEffect
-        setNeedsRefresh(true);
+        if (!fileUrl) {
+          setNeedsRefresh(true);
+        }
       } else {
-        showErrorToast(response.message || "Tạo đơn hàng thất bại!");
+        showWarningToast("Không tìm thấy thông tin vật tư bị thiếu hợp lệ để tạo phiếu");
       }
     } catch (error) {
-      console.error("Error creating PO:", error);
-      showErrorToast("Đã xảy ra lỗi khi tạo đơn hàng");
+      console.error("Error generating PDF:", error);
+      showErrorToast("Đã xảy ra lỗi khi tạo phiếu mua nguyên vật liệu");
     } finally {
       setIsSubmitting(false);
     }
@@ -431,15 +413,7 @@ export default function PurchaseManagement() {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Quản lý Đặt hàng</h1>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowDirectPO(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <BiPlus className="w-4 h-4" />
-              Đặt hàng trực tiếp
-            </button>
-          </div>
+
         </div>
 
         {/* Search Bar */}
@@ -520,6 +494,7 @@ export default function PurchaseManagement() {
                                 ui_id: pr.ui_id,          // 🔥 BẮT BUỘC
                                 quantity: Math.round(pr.quantity),
                                 price: 0,
+                                miss_id: pr.miss_id,
                               }));
                               setSelectedMaterials(allMaterials);
                             } else {
@@ -576,6 +551,7 @@ export default function PurchaseManagement() {
                                       ui_id: pr.ui_id,
                                       quantity: pr.quantity,
                                       price: 0,
+                                      miss_id: pr.miss_id,
                                     },
                                   ]);
                                 } else {
@@ -736,7 +712,7 @@ export default function PurchaseManagement() {
                   </div>
                 )}
 
-                {missing_materials.length === 0 && (
+                {displayMaterials.length === 0 && (
                   <div className="text-center py-12 text-gray-400">
                     <BsClock className="w-12 h-12 mx-auto mb-3" />
                     <p>Không có vật tư nào cần đặt hàng</p>
@@ -748,259 +724,7 @@ export default function PurchaseManagement() {
             {/* Form tạo đơn hàng */}
             {selectedMaterials.length > 0 && (
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                    <div>
-                      <label className="block text-gray-700 mb-2">
-                        Nhà cung cấp
-                      </label>
-
-                      {/* Input để mở popup */}
-                      <div className="relative">
-                        <div
-                          onClick={() => setShowSupplierPopup(true)}
-                          className="w-full px-4 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer flex items-center justify-between hover:bg-gray-50"
-                        >
-                          <span
-                            className={
-                              supplier ? "text-gray-900" : "text-gray-500"
-                            }
-                          >
-                            {supplier || "Chọn nhà cung cấp"}
-                          </span>
-                          <svg
-                            className="w-5 h-5 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {/* Supplier Selection Popup */}
-                      {showSupplierPopup && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
-                            {/* Popup Header */}
-                            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                              <div>
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                  Chọn nhà cung cấp
-                                </h3>
-                                <p className="text-sm text-gray-600">
-                                  Chọn nhà cung cấp phù hợp nhất
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => setShowSupplierPopup(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                              >
-                                <svg
-                                  className="w-6 h-6"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-
-                            {/* Popup Content */}
-                            <div className="p-6 overflow-y-auto max-h-[60vh]">
-                              {/* Search Bar */}
-                              <div className="mb-6">
-                                <div className="relative">
-                                  <svg
-                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                    />
-                                  </svg>
-                                  <input
-                                    type="text"
-                                    placeholder="Tìm kiếm nhà cung cấp..."
-                                    value={supplierSearch}
-                                    onChange={(e) =>
-                                      setSupplierSearch(e.target.value)
-                                    }
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Supplier List */}
-                              <div className="space-y-3">
-                                {suppliersData
-                                  .filter(
-                                    (s: any) =>
-                                      s.name
-                                        .toLowerCase()
-                                        .includes(
-                                          supplierSearch.toLowerCase()
-                                        ) || supplierSearch === ""
-                                  )
-                                  .map((s: any) => (
-                                    <div
-                                      key={s.supplierId}
-                                      onClick={() => {
-                                        setSupplierId(s.supplierId);
-                                        setSupplier(s.name);
-                                        setShowSupplierPopup(false);
-                                      }}
-                                      className={`p-4 border rounded-lg cursor-pointer transition-all ${supplier === s.name
-                                        ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
-                                        : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-                                        }`}
-                                    >
-                                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div className="flex-1">
-                                          <div className="flex items-center justify-between mb-2">
-                                            <div className=" font-semibold text-gray-900">
-                                              {s.name}
-                                              {s.mainMaterialType && (
-                                                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs mr-2">
-                                                  {s.mainMaterialType}
-                                                </span>
-                                              )}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                              <span className="text-gray-400">
-                                                •
-                                              </span>
-                                              <span className="ml-2">
-                                                {s.contactPerson} - {s.phone}
-                                              </span>
-                                            </div>
-                                          </div>
-
-                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600 mt-3">
-                                            <div className="flex items-center gap-2">
-                                              <div className="flex items-center">
-                                                <Rate
-                                                  disabled
-                                                  allowHalf
-                                                  defaultValue={s.rating || 0}
-                                                  className="text-sm"
-                                                />
-                                                <span className="ml-2 font-medium">
-                                                  {s.rating?.toFixed(1) ||
-                                                    "0.0"}
-                                                </span>
-                                              </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                              <BiTime className="w-4 h-4" />
-                                              <span>
-                                                Thời gian giao:{" "}
-                                                {s.deliveryTime || "Liên hệ"}
-                                              </span>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                              <BiEnvelope className="w-4 h-4" />
-                                              <span className="truncate">
-                                                {s.email || "Chưa có email"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        {/* <div className="flex-shrink-0 space-y-2">
-          <button
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm w-full"
-            onClick={() => onSelect(supplier)}
-          >
-            <BiCheck className="w-4 h-4" />
-            Chọn nhà cung cấp
-          </button>
-
-          <button
-            className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm w-full"
-            onClick={() => (window.location.href = `tel:${supplier.phone}`)}
-          >
-            <BiPhone className="w-4 h-4" />
-            Gọi điện liên hệ
-          </button>
-        </div> */}
-                                      </div>
-                                    </div>
-                                  ))}
-                              </div>
-                            </div>
-
-                            {/* Popup Footer */}
-                            <div className="px-6 py-2 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                              <div className="text-sm text-gray-600">
-                                Đã chọn:{" "}
-                                <span className="font-semibold">
-                                  {supplier || "Chưa chọn"}
-                                </span>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => setShowSupplierPopup(false)}
-                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
-                                >
-                                  Hủy
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (supplier) {
-                                      setShowSupplierPopup(false);
-                                    }
-                                  }}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-                                  disabled={!supplier}
-                                >
-                                  Xác nhận
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* pick time */}
-                    {/* <div>
-                      <label className="block text-gray-700 mb-2">
-                        Ngày giao dự kiến
-                      </label>
-                      <DatePicker
-                        value={deliveryDate}
-                        onChange={handleDateChange}
-                        disabledDate={disabledDate}
-                        format="DD/MM/YYYY"
-                        placeholder="Chọn ngày giao hàng"
-                        style={{ width: "100%" }}
-                        className="w-full"
-                        allowClear
-                      />
-                     
-                    </div> */}
-                  </div>
-
+                <div className="flex flex-col md:flex-row items-center justify-end gap-4">
                   <div className="flex items-center gap-4">
                     <div className="text-sm font-medium text-gray-700">
                       Đã chọn{" "}
@@ -1011,10 +735,9 @@ export default function PurchaseManagement() {
                     </div>
                     <button
                       onClick={handleCreateBulkPO}
-                      disabled={!supplier}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm font-medium"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
                     >
-                      Tạo đơn hàng
+                      Tạo phiếu mua nguyên vật liệu
                     </button>
                   </div>
                 </div>
@@ -1339,7 +1062,7 @@ export default function PurchaseManagement() {
                     }}
                     className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Tạo đơn đặt hàng
+                    Tạo phiếu mua nguyên vật liệu
                   </button>
                   <button
                     onClick={() => setShowDirectPO(false)}
@@ -1353,6 +1076,28 @@ export default function PurchaseManagement() {
           </div>
         </div>
       )}
+
+      {/* Modal hiển thị PDF */}
+      <Modal
+        title="Phiếu mua nguyên vật liệu"
+        open={showPdfModal}
+        onCancel={() => {
+          setShowPdfModal(false);
+          setNeedsRefresh(true);
+        }}
+        footer={null}
+        width={1000}
+        style={{ top: 20 }}
+      >
+        {pdfUrl && (
+          <iframe
+            src={pdfUrl}
+            style={{ width: "100%", height: "85vh", border: "none" }}
+            title="PDF Viewer"
+          />
+        )}
+      </Modal>
+
       <LoadingOverlay isLoading={isSubmitting} />
     </div>
   );
