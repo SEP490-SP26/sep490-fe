@@ -876,10 +876,10 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
   };
 
   const columns = [
-    { 
-      title: "Mã đơn", 
-      dataIndex: "order_code", 
-      key: "order_code", 
+    {
+      title: "Mã đơn",
+      dataIndex: "order_code",
+      key: "order_code",
       render: (t: string, record: GroupableOrder) => (
         <div className="flex items-center gap-2">
           <span className="font-semibold text-blue-600">{t}</span>

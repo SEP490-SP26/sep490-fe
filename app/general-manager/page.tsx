@@ -49,7 +49,7 @@ import {
   BiRefresh,
 } from "react-icons/bi";
 import { LuLayoutDashboard } from "react-icons/lu";
-import { Spin, Progress, Tooltip, Badge, Pagination, Modal } from "antd";
+import { Spin, Progress, Tooltip, Badge, Pagination, Modal, Table } from "antd";
 import ProductionDetailReadOnly from "./components/ProductionDetailReadOnly";
 
 export default function GeneralManagerDashboard() {
@@ -171,6 +171,7 @@ export default function GeneralManagerDashboard() {
       status: order.status || "pending",
       can_fulfill: order.can_fulfill,
       prod_id: order.production_id || null,
+      productions: order.productions || [],
     }));
   }, [ordersData]);
 
@@ -447,6 +448,125 @@ export default function GeneralManagerDashboard() {
       return cmdDate === todayStr;
     });
   }, [dateFilteredProductions]);
+
+  const orderColumns: any = [
+    {
+      title: 'Mã đơn',
+      dataIndex: 'code',
+      key: 'code',
+      width: 120,
+      render: (text: string) => <span className="font-mono text-[11px] font-bold text-amber-900 bg-amber-50 px-2 py-1 rounded border border-amber-200">{text}</span>,
+    },
+    {
+      title: 'Sản phẩm & Khách hàng',
+      key: 'product',
+      width: 250,
+      render: (_: any, record: any) => (
+        <div>
+          <div className="font-bold text-gray-900 text-xs line-clamp-1">{record.product_name}</div>
+          <div className="text-[10px] text-gray-500 mt-0.5">{record.customer_name}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Số lượng',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 100,
+      align: 'right',
+      render: (val: number) => <span className="font-bold text-gray-800">{val?.toLocaleString("vi-VN")}</span>,
+    },
+    {
+      title: 'Trạng thái & Công đoạn',
+      key: 'status',
+      width: 200,
+      render: (_: any, record: any) => {
+        const isProcessing = record.status === "InProcessing";
+        const orderProds = productionsData.filter((p: any) => p.order_id === record.order_id);
+        const activeStages = Array.from(
+          new Set(orderProds.filter((p: any) => p.production_status === "InProcessing" && p.current_stage).map((p: any) => p.current_stage))
+        );
+
+        return (
+          <div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isProcessing ? "bg-amber-100 text-amber-900" : "bg-blue-100 text-blue-900"}`}>
+              {isProcessing ? "Đang sản xuất" : "Đã lên lịch"}
+            </span>
+            {activeStages.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {/* {activeStages.map(stage => (
+                  <span key={stage} className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded shadow-sm">
+                    Đang {stage}
+                  </span>
+                ))} */}
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      title: 'Lệnh sản xuất',
+      key: 'productions',
+      width: 200,
+      render: (_: any, record: any) => {
+        const orderProds = record.productions || [];
+        return (
+          <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+            {orderProds.map((p: any) => {
+              const statusText = p.status === "InProcessing" ? "Đang SX" : p.status === "Finished" ? "Xong" : "Lịch";
+              const statusColor = p.status === "InProcessing" ? "bg-amber-100 text-amber-800 border-amber-200" : p.status === "Finished" ? "bg-green-100 text-green-800 border-green-200" : "bg-blue-100 text-blue-800 border-blue-200";
+              return (
+                <span
+                  key={p.prod_id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDetail(p.prod_id.toString());
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors border ${statusColor} hover:opacity-80 flex items-center gap-1`}
+                  title={`Xem chi tiết lệnh #${p.code}`}
+                >
+                  #{p.code}
+                  <span className="text-[8px] opacity-75 hidden xl:inline-block">({statusText})</span>
+                </span>
+              );
+            })}
+            {orderProds.length === 0 && <span className="text-[10px] text-gray-400 italic">Chưa có lệnh</span>}
+          </div>
+        );
+      }
+    },
+    {
+      title: 'Hạn giao',
+      key: 'delivery',
+      width: 140,
+      render: (_: any, record: any) => (
+        <div className="flex flex-col gap-1">
+          <span className="text-gray-700 text-xs font-medium">{formatDate(record.delivery_date)}</span>
+          <span className={`w-fit px-1.5 py-0.5 rounded font-bold border text-[9px] ${getDeliveryColor(record.delivery_date)}`}>
+            {getRemainingDaysText(record.delivery_date)}
+          </span>
+        </div>
+      )
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 120,
+      align: 'center',
+      render: (_: any, record: any) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewOrderDetail(record.order_id.toString());
+          }}
+          className="text-amber-800 hover:text-amber-955 font-bold flex items-center gap-0.5 transition-colors text-[11px] bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200 hover:bg-amber-100 mx-auto"
+        >
+          Chi tiết <BiChevronRight className="w-3.5 h-3.5" />
+        </button>
+      )
+    }
+  ];
 
   if (isLoading) {
     return (
@@ -824,129 +944,28 @@ export default function GeneralManagerDashboard() {
                   <p className="font-semibold text-gray-600 text-xs">Không có đơn hàng nào đang sản xuất</p>
                 </div>
               ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {paginatedOrdersProgress.map((order: any) => {
-                      const statusText = order.status === "InProcessing" ? "Đang sản xuất" : "Đã lên lịch";
-
-                      return (
-                        <div
-                          key={order.order_id}
-                          onClick={() => router.push(`/general-manager/production-approval?orderId=${order.order_id}`)}
-                          className="bg-white rounded-lg border border-gray-200 p-4 hover:border-amber-900 hover:shadow-sm transition-all duration-300 cursor-pointer flex flex-col justify-between group"
-                        >
-                          <div>
-                            {/* Card Header */}
-                            <div className="flex justify-between items-start gap-2 mb-2">
-                              <div>
-                                <span className="font-mono text-[10px] font-bold text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                  {order.code}
-                                </span>
-                                <h4 className="font-bold text-gray-900 mt-1 truncate group-hover:text-amber-900 transition-colors text-xs">
-                                  {order.product_name}
-                                </h4>
-                              </div>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${order.status === "InProcessing" ? "bg-amber-100 text-amber-900" : "bg-blue-100 text-blue-900"
-                                }`}>
-                                {statusText}
-                              </span>
-                            </div>
-
-                            {/* Customer & Quantity */}
-                            <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500 mb-3 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                              <div>
-                                <p className="font-semibold text-gray-400">Khách hàng</p>
-                                <p className="font-bold text-gray-800 truncate">{order.customer_name}</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold text-gray-400">Số lượng</p>
-                                <p className="font-bold text-gray-800">{order.quantity.toLocaleString("vi-VN")}</p>
-                              </div>
-                            </div>
-
-                            {/* Progress Stepper Visual */}
-                            <div className="mb-3">
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Tiến độ quy trình</p>
-                              <div className="flex items-center justify-between relative mt-3">
-                                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-gray-200 rounded z-0" />
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-green-500 rounded z-0 transition-all duration-500"
-                                  style={{ width: order.status === "InProcessing" ? "50%" : "25%" }} />
-
-                                {/* Step 1: Lên lịch */}
-                                <div className="flex flex-col items-center relative z-10">
-                                  <div className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold shadow">
-                                    ✓
-                                  </div>
-                                  <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Đã lên lịch</span>
-                                </div>
-
-                                {/* Step 2: In ấn
-                              <div className="flex flex-col items-center relative z-10">
-                                <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shadow ${order.status === "InProcessing"
-                                  ? "bg-green-500 text-white"
-                                  : "bg-gray-100 text-gray-400 border border-gray-200"
-                                  }`}>
-                                  {order.status === "InProcessing" ? "✓" : "2"}
-                                </div>
-                                <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">In ấn</span>
-                              </div> */}
-
-                                {/* Step 3: Gia công */}
-                                <div className="flex flex-col items-center relative z-10">
-                                  <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shadow ${order.status === "InProcessing"
-                                    ? "bg-amber-500 text-white animate-pulse"
-                                    : "bg-gray-100 text-gray-400 border border-gray-200"
-                                    }`}>
-                                    2
-                                  </div>
-                                  <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Gia công</span>
-                                </div>
-
-                                {/* Step 4: Đóng gói */}
-                                <div className="flex flex-col items-center relative z-10">
-                                  <div className="w-4 h-4 rounded-full bg-gray-100 text-gray-400 border border-gray-200 flex items-center justify-center text-[9px] font-bold">
-                                    3
-                                  </div>
-                                  <span className="text-[8px] font-bold text-gray-500 mt-1 bg-white px-1">Hoàn thành</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Card Footer */}
-                          <div className="flex items-center justify-between border-t border-gray-100 pt-2 mt-1 text-[11px]">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-gray-400 font-medium">Hạn giao: {formatDate(order.delivery_date)}</span>
-                              <span className={`w-fit px-1.5 py-0.5 rounded font-bold border ${getDeliveryColor(order.delivery_date)}`}>
-                                {getRemainingDaysText(order.delivery_date)}
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewOrderDetail(order.order_id.toString());
-                              }}
-                              className="text-amber-800 hover:text-amber-955 font-bold flex items-center gap-0.5 transition-colors"
-                            >
-                              Xem chi tiết <BiChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {filteredOrdersProgress.length > pageSizeOrders && (
-                    <div className="mt-4 flex justify-end">
-                      <Pagination
-                        current={currentPageOrders}
-                        pageSize={pageSizeOrders}
-                        total={filteredOrdersProgress.length}
-                        onChange={(page) => setCurrentPageOrders(page)}
-                        showSizeChanger={false}
-                      />
-                    </div>
-                  )}
-                </>
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <Table
+                    columns={orderColumns}
+                    dataSource={filteredOrdersProgress}
+                    rowKey="order_id"
+                    pagination={{
+                      current: currentPageOrders,
+                      pageSize: pageSizeOrders,
+                      total: filteredOrdersProgress.length,
+                      onChange: (page) => setCurrentPageOrders(page),
+                      showSizeChanger: false,
+                    }}
+                    onRow={(record) => {
+                      return {
+                        onClick: () => router.push(`/general-manager/production-approval?orderId=${record.order_id}`),
+                        className: "cursor-pointer hover:bg-gray-50 transition-colors"
+                      };
+                    }}
+                    scroll={{ x: 1000 }}
+                    size="middle"
+                  />
+                </div>
               )}
             </div>
           )}
@@ -1017,7 +1036,7 @@ export default function GeneralManagerDashboard() {
                               {item.prod_id}
                             </td>
                             <td className="px-4 py-2.5 font-mono font-medium text-gray-700">
-                              {isGroup ? <span className="">{item.prod_kind}</span> : `${item.prod_kind}-${item.order_id}` || item.order_code || item.code}
+                              {isGroup ? <span className="">{item.prod_kind}</span> : item.order_code || item.code}
                             </td>
                             {/* <td className="px-4 py-2.5">
                               {isGroup ? (
