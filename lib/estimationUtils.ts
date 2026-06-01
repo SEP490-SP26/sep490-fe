@@ -24,7 +24,7 @@ export const calculatePrintSize = (
     let print_width_mm: number, print_length_mm: number;
 
     // Kiểm tra và gán giá trị mặc định
-    const effectiveGlueTab = glue_tab_mm <= 0 ? 20 : glue_tab_mm;
+    const effectiveGlueTab = (glue_tab_mm === undefined || glue_tab_mm <= 0) ? 20 : Number(glue_tab_mm);
 
     // Dòng gạch
     if (productTypeCode?.startsWith('GACH_')) {

@@ -3,7 +3,6 @@
 import { estimatesApi } from "@/apiRequests/estimates";
 import { machineApi, WorkshopCapacityResponse } from "@/apiRequests/machine";
 import { materialsApi } from "@/apiRequests/materials";
-import { productionsApi } from "@/apiRequests/productions";
 import { Product, productsApi } from "@/apiRequests/products";
 import { productTypesApi } from "@/apiRequests/producttypes";
 import { requestOrderApi } from "@/apiRequests/request";
@@ -12,6 +11,16 @@ import { Order, ProductTemplate, useProduction } from "@/context/ProductionConte
 import { useEstimationCalculator } from "@/hooks/useEstimationCalculator";
 import { useEstimationConfig } from "@/hooks/useEstimationConfig";
 import { EstimationInputs } from "@/lib/estimation.types";
+import {
+  calculateEstimateForSave,
+  CalculateInput,
+  calculateNUp,
+  calculatePrintSize,
+  calculateProductionDays,
+  calculateRushFee,
+  calculateTotalWaste,
+  getProductTypeCode
+} from "@/lib/estimationUtils";
 import {
   CreateRequestBody,
   CreateRequestBodyForConsultant,
@@ -32,25 +41,25 @@ import {
 } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  Alert,
   Button,
   Card,
+  Checkbox,
   Col,
   Divider,
   Form,
   Input,
   message,
+  Modal,
   Progress,
   Row,
+  Spin,
   Tabs,
   Upload,
-  Modal,
-  Alert,
-  Checkbox,
-  Spin,
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CustomerInfoSection from "./components/CustomerInfoSection";
 import DesignUploadSection from "./components/DesignUploadSection";
 import EstimatesCard from "./components/EstimatesCard";
@@ -61,17 +70,6 @@ import {
   getEstimatedFreeDate,
   mapToOrderEstimationResult,
 } from "./utils/consultant-logic";
-import {
-  calculateEstimateForSave,
-  CalculateInput,
-  calculateTotalWaste,
-  calculateNUp,
-  calculatePrintSize,
-  calculateRushFee,
-  calculateProductionDays
-} from "@/lib/estimationUtils";
-import axios from "@/apiRequests/axios";
-import { log } from "console";
 
 
 
@@ -1023,7 +1021,8 @@ function ConsultantForm() {
     const selectedProductType = productTypes.find(
       (pt) => pt.product_type_id === product_type
     );
-    const productTypeCode = selectedProductType?.code || "";
+    const baseProductTypeCode = selectedProductType?.code || "";
+    const productTypeCode = getProductTypeCode(baseProductTypeCode, form_product);
 
     // Robust material lookup helper
     const findMaterialByIdentifier = (mats: Material[], identifier: string, fallbackType?: string) => {
@@ -1105,7 +1104,7 @@ function ConsultantForm() {
         wasteRules || undefined
       );
 
-      const printSizeResult = calculatePrintSize(length, width, height, glue_tab, 5, is_one_side_box, productTypeCode);
+      const printSizeResult = calculatePrintSize(Number(length), Number(width), Number(height), glue_tab, 5, is_one_side_box, productTypeCode);
 
       // Now we construct the new Calculator payload
       let ink_rate = materialRates?.ink_rate_hop_mau ?? 0.018; // Default to HOP_MAU
