@@ -149,9 +149,9 @@ function ProductionMethodContent() {
     },
   });
 
-  // Lọc đơn: Chỉ hiện những order có status là Scheduled, gm_proposed_method !== null và production_method === null
+  // Lọc đơn: Chỉ hiện những order có status là Pending, gm_proposed_method !== null và production_method === null
   const filteredOrders = (apiData || []).filter((order: any) => {
-    const isValidOrder = order.status === "Scheduled" && order.production_method === null && order.gm_proposed_method !== null;
+    const isValidOrder = order.status === "Pending" && order.production_method === null && order.gm_proposed_method !== null;
     const searchMatch =
       order.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
       order.code?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -200,6 +200,7 @@ function ProductionMethodContent() {
 
   const getStatusTag = (status: string) => {
     switch (status) {
+      case "Pending": return <Tag color="orange">Chờ duyệt phương thức sản xuất</Tag>;
       case "Scheduled": return <Tag color="orange">Đã lên lịch</Tag>;
       case "LayoutPending": return <Tag color="orange">Chờ duyệt layout</Tag>;
       case "InProcessing": return <Tag color="blue">Đang sản xuất</Tag>;

@@ -112,6 +112,80 @@ export interface ISuggestionGroup {
   warnings: any[]; // Bạn có thể đổi sang string[] nếu mảng này chỉ chứa text cảnh báo
 }
 
+// Chi tiết kế hoạch thời gian của từng công đoạn nhỏ trong một mẻ sản xuất
+export interface ISuggestedTask {
+  process_code: 'RALO' | 'CAT' | 'IN' | 'PHU' | 'CAN' | 'BE' | 'DUT' | 'DAN' | string;
+  process_name: string;
+  department_code: 'DEPT_1' | 'DEPT_2' | 'DEPT_3' | string;
+  department_name: string;
+  machine: string;
+  seq_num: number;
+  planned_start_time: string; // ISO Date String
+  planned_end_time: string;   // ISO Date String
+}
+
+// Chi tiết một lô/mẻ sản xuất (Batch) trong phương án đề xuất
+export interface ISuggestedBatch {
+  batch_type: 'SINGLE' | 'GROUP' | 'SPLIT' | string;
+  prod_kind: 'SINGLE' | 'GROUP' | 'SPLIT' | string;
+  department_code: 'FULL_PATH' | string;
+  department_name: string;
+  order_ids: number[];
+  order_codes: string[];
+  process_codes: string[];
+  planned_start_date: string; // ISO Date String
+  planned_end_date: string;   // ISO Date String
+  duration_days: number;
+  tasks: ISuggestedTask[];
+  note: string | null;
+}
+
+// Thông tin sơ lược của các đơn hàng nằm trong danh sách đề xuất này
+export interface ISuggestedOrder {
+  order_id: number;
+  order_code: string;
+  single_prod_id: number;
+  product_type_id: number;
+  product_type_name: string;
+  product_name: string;
+  quantity: number;
+  production_process: string; // Chuỗi các công đoạn nối nhau bằng dấu phẩy, ví dụ: "RALO,CAT,IN..."
+  production_method: 'NVL' | string;
+  delivery_date: string;     // ISO Date String
+}
+
+// Đối tượng chính - Chi tiết một Phương án đề xuất sản xuất (Object con trong mảng gốc)
+export interface IProductionSuggestion {
+  suggestion_key: string;      // Định dạng: "TYPE:ID:METHOD" (Ví dụ: "SINGLE:23:NVL")
+  suggestion_type: 'SINGLE_PREVIEW' | 'GROUP_PREVIEW' | string;
+  can_group: boolean;
+  create_group_allowed: boolean;
+  suggest_order: number[];     // Mảng các ID đơn hàng được đề xuất xử lý chung
+  suggest_process: string[];   // Mảng các mã công đoạn dự kiến chạy
+  product_type_id: number;
+  product_type_name: string;   // Ví dụ: "Hộp màu"
+  production_method: 'NVL' | string;
+  department_code: 'FULL_PATH' | string;
+  department_name: string;
+  material_key: string | null;
+  order_count: number;
+  order_codes: string[];
+  orders: ISuggestedOrder[];
+  batches: ISuggestedBatch[];
+  suggested_planned_start_date: string; // ISO Date String
+  schedule_planned_start_date: string;  // ISO Date String
+  common_delivery_deadline: string;     // Hạn giao hàng chung tính theo đơn sớm nhất
+  estimated_finish_date: string;        // Ngày dự kiến hoàn thành sản xuất
+  schedule_planned_end_date: string;
+  estimated_total_days: number;
+  preview: any | null;                  // Cập nhật kiểu cụ thể nếu có dữ liệu preview
+  preview_error: any | null;
+  auto_split_productions: any[];
+  warnings: string[];
+  reason: string | null;                // Lý do hệ thống đưa ra đề xuất này
+  note: string | null;                  // Ghi chú quan trọng (Ví dụ: "Đơn cần lên lịch gấp...")
+}
+
 export const groupProductionsApi = {
     getGroupableOrders: (productTypeId?: number, processCodes?: string) => {
         const queryParams: string[] = [];
@@ -142,7 +216,7 @@ export const groupProductionsApi = {
             queryParams.push(`orderIds=${orderIds}`);
         }
         const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
-        return http.get<ISuggestionGroup[]>(`/api/GroupProductions/suggestions${queryString}`);
+        return http.get<IProductionSuggestion[]>(`/api/GroupProductions/suggestions${queryString}`);
     },
 
     // POST /api/GroupProductions/{id}/start

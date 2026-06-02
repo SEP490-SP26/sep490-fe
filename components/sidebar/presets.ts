@@ -242,7 +242,7 @@ export const generalManagerNavItems: NavItem[] = [
   },
   {
     path: "/production-approval",
-    label: "Duyệt lệnh sản xuất",
+    label: "Quản lý sản xuất",
     icon: FiList,
     basePath: "/general-manager",
   },
