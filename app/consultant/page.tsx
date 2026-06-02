@@ -76,6 +76,29 @@ import {
 import { ALL_PROCESS_TYPES, PROCESS_TYPE_LABELS } from "@/utils/processConstants";
 import { GACH_FORM_TYPES, HOP_MAU_FORM_TYPES } from "@/utils/productConstants";
 
+const getMaterialCode = (identifier: string | null | undefined, mats: Material[], fallbackType?: string) => {
+  if (!identifier || identifier === "NONE" || identifier === "null") return undefined;
+  const normalizedOriginal = identifier.trim().toUpperCase();
+
+  const byCode = mats.find(m => m.code.toUpperCase() === normalizedOriginal);
+  if (byCode) return byCode.code;
+
+  const byName = mats.find(m => m.name.toUpperCase() === normalizedOriginal);
+  if (byName) return byName.code;
+
+  const byPartial = mats.find(m =>
+    m.name.toUpperCase().includes(normalizedOriginal) ||
+    normalizedOriginal.includes(m.name.toUpperCase())
+  );
+  if (byPartial) return byPartial.code;
+
+  if (fallbackType === 'SÓNG' && normalizedOriginal.includes('SÓNG B')) {
+    return "SONG_B_NAU";
+  }
+
+  return identifier;
+};
+
 function ConsultantForm() {
   const [form] = Form.useForm();
   const {
@@ -739,9 +762,9 @@ function ConsultantForm() {
                   if (total >= 2) return total - 1;
                   return total;
                 })(),
-                coating_type: est.coating_type && est.coating_type !== "NONE" ? est.coating_type : (orderData.coating_type && orderData.coating_type !== "NONE" ? orderData.coating_type : undefined),
+                coating_type: est.coating_type && est.coating_type !== "NONE" ? getMaterialCode(est.coating_type, materials) : (orderData.coating_type && orderData.coating_type !== "NONE" ? getMaterialCode(orderData.coating_type, materials) : undefined),
                 lamination_material: est.lamination_material_code || orderData.lamination_material_code || undefined,
-                wave_type: est.wave_type && est.wave_type !== "NONE" ? est.wave_type : (orderData.wave_type && orderData.wave_type !== "NONE" ? orderData.wave_type : undefined),
+                wave_type: est.wave_type && est.wave_type !== "NONE" ? getMaterialCode(est.wave_type, materials, 'SÓNG') : (orderData.wave_type && orderData.wave_type !== "NONE" ? getMaterialCode(orderData.wave_type, materials, 'SÓNG') : undefined),
                 length: orderData.product_length_mm,
                 width: orderData.product_width_mm,
                 height: orderData.product_height_mm,
@@ -846,8 +869,9 @@ function ConsultantForm() {
               detail_address: orderData.detail_address,
               description: orderData.description,
               ...(orderData.number_of_plates && { number_of_plates: orderData.number_of_plates }),
-              ...((orderData.coating_type && orderData.coating_type !== "NONE") && { coating_type: orderData.coating_type }),
+              ...((orderData.coating_type && orderData.coating_type !== "NONE") && { coating_type: getMaterialCode(orderData.coating_type, materials) }),
               ...(orderData.lamination_material_code && { lamination_material: orderData.lamination_material_code }),
+              ...((orderData.wave_type && orderData.wave_type !== "NONE") && { wave_type: getMaterialCode(orderData.wave_type, materials, 'SÓNG') }),
               // Add dimensions and paper code if available
               ...(orderData.product_length_mm && { length: orderData.product_length_mm }),
               ...(orderData.product_width_mm && { width: orderData.product_width_mm }),
@@ -944,11 +968,11 @@ function ConsultantForm() {
         // Use current if it exists, else follow profile
         number_of_plates: currentValues.number_of_plates !== undefined ? currentValues.number_of_plates : profile.number_of_plates,
         coating_type: (profile.production_processes && profile.production_processes.includes("PHU"))
-          ? ((currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : profile.coating_type)
+          ? ((currentValues.coating_type && currentValues.coating_type !== "NONE") ? currentValues.coating_type : getMaterialCode(profile.coating_type, materials))
           : undefined,
-        wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : profile.wave_type,
+        wave_type: (currentValues.wave_type && currentValues.wave_type !== "NONE") ? currentValues.wave_type : getMaterialCode(profile.wave_type, materials, 'SÓNG'),
         lamination_material: (profile.production_processes && profile.production_processes.includes("CAN"))
-          ? ((currentValues.lamination_material && currentValues.lamination_material !== "NONE") ? currentValues.lamination_material : profile.lamination)
+          ? ((currentValues.lamination_material && currentValues.lamination_material !== "NONE") ? currentValues.lamination_material : getMaterialCode(profile.lamination, materials))
           : undefined,
         glue_tab: currentValues.glue_tab !== undefined ? currentValues.glue_tab : profile.glue_tab_mm,
         is_one_side_box: currentValues.is_one_side_box !== undefined ? currentValues.is_one_side_box : profile.is_one_side_box,
@@ -1024,37 +1048,8 @@ function ConsultantForm() {
     const baseProductTypeCode = selectedProductType?.code || "";
     const productTypeCode = getProductTypeCode(baseProductTypeCode, form_product);
 
-    // Robust material lookup helper
-    const findMaterialByIdentifier = (mats: Material[], identifier: string, fallbackType?: string) => {
-      if (!identifier || identifier === "NONE" || identifier === "null") return undefined;
-
-      const normalizedOriginal = identifier.trim().toUpperCase();
-
-      // 1. Try exact code match
-      const byCode = mats.find(m => m.code.toUpperCase() === normalizedOriginal);
-      if (byCode) return byCode;
-
-      // 2. Try exact name match
-      const byName = mats.find(m => m.name.toUpperCase() === normalizedOriginal);
-      if (byName) return byName;
-
-      // 3. Try partial name overlap
-      const byPartial = mats.find(m =>
-        m.name.toUpperCase().includes(normalizedOriginal) ||
-        normalizedOriginal.includes(m.name.toUpperCase())
-      );
-      if (byPartial) return byPartial;
-
-      // 4. Default fallbacks for common wave types if BOI is present
-      if (fallbackType === 'SÓNG' && normalizedOriginal.includes('SÓNG B')) {
-        return mats.find(m => m.code === "SONG_B_NAU");
-      }
-
-      return undefined;
-    };
-
-    const selectedMaterial = findMaterialByIdentifier(materials, paper_code);
-    const selectedWaveMaterial = findMaterialByIdentifier(materials, effectiveWaveType, 'SÓNG');
+    const selectedMaterial = materials.find(m => m.code === getMaterialCode(paper_code, materials));
+    const selectedWaveMaterial = materials.find(m => m.code === getMaterialCode(effectiveWaveType, materials, 'SÓNG'));
     const selectedLaminationMat = laminationMaterials.find(m => m.code === lamination_material);
 
     if (!selectedMaterial) return null;

@@ -29,17 +29,16 @@ import {
 } from "@ant-design/icons";
 import { useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
+import { BiChevronRight } from "react-icons/bi";
+import ProductionDetailReadOnly from "../components/ProductionDetailReadOnly";
 
 import { orderApi } from "@/apiRequests/order";
 import { productionsApi, ProductionReadiness } from "@/apiRequests/productions";
 import {
-  GroupableOrder,
   groupProductionsApi,
-  ISuggestionGroup,
-  IPreview,
+  IProductionSuggestion,
+  ISuggestedOrder,
 } from "@/apiRequests/groupProductions";
-import { productTypesApi, ProductTemplate } from "@/apiRequests/producttypes";
-import { disabledDate as vietnamHolidaysDisabledDate } from "@/utils/vietnamHolidays";
 
 const { Title, Text } = Typography;
 
@@ -49,7 +48,7 @@ const ALLOWED_PROCESS_CODES = [
   { label: "Bồi (BOI)", value: "BOI" },
 ];
 
-function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "approved" }) {
+function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "waiting_manager" | "approved" }) {
   const searchParams = useSearchParams();
 
   const [searchText, setSearchText] = useState("");
@@ -129,7 +128,9 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
     let statusMatch = false;
 
     if (mode === "pending") {
-      statusMatch = (order.status === "Scheduled") && order.is_production_ready === false;
+      statusMatch = (order.status === "Pending") && order.is_production_ready === false;
+    } else if (mode === "waiting_manager") {
+      statusMatch = order.gm_proposed_method != null && order.proposed_production_method == null && order.status === "Pending";
     } else {
       // mode === "approved"
       statusMatch = (order.status === "Scheduled") &&
@@ -169,9 +170,11 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
 
   const getStatusTag = (status: string) => {
     switch (status) {
+      case "Pending": return <Tag color="orange">Chờ duyệt phương thức sản xuất</Tag>;
       case "Scheduled": return <Tag color="orange">Đã lên lịch</Tag>;
       case "LayoutPending": return <Tag color="orange">Chờ duyệt layout</Tag>;
       case "InProcessing": return <Tag color="blue">Đang sản xuất</Tag>;
+      case "Importing": return <Tag color="blue">Đã sản xuất xong</Tag>;
       case "Finished": return <Tag color="green">Hoàn thành</Tag>;
       case "Delivered": return <Tag color="cyan">Đã giao</Tag>;
       case "Cancelled": return <Tag color="red">Đã hủy</Tag>;
@@ -231,7 +234,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
             return (
               <button
                 onClick={() => handleOpen(record.order_id || record._id)}
-                disabled={record.status === "Finished" || record.status === "Delivered" || record.gm_proposed_method != null}
+                disabled={record.status === "Importing" || record.status === "Delivered" || record.gm_proposed_method != null}
                 className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
               >
                 Trình duyệt SX
@@ -620,217 +623,251 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "a
   );
 }
 
-function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
-  const [productTypeId, setProductTypeId] = useState<number | null>(null);
-  const [selectedProcessCodes, setSelectedProcessCodes] = useState<string[]>([]);
-  const [selectedOrders, setSelectedOrders] = useState<GroupableOrder[]>([]);
-  const [plannedStartDate, setPlannedStartDate] = useState<dayjs.Dayjs | null>(dayjs());
-  const [note, setNote] = useState("");
+function GroupProductionTab() {
   const [searchText, setSearchText] = useState("");
-  const [sortBy, setSortBy] = useState<string>("newest");
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [previewData, setPreviewData] = useState<IPreview | null>(null);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
   const [createPayload, setCreatePayload] = useState<any>(null);
 
-  const { data: productTypes } = useQuery({
-    queryKey: ["product-types"],
-    queryFn: async () => {
-      const res = await productTypesApi.getAll();
-      if (Array.isArray(res)) return res;
-      if (Array.isArray((res as any)?.data)) return (res as any).data;
-      return [];
-    },
-  });
-
-  // Fetch templates to auto-fill process codes when a product type is selected
-  const { data: templates } = useQuery({
-    queryKey: ["product-templates", productTypeId],
-    queryFn: async () => {
-      if (!productTypeId) return [];
-      const res = await productTypesApi.getProductTemplete(productTypeId);
-      const list = Array.isArray(res) ? res : ((res as any)?.data || []);
-      return list as ProductTemplate[];
-    },
-    enabled: !!productTypeId,
-  });
-
-  // Auto-fill process codes when product type or templates change
-  useEffect(() => {
-    if (productTypeId && templates && templates.length > 0) {
-      const defaultTemplate = templates[0];
-      if (defaultTemplate.production_processes) {
-        const codes = defaultTemplate.production_processes
-          .split(",")
-          .map((c: string) => c.trim())
-          .filter((code: string) =>
-            ALLOWED_PROCESS_CODES.some((allowed) => allowed.value === code)
-          );
-
-        setSelectedProcessCodes(codes);
-      } else {
-        setSelectedProcessCodes([]);
-      }
-    }
-  }, [templates, productTypeId]);
-
-  const { data: candidates, isLoading: isCandidatesLoading, refetch } = useQuery({
-    queryKey: ["group-candidates", productTypeId, selectedProcessCodes],
-    queryFn: async () => {
-      const codes = selectedProcessCodes.length > 0 ? selectedProcessCodes.join(",") : undefined;
-      const res = await groupProductionsApi.getGroupableOrders(productTypeId || undefined, codes);
-      const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
-      return list.filter((o: any) => o.can_group);
-    },
-  });
+  const [selectedManualOrders, setSelectedManualOrders] = useState<any[]>([]);
+  const [manualProcessCodes, setManualProcessCodes] = useState<string[]>([]);
+  const [manualStartDate, setManualStartDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [manualNote, setManualNote] = useState("");
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const { data: suggestions, isLoading: isSuggestionsLoading, refetch: refetchSuggestions } = useQuery({
-    queryKey: ["group-suggestions", productTypeId, selectedProcessCodes, selectedOrders],
+    queryKey: ["group-suggestions"],
     queryFn: async () => {
-      const processCodesStr = selectedProcessCodes.length > 0 ? selectedProcessCodes.join(",") : undefined;
-      const orderIdsStr = selectedOrders.length > 0 ? selectedOrders.map(o => o.order_id).join(",") : undefined;
-      const res = await groupProductionsApi.getSuggestions(productTypeId || undefined, processCodesStr, orderIdsStr);
+      const res = await groupProductionsApi.getSuggestions();
       const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
-      return list;
+      return list as IProductionSuggestion[];
     },
   });
 
-  const suggestedOrderIds = useMemo(() => {
-    const ids = new Set<number>();
-    if (suggestions) {
-      suggestions.forEach((s: any) => {
-        if (Array.isArray(s.suggest_order)) {
-          s.suggest_order.forEach((id: number) => ids.add(id));
-        }
-      });
+  const handlePreviewSuggestion = (suggestion: IProductionSuggestion) => {
+    if (suggestion.preview_error) {
+      message.error("Đề xuất này có lỗi preview, không thể xem trước.");
+      return;
     }
-    return ids;
-  }, [suggestions]);
-
-  const handlePreviewSuggestion = (suggestion: ISuggestionGroup) => {
     setPreviewData(suggestion.preview);
     setCreatePayload({
       order_ids: suggestion.suggest_order,
       process_codes: suggestion.suggest_process,
-      planned_start_date: suggestion.suggested_planned_start_date,
+      planned_start_date: suggestion.schedule_planned_start_date || suggestion.suggested_planned_start_date,
       note: suggestion.note || "",
     });
     setIsReviewModalOpen(true);
   };
 
   const suggestionColumns = [
-    { title: "Tiêu chí ghép", dataIndex: "reason", key: "reason", render: (t: string) => <span className="font-semibold text-green-600">{t}</span> },
+    // {
+    //   title: "STT",
+    //   dataIndex: "suggestion_type",
+    //   key: "suggestion_type",
+    //   render: (t: string) => {
+    //     const canGroup = t === "GROUP_PREVIEW";
+    //     return <Tag color={canGroup ? "green" : "blue"}>{canGroup ? "Ghép đơn" : "Đơn lẻ"}</Tag>;
+    //   }
+    // },
     {
-      title: "ID Đơn hàng",
-      dataIndex: "suggest_order",
-      key: "suggest_order",
-      render: (orders: number[]) => (
+      title: "Loại đề xuất",
+      dataIndex: "suggestion_type",
+      key: "suggestion_type",
+      render: (t: string, record: IProductionSuggestion) => {
+        const canGroup = record.can_group;
+        return <Tag color={canGroup ? "green" : "blue"}>{canGroup ? "Ghép đơn" : "Đơn lẻ"}</Tag>;
+      }
+    },
+    // {
+    //   title: "STT",
+    //   dataIndex: "suggestion_type",
+    //   key: "suggestion_type",
+    //   render: (t: string) => {
+    //     const canGroup = t === "GROUP_PREVIEW";
+    //     return <Tag color={canGroup ? "green" : "blue"}>{canGroup ? "Ghép đơn" : "Đơn lẻ"}</Tag>;
+    //   }
+    // },
+    {
+      title: "Sản phẩm",
+      dataIndex: "product_type_name",
+      key: "product_type_name"
+    },
+    {
+      title: "Đơn hàng",
+      dataIndex: "order_codes",
+      key: "order_codes",
+      render: (codes: string[]) => (
         <div className="flex flex-wrap gap-1">
-          {orders?.map(id => <Tag key={id} color="blue">{id}</Tag>)}
+          {codes?.map(code => <Tag key={code} color="purple" className="font-mono">{code}</Tag>)}
         </div>
       )
     },
     {
-      title: "Công đoạn",
-      dataIndex: "suggest_process",
-      key: "suggest_process",
-      render: (processes: string[]) => (
-        <div className="flex flex-wrap gap-1">
-          {processes?.map(p => <Tag key={p} color="purple">{p}</Tag>)}
-        </div>
-      )
+      title: "Tiến trình (Các lô)",
+      key: "batches",
+      width: 300,
+      render: (_: any, record: IProductionSuggestion) => {
+        if (!record.batches || record.batches.length === 0) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {record.suggest_process?.map(p => <Tag key={p} color="orange">{p}</Tag>)}
+            </div>
+          );
+        }
+        return (
+          <div className="flex flex-col gap-2">
+            {record.batches.map((batch, idx) => {
+              const isGroup = batch.batch_type === 'GROUP';
+              const isSplit = batch.batch_type === 'SPLIT';
+              const color = isGroup ? 'green' : isSplit ? 'blue' : 'orange';
+              const label = isGroup ? 'Ghép chung' : isSplit ? 'Tách đơn' : 'Chạy riêng';
+              const dotClass = isGroup ? 'bg-green-500' : isSplit ? 'bg-blue-500' : 'bg-orange-500';
+              return (
+                <div key={idx} className="flex flex-col gap-1 p-1.5 border border-gray-200 bg-white rounded shadow-sm">
+                  {/* <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${dotClass}`}></span>
+                      {label}
+                   </div> */}
+                  <div className="flex flex-wrap gap-1">
+                    {idx + 1} {batch.process_codes?.map(p => <> <Tag key={p} color={color} className="m-0">{p}</Tag></>)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
     },
-    { title: "Phòng ban", dataIndex: "department_name", key: "department_name" },
-    // { title: "Mã vật tư", dataIndex: "material_key", key: "material_key", render: (t: string) => t ? <Tag>{t}</Tag> : <span className="text-gray-400">N/A</span> },
+
+    {
+      title: "Bắt đầu dự kiến",
+      dataIndex: "schedule_planned_start_date",
+      key: "schedule_planned_start_date",
+      render: (d: string) => d ? dayjs(d).format("DD/MM/YYYY") : "N/A"
+    },
+    {
+      title: "Tiêu chí",
+      dataIndex: "note",
+      key: "note",
+      render: (t: string) => <span className="font-medium text-gray-600">{t}</span>
+    },
     {
       title: "Hành động",
       key: "action",
-      render: (_: any, record: ISuggestionGroup) => (
-        <Button type="primary" size="small" onClick={() => handlePreviewSuggestion(record)} className="bg-blue-600">
-          Xem & Tạo lệnh
+      render: (_: any, record: IProductionSuggestion) => (
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => handlePreviewSuggestion(record)}
+          className="bg-blue-600"
+        // disabled={!record.preview}
+        >
+          {record.preview ? "Xem & Tạo lệnh" : "Lỗi xem trước"}
         </Button>
       )
     }
   ];
 
-  const filteredAndSortedCandidates = useMemo(() => {
-    if (!candidates) return [];
+  const filteredSuggestions = useMemo(() => {
+    if (!suggestions) return [];
+    if (!searchText.trim()) return suggestions;
 
-    let result = [...candidates];
+    const term = searchText.toLowerCase().trim();
+    return suggestions.filter(
+      (s) =>
+        s.order_codes?.some(code => code.toLowerCase().includes(term)) ||
+        s.product_type_name?.toLowerCase().includes(term) ||
+        s.reason?.toLowerCase().includes(term)
+    );
+  }, [suggestions, searchText]);
 
-    // Search filter: mã đơn hoặc tên sản phẩm
-    if (searchText.trim()) {
-      const term = searchText.toLowerCase().trim();
-      result = result.filter(
-        (o) =>
-          o.order_code?.toLowerCase().includes(term) ||
-          o.product_name?.toLowerCase().includes(term)
-      );
+
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      if (!createPayload) throw new Error("Không có dữ liệu tạo lệnh.");
+      await groupProductionsApi.confirmProduceOrder(createPayload);
+    },
+    onSuccess: () => {
+      message.success("Đã tạo lệnh sản xuất thành công!");
+      setIsReviewModalOpen(false);
+      setPreviewData(null);
+      setCreatePayload(null);
+      setSelectedManualOrders([]);
+      setManualNote("");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    },
+    onError: (error: any) => {
+      message.error(error?.response?.data?.message || error.message || "Có lỗi xảy ra.");
     }
+  });
 
-    // Sort logic
-    result.sort((a, b) => {
-      if (sortBy === "newest") {
-        return b.order_id - a.order_id;
+  const manualCandidates = useMemo(() => {
+    if (!suggestions) return [];
+    let flatList: any[] = [];
+    let groupIndex = 0;
+    suggestions.forEach((s, sIndex) => {
+      // Only include suggestions that have more than 1 order
+      if (s.orders && s.orders.length > 1) {
+        s.orders.forEach((o, oIndex) => {
+          flatList.push({
+            ...o,
+            suggestion_id: s.suggestion_key || `sug_${sIndex}`,
+            suggestion_reason: s.note || s.reason || `Nhóm đề xuất ${groupIndex + 1}`,
+            is_first: oIndex === 0,
+            is_last: oIndex === (s.orders!.length - 1),
+            unique_key: `${s.suggestion_key || sIndex}_${o.order_id}`,
+            group_index: groupIndex,
+          });
+        });
+        groupIndex++;
       }
-      if (sortBy === "oldest") {
-        return a.order_id - b.order_id;
-      }
-      if (sortBy === "delivery_asc") {
-        const dateA = a.delivery_date ? new Date(a.delivery_date).getTime() : 0;
-        const dateB = b.delivery_date ? new Date(b.delivery_date).getTime() : 0;
-        return dateA - dateB;
-      }
-      if (sortBy === "delivery_desc") {
-        const dateA = a.delivery_date ? new Date(a.delivery_date).getTime() : 0;
-        const dateB = b.delivery_date ? new Date(b.delivery_date).getTime() : 0;
-        return dateB - dateA;
-      }
-      if (sortBy === "qty_asc") {
-        return (a.quantity || 0) - (b.quantity || 0);
-      }
-      if (sortBy === "qty_desc") {
-        return (b.quantity || 0) - (a.quantity || 0);
-      }
-      return 0;
     });
 
-    return result;
-  }, [candidates, searchText, sortBy]);
+    if (searchText.trim()) {
+      const term = searchText.toLowerCase().trim();
+      const matchingSuggestionIds = new Set();
+      flatList.forEach(item => {
+        if (item.order_code?.toLowerCase().includes(term) || item.product_name?.toLowerCase().includes(term)) {
+          matchingSuggestionIds.add(item.suggestion_id);
+        }
+      });
+      flatList = flatList.filter(item => matchingSuggestionIds.has(item.suggestion_id));
+    }
+    return flatList;
+  }, [suggestions, searchText]);
 
   const maxAllowedStartDate = useMemo(() => {
-    if (selectedOrders.length === 0) return null;
-
-    const validDates = selectedOrders
+    if (selectedManualOrders.length === 0) return null;
+    const validDates = selectedManualOrders
       .map(o => dayjs(o.delivery_date))
       .filter(d => d.isValid());
-
     if (validDates.length === 0) return null;
-
-    const nearest = validDates.reduce((min, current) =>
-      current.isBefore(min) ? current : min
-    );
-
-    return nearest.subtract(7, "day");
-  }, [selectedOrders]);
+    const nearest = validDates.reduce((min, current) => current.isBefore(min) ? current : min);
+    
+    let calc = nearest.subtract(7, "day");
+    if (calc.isBefore(dayjs().startOf("day"))) {
+      calc = dayjs().add(1, "day").startOf("day");
+    }
+    return calc;
+  }, [selectedManualOrders]);
 
   useEffect(() => {
-    if (plannedStartDate && maxAllowedStartDate) {
-      if (plannedStartDate.isAfter(maxAllowedStartDate, "day")) {
-        setPlannedStartDate(maxAllowedStartDate);
-        message.info("Ngày dự kiến bắt đầu đã được tự động điều chỉnh để đảm bảo cách ngày giao hàng gần nhất ít nhất 7 ngày.");
-      }
+    if (maxAllowedStartDate) {
+      setManualStartDate(maxAllowedStartDate);
     }
-  }, [maxAllowedStartDate, plannedStartDate]);
+  }, [maxAllowedStartDate]);
 
   const handlePreviewManual = async () => {
     try {
       setIsPreviewLoading(true);
       const payload = {
-        order_ids: selectedOrders.map(o => o.order_id),
-        process_codes: selectedProcessCodes,
-        planned_start_date: plannedStartDate!.toISOString(),
-        note: note,
+        order_ids: selectedManualOrders.map(o => o.order_id),
+        process_codes: manualProcessCodes,
+        planned_start_date: manualStartDate!.toISOString(),
+        note: manualNote,
       };
       const res = await groupProductionsApi.getPreview(payload);
       const data = (res as any).data || res;
@@ -844,52 +881,25 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
     }
   };
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      if (!createPayload) throw new Error("Không có dữ liệu tạo lệnh.");
-      await groupProductionsApi.confirmProduceOrder(createPayload);
-    },
-    onSuccess: () => {
-      message.success("Đã tạo lệnh sản xuất ghép thành công!");
-      setSelectedOrders([]);
-      setNote("");
-      setIsReviewModalOpen(false);
-      setPreviewData(null);
-      setCreatePayload(null);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    },
-    onError: (error: any) => {
-      message.error(error?.response?.data?.message || error.message || "Có lỗi xảy ra.");
-    }
-  });
+  const selectedSuggestionId = selectedManualOrders.length > 0 ? selectedManualOrders[0].suggestion_id : null;
 
   const rowSelection = {
-    selectedRowKeys: selectedOrders.map(o => o.order_id),
+    selectedRowKeys: selectedManualOrders.map(o => o.unique_key),
     onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => {
-      setSelectedOrders(selectedRows);
+      setSelectedManualOrders(selectedRows);
     },
-    getCheckboxProps: (record: GroupableOrder) => ({
-      disabled: !record.can_group,
+    getCheckboxProps: (record: any) => ({
+      disabled: selectedSuggestionId ? record.suggestion_id !== selectedSuggestionId : false,
     }),
   };
 
-  const columns = [
+  const manualColumns = [
+
     {
       title: "Mã đơn",
       dataIndex: "order_code",
       key: "order_code",
-      render: (t: string, record: GroupableOrder) => (
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-blue-600">{t}</span>
-          {suggestedOrderIds.has(record.order_id) && (
-            <Tag color="green" className="m-0 border-green-300 bg-green-100 text-green-700 font-medium" title="Đơn này có gợi ý ghép với đơn khác">
-              Có thể ghép
-            </Tag>
-          )}
-        </div>
-      )
+      render: (t: string) => <span className="font-semibold text-blue-600">{t}</span>
     },
     { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name" },
     { title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
@@ -897,212 +907,157 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
     {
       title: "Công đoạn", dataIndex: "production_process", key: "production_process", render: (p: string) => (
         <div className="flex flex-wrap gap-1">
-          {p?.split(",").map(code => (
-            <Tag key={code} color={selectedProcessCodes.includes(code) ? "blue" : "default"}>
+          {p?.split(",").map((code: string) => (
+            <Tag key={code} color="default">
               {code}
             </Tag>
           ))}
         </div>
       )
     },
+    {
+      title: "Nhóm đề xuất",
+      dataIndex: "suggestion_reason",
+      key: "suggestion_reason",
+      width: 250,
+      render: (value: any, record: any) => {
+        const obj = {
+          children: <div className="text-xs text-blue-800 bg-blue-50 p-2 rounded border border-blue-100">{value}</div>,
+          props: {} as any,
+        };
+        if (record.is_first) {
+          const count = manualCandidates.filter(c => c.suggestion_id === record.suggestion_id).length;
+          obj.props.rowSpan = count;
+        } else {
+          obj.props.rowSpan = 0;
+        }
+        return obj;
+      }
+    },
   ];
 
   return (
     <div className="relative min-h-[60vh]">
-      <div className="mb-4 text-gray-600">Chọn loại sản phẩm và các công đoạn để xem {mode === "suggestions" ? "gợi ý ghép đơn" : "và chọn đơn hàng tiềm năng"}.</div>
+      <div className="mb-4 text-gray-600">Danh sách các đề xuất sản xuất (đơn lẻ hoặc ghép đơn) từ hệ thống. Bạn có thể xem trước chi tiết lộ trình và xác nhận tạo lệnh sản xuất.</div>
 
-
-      <Card className="mb-6 shadow-sm border-blue-100 bg-blue-50/30">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Loại sản phẩm (Bắt buộc)</label>
-            <Select
-              className="w-full"
-              placeholder="Chọn loại sản phẩm"
-              value={productTypeId}
-              onChange={(val) => {
-                setProductTypeId(val);
-                setSelectedProcessCodes([]); // Reset stages while loading new defaults
-                setSelectedOrders([]);
-                setSearchText("");
-              }}
-              options={(productTypes || []).map((pt: any) => ({
-                label: pt.name,
-                value: pt.product_type_id
-              }))}
-            />
+      <div className="space-y-6">
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="w-full sm:max-w-md">
+              <Input
+                placeholder="Tìm theo mã đơn, sản phẩm..."
+                prefix={<SearchOutlined className="text-gray-400" />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+                size="large"
+              />
+            </div>
+            <Button
+              type="primary"
+              icon={<ReloadOutlined />}
+              onClick={() => refetchSuggestions()}
+              className="bg-blue-600 self-start sm:self-auto"
+            >
+              Tải lại danh sách
+            </Button>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
-            <Select
-              mode="multiple"
-              className="w-full"
-              placeholder="Chọn các công đoạn ghép (VD: PHU, CAN...)"
-              value={selectedProcessCodes}
-              onChange={(val) => {
-                setSelectedProcessCodes(val);
-                setSelectedOrders([]);
-                setSearchText("");
-              }}
-              options={ALLOWED_PROCESS_CODES}
-              allowClear
-            />
-          </div>
+          <Table
+            columns={suggestionColumns}
+            dataSource={filteredSuggestions}
+            rowKey="suggestion_key"
+            loading={isSuggestionsLoading}
+            pagination={{ pageSize: 15 }}
+            bordered
+            locale={{ emptyText: "Không có đề xuất sản xuất nào." }}
+            scroll={{ x: 1000 }}
+          />
         </div>
-      </Card>
 
-      <Tabs activeKey={mode} renderTabBar={() => <></>}
-        className="mb-6"
-        items={[
-          {
-            key: "suggestions",
-            label: "Gợi ý ghép đơn",
-            children: (
-              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <Title level={4} className="!mb-0 text-gray-800">Danh sách gợi ý ghép đơn</Title>
-                  <Button
-                    type="primary"
-                    icon={<ReloadOutlined />}
-                    onClick={() => refetchSuggestions()}
-                    className="bg-blue-600 self-start sm:self-auto"
-                  >
-                    Tải lại danh sách
-                  </Button>
-                </div>
-                <Table
-                  columns={suggestionColumns}
-                  dataSource={suggestions}
-                  rowKey={(record, index) => index?.toString() || ""}
-                  loading={isSuggestionsLoading}
-                  pagination={{ pageSize: 10 }}
-                  bordered
-                  locale={{ emptyText: "Không có gợi ý ghép đơn nào cho loại sản phẩm này." }}
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mt-6">
+          <div className="mb-4">
+            <Title level={4} className="!mb-0 text-gray-800">Tự chọn đơn hàng & Ghép thủ công</Title>
+            <div className="text-gray-500 text-sm mt-1">Danh sách dưới đây là toàn bộ các đơn hàng có trong các đề xuất ở trên. Bạn có thể tự chọn ra một số đơn hàng để ghép thay vì dùng mặc định theo đề xuất.</div>
+          </div>
+
+          <Table
+            rowSelection={rowSelection}
+            columns={manualColumns}
+            dataSource={manualCandidates}
+            rowKey="unique_key"
+            pagination={{ pageSize: 100 }}
+            bordered
+            rowClassName={(record: any) => record.group_index % 2 === 0 ? "bg-white" : "bg-blue-50/20"}
+            locale={{ emptyText: "Không có đơn hàng nào." }}
+            className="mb-6 shadow-sm"
+          />
+
+          <Card className="border-blue-100 bg-blue-50/30 shadow-sm">
+            <Title level={4} className="!mb-4 text-blue-800">Xác nhận tạo lệnh ghép</Title>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
+                <Select
+                  mode="multiple"
+                  className="w-full"
+                  placeholder="VD: PHU, CAN..."
+                  value={manualProcessCodes}
+                  onChange={setManualProcessCodes}
+                  options={ALLOWED_PROCESS_CODES}
+                  allowClear
                 />
               </div>
-            )
-          },
-          {
-            key: "manual",
-            label: "Tự tạo lệnh ghép",
-            children: (
-              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-
-                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <Title level={4} className="!mb-0 text-gray-800">Danh sách đơn hàng tiềm năng</Title>
-                  <Button
-                    type="primary"
-                    icon={<ReloadOutlined />}
-                    onClick={() => refetch()}
-                    className="bg-blue-600 self-start sm:self-auto"
-                  >
-                    Tải lại danh sách
-                  </Button>
-                </div>
-
-                {/* Bộ lọc tìm kiếm và sắp xếp */}
-                <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center">
-                  <div className="w-full md:flex-1">
-                    <Input
-                      placeholder="Tìm kiếm theo mã đơn hoặc tên sản phẩm..."
-                      prefix={<SearchOutlined className="text-gray-400" />}
-                      value={searchText}
-                      onChange={(e) => setSearchText(e.target.value)}
-                      allowClear
-                      className="w-full"
-                      size="large"
-                    />
-                  </div>
-                  <div className="w-full md:w-80 flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-600 shrink-0">Sắp xếp:</span>
-                    <Select
-                      value={sortBy}
-                      onChange={(val) => setSortBy(val)}
-                      className="w-full"
-                      size="large"
-                      options={[
-                        { label: "Mới nhất (Mã đơn giảm)", value: "newest" },
-                        { label: "Cũ nhất (Mã đơn tăng)", value: "oldest" },
-                        { label: "Ngày giao gần nhất", value: "delivery_asc" },
-                        { label: "Ngày giao xa nhất", value: "delivery_desc" },
-                        { label: "Số lượng tăng dần", value: "qty_asc" },
-                        { label: "Số lượng giảm dần", value: "qty_desc" },
-                      ]}
-                    />
-                  </div>
-                </div>
-
-                <Table
-                  rowSelection={rowSelection}
-                  columns={columns}
-                  dataSource={filteredAndSortedCandidates}
-                  rowKey="order_id"
-                  loading={isCandidatesLoading}
-                  pagination={{ pageSize: 10 }}
-                  bordered
-                  rowClassName={(record) => suggestedOrderIds.has(record.order_id) ? "bg-green-50/40" : ""}
-                  locale={{
-                    emptyText: searchText
-                      ? "Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm."
-                      : "Không có đơn hàng nào thỏa mãn điều kiện lọc (cần cùng Product Type và cùng chứa các công đoạn đã chọn)."
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
+                <DatePicker
+                  className="w-full"
+                  value={manualStartDate}
+                  onChange={setManualStartDate}
+                  format="DD/MM/YYYY"
+                  disabledDate={(current) => {
+                    if (current && current.isBefore(dayjs().startOf("day"), "day")) {
+                      return true;
+                    }
+                    if (maxAllowedStartDate && current && current.isAfter(maxAllowedStartDate, "day")) {
+                      return true;
+                    }
+                    return false;
                   }}
-                  className="mb-6 shadow-sm"
                 />
-
-                <Card className="border-green-100 bg-green-50/30 shadow-sm mt-6">
-                  <Title level={4} className="!mb-4 text-green-800">Xác nhận tạo lệnh ghép</Title>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
-                      <DatePicker
-                        className="w-40 [&_input]:text-right"
-                        value={plannedStartDate}
-                        onChange={setPlannedStartDate}
-                        format="DD/MM/YYYY"
-                        disabledDate={(current) => {
-                          if (maxAllowedStartDate && current && current.isAfter(maxAllowedStartDate, "day")) {
-                            return true;
-                          }
-                          return vietnamHolidaysDisabledDate(current);
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
-                      <Input.TextArea
-                        rows={1}
-                        placeholder="Nhập ghi chú cho lệnh ghép (nếu có)"
-                        value={note}
-                        onChange={e => setNote(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-green-200 pt-4 mt-2">
-                    <div className="text-green-800">
-                      Đã chọn <span className="font-bold text-lg">{selectedOrders.length}</span> đơn hàng để ghép.
-                    </div>
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<PlayCircleOutlined />}
-                      onClick={handlePreviewManual}
-                      loading={isPreviewLoading}
-                      disabled={selectedOrders.length < 2 || !plannedStartDate || selectedProcessCodes.length === 0}
-                      className="bg-green-600 hover:bg-green-700 border-none px-8"
-                    >
-                      Xem trước & Tạo
-                    </Button>
-                  </div>
-                </Card>
               </div>
-            )
-          }
-        ]}
-      />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
+                <Input.TextArea
+                  rows={1}
+                  placeholder="Nhập ghi chú cho lệnh ghép (nếu có)"
+                  value={manualNote}
+                  onChange={e => setManualNote(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-blue-200 pt-4 mt-2">
+              <div className="text-blue-800">
+                Đã chọn <span className="font-bold text-lg">{selectedManualOrders.length}</span> đơn hàng.
+              </div>
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlayCircleOutlined />}
+                onClick={handlePreviewManual}
+                loading={isPreviewLoading}
+                disabled={selectedManualOrders.length < 1 || !manualStartDate || manualProcessCodes.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 border-none px-8"
+              >
+                Xem trước & Tạo
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
 
       <Modal
-        title={<Title level={4}>Xác nhận Tạo Lệnh Ghép</Title>}
+        title={<Title level={4}>Xác nhận Tạo Lệnh Sản Xuất</Title>}
         open={isReviewModalOpen}
         onOk={() => createMutation.mutate()}
         onCancel={() => {
@@ -1132,7 +1087,7 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
               </Descriptions.Item> */}
               <Descriptions.Item label="Công đoạn ghép">
                 <div className="flex flex-wrap gap-1">
-                  {previewData.selected_process_codes.map(code => (
+                  {previewData.selected_process_codes.map((code: any) => (
                     <Tag key={code} color="blue">{code}</Tag>
                   ))}
                 </div>
@@ -1149,10 +1104,10 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
               dataSource={previewData.timeline}
               pagination={false}
               size="small"
-              rowKey={(r, i) => `${r.dept_code}-${i}`}
+              rowKey={(r: any, i: any) => `${r.dept_code}-${i}`}
               columns={[
                 {
-                  title: "Giai đoạn", dataIndex: "stage_type", key: "stage_type", render: (t) => {
+                  title: "Giai đoạn", dataIndex: "stage_type", key: "stage_type", render: (t: any) => {
                     const label = t === 'SINGLE_PRIVATE' ? 'Chạy riêng (trước)' : t === 'GROUP' ? <p className="font-bold ">Ghép</p> : t === 'SPLIT' ? 'Chạy riêng (sau)' : t;
                     const color = t === 'SINGLE_PRIVATE' ? 'orange' : t === 'GROUP' ? 'green' : 'blue';
                     return <Tag color={color}>{label}</Tag>;
@@ -1174,7 +1129,7 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
                   <div>
                     <p className="font-semibold mb-1">Ghi chú hệ thống:</p>
                     <ul className="list-disc list-inside text-sm space-y-1">
-                      {previewData.notes.map((note, index) => (
+                      {previewData.notes.map((note: any, index: any) => (
                         <li key={index}>{note}</li>
                       ))}
                     </ul>
@@ -1189,6 +1144,273 @@ function GroupProductionTab({ mode }: { mode: "suggestions" | "manual" }) {
   );
 }
 
+function TrackOrdersTab({ mode }: { mode: "InProcessing" | "Importing" }) {
+  const [searchText, setSearchText] = useState("");
+  const [currentPageOrders, setCurrentPageOrders] = useState(1);
+  const pageSizeOrders = 12;
+
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [selectedProdDetail, setSelectedProdDetail] = useState<any>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+
+  const handleViewDetail = async (prodId: string) => {
+    setIsDetailModalVisible(true);
+    setIsDetailLoading(true);
+    try {
+      const res = await productionsApi.getProductionByProdId(prodId);
+      setSelectedProdDetail(res?.data || res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  const handleViewOrderDetail = async (orderId: string) => {
+    setIsDetailModalVisible(true);
+    setIsDetailLoading(true);
+    try {
+      const res = await productionsApi.getProdyctionByOrderId(orderId);
+      setSelectedProdDetail(res?.data || res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  const { data: ordersData, isLoading } = useQuery({
+    queryKey: ["orders", "gm-approval-list"],
+    queryFn: async () => {
+      try {
+        const response = await orderApi.getList(1, 100);
+        return Array.isArray(response.data) ? response.data : [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const getDeliveryColor = (date: string) => {
+    if (!date) return "bg-gray-100 text-gray-500 border-gray-200";
+    const today = new Date();
+    const delivery = new Date(date);
+    const diffDays = Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "bg-red-100 text-red-700 border-red-300 animate-pulse";
+    if (diffDays <= 3) return "bg-red-100 text-red-700 border-red-300";
+    if (diffDays <= 7) return "bg-yellow-100 text-yellow-700 border-yellow-300";
+    return "bg-green-100 text-green-700 border-green-300";
+  };
+
+  const getRemainingDaysText = (date: string) => {
+    if (!date) return "N/A";
+    const today = new Date();
+    const delivery = new Date(date);
+    const diffDays = Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return `Trễ ${Math.abs(diffDays)} ngày`;
+    if (diffDays === 0) return "Hôm nay giao";
+    return `Còn ${diffDays} ngày`;
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const filteredOrders = useMemo(() => {
+    return (ordersData || [])
+      .filter((o: any) => {
+        const matchesSearch =
+          (o.code || "").toLowerCase().includes(searchText.toLowerCase()) ||
+          (o.customer_name || "").toLowerCase().includes(searchText.toLowerCase()) ||
+          (o.product_name || "").toLowerCase().includes(searchText.toLowerCase());
+
+        return matchesSearch && o.status === mode;
+      })
+      .sort((a: any, b: any) => new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime());
+  }, [ordersData, searchText, mode]);
+
+  const orderColumns: any = [
+    {
+      title: 'Mã đơn',
+      dataIndex: 'code',
+      key: 'code',
+      width: 120,
+      render: (text: string) => <span className="font-mono text-[11px] font-bold text-amber-900 bg-amber-50 px-2 py-1 rounded border border-amber-200">{text}</span>,
+    },
+    {
+      title: 'Sản phẩm & Khách hàng',
+      key: 'product',
+      width: 250,
+      render: (_: any, record: any) => (
+        <div>
+          <div className="font-bold text-gray-900 text-xs line-clamp-1">{record.product_name}</div>
+          <div className="text-[10px] text-gray-500 mt-0.5">{record.customer_name}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Số lượng',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 100,
+      align: 'right',
+      render: (val: number) => <span className="font-bold text-gray-800">{val?.toLocaleString("vi-VN")}</span>,
+    },
+    {
+      title: 'Trạng thái',
+      key: 'status',
+      width: 150,
+      render: (_: any, record: any) => {
+        const isProcessing = record.status === "InProcessing";
+        return (
+          <div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isProcessing ? "bg-amber-100 text-amber-900" : "bg-green-100 text-green-900"}`}>
+              {isProcessing ? "Đang sản xuất" : "Đã hoàn thành"}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      title: 'Lệnh sản xuất',
+      key: 'productions',
+      width: 200,
+      render: (_: any, record: any) => {
+        const orderProds = record.productions || [];
+        return (
+          <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+            {orderProds.map((p: any) => {
+              const statusText = p.status === "InProcessing" ? "Đang SX" : p.status === "Importing" ? "Xong" : "Lịch";
+              const statusColor = p.status === "InProcessing" ? "bg-amber-100 text-amber-800 border-amber-200" : p.status === "Importing" ? "bg-green-100 text-green-800 border-green-200" : "bg-blue-100 text-blue-800 border-blue-200";
+              return (
+                <span
+                  key={p.prod_id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDetail(p.prod_id.toString());
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors border ${statusColor} hover:opacity-80 flex items-center gap-1`}
+                  title={`Xem chi tiết lệnh #${p.code}`}
+                >
+                  #{p.code}
+                  <span className="text-[8px] opacity-75 hidden xl:inline-block">({statusText})</span>
+                </span>
+              );
+            })}
+            {orderProds.length === 0 && <span className="text-[10px] text-gray-400 italic">Chưa có lệnh</span>}
+          </div>
+        );
+      }
+    },
+    {
+      title: 'Hạn giao',
+      key: 'delivery',
+      width: 140,
+      render: (_: any, record: any) => (
+        <div className="flex flex-col gap-1">
+          <span className="text-gray-700 text-xs font-medium">{formatDate(record.delivery_date)}</span>
+          <span className={`w-fit px-1.5 py-0.5 rounded font-bold border text-[9px] ${getDeliveryColor(record.delivery_date)}`}>
+            {getRemainingDaysText(record.delivery_date)}
+          </span>
+        </div>
+      )
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 120,
+      align: 'center',
+      render: (_: any, record: any) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewOrderDetail((record.order_id || record._id).toString());
+          }}
+          className="text-amber-800 hover:text-amber-955 font-bold flex items-center gap-0.5 transition-colors text-[11px] bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200 hover:bg-amber-100 mx-auto"
+        >
+          Chi tiết <BiChevronRight className="w-3.5 h-3.5" />
+        </button>
+      )
+    }
+  ];
+
+  return (
+    <div className="relative min-h-[60vh]">
+      <div className="p-6">
+        <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <Input
+            placeholder="Tìm theo mã đơn, khách hàng hoặc tên sản phẩm..."
+            prefix={<SearchOutlined className="text-gray-400" />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="sm:max-w-md w-full shadow-sm"
+            size="large"
+            allowClear
+          />
+          <div className="text-sm text-gray-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+            Tổng số: <span className="font-bold text-blue-700">{filteredOrders.length}</span> đơn hàng
+          </div>
+        </div>
+
+        <Table
+          columns={orderColumns}
+          dataSource={filteredOrders}
+          rowKey={(record) => record.order_id || record._id || record.code}
+          loading={isLoading}
+          pagination={{
+            current: currentPageOrders,
+            pageSize: pageSizeOrders,
+            onChange: (page) => setCurrentPageOrders(page),
+            showSizeChanger: true
+          }}
+          bordered
+          size="middle"
+          scroll={{ x: 900 }}
+          className="shadow-sm rounded-lg overflow-hidden border border-gray-200"
+        />
+
+        <Modal
+          title={
+            <div className="flex items-center gap-2 text-amber-900 font-bold">
+              <InfoCircleOutlined className="w-5 h-5" />
+              Chi Tiết Lệnh Sản Xuất {selectedProdDetail?.prod_id ? `#${selectedProdDetail.prod_id}` : ""}
+            </div>
+          }
+          open={isDetailModalVisible}
+          onCancel={() => setIsDetailModalVisible(false)}
+          footer={
+            <button
+              onClick={() => setIsDetailModalVisible(false)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+            >
+              Đóng
+            </button>
+          }
+          width={1000}
+        >
+          {isDetailLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Spin size="large" />
+            </div>
+          ) : selectedProdDetail ? (
+            <ProductionDetailReadOnly production={selectedProdDetail} />
+          ) : (
+            <div className="text-center py-8 text-red-500 font-medium">
+              Không tìm thấy thông tin lệnh sản xuất.
+            </div>
+          )}
+        </Modal>
+      </div>
+    </div>
+  );
+}
 
 export default function ProductionApprovalPage() {
   const [activeTab, setActiveTab] = useState("approval");
@@ -1206,7 +1428,14 @@ export default function ProductionApprovalPage() {
   });
 
   const pendingCount = (apiData || []).filter(
-    (order: any) => order.status === "Scheduled" && order.is_production_ready === false
+    (order: any) => order.status === "Pending" && order.is_production_ready === false
+  ).length;
+
+  const waitingManagerCount = (apiData || []).filter(
+    (order: any) =>
+      order.gm_proposed_method != null &&
+      order.proposed_production_method == null &&
+      order.status === "Pending"
   ).length;
 
   const approvedCount = (apiData || []).filter(
@@ -1214,6 +1443,14 @@ export default function ProductionApprovalPage() {
       order.status === "Scheduled" &&
       (order.production_approval_flow === "AUTO_SINGLE_OPTION" ||
         order.production_approval_flow === "MANUAL_MANAGER")
+  ).length;
+
+  const inProcessingCount = (apiData || []).filter(
+    (order: any) => order.status === "InProcessing"
+  ).length;
+
+  const finishedCount = (apiData || []).filter(
+    (order: any) => order.status === "Importing"
   ).length;
 
   const { data: suggestionsData } = useQuery({
@@ -1229,21 +1466,9 @@ export default function ProductionApprovalPage() {
     },
   });
 
-  const { data: candidatesData } = useQuery({
-    queryKey: ["group-candidates", "all"],
-    queryFn: async () => {
-      try {
-        const res = await groupProductionsApi.getGroupableOrders();
-        const list = Array.isArray(res) ? res : (Array.isArray((res as any)?.data) ? (res as any).data : []);
-        return list.filter((o: any) => o.can_group);
-      } catch {
-        return [];
-      }
-    },
-  });
+
 
   const suggestionsCount = suggestionsData?.length || 0;
-  const candidatesCount = candidatesData?.length || 0;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[80vh] p-6">
@@ -1259,7 +1484,7 @@ export default function ProductionApprovalPage() {
               : "bg-gray-50 border-gray-200"
               }`}
             onClick={() => {
-              if (suggestionsCount > 0) setActiveTab("suggestions");
+              if (suggestionsCount > 0) setActiveTab("pending_schedule");
             }}
           >
             <div className="bg-white p-2 rounded-full shadow-sm">
@@ -1267,11 +1492,11 @@ export default function ProductionApprovalPage() {
             </div>
             <div>
               <div className={`text-xs font-semibold uppercase tracking-wider ${suggestionsCount > 0 ? "text-green-600" : "text-gray-500"}`}>
-                Gợi ý ghép lệnh
+                Chờ lên lịch
               </div>
               <div className={`text-sm font-medium ${suggestionsCount > 0 ? "text-green-800" : "text-gray-600"}`}>
                 <span className="text-lg font-bold mr-1">{suggestionsCount}</span>
-                cần xử lý
+                gợi ý cần xử lý
               </div>
             </div>
           </div>
@@ -1303,10 +1528,41 @@ export default function ProductionApprovalPage() {
             ),
           },
           {
-            key: "approved",
+            key: "waiting_manager",
             label: (
               <span className="flex items-center gap-2">
-                Đã duyệt lệnh sản xuất
+                Chờ quản lý duyệt
+                <Badge count={waitingManagerCount} showZero={false} size="small" color="orange" />
+              </span>
+            ),
+            children: (
+              <Suspense
+                fallback={
+                  <div className="flex justify-center items-center py-10">
+                    <Spin size="large" />
+                  </div>
+                }
+              >
+                <ProductionApprovalContent mode="waiting_manager" />
+              </Suspense>
+            ),
+          },
+
+          {
+            key: "pending_schedule",
+            label: (
+              <span className="flex items-center gap-2">
+                Chờ lên lịch
+                <Badge count={suggestionsCount} showZero={false} size="small" color="green" />
+              </span>
+            ),
+            children: <GroupProductionTab />,
+          },
+          {
+            key: "Scheduled",
+            label: (
+              <span className="flex items-center gap-2">
+                Đã lên lịch
                 <Badge count={approvedCount} showZero={false} size="small" color="blue" />
               </span>
             ),
@@ -1323,24 +1579,44 @@ export default function ProductionApprovalPage() {
             ),
           },
           {
-            key: "suggestions",
+            key: "InProcessing",
             label: (
               <span className="flex items-center gap-2">
-                Gợi ý ghép đơn
-                <Badge count={suggestionsCount} showZero={false} size="small" color="green" />
+                Đang sản xuất
+                <Badge count={inProcessingCount} showZero={false} size="small" color="purple" />
               </span>
             ),
-            children: <GroupProductionTab mode="suggestions" />,
+            children: (
+              <Suspense
+                fallback={
+                  <div className="flex justify-center items-center py-10">
+                    <Spin size="large" />
+                  </div>
+                }
+              >
+                <TrackOrdersTab mode="InProcessing" />
+              </Suspense>
+            ),
           },
           {
-            key: "manual",
+            key: "Importing",
             label: (
               <span className="flex items-center gap-2">
-                Tự tạo lệnh ghép
-                <Badge count={candidatesCount} showZero={false} size="small" color="purple" />
+                Đã hoàn thành
+                <Badge count={finishedCount} showZero={false} size="small" color="green" />
               </span>
             ),
-            children: <GroupProductionTab mode="manual" />,
+            children: (
+              <Suspense
+                fallback={
+                  <div className="flex justify-center items-center py-10">
+                    <Spin size="large" />
+                  </div>
+                }
+              >
+                <TrackOrdersTab mode="Importing" />
+              </Suspense>
+            ),
           },
         ]}
       />
