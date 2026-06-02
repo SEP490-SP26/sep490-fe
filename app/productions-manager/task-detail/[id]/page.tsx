@@ -1,8 +1,9 @@
 "use client";
 
 import { tasksApi } from "@/apiRequests/tasks";
+import { productionsApi } from "@/apiRequests/productions";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BsArrowLeft,
   BsCheckCircleFill,
@@ -12,6 +13,7 @@ import {
   BsClock,
   BsImage,
   BsExclamationTriangle,
+  BsInboxes,
 } from "react-icons/bs";
 import { BiPackage } from "react-icons/bi";
 
@@ -50,6 +52,7 @@ export interface DecodeQrResponse {
   token: string;
   link: string;
   task_id: number;
+  prod_id: number;
   qty_good: number;
   exp_unix: number;
   use_manual_input: boolean;
@@ -61,12 +64,37 @@ export interface DecodeQrResponse {
   submitted_payload: unknown | null;
 }
 
+export interface StageInputMaterial {
+  name: string;
+  code: string;
+  quantity: number;
+  estimated_quantity: number;
+  actual_quantity: number | null;
+  quantity_source: string;
+  unit: string;
+}
+
+export interface ProductionStage {
+  process_id: number;
+  seq_num: number;
+  process_name: string;
+  process_code: string;
+  task_id: number;
+  task_name: string;
+  status: string;
+  input_materials: StageInputMaterial[];
+}
+
 /* =======================
    HELPERS
 ======================= */
 function fmtNum(val: number | null | undefined) {
   if (val == null) return "—";
   return val.toLocaleString("vi-VN");
+}
+
+function fmtQty(qty: number) {
+  return qty % 1 === 0 ? qty.toLocaleString("vi-VN") : qty.toFixed(4);
 }
 
 function formatExpiry(unixSeconds: number) {
@@ -85,7 +113,6 @@ function isExpired(unixSeconds: number) {
 
 function isNullText(value: unknown) {
   if (value == null) return true;
-
   return (
     typeof value === "string" &&
     value.trim().toLowerCase() === "null"
@@ -141,26 +168,84 @@ const MATERIAL_NAME_MAP: Record<number, string> = {
 
 /* =======================
    PAGE
-   Nhận decode data qua searchParams hoặc sessionStorage key "qr_decode_result"
 ======================= */
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  // Lấy decode data từ sessionStorage (được lưu trước khi redirect)
-  const [decodeData] = useState<DecodeQrResponse | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = sessionStorage.getItem("qr_decode_result");
-    if (!raw) return null;
-    try {
-      const parsed: DecodeQrResponse = JSON.parse(raw);
-      // chỉ dùng nếu task_id khớp với URL
-      if (parsed.task_id?.toString() === id) return parsed;
-      return null;
-    } catch {
-      return null;
+  // Lấy decode data từ sessionStorage
+  const [decodeData, setDecodeData] =
+  useState<DecodeQrResponse | null>(null);
+
+const [mounted, setMounted] = useState(false);
+
+useEffect(() => {
+  setMounted(true);
+
+  const raw = sessionStorage.getItem("qr_decode_result");
+
+  if (!raw) {
+    setDecodeData(null);
+    return;
+  }
+
+  try {
+    const parsed: DecodeQrResponse = JSON.parse(raw);
+
+    if (parsed.task_id?.toString() === id) {
+      setDecodeData(parsed);
+    } else {
+      setDecodeData(null);
     }
-  });
+  } catch {
+    setDecodeData(null);
+  }
+}, [id]);
+
+  // State cho stage input materials từ production detail API
+  const [stageInputMaterials, setStageInputMaterials] = useState<StageInputMaterial[] | null>(null);
+  const [stageName, setStageName] = useState<string | null>(null);
+  const [loadingStage, setLoadingStage] = useState(false);
+  const [stageError, setStageError] = useState<string | null>(null);
+
+  // Gọi API production detail để lấy input_materials của stage khớp task_id
+  useEffect(() => {
+    if (!decodeData?.prod_id || !decodeData?.task_id) return;
+
+    const fetchStageInputs = async () => {
+      setLoadingStage(true);
+      setStageError(null);
+      try {
+        const res = await productionsApi.getProductionByProdId(
+          decodeData.prod_id.toString()
+        );
+        // Unwrap nếu response có wrapper .data
+        const detail =
+          res && typeof res === "object" && "data" in res && res.data != null
+            ? (res as any).data
+            : res;
+
+        const stages: ProductionStage[] = detail?.stages ?? [];
+        const matchedStage = stages.find(
+          (s) => s.task_id === decodeData.task_id
+        );
+
+        if (matchedStage) {
+          setStageName(matchedStage.task_name ?? matchedStage.process_name);
+          setStageInputMaterials(matchedStage.input_materials ?? []);
+        } else {
+          // task_id không tìm thấy trong stages (ví dụ grouped production)
+          setStageInputMaterials([]);
+        }
+      } catch (err: any) {
+        setStageError(err.message || "Không thể tải nguyên liệu đầu vào");
+      } finally {
+        setLoadingStage(false);
+      }
+    };
+
+    fetchStageInputs();
+  }, [decodeData?.prod_id, decodeData?.task_id]);
 
   const [confirming, setConfirming] = useState(false);
   const [popup, setPopup] = useState<{
@@ -191,6 +276,16 @@ export default function TaskDetailPage() {
       setConfirming(false);
     }
   };
+
+  if (!mounted) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-sm text-gray-500">
+        Đang tải...
+      </div>
+    </div>
+  );
+}
 
   if (!decodeData) {
     return (
@@ -232,7 +327,10 @@ export default function TaskDetailPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200">
-                Task #{decodeData.task_id}
+                Lệnh sản xuất: #{decodeData.prod_id}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200">
+                Mã công đoạn: #{decodeData.task_id}
               </span>
               {decodeData.valid ? (
                 <span className="px-2.5 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold border border-green-200 flex items-center gap-1">
@@ -261,171 +359,251 @@ export default function TaskDetailPage() {
       </div>
 
       <div className="space-y-5">
-        {/* Thành phẩm đầu ra */}
-        {decodeData.outputs.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <BsBoxSeam className="w-4 h-4 text-green-600" />
-              Thành phẩm đầu ra
-            </h3>
-            <div className="space-y-3">
-              {decodeData.outputs.map((out, i) => (
-                <div
-                  key={i}
-                  className="bg-green-50 border border-green-200 rounded-xl p-4"
-                >
-                  <p className="font-semibold text-green-800 mb-3">
-                    {out.output_name}{" "}
-                    <span className="text-xs font-normal text-green-600">
-                      ({out.output_code})
-                    </span>
-                  </p>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="bg-white border border-green-200 rounded-lg p-3">
-  <div className="flex items-center justify-between gap-3">
-    <p className="text-xs text-gray-500">
-      Số lượng thành phẩm
-    </p>
 
-    <p className="text-green-700 text-right">
-      <span className="font-bold text-lg">
-        {fmtNum(out.quantity_good)}
-      </span>{" "}
-      <span className="text-sm">
-  {!isNullText(out.unit) ? out.unit : "sp"}
-</span>
-    </p>
+  {/* ── 1. NGUYÊN LIỆU ĐẦU VÀO CÔNG ĐOẠN ── */}
+  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+      <BsInboxes className="w-4 h-4 text-indigo-600" />
+      Nguyên liệu đầu vào công đoạn
+      {stageName && (
+        <span className="ml-1 text-m font-bold text-gray-400">- {stageName}</span>
+      )}
+    </h3>
+    {loadingStage ? (
+      <div className="flex items-center gap-2 text-sm text-gray-400 py-3">
+        <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+        Đang tải nguyên liệu đầu vào...
+      </div>
+    ) : stageError ? (
+      <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        {stageError}
+      </p>
+    ) : (
+      <div className="border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-indigo-50">
+            <tr>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold text-indigo-600">Tên nguyên liệu</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-indigo-600">Dự kiến</th>
+              <th className="px-3 py-2.5 text-center text-xs font-semibold text-indigo-600">ĐVT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!stageInputMaterials || stageInputMaterials.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-400">
+                  Không có nguyên liệu đầu vào cho công đoạn này.
+                </td>
+              </tr>
+            ) : (
+              stageInputMaterials.map((mat, i) => (
+                <tr key={i} className="border-t hover:bg-indigo-50/30">
+                  <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-indigo-600">
+                    {fmtQty(mat.estimated_quantity)}
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-gray-500 text-xs">{mat.unit ?? "—"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    )}
   </div>
-</div>
-                  </div>
-                </div>
-              ))}
+
+  {/* ── 2. NGUYÊN VẬT LIỆU SỬ DỤNG ── */}
+  {/* Nếu materials[] rỗng → fallback dùng stageInputMaterials */}
+  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+      <BsArrowRight className="w-4 h-4 text-orange-500" />
+      Nguyên vật liệu sử dụng
+    </h3>
+    <div className="border rounded-xl overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-orange-50">
+          <tr>
+            <th className="px-3 py-2.5 text-left text-xs font-semibold text-orange-600">Tên NVL</th>
+            <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">Đã dùng</th>
+            <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">Lượng dư</th>
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">Nhập kho</th>
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">ĐVT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {decodeData.materials.length > 0 ? (
+            decodeData.materials.map((mat, i) => (
+              <tr key={i} className="border-t hover:bg-orange-50/40">
+                <td className="px-3 py-2.5 font-medium text-gray-700">
+                  {!isNullText(mat.material_name)
+                    ? mat.material_name
+                    : !isNullText(mat.material_code)
+                    ? mat.material_code
+                    : MATERIAL_NAME_MAP[mat.material_id] ?? `ID: ${mat.material_id}`}
+                </td>
+                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                  {fmtNum(mat.quantity_used)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
+                  {fmtNum(mat.quantity_left)}
+                </td>
+                <td className="px-3 py-2.5 text-center">
+                  <span
+                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      mat.is_stock
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {mat.is_stock ? "Có" : "Không"}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                  {!isNullText(mat.unit) ? mat.unit : ""}
+                </td>
+              </tr>
+            ))
+          ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
+            // Fallback: hiển thị từ stageInputMaterials
+            stageInputMaterials.map((mat, i) => (
+              <tr key={i} className="border-t hover:bg-orange-50/40">
+                <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
+                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                  {fmtQty(mat.estimated_quantity)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">0</td>
+                <td className="px-3 py-2.5 text-center">
+                  <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                    Không
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                  {!isNullText(mat.unit) ? mat.unit : ""}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={4} className="px-3 py-4 text-center text-sm text-gray-400">
+                Không có nguyên vật liệu sử dụng.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {/* ── 3. BÁN THÀNH PHẨM SỬ DỤNG ── */}
+  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+      <BiPackage className="w-4 h-4 text-purple-600" />
+      Bán thành phẩm sử dụng
+    </h3>
+    <div className="border rounded-xl overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-purple-50">
+          <tr>
+            <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Tên BTP</th>
+            <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Đã dùng</th>
+            <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Lượng dư</th>
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">ĐVT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {decodeData.qr_reference_inputs.length > 0 ? (
+            decodeData.qr_reference_inputs.map((ref, i) => (
+              <tr key={i} className="border-t hover:bg-purple-50/30">
+                <td className="px-3 py-2.5 font-medium text-gray-700">
+                  {!isNullText(ref.input_name) && ref.input_name}{" "}
+                  {!isNullText(ref.input_code) && (
+                    <span className="text-gray-400 text-xs font-normal">({ref.input_code})</span>
+                  )}
+                </td>
+                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                  {fmtNum(ref.quantity_used)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
+                  {fmtNum(ref.quantity_left)}
+                </td>
+                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                  {!isNullText(ref.unit) ? ref.unit : "---"}
+                </td>
+              </tr>
+            ))
+          ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
+            // Fallback: hiển thị từ stageInputMaterials
+            stageInputMaterials.map((mat, i) => (
+              <tr key={i} className="border-t hover:bg-purple-50/30">
+                <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
+                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                  {fmtQty(mat.estimated_quantity)}
+                </td>
+                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">—</td>
+                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">{mat.unit ?? "—"}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={4} className="px-3 py-4 text-center text-sm text-gray-400">
+                Không có bán thành phẩm sử dụng.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {/* ── 4. THÀNH PHẨM ĐẦU RA ── */}
+  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+      <BsBoxSeam className="w-4 h-4 text-green-600" />
+      Thành phẩm đầu ra
+    </h3>
+    {decodeData.outputs.length > 0 ? (
+      <div className="space-y-3">
+        {decodeData.outputs.map((out, i) => (
+          <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <p className="font-semibold text-green-800 mb-3">{out.output_name}</p>
+            <div className="bg-white border border-green-200 rounded-lg p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-gray-500">Số lượng thành phẩm</p>
+                <p className="text-green-700 text-right">
+                  <span className="font-bold text-lg">{fmtNum(out.quantity_good)}</span>{" "}
+                  <span className="text-sm">{!isNullText(out.unit) ? out.unit : "sp"}</span>
+                </p>
+              </div>
             </div>
           </div>
-        )}
-
-        {/* Nguyên vật liệu */}
-        {decodeData.materials.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <BsArrowRight className="w-4 h-4 text-orange-500" />
-              Nguyên vật liệu sử dụng
-            </h3>
-            <div className="border rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-orange-50">
-                  <tr>
-                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-orange-600">
-                      Mã NVL
-                    </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
-                      Đã dùng
-                    </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
-                      Lượng dư
-                    </th>
-                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">
-                      Nhập kho
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {decodeData.materials.map((mat, i) => (
-                    <tr key={i} className="border-t hover:bg-orange-50/40">
-                      <td className="px-3 py-2.5 font-medium text-gray-700">
-                        {!isNullText(mat.material_name)
-                          ? mat.material_name
-                          : !isNullText(mat.material_code)
-                            ? mat.material_code
-                            : MATERIAL_NAME_MAP[mat.material_id] ??
-                              `ID: ${mat.material_id}`}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                        {fmtNum(mat.quantity_used)}{" "}
-                        <span className="text-gray-400 font-normal text-xs">
-                          {!isNullText(mat.unit) ? mat.unit : ""}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
-                        {fmtNum(mat.quantity_left)}{" "}
-                        <span className="text-gray-400 font-normal text-xs">
-                          {!isNullText(mat.unit) ? mat.unit : ""}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <span
-                          className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            mat.is_stock
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          {mat.is_stock ? "Có" : "Không"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        ))}
+      </div>
+    ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
+      // Fallback: hiển thị từ stageInputMaterials
+      <div className="space-y-3">
+        {stageInputMaterials.map((mat, i) => (
+          <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <p className="font-semibold text-green-800 mb-3">{mat.name}</p>
+            <div className="bg-white border border-green-200 rounded-lg p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-gray-500">Số lượng dự kiến</p>
+                <p className="text-green-700 text-right">
+                  <span className="font-bold text-lg">{fmtQty(mat.estimated_quantity)}</span>{" "}
+                  <span className="text-sm">{mat.unit ?? "sp"}</span>
+                </p>
+              </div>
             </div>
           </div>
-        )}
+        ))}
+      </div>
+    ) : (
+      <p className="text-sm text-gray-400 text-center py-4 border border-dashed border-gray-200 rounded-xl">
+        Không có thành phẩm đầu ra.
+      </p>
+    )}
+  </div>
 
-        {/* Bán thành phẩm (reference inputs) */}
-        {decodeData.qr_reference_inputs.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <BiPackage className="w-4 h-4 text-purple-600" />
-              Bán thành phẩm sử dụng
-            </h3>
-            <div className="border rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-purple-50">
-                  <tr>
-                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
-                      Tên BTP
-                    </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                      Đã dùng
-                    </th>
-                    <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                      Lượng dư
-                    </th>
-                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
-                      ĐVT
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {decodeData.qr_reference_inputs.map((ref, i) => (
-                    <tr key={i} className="border-t hover:bg-purple-50/30">
-                      <td className="px-3 py-2.5 font-medium text-gray-700">
-                        {!isNullText(ref.input_name) && ref.input_name}{" "}
-
-                        {!isNullText(ref.input_code) && (
-                          <span className="text-gray-400 text-xs font-normal">
-                            ({ref.input_code})
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                        {fmtNum(ref.quantity_used)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
-                        {fmtNum(ref.quantity_left)}
-                      </td>
-                      <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
-                        {!isNullText(ref.unit) ? ref.unit : "---"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Hình ảnh */}
+  {/* Hình ảnh, ghi chú, action buttons giữ nguyên ... */}
         {decodeData.report_image_url && (
           <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
