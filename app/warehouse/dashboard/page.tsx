@@ -35,7 +35,7 @@ export default function WarehouseDashboard() {
   const { data: subProductsData, isLoading: isSubLoading } = useQuery({
     queryKey: ["subproducts"],
     queryFn: async () => {
-      const res = await subProductsApi.getPaged(1, 500, true);
+      const res = await subProductsApi.getPaged(1, 500, true, true);
       return res;
     },
   });
