@@ -382,9 +382,7 @@ export default function ProdutionManager() {
 
   const filteredScheduled = scheduledOrder.filter((o: any) => {
     if (o.production_method === null || o.production_method === undefined) return false;
-    if (o.can_group !== false) return false;
     if (
-      o.can_group === false &&
         (o.production_status === "InProcessing" ||
         o.group_status === "InProcessing")
     )
