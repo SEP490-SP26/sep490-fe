@@ -675,26 +675,13 @@ export default function ProductionDetailPage() {
   const handleQrScanned = async (scannedToken: string) => {
     try {
       setQrLoading(true);
-      await tasksApi.finishTask({ token: scannedToken });
-
+      const data = await tasksApi.decodeQr({ token: scannedToken });
+      const decodeResult = data.data ?? data;
+      sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
       setQrToken(null);
-      setPopup({
-        open: true,
-        type: "success",
-        message: "Hoàn thành công đoạn thành công 🎉",
-      });
-      setTimeout(async () => {
-        setPopup((p) => ({ ...p, open: false }));
-        await queryClient.invalidateQueries({
-          queryKey: ["production-detail", id],
-        });
-      }, 900);
+      router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
     } catch (err: any) {
-      setPopup({
-        open: true,
-        type: "error",
-        message: err.message || "Lỗi khi hoàn thành công đoạn",
-      });
+      setPopup({ open: true, type: "error", message: err.message || "Lỗi khi đọc mã QR" });
     } finally {
       setQrLoading(false);
     }
@@ -1028,7 +1015,7 @@ export default function ProductionDetailPage() {
 
                     <div className="flex flex-col gap-1.5">
                       <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                        {stage.process_name}
+                        Mã công đoạn: #{stage.task_id} - {stage.process_name}
                         <span className="text-gray-400 font-normal text-sm">
                           (Phụ trách: Phòng {stage.process_name})
                         </span>

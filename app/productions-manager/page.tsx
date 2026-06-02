@@ -312,11 +312,12 @@ export default function ProdutionManager() {
   const callApi = async (token: string) => {
     setIsManualLoading(true);
     try {
-      const res = await tasksApi.finishTask({ token });
-      console.log("API success:", res.data);
-      showSuccessToast("Scan thành công");
-    } catch (error) {
-      console.error("API error:", error);
+      const data = await tasksApi.decodeQr({ token });
+      const decodeResult = data.data ?? data;
+      sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
+      router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
+    } catch (error: any) {
+      showErrorToast(error.message || "Lỗi khi đọc mã QR");
     } finally {
       setIsManualLoading(false);
     }

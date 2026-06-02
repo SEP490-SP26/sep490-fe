@@ -890,15 +890,13 @@ export default function GroupProductionPage() {
   const handleQrScanned = async (scannedToken: string) => {
     try {
       setQrLoading(true);
-      await tasksApi.finishTask({ token: scannedToken });
+      const data = await tasksApi.decodeQr({ token: scannedToken });
+      const decodeResult = data.data ?? data;
+      sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
       setQrToken(null);
-      setPopup({ open: true, type: "success", message: "Hoàn thành công đoạn thành công 🎉" });
-      setTimeout(async () => {
-        setPopup((p) => ({ ...p, open: false }));
-        await queryClient.invalidateQueries({ queryKey: ["group-production-detail", id] });
-      }, 900);
+      router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
     } catch (err: any) {
-      setPopup({ open: true, type: "error", message: err.message || "Lỗi khi hoàn thành công đoạn" });
+      setPopup({ open: true, type: "error", message: err.message || "Lỗi khi decode QR" });
     } finally {
       setQrLoading(false);
     }

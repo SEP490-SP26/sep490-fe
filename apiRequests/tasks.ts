@@ -52,6 +52,11 @@ export const tasksApi = {
         return http.post<CommonResType>(`/api/Tasks/qr`, formData);
     },
 
+    decodeQr: async (body: { token: string }) => {
+        const res = await http.post("api/Tasks/qr/decode", body);
+        return res.data ?? res;
+      },
+
     qrPrepare: (taskId: number) =>
         http.get<any>(`/api/Tasks/qr-prepare/${taskId}`),
 
