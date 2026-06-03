@@ -214,25 +214,26 @@ export default function ProdutionManager() {
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
   const [isManualLoading, setIsManualLoading] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; prodId: number | null }>({
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; prodId: number | null, actionType: "start" | "importing" | "start_group" | null, orderId?: string }>({
     open: false,
     prodId: null,
+    actionType: null,
   });
   const [prodDetailForModal, setProdDetailForModal] = useState<any>(null);
   const [isLoadingModalDetail, setIsLoadingModalDetail] = useState(false);
-  const [isConfirmingImport, setIsConfirmingImport] = useState(false);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
 
-  const openConfirmModal = (order: any) => {
+  const openConfirmModal = (order: any, actionType: "start" | "importing" | "start_group" = "importing") => {
     if (modalDismissGuardRef.current) return;
     const prodId = Number(order.prod_id);
-    setConfirmModal({ open: true, prodId });
+    setConfirmModal({ open: true, prodId, actionType, orderId: order.order_id });
     setProdDetailForModal(mapOrderToModalDetail(order));
     setIsLoadingModalDetail(true);
   };
 
   const closeConfirmModal = () => {
     modalDetailFetchSeqRef.current += 1;
-    setConfirmModal({ open: false, prodId: null });
+    setConfirmModal({ open: false, prodId: null, actionType: null });
     setProdDetailForModal(null);
     setIsLoadingModalDetail(false);
     modalDismissGuardRef.current = true;
@@ -274,21 +275,33 @@ export default function ProdutionManager() {
     };
   }, [confirmModal.open, confirmModal.prodId]);
 
-  const handleConfirmMarkImporting = async () => {
+  const handleConfirmAction = async () => {
     const prodId = confirmModal.prodId;
-    if (prodId == null || Number.isNaN(prodId) || isConfirmingImport) return;
+    if (prodId == null || Number.isNaN(prodId) || isConfirmingAction) return;
 
-    setIsConfirmingImport(true);
+    setIsConfirmingAction(true);
     setIsManualLoading(true);
     try {
-      await productionsApi.markImporting(prodId);
-      closeConfirmModal();
-      showSuccessToast(`Đã xác nhận lấy từ bán thành phẩm cho lệnh SX ${prodId}`);
-      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+      if (confirmModal.actionType === "importing") {
+        await productionsApi.markImporting(prodId);
+        showSuccessToast(`Đã xác nhận lấy từ bán thành phẩm cho lệnh SX ${prodId}`);
+        queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+        closeConfirmModal();
+      } else if (confirmModal.actionType === "start") {
+        await startMutation.mutateAsync({ orderId: confirmModal.orderId as string, prodId: prodId.toString() });
+        closeConfirmModal();
+      } else if (confirmModal.actionType === "start_group") {
+        await productionsApi.startGroupProduction(prodId);
+        showSuccessToast(`Đã bắt đầu sản xuất Lệnh SX ghép ${prodId}`);
+        queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+        closeConfirmModal();
+      }
     } catch (err: any) {
-      showErrorToast(err.message || "Không thể xác nhận");
+      if (confirmModal.actionType !== "start") {
+        showErrorToast(err.message || "Có lỗi xảy ra");
+      }
     } finally {
-      setIsConfirmingImport(false);
+      setIsConfirmingAction(false);
       setIsManualLoading(false);
     }
   };
@@ -715,29 +728,18 @@ const isNvlAllDone =
 
                   <div className="flex flex-col gap-2">
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         if (confirmModal.open || modalDismissGuardRef.current) return;
 
                         if (grouped) {
-                          try {
-                            setIsManualLoading(true);
-                            await productionsApi.startGroupProduction(order.prod_id);
-                            showSuccessToast(`Đã bắt đầu sản xuất Lệnh SX ghép ${order.prod_id}`);
-                            queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
-                          } catch (err: any) {
-                            showErrorToast(err.message || "Không thể bắt đầu sản xuất");
-                          } finally {
-                            setIsManualLoading(false);
-                          }
+                          openConfirmModal(order, "start_group");
                         } else {
                           if (isNvlAllDone) {
-                            openConfirmModal(order);
+                            openConfirmModal(order, "importing");
                           } else {
-                            if (!isStarting)
-                              startMutation.mutate({
-                                orderId: order.order_id,
-                                prodId: order.prod_id,
-                              });
+                            if (!isStarting) {
+                              openConfirmModal(order, "start");
+                            }
                           }
                         }
                       }}
@@ -932,7 +934,13 @@ const isNvlAllDone =
                   <BiPackage className="w-5 h-5 text-yellow-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800">Xác nhận lấy từ bán thành phẩm</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">
+                    {confirmModal.actionType === "importing" 
+                      ? "Xác nhận lấy từ bán thành phẩm" 
+                      : confirmModal.actionType === "start_group" 
+                        ? "Xác nhận bắt đầu sản xuất (Lệnh ghép)" 
+                        : "Xác nhận bắt đầu sản xuất"}
+                  </h3>
                   {detail && (
                     <p className="text-xs text-gray-500 mt-0.5">
                       Lệnh sản xuất: {detail.prod_id}
@@ -1090,7 +1098,9 @@ const isNvlAllDone =
                   </>
                 ) : (
                   <p className="text-sm text-gray-500 text-center py-4">
-                    Xác nhận lệnh sản xuất đã được lấy từ bán thành phẩm
+                    {confirmModal.actionType === "importing"
+                      ? "Xác nhận lệnh sản xuất đã được lấy từ bán thành phẩm"
+                      : "Xác nhận bắt đầu sản xuất"}
                   </p>
                 )}
               </div>
@@ -1101,19 +1111,19 @@ const isNvlAllDone =
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => closeConfirmModal()}
-                  disabled={isConfirmingImport}
+                  disabled={isConfirmingAction}
                   className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleConfirmMarkImporting()}
-                  disabled={isConfirmingImport || confirmModal.prodId == null}
+                  onClick={() => handleConfirmAction()}
+                  disabled={isConfirmingAction || confirmModal.prodId == null}
                   className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-semibold hover:bg-yellow-600 transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <BsCheckCircleFill className="w-3.5 h-3.5" />
-                  {isConfirmingImport ? "Đang xác nhận..." : "Xác nhận"}
+                  {isConfirmingAction ? "Đang xử lý..." : "Xác nhận"}
                 </button>
               </div>
             </div>
