@@ -85,23 +85,21 @@ export default function ProductSpecsSection({
   const getProductTypeRules = (code: string): { forbidden: string[]; alwaysDisabled: string[]; warnings: Record<string, string> } => {
     switch (code) {
       case "KHAY":
-        // Full process except DAN
+        // Full process except CAN, DAN
         return {
-          forbidden: ["DAN"],
+          forbidden: ["CAN", "DAN"],
           alwaysDisabled: ["RALO", "IN", "BE", "DUT"],
-          warnings: { DAN: "Khay không cần công đoạn Dán (khay xếp gài với nhau)" },
+          warnings: { DAN: "Khay không cần công đoạn Dán (khay xếp gài với nhau)", CAN: "Khay không cán màng" },
         };
       case "VO_HOP_GACH":
-        // Mandatory: RALO,CAT,IN,BOI,BE,DUT,DAN; PHU/CAN optional (PHU preferred over CAN)
+        // Mandatory: RALO,CAT,IN,BOI,BE,DUT; Forbidden: PHU,CAN,DAN
         return {
-          forbidden: [],
-          alwaysDisabled: ["RALO", "IN", "BOI", "BE", "DUT", "DAN"],
-          warnings: {
-            CAN: "Vỏ hộp gạch hiếm khi cần Cán màng. Nên dùng Phủ (keo nước) thay thế nếu cần.",
-          },
+          forbidden: ["PHU", "CAN", "DAN"],
+          alwaysDisabled: ["RALO", "IN", "BOI", "BE", "DUT"],
+          warnings: {},
         };
       case "THE_MAU":
-        // Max: RALO,CAT,IN,PHU,BE. Forbidden: BOI, DAN. CAN warning.
+        // Max: RALO,CAT,IN,PHU,CAN,BE,DUT. Forbidden: BOI, DAN.
         return {
           forbidden: ["BOI", "DAN"],
           alwaysDisabled: ["RALO", "IN", "BE"],
@@ -119,6 +117,13 @@ export default function ProductSpecsSection({
           warnings: {
             BOI: "Hộp màu không cần Bồi (giấy Ivory/Duplex đã đủ độ cứng, Bồi làm tăng chi phí và độ dày không cần thiết)",
           },
+        };
+      case "HOP_CARTON":
+        // Max: RALO,CAT,IN,PHU,CAN,BOI,BE,DUT,DAN. (All allowed)
+        return {
+          forbidden: [],
+          alwaysDisabled: ["RALO", "IN", "BE", "DUT"],
+          warnings: {},
         };
       default:
         return {

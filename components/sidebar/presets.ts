@@ -228,6 +228,18 @@ export const generalManagerNavItems: NavItem[] = [
     basePath: "/general-manager",
     exact: true,
   },
+    {
+    path: "/production-approval",
+    label: "Quản lý sản xuất",
+    icon: FiList,
+    basePath: "/general-manager",
+  },
+    {
+    path: "/orders",
+    label: "Danh sách đơn hàng",
+    icon: FiList,
+    basePath: "/general-manager",
+  },
   {
     path: "/materials",
     label: "Quản lý nguyên vật liệu",
@@ -240,16 +252,11 @@ export const generalManagerNavItems: NavItem[] = [
     icon: FiSettings,
     basePath: "/general-manager",
   },
-  {
-    path: "/production-approval",
-    label: "Quản lý sản xuất",
-    icon: FiList,
-    basePath: "/general-manager",
-  },
+
 
   {
     path: "/purchase",
-    label: "Mua nguyên vật liệu",
+    label: "Nhập Nguyên Vật Liệu",
     icon: FiShoppingCart,
     basePath: "/general-manager",
   },
