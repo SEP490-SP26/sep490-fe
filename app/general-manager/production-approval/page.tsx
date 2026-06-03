@@ -27,7 +27,7 @@ import {
   WarningOutlined,
   PlayCircleOutlined,
 } from "@ant-design/icons";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
 import { BiChevronRight } from "react-icons/bi";
 import ProductionDetailReadOnly from "../components/ProductionDetailReadOnly";
@@ -50,6 +50,7 @@ const ALLOWED_PROCESS_CODES = [
 
 function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "waiting_manager" | "approved" }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [searchText, setSearchText] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -130,7 +131,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
     if (mode === "pending") {
       statusMatch = (order.status === "Pending") && order.is_production_ready === false;
     } else if (mode === "waiting_manager") {
-      statusMatch = order.gm_proposed_method != null && order.proposed_production_method == null && order.status === "Pending";
+      statusMatch = order.gm_proposed_method != null && order.production_method == null && order.status === "Pending";
     } else {
       // mode === "approved"
       statusMatch = (order.status === "Scheduled") &&
@@ -232,13 +233,21 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
               return null;
             }
             return (
+              <div className="flex ">
               <button
                 onClick={() => handleOpen(record.order_id || record._id)}
                 disabled={record.status === "Importing" || record.status === "Delivered" || record.gm_proposed_method != null}
                 className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
               >
                 Trình duyệt SX
-              </button >
+              </button>
+              <button
+                onClick={() => router.push(`/general-manager/orders/${record.order_id}`)}
+                className="px-3 py-1 ml-2 text-sm font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              >
+                Xem chi tiết
+              </button>
+              </div>
             );
           },
         },
@@ -858,7 +867,7 @@ function GroupProductionTab() {
       .filter(d => d.isValid());
     if (validDates.length === 0) return null;
     const nearest = validDates.reduce((min, current) => current.isBefore(min) ? current : min);
-    
+
     let calc = nearest.subtract(7, "day");
     if (calc.isBefore(dayjs().startOf("day"))) {
       calc = dayjs().add(1, "day").startOf("day");
@@ -878,7 +887,7 @@ function GroupProductionTab() {
       const payload = {
         order_ids: selectedManualOrders.map(o => o.order_id),
         process_codes: manualProcessCodes,
-        planned_start_date: manualStartDate!.toISOString(),
+        planned_start_date: manualStartDate!.format("YYYY-MM-DD"),
         note: manualNote,
       };
       const res = await groupProductionsApi.getPreview(payload);
@@ -1463,7 +1472,7 @@ export default function ProductionApprovalPage() {
   const waitingManagerCount = (apiData || []).filter(
     (order: any) =>
       order.gm_proposed_method != null &&
-      order.proposed_production_method == null &&
+      order.production_method == null &&
       order.status === "Pending"
   ).length;
 

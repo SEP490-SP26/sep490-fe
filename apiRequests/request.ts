@@ -358,4 +358,6 @@ export const requestOrderApi = {
     http.put<CommonResType>(`/api/Requests/customer-receive?request_id=${request_id}`, {}),
 
   getRequestbyConsultant: (page: number, pageSize: number) => http.get<OrderManagementData>(`/api/Requests/get-requests-and-order-by-login?page=${page}&pageSize=${pageSize}`),
+
+  getRequestByOrderId: (orderId: number) => http.get<RequestDetailResponse>(`/api/Requests/get-by-order-id/${orderId}`),
 };
