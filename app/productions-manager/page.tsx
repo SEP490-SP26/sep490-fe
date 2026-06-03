@@ -187,7 +187,7 @@ function isIssueFileUrl(url: string) {
 
 function mapOrderToModalDetail(order: any) {
   const stages = (order.stage_statuses ?? [])
-    .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
+    .filter((s: any) => s.status !== "GroupedWaiting" && s.status !== "Pending" && s.status != null)
     .map((s: any) => ({
       process_name: s.process_name,
       status: s.status,
@@ -307,37 +307,6 @@ export default function ProdutionManager() {
 
   /* ================== TABS ================== */
   const [activeTab, setActiveTab] = useState<"scheduled" | "processing">("scheduled");
-
-  /* ================== SCAN QR ================== */
-  const callApi = async (token: string) => {
-    setIsManualLoading(true);
-    try {
-      const data = await tasksApi.decodeQr({ token });
-      const decodeResult = data.data ?? data;
-      sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
-      router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
-    } catch (error: any) {
-      showErrorToast(error.message || "Lỗi khi đọc mã QR");
-    } finally {
-      setIsManualLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
-        if (!bufferRef.current) return;
-        callApi(bufferRef.current);
-        bufferRef.current = "";
-        return;
-      }
-      if (e.key.length === 1) {
-        bufferRef.current += e.key;
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []);
 
   /* ================== PAGINATION ================== */
   const ITEMS_PER_PAGE = 5;
@@ -626,12 +595,28 @@ export default function ProdutionManager() {
               const isStarting =
                 startMutation.isPending &&
                 startMutation.variables?.prodId === order.prod_id;
-              const isNvlAllDone =
-                order.production_method === "SUB" &&
-                order.stage_statuses?.length > 0 &&
-                order.stage_statuses
-                  .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
-                  .every((s: any) => s.status === "Finished");
+              const visibleStages = (order.stage_statuses ?? [])
+  .filter(
+    (s: any) =>
+      s.status !== "GroupedWaiting" &&
+      s.status !== null &&
+      s.status !== undefined
+  )
+  .sort((a: any, b: any) => a.seq_num - b.seq_num);
+
+const currentStageIndex = visibleStages.findIndex(
+  (s: any) => s.is_current === true
+);
+
+const previousStages =
+  currentStageIndex > 0
+    ? visibleStages.slice(0, currentStageIndex)
+    : [];
+
+const isNvlAllDone =
+  order.production_method === "SUB" &&
+  previousStages.length > 0 &&
+  previousStages.every((s: any) => s.status === "Finished");
 
               return (
                 <div
@@ -670,34 +655,22 @@ export default function ProdutionManager() {
                           {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
                         </p>
                       )}
-                      {order.delivery_date && (
+                      {order.planned_end_date && (
                         <p
                           className={`text-xs px-2 py-0.5 rounded-md inline-block border ${getDeliveryColor(
-                            order.delivery_date
+                            order.planned_end_date
                           )}`}
                         >
                           Hạn hoàn thành:{" "}
-                          {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                          {new Date(order.planned_end_date).toLocaleDateString("vi-VN")}
                         </p>
                       )}
                     </div>
 
                     {/* Stage badges */}
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {grouped
-                        ? (order.group_process_codes || "")
-                          .split(",")
-                          .filter(Boolean)
-                          .map((code: string, i: number) => (
-                            <span
-                              key={i}
-                              className="rounded-md border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 font-medium"
-                            >
-                              {code.trim()}
-                            </span>
-                          ))
-                        : order.stage_statuses
-                          ? order.stage_statuses
+                      {order.stage_statuses && order.stage_statuses.length > 0
+                        ? order.stage_statuses
                             .filter((s: any) => s.status !== "GroupedWaiting" && s.status !== null && s.status !== undefined)
                             .map((stage: any, i: number) => {
                               const isFinished = stage.status === "Finished";
@@ -707,7 +680,9 @@ export default function ProdutionManager() {
                                   className={`rounded-md border px-2 py-0.5 text-xs flex items-center gap-1
                                     ${isFinished
                                       ? "bg-green-100 text-green-700 border-green-300"
-                                      : "bg-gray-50 text-gray-600 border-gray-300"
+                                      : grouped 
+                                        ? "bg-purple-50 text-purple-700 border-purple-300" 
+                                        : "bg-gray-50 text-gray-600 border-gray-300"
                                     }`}
                                 >
                                   {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
@@ -715,14 +690,26 @@ export default function ProdutionManager() {
                                 </span>
                               );
                             })
+                        : grouped
+                          ? (order.group_process_codes || "")
+                              .split(",")
+                              .filter(Boolean)
+                              .map((code: string, i: number) => (
+                                <span
+                                  key={i}
+                                  className="rounded-md border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 font-medium"
+                                >
+                                  {code.trim()}
+                                </span>
+                              ))
                           : order.stages?.map((stage: string, i: number) => (
-                            <span
-                              key={i}
-                              className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
-                            >
-                              {stage}
-                            </span>
-                          ))}
+                              <span
+                                key={i}
+                                className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
+                              >
+                                {stage}
+                              </span>
+                            ))}
                     </div>
                   </div>
 
@@ -854,14 +841,14 @@ export default function ProdutionManager() {
                         {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
                       </p>
                     )}
-                    {order.delivery_date && (
+                    {order.planned_end_date && (
                       <p
                         className={`text-xs px-2 py-1 rounded-md inline-block border ${getDeliveryColor(
-                          order.delivery_date
+                          order.planned_end_date
                         )}`}
                       >
                         Hạn hoàn thành:{" "}
-                        {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
+                        {new Date(order.planned_end_date).toLocaleDateString("vi-VN")}
                       </p>
                     )}
                   </div>
@@ -915,7 +902,7 @@ export default function ProdutionManager() {
       {confirmModal.open && (() => {
         const detail = prodDetailForModal;
         const finishedStages = detail?.stages?.filter((s: any) => s.status === "Finished") ?? [];
-        const allVisibleStages = detail?.stages?.filter((s: any) => s.status !== "GroupedWaiting" && s.status != null) ?? [];
+        const allVisibleStages = detail?.stages?.filter((s: any) => s.status !== "GroupedWaiting" && s.status != null && s.status !== "Pending") ?? [];
         const nextStage = allVisibleStages.find((s: any) => s.status !== "Finished");
         const lastFinished = finishedStages[finishedStages.length - 1];
 

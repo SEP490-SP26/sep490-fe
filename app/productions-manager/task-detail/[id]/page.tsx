@@ -570,7 +570,7 @@ useEffect(() => {
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-gray-500">Số lượng thành phẩm</p>
                 <p className="text-green-700 text-right">
-                  <span className="font-bold text-lg">{fmtNum(out.quantity_good)}</span>{" "}
+                  <span className="font-bold text-lg">{fmtNum(decodeData.qty_good)}</span>{" "}
                   <span className="text-sm">{!isNullText(out.unit) ? out.unit : "sp"}</span>
                 </p>
               </div>
@@ -604,12 +604,13 @@ useEffect(() => {
   </div>
 
   {/* Hình ảnh, ghi chú, action buttons giữ nguyên ... */}
-        {decodeData.report_image_url && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <BsImage className="w-4 h-4 text-teal-600" />
-              Hình ảnh báo cáo
-            </h3>
+        {/* Hình ảnh báo cáo */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <BsImage className="w-4 h-4 text-teal-600" />
+            Hình ảnh báo cáo
+          </h3>
+          {decodeData.report_image_url ? (
             <a
               href={decodeData.report_image_url}
               target="_blank"
@@ -622,21 +623,21 @@ useEffect(() => {
                 className="w-full h-full object-cover"
               />
             </a>
-          </div>
-        )}
+          ) : (
+            <p className="text-sm text-gray-500 italic">Không có hình ảnh báo cáo</p>
+          )}
+        </div>
 
         {/* Ghi chú */}
-        {!isNullText(decodeData.reason) && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <BsClipboardCheck className="w-4 h-4 text-gray-500" />
-              Ghi chú
-            </h3>
-            <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200">
-              {decodeData.reason}
-            </p>
-          </div>
-        )}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <BsClipboardCheck className="w-4 h-4 text-gray-500" />
+            Ghi chú
+          </h3>
+          <p className={`text-sm bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200 ${!isNullText(decodeData.reason) ? "text-gray-600" : "text-gray-400 italic"}`}>
+            {!isNullText(decodeData.reason) ? decodeData.reason : "Không có ghi chú"}
+          </p>
+        </div>
 
         {/* Action */}
         <div className="flex gap-3 pt-2">

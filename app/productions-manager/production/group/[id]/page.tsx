@@ -339,7 +339,12 @@ function StageCard({
             {stage.seq_num}
           </div>
           <div className="flex flex-col gap-1.5">
-            <h3 className="font-bold text-gray-800 text-base">{stage.process_name}</h3>
+            <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+              Mã công đoạn: #{stage.task_id} - {stage.process_name}
+              <span className="text-gray-400 font-normal text-sm">
+                (Phụ trách: Phòng {stage.process_name})
+              </span>
+            </h3>
             <div className="flex items-center flex-wrap gap-2">
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}>
                 {statusInfo.label}
@@ -665,34 +670,6 @@ export default function GroupProductionPage() {
     };
   }, [previewUrls]);
 
-  // Global barcode scanner
-  const handleQrScannedRef = useRef<((token: string) => void) | null>(null);
-  useEffect(() => {
-    let buffer = "";
-    let lastKeyTime = 0;
-    let scanTimer: NodeJS.Timeout | null = null;
-    const finishScan = () => {
-      const value = buffer.trim();
-      if (value.length >= 6 && handleQrScannedRef.current) {
-        handleQrScannedRef.current(value);
-      }
-      buffer = "";
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      const now = Date.now();
-      if (now - lastKeyTime > 200) buffer = "";
-      lastKeyTime = now;
-      if (e.key === "Enter") { e.preventDefault(); if (scanTimer) clearTimeout(scanTimer); finishScan(); return; }
-      if (e.key.length === 1) buffer += e.key;
-      if (scanTimer) clearTimeout(scanTimer);
-      scanTimer = setTimeout(() => finishScan(), 300);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => { window.removeEventListener("keydown", handleKeyDown); if (scanTimer) clearTimeout(scanTimer); };
-  }, []);
-
   const toggleStage = (taskId: number) => {
     setCollapsedStages((prev) => ({ [taskId]: !(prev[taskId] ?? true) }));
   };
@@ -934,9 +911,7 @@ export default function GroupProductionPage() {
     }
   };
 
-  useEffect(() => {
-    handleQrScannedRef.current = handleQrScanned;
-  });
+  // Note: Global scanner logic removed, now handled in layout.tsx
 
   if (isLoading) {
     return (
