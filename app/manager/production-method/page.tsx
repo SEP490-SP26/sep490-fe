@@ -516,24 +516,7 @@ function ProductionMethodContent() {
 
               {/* ── 2. Chọn Bán thành phẩm ── */}
               {(method === "SUB" || method === "BOTH") && (
-                <div className={isOrderDisabled ? "opacity-60 pointer-events-none" : ""}>
-                  <h3 className="text-base font-bold text-gray-800 mb-3 border-l-4 border-blue-400 pl-2">
-                    Chọn Bán thành phẩm
-                  </h3>
-                  <Select
-                    value={selectedSubId}
-                    onChange={(val) => setSelectedSubId(val)}
-                    placeholder="Chọn bán thành phẩm"
-                    className="w-full mb-4"
-                    disabled={isOrderDisabled}
-                    options={filteredSubProducts.map((sp: SubProduct) => ({
-                      value: sp.id,
-                      label: `ID: ${sp.id} - ${sp.product_type_name} (Có sẵn: ${sp.quantity?.toLocaleString("vi-VN")} cái) - Kích thước: ${sp.width}x${sp.length}mm`,
-                    }))}
-                    showSearch
-                    optionFilterProp="label"
-                  />
-
+                <div className={isOrderDisabled ? "opacity-60 pointer-events-none" : ""}>         
                   {selectedSubProduct && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[

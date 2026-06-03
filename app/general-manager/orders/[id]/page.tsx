@@ -14,7 +14,7 @@ import {
   BsPrinter,
   BsScissors,
 } from "react-icons/bs";
-import Loading from "../../loading";
+import Loading from "@/app/(overview)/loading";
 
 export default function ProductionDetailPage() {
   const params = useParams();
@@ -70,7 +70,7 @@ export default function ProductionDetailPage() {
 
   // Xử lý loading state
   if (isPending) {
-    return <Loading text="Đang tải thông tin đơn hàng..." />;
+    return <Loading />;
   }
 
   console.log("data api", apiData);
@@ -114,6 +114,8 @@ export default function ProductionDetailPage() {
       </div>
     );
   }
+
+
 
   const productionStages = [
     {

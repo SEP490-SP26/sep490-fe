@@ -18,7 +18,8 @@ import {
 } from "react-icons/bi";
 import { BsCheckCircle, BsExclamationCircle } from "react-icons/bs";
 import { FiMoreVertical } from "react-icons/fi";
-import Loading from "../loading";
+import Loading from "@/app/(overview)/loading";
+
 
 export default function OrderListPage() {
   const router = useRouter();
@@ -248,11 +249,11 @@ export default function OrderListPage() {
   };
 
   const handleRowClick = (order: Order) => {
-    router.push(`/manager/orders/${order.order_id}`);
+    router.push(`/general-manager/orders/${order.order_id}`);
   };
 
   if (isPending) {
-    return <Loading text="Đang tải danh sách đơn hàng..." />;
+    return <Loading  />;
   }
 
   if (error) {
@@ -751,7 +752,7 @@ export default function OrderListPage() {
                                         <button
                                           onClick={() =>
                                             router.push(
-                                              `/manager/orders/${order.order_id}`
+                                              `/general-manager/orders/${order.order_id}`
                                             )
                                           }
                                           className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm"
