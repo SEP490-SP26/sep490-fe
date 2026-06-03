@@ -675,13 +675,22 @@ export default function ProductionDetailPage() {
   const handleQrScanned = async (scannedToken: string) => {
     try {
       setQrLoading(true);
-      const data = await tasksApi.decodeQr({ token: scannedToken });
-      const decodeResult = data.data ?? data;
-      sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
+      await tasksApi.finishTask({ token: scannedToken });
       setQrToken(null);
-      router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
+      setQrProcessName("");
+      setPopup({
+        open: true,
+        type: "success",
+        message: "Hoàn thành công đoạn thành công",
+      });
+      setTimeout(async () => {
+        setPopup((p) => ({ ...p, open: false }));
+        await queryClient.invalidateQueries({
+          queryKey: ["production-detail", id],
+        });
+      }, 900);
     } catch (err: any) {
-      setPopup({ open: true, type: "error", message: err.message || "Lỗi khi đọc mã QR" });
+      setPopup({ open: true, type: "error", message: err.message || "Lỗi khi hoàn thành công đoạn" });
     } finally {
       setQrLoading(false);
     }
