@@ -950,123 +950,140 @@ function GroupProductionTab() {
 
   return (
     <div className="relative min-h-[60vh]">
-      <div className="mb-4 text-gray-600">Danh sách các đề xuất sản xuất (đơn lẻ hoặc ghép đơn) từ hệ thống. Bạn có thể xem trước chi tiết lộ trình và xác nhận tạo lệnh sản xuất.</div>
+      <Tabs
+        defaultActiveKey="1"
+        items={[
+          {
+            key: "1",
+            label: "Danh sách đề xuất",
+            children: (
+              <div className="space-y-6 mt-4">
+                <div className="text-gray-600 mb-2">
+                  Danh sách các đề xuất sản xuất (đơn lẻ hoặc ghép đơn) từ hệ thống. Bạn có thể xem trước chi tiết lộ trình và xác nhận tạo lệnh sản xuất.
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                  <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="w-full sm:max-w-md">
+                      <Input
+                        placeholder="Tìm theo mã đơn, sản phẩm..."
+                        prefix={<SearchOutlined className="text-gray-400" />}
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        allowClear
+                        size="large"
+                      />
+                    </div>
+                    <Button
+                      type="primary"
+                      icon={<ReloadOutlined />}
+                      onClick={() => refetchSuggestions()}
+                      className="bg-blue-600 self-start sm:self-auto"
+                    >
+                      Tải lại danh sách
+                    </Button>
+                  </div>
+                  <Table
+                    columns={suggestionColumns}
+                    dataSource={filteredSuggestions}
+                    rowKey="suggestion_key"
+                    loading={isSuggestionsLoading}
+                    pagination={{ pageSize: 15 }}
+                    bordered
+                    locale={{ emptyText: "Không có đề xuất sản xuất nào." }}
+                    scroll={{ x: 1000 }}
+                  />
+                </div>
+              </div>
+            ),
+          },
+          {
+            key: "2",
+            label: "Tự chọn đơn hàng & Ghép thủ công",
+            children: (
+              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mt-4">
+                <div className="mb-4">
+                  <Title level={4} className="!mb-0 text-gray-800">Tự chọn đơn hàng & Ghép thủ công</Title>
+                  <div className="text-gray-500 text-sm mt-1">Danh sách dưới đây là toàn bộ các đơn hàng có trong các đề xuất ở trên. Bạn có thể tự chọn ra một số đơn hàng để ghép thay vì dùng mặc định theo đề xuất.</div>
+                </div>
 
-      <div className="space-y-6">
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="w-full sm:max-w-md">
-              <Input
-                placeholder="Tìm theo mã đơn, sản phẩm..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
-                size="large"
-              />
-            </div>
-            <Button
-              type="primary"
-              icon={<ReloadOutlined />}
-              onClick={() => refetchSuggestions()}
-              className="bg-blue-600 self-start sm:self-auto"
-            >
-              Tải lại danh sách
-            </Button>
-          </div>
-          <Table
-            columns={suggestionColumns}
-            dataSource={filteredSuggestions}
-            rowKey="suggestion_key"
-            loading={isSuggestionsLoading}
-            pagination={{ pageSize: 15 }}
-            bordered
-            locale={{ emptyText: "Không có đề xuất sản xuất nào." }}
-            scroll={{ x: 1000 }}
-          />
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mt-6">
-          <div className="mb-4">
-            <Title level={4} className="!mb-0 text-gray-800">Tự chọn đơn hàng & Ghép thủ công</Title>
-            <div className="text-gray-500 text-sm mt-1">Danh sách dưới đây là toàn bộ các đơn hàng có trong các đề xuất ở trên. Bạn có thể tự chọn ra một số đơn hàng để ghép thay vì dùng mặc định theo đề xuất.</div>
-          </div>
-
-          <Table
-            rowSelection={rowSelection}
-            columns={manualColumns}
-            dataSource={manualCandidates}
-            rowKey="unique_key"
-            pagination={{ pageSize: 100 }}
-            bordered
-            rowClassName={(record: any) => record.group_index % 2 === 0 ? "bg-white" : "bg-blue-50/20"}
-            locale={{ emptyText: "Không có đơn hàng nào." }}
-            className="mb-6 shadow-sm"
-          />
-
-          <Card className="border-blue-100 bg-blue-50/30 shadow-sm">
-            <Title level={4} className="!mb-4 text-blue-800">Xác nhận tạo lệnh ghép</Title>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
-                <Select
-                  mode="multiple"
-                  className="w-full"
-                  placeholder="VD: PHU, CAN..."
-                  value={manualProcessCodes}
-                  onChange={setManualProcessCodes}
-                  options={ALLOWED_PROCESS_CODES}
-                  allowClear
+                <Table
+                  rowSelection={rowSelection}
+                  columns={manualColumns}
+                  dataSource={manualCandidates}
+                  rowKey="unique_key"
+                  pagination={{ pageSize: 100 }}
+                  bordered
+                  rowClassName={(record: any) => record.group_index % 2 === 0 ? "bg-white" : "bg-blue-50/20"}
+                  locale={{ emptyText: "Không có đơn hàng nào." }}
+                  className="mb-6 shadow-sm"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
-                <DatePicker
-                  className="w-full"
-                  value={manualStartDate}
-                  onChange={setManualStartDate}
-                  format="DD/MM/YYYY"
-                  disabledDate={(current) => {
-                    if (current && current.isBefore(dayjs().startOf("day"), "day")) {
-                      return true;
-                    }
-                    if (maxAllowedStartDate && current && current.isAfter(maxAllowedStartDate, "day")) {
-                      return true;
-                    }
-                    return false;
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
-                <Input.TextArea
-                  rows={1}
-                  placeholder="Nhập ghi chú cho lệnh ghép (nếu có)"
-                  value={manualNote}
-                  onChange={e => setManualNote(e.target.value)}
-                />
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between border-t border-blue-200 pt-4 mt-2">
-              <div className="text-blue-800">
-                Đã chọn <span className="font-bold text-lg">{selectedManualOrders.length}</span> đơn hàng.
+                <Card className="border-blue-100 bg-blue-50/30 shadow-sm">
+                  <Title level={4} className="!mb-4 text-blue-800">Xác nhận tạo lệnh ghép</Title>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Công đoạn ghép (Bắt buộc)</label>
+                      <Select
+                        mode="multiple"
+                        className="w-full"
+                        placeholder="VD: PHU, CAN..."
+                        value={manualProcessCodes}
+                        onChange={setManualProcessCodes}
+                        options={ALLOWED_PROCESS_CODES}
+                        allowClear
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
+                      <DatePicker
+                        className="w-full"
+                        value={manualStartDate}
+                        onChange={setManualStartDate}
+                        format="DD/MM/YYYY"
+                        disabledDate={(current) => {
+                          if (current && current.isBefore(dayjs().startOf("day"), "day")) {
+                            return true;
+                          }
+                          if (maxAllowedStartDate && current && current.isAfter(maxAllowedStartDate, "day")) {
+                            return true;
+                          }
+                          return false;
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
+                      <Input.TextArea
+                        rows={1}
+                        placeholder="Nhập ghi chú cho lệnh ghép (nếu có)"
+                        value={manualNote}
+                        onChange={e => setManualNote(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-blue-200 pt-4 mt-2">
+                    <div className="text-blue-800">
+                      Đã chọn <span className="font-bold text-lg">{selectedManualOrders.length}</span> đơn hàng.
+                    </div>
+                    <Button
+                      type="primary"
+                      size="large"
+                      icon={<PlayCircleOutlined />}
+                      onClick={handlePreviewManual}
+                      loading={isPreviewLoading}
+                      disabled={selectedManualOrders.length < 1 || !manualStartDate || manualProcessCodes.length === 0}
+                      className="bg-blue-600 hover:bg-blue-700 border-none px-8"
+                    >
+                      Xem trước & Tạo
+                    </Button>
+                  </div>
+                </Card>
               </div>
-              <Button
-                type="primary"
-                size="large"
-                icon={<PlayCircleOutlined />}
-                onClick={handlePreviewManual}
-                loading={isPreviewLoading}
-                disabled={selectedManualOrders.length < 1 || !manualStartDate || manualProcessCodes.length === 0}
-                className="bg-blue-600 hover:bg-blue-700 border-none px-8"
-              >
-                Xem trước & Tạo
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
+            ),
+          },
+        ]}
+      />
 
       <Modal
         title={<Title level={4}>Xác nhận Tạo Lệnh Sản Xuất</Title>}
