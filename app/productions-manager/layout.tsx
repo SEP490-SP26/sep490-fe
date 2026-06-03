@@ -5,7 +5,9 @@ import { productionsManagerNavItems } from "@/components/sidebar/presets";
 import Sidebar from "@/components/sidebar/Sidebar";
 import RoleHeader from "@/components/Header/RoleHeader";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import { tasksApi } from "@/apiRequests/tasks";
+import { showErrorToast } from "@/utils/toastService";
 
 export default function ProductionsManagerLayout({
   children,
@@ -46,6 +48,67 @@ const handleNavigate = (id: number, status?: string | null) => {
       break;
   }
 };
+
+  // GLOBAL SCANNER LOGIC FOR DECODE & NAVIGATE
+  const callApiRef = useRef<any>(null);
+
+  useEffect(() => {
+    callApiRef.current = async (token: string) => {
+      try {
+        const data = await tasksApi.decodeQr({ token });
+        const decodeResult = data.data ?? data;
+        sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
+        router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
+      } catch (error: any) {
+        showErrorToast(error.message || "Lỗi khi đọc mã QR");
+      }
+    };
+  }, [router]);
+
+  useEffect(() => {
+    let buffer = "";
+    let lastKeyTime = 0;
+    let scanTimer: NodeJS.Timeout | null = null;
+
+    const finishScan = () => {
+      const value = buffer.trim();
+      if (value.length >= 6 && callApiRef.current) {
+        callApiRef.current(value);
+      }
+      buffer = "";
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      const now = Date.now();
+      if (now - lastKeyTime > 200) {
+        buffer = "";
+      }
+      lastKeyTime = now;
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (scanTimer) clearTimeout(scanTimer);
+        finishScan();
+        return;
+      }
+      if (e.key.length === 1) {
+        buffer += e.key;
+      }
+      if (scanTimer) clearTimeout(scanTimer);
+      scanTimer = setTimeout(() => {
+        finishScan();
+      }, 300);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      if (scanTimer) clearTimeout(scanTimer);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -411,67 +411,6 @@ export default function ProductionDetailPage() {
   }, [previewUrls]);
 
 
-  // Global Scanner Detection
-  const handleQrScannedRef = useRef<any>(null);
-
-  useEffect(() => {
-    let buffer = "";
-    let lastKeyTime = 0;
-    let scanTimer: NodeJS.Timeout | null = null;
-
-    const finishScan = () => {
-      const value = buffer.trim();
-
-      if (value.length >= 6 && handleQrScannedRef.current) {
-        handleQrScannedRef.current(value);
-      }
-
-      buffer = "";
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = document.activeElement?.tagName;
-
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-      const now = Date.now();
-
-      // nếu ngắt quãng quá lâu mới reset
-      if (now - lastKeyTime > 200) {
-        buffer = "";
-      }
-
-      lastKeyTime = now;
-
-      if (e.key === "Enter") {
-        e.preventDefault();
-
-        if (scanTimer) clearTimeout(scanTimer);
-
-        finishScan();
-        return;
-      }
-
-      if (e.key.length === 1) {
-        buffer += e.key;
-      }
-
-      // fallback nếu scanner không gửi Enter
-      if (scanTimer) clearTimeout(scanTimer);
-
-      scanTimer = setTimeout(() => {
-        finishScan();
-      }, 300);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      if (scanTimer) clearTimeout(scanTimer);
-    };
-  }, []);
-
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
       [processId]: !(prev[processId] ?? true),
@@ -755,10 +694,7 @@ export default function ProductionDetailPage() {
     }
   };
 
-  // Keep ref updated
-  useEffect(() => {
-    handleQrScannedRef.current = handleQrScanned;
-  }, [handleQrScanned]);
+  // Note: Global scanner logic removed, now handled in layout.tsx
 
   if (isLoading) return <Loading text="Đang tải dữ liệu..." />;
 
