@@ -85,50 +85,33 @@ export default function ProductSpecsSection({
   const getProductTypeRules = (code: string): { forbidden: string[]; alwaysDisabled: string[]; warnings: Record<string, string> } => {
     switch (code) {
       case "KHAY":
-        // Full process except CAN, DAN
         return {
           forbidden: ["CAN", "DAN"],
-          alwaysDisabled: ["RALO", "IN", "BE", "DUT"],
-          warnings: { DAN: "Khay không cần công đoạn Dán (khay xếp gài với nhau)", CAN: "Khay không cán màng" },
+          alwaysDisabled: [],
+          warnings: {},
         };
       case "VO_HOP_GACH":
-        // Mandatory: RALO,CAT,IN,BOI,BE,DUT; Forbidden: PHU,CAN,DAN
         return {
           forbidden: ["PHU", "CAN", "DAN"],
-          alwaysDisabled: ["RALO", "IN", "BOI", "BE", "DUT"],
+          alwaysDisabled: [],
           warnings: {},
         };
       case "THE_MAU":
-        // Max: RALO,CAT,IN,PHU,CAN,BE,DUT. Forbidden: BOI, DAN.
         return {
           forbidden: ["BOI", "DAN"],
-          alwaysDisabled: ["RALO", "IN", "BE"],
-          warnings: {
-            BOI: "Thẻ màu không cần Bồi (tấm giấy phẳng, không có khối lượng thể tích)",
-            DAN: "Thẻ màu không cần Dán (không tạo hình không gian 3D)",
-            CAN: "Thẻ màu: Cán màng nilon có thể làm sai lệch sắc độ màu in. Khuyến nghị dùng Phủ thay thế.",
-          },
+          alwaysDisabled: [],
+          warnings: {},
         };
       case "HOP_MAU":
-        // Max: RALO,CAT,IN,PHU/CAN,BE,DUT,DAN. Forbidden: BOI.
-        return {
-          forbidden: ["BOI"],
-          alwaysDisabled: ["RALO", "IN", "BE", "DUT", "CAN", 'PHU'],
-          warnings: {
-            BOI: "Hộp màu không cần Bồi (giấy Ivory/Duplex đã đủ độ cứng, Bồi làm tăng chi phí và độ dày không cần thiết)",
-          },
-        };
-      case "HOP_CARTON":
-        // Max: RALO,CAT,IN,PHU,CAN,BOI,BE,DUT,DAN. (All allowed)
         return {
           forbidden: [],
-          alwaysDisabled: ["RALO", "IN", "BE", "DUT"],
+          alwaysDisabled: [],
           warnings: {},
         };
       default:
         return {
           forbidden: [],
-          alwaysDisabled: ["RALO", "IN", "BE", "DUT"],
+          alwaysDisabled: [],
           warnings: {},
         };
     }

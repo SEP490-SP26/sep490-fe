@@ -48,6 +48,38 @@ const ALLOWED_PROCESS_CODES = [
   { label: "Bồi (BOI)", value: "BOI" },
 ];
 
+const getDeliveryColor = (date: string) => {
+  if (!date) return "bg-gray-100 text-gray-500 border-gray-200";
+  const today = new Date();
+  const delivery = new Date(date);
+  const diffDays = Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "bg-red-100 text-red-700 border-red-300 animate-pulse";
+  if (diffDays <= 3) return "bg-red-100 text-red-700 border-red-300";
+  if (diffDays <= 7) return "bg-yellow-100 text-yellow-700 border-yellow-300";
+  return "bg-green-100 text-green-700 border-green-300";
+};
+
+const getRemainingDaysText = (date: string) => {
+  if (!date) return "N/A";
+  const today = new Date();
+  const delivery = new Date(date);
+  const diffDays = Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return `Trễ ${Math.abs(diffDays)} ngày`;
+  if (diffDays === 0) return "Hôm nay giao";
+  return `Còn ${diffDays} ngày`;
+};
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
 function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "waiting_manager" | "approved" }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -198,16 +230,41 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
       title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const,
       render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>,
     },
-    {
-      title: "Trạng thái", dataIndex: "status", key: "status",
-      render: (status: string) => getStatusTag(status),
-    },
+    // {
+    //   title: "Trạng thái", dataIndex: "status", key: "status",
+    //   render: (status: string) => getStatusTag(status),
+    // },
     {
       title: "Ngày giao dự kiến", dataIndex: "delivery_date", key: "delivery_date",
-      render: (date: string) => date ? new Date(date).toLocaleDateString("vi-VN") : "N/A",
+      render: (_: any, record: any) => (
+        <div className="flex flex-col gap-1">
+          <span className="text-gray-700">{formatDate(record.delivery_date)}</span>
+          <span className={`w-fit px-1.5 py-0.5 rounded font-bold border text-[10px] ${getDeliveryColor(record.delivery_date)}`}>
+            {getRemainingDaysText(record.delivery_date)}
+          </span>
+        </div>
+      )
     },
     ...(mode === "approved"
       ? [
+        {
+          title: "Lệnh sản xuất",
+          key: "productions",
+          render: (_: any, record: any) => {
+            if (record.productions && record.productions.length > 0) {
+              return (
+                <div className="flex flex-wrap gap-1">
+                  {record.productions.map((p: any) => (
+                    <Tag key={p.prod_id || p.code} color="cyan">
+                      {p.prod_id}
+                    </Tag>
+                  ))}
+                </div>
+              );
+            }
+            return <span className="text-gray-400 italic">Chưa có</span>;
+          },
+        },
         {
           title: "Người duyệt",
           key: "approval_source",
@@ -227,7 +284,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
     ...(mode === "pending"
       ? [
         {
-          title: "Thao tác", key: "action", width: 180, align: "center" as const,
+          title: "Thao tác", key: "action", width: 250, align: "center" as const,
           render: (_: any, record: any) => {
             if (record.proposed_production_method != null) {
               return null;
@@ -1229,38 +1286,6 @@ function TrackOrdersTab({ mode }: { mode: "InProcessing" | "Importing" }) {
     },
   });
 
-  const getDeliveryColor = (date: string) => {
-    if (!date) return "bg-gray-100 text-gray-500 border-gray-200";
-    const today = new Date();
-    const delivery = new Date(date);
-    const diffDays = Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return "bg-red-100 text-red-700 border-red-300 animate-pulse";
-    if (diffDays <= 3) return "bg-red-100 text-red-700 border-red-300";
-    if (diffDays <= 7) return "bg-yellow-100 text-yellow-700 border-yellow-300";
-    return "bg-green-100 text-green-700 border-green-300";
-  };
-
-  const getRemainingDaysText = (date: string) => {
-    if (!date) return "N/A";
-    const today = new Date();
-    const delivery = new Date(date);
-    const diffDays = Math.ceil((delivery.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return `Trễ ${Math.abs(diffDays)} ngày`;
-    if (diffDays === 0) return "Hôm nay giao";
-    return `Còn ${diffDays} ngày`;
-  };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
-
   const filteredOrders = useMemo(() => {
     return (ordersData || [])
       .filter((o: any) => {
@@ -1276,85 +1301,53 @@ function TrackOrdersTab({ mode }: { mode: "InProcessing" | "Importing" }) {
 
   const orderColumns: any = [
     {
-      title: 'Mã đơn',
-      dataIndex: 'code',
-      key: 'code',
-      width: 120,
-      render: (text: string) => <span className="font-mono text-[11px] font-bold text-amber-900 bg-amber-50 px-2 py-1 rounded border border-amber-200">{text}</span>,
+      title: "STT", key: "stt", width: 60, align: "center" as const,
+      render: (_: any, __: any, index: number) => (currentPageOrders - 1) * pageSizeOrders + index + 1,
     },
     {
-      title: 'Sản phẩm & Khách hàng',
-      key: 'product',
-      width: 250,
-      render: (_: any, record: any) => (
-        <div>
-          <div className="font-bold text-gray-900 text-xs line-clamp-1">{record.product_name}</div>
-          <div className="text-[10px] text-gray-500 mt-0.5">{record.customer_name}</div>
-        </div>
-      ),
+      title: "Mã đơn", dataIndex: "code", key: "code", width: 120,
+      render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>,
     },
+    { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
+    { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
     {
-      title: 'Số lượng',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 100,
-      align: 'right',
-      render: (val: number) => <span className="font-bold text-gray-800">{val?.toLocaleString("vi-VN")}</span>,
-    },
-    {
-      title: 'Trạng thái',
-      key: 'status',
-      width: 150,
-      render: (_: any, record: any) => {
-        const isProcessing = record.status === "InProcessing";
-        return (
-          <div>
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isProcessing ? "bg-amber-100 text-amber-900" : "bg-green-100 text-green-900"}`}>
-              {isProcessing ? "Đang sản xuất" : "Đã hoàn thành"}
-            </span>
-          </div>
-        );
-      }
+      title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const,
+      render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>,
     },
     {
       title: 'Lệnh sản xuất',
       key: 'productions',
-      width: 200,
       render: (_: any, record: any) => {
         const orderProds = record.productions || [];
-        return (
-          <div className="flex flex-wrap gap-1.5 max-w-[200px]">
-            {orderProds.map((p: any) => {
-              const statusText = p.status === "InProcessing" ? "Đang SX" : p.status === "Importing" ? "Xong" : "Lịch";
-              const statusColor = p.status === "InProcessing" ? "bg-amber-100 text-amber-800 border-amber-200" : p.status === "Importing" ? "bg-green-100 text-green-800 border-green-200" : "bg-blue-100 text-blue-800 border-blue-200";
-              return (
-                <span
-                  key={p.prod_id}
+        if (orderProds.length > 0) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {orderProds.map((p: any) => (
+                <Tag
+                  key={p.prod_id || p.code}
+                  color="cyan"
+                  className="cursor-pointer hover:opacity-80"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleViewDetail(p.prod_id.toString());
                   }}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors border ${statusColor} hover:opacity-80 flex items-center gap-1`}
-                  title={`Xem chi tiết lệnh #${p.code}`}
                 >
-                  #{p.code}
-                  <span className="text-[8px] opacity-75 hidden xl:inline-block">({statusText})</span>
-                </span>
-              );
-            })}
-            {orderProds.length === 0 && <span className="text-[10px] text-gray-400 italic">Chưa có lệnh</span>}
-          </div>
-        );
+                  {p.prod_id}
+                </Tag>
+              ))}
+            </div>
+          );
+        }
+        return <span className="text-gray-400 italic">Chưa có</span>;
       }
     },
     {
-      title: 'Hạn giao',
+      title: 'Ngày giao dự kiến',
       key: 'delivery',
-      width: 140,
       render: (_: any, record: any) => (
         <div className="flex flex-col gap-1">
-          <span className="text-gray-700 text-xs font-medium">{formatDate(record.delivery_date)}</span>
-          <span className={`w-fit px-1.5 py-0.5 rounded font-bold border text-[9px] ${getDeliveryColor(record.delivery_date)}`}>
+          <span className="text-gray-700">{formatDate(record.delivery_date)}</span>
+          <span className={`w-fit px-1.5 py-0.5 rounded font-bold border text-[10px] ${getDeliveryColor(record.delivery_date)}`}>
             {getRemainingDaysText(record.delivery_date)}
           </span>
         </div>
@@ -1366,15 +1359,17 @@ function TrackOrdersTab({ mode }: { mode: "InProcessing" | "Importing" }) {
       width: 120,
       align: 'center',
       render: (_: any, record: any) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleViewOrderDetail((record.order_id || record._id).toString());
-          }}
-          className="text-amber-800 hover:text-amber-955 font-bold flex items-center gap-0.5 transition-colors text-[11px] bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200 hover:bg-amber-100 mx-auto"
-        >
-          Chi tiết <BiChevronRight className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex justify-center">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewOrderDetail((record.order_id || record._id).toString());
+            }}
+            className="px-3 py-1 text-sm font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+          >
+            Xem chi tiết
+          </button>
+        </div>
       )
     }
   ];
