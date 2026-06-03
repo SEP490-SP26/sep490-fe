@@ -353,4 +353,8 @@ export const productionsApi = {
   /** POST /api/GroupProductions/{prodId}/start — Bắt đầu sản xuất đơn ghép */
   startGroupProduction: (prodId: number) =>
     http.post(`/api/GroupProductions/${prodId}/start`, {}),
+
+  /** PUT /api/Productions/confirm-schedule/{prodId} — Manager duyệt lại tiến độ/kế hoạch */
+  confirmSchedule: (prodId: number) =>
+    http.post(`/api/Productions/confirm-schedule/${prodId}`, {}),
 };

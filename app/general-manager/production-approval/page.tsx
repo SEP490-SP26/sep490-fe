@@ -655,6 +655,8 @@ function GroupProductionTab() {
       process_codes: suggestion.suggest_process,
       planned_start_date: suggestion.schedule_planned_start_date || suggestion.suggested_planned_start_date,
       note: suggestion.note || "",
+      is_group: suggestion.can_group,
+      single_prod_id: suggestion.orders?.[0]?.single_prod_id,
     });
     setIsReviewModalOpen(true);
   };
@@ -786,7 +788,17 @@ function GroupProductionTab() {
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!createPayload) throw new Error("Không có dữ liệu tạo lệnh.");
-      await groupProductionsApi.confirmProduceOrder(createPayload);
+      if (createPayload.is_group === false) {
+        if (!createPayload.single_prod_id) throw new Error("Không tìm thấy mã lệnh sản xuất của đơn lẻ.");
+        await productionsApi.confirmSchedule(createPayload.single_prod_id);
+      } else {
+        await groupProductionsApi.confirmProduceOrder({
+          order_ids: createPayload.order_ids,
+          process_codes: createPayload.process_codes,
+          planned_start_date: createPayload.planned_start_date,
+          note: createPayload.note,
+        });
+      }
     },
     onSuccess: () => {
       message.success("Đã tạo lệnh sản xuất thành công!");
@@ -872,7 +884,7 @@ function GroupProductionTab() {
       const res = await groupProductionsApi.getPreview(payload);
       const data = (res as any).data || res;
       setPreviewData(data);
-      setCreatePayload(payload);
+      setCreatePayload({ ...payload, is_group: true });
       setIsReviewModalOpen(true);
     } catch (error: any) {
       message.error(error?.response?.data?.message || error.message || "Lỗi khi lấy thông tin preview.");
