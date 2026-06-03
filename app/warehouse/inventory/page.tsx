@@ -114,7 +114,7 @@ export default function InventoryManagement() {
     queryKey: ["subproducts"],
     queryFn: async () => {
       try {
-        const response = await subProductsApi.getPaged(1, 500, true);
+        const response = await subProductsApi.getPaged(1, 500, false, false);
         return response;
       } catch (error) {
         console.error("Error fetching subproducts:", error);

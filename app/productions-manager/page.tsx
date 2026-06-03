@@ -94,7 +94,7 @@ function ProcessingStages({ prodId }: { prodId: number }) {
                 }`}
             >
               {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
-              {stage.process_name}
+              {stage.process_name} - ID: #{stage.task_id }
             </span>
           );
         })}
@@ -165,7 +165,7 @@ function GroupProcessingStages({ prodId }: { prodId: number }) {
                 }`}
             >
               {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
-              {stage.process_name}
+              {stage.process_name} - ID: #{stage.task_id}
             </span>
           );
         })}
@@ -312,11 +312,12 @@ export default function ProdutionManager() {
   const callApi = async (token: string) => {
     setIsManualLoading(true);
     try {
-      const res = await tasksApi.finishTask({ token });
-      console.log("API success:", res.data);
-      showSuccessToast("Scan thành công");
-    } catch (error) {
-      console.error("API error:", error);
+      const data = await tasksApi.decodeQr({ token });
+      const decodeResult = data.data ?? data;
+      sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
+      router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
+    } catch (error: any) {
+      showErrorToast(error.message || "Lỗi khi đọc mã QR");
     } finally {
       setIsManualLoading(false);
     }
@@ -380,16 +381,22 @@ export default function ProdutionManager() {
   /* ================== FILTER DATA ================== */
 
   const filteredScheduled = scheduledOrder.filter((o: any) => {
-    if (o.can_group !== false) return false;
+    if (o.production_method === null || o.production_method === undefined) return false;
     if (
-      o.can_group === false &&
         (o.production_status === "InProcessing" ||
         o.group_status === "InProcessing")
     )
       return false;
 
+    const listStageStatuses = o.stage_statuses;
+
     const matchOrder =
-      !searchOrderId || o.prod_id.toString().includes(searchOrderId);
+  !searchOrderId ||
+  o.prod_id.toString().includes(searchOrderId) ||
+  (Array.isArray(listStageStatuses) &&
+    listStageStatuses.some((s: any) =>
+      s.task_id?.toString().includes(searchOrderId)
+    ));
 
     const matchDate =
       !deliveryDate ||
@@ -404,11 +411,17 @@ export default function ProdutionManager() {
   });
 
   const processingList = scheduledOrder
-    .filter(
-      (o: any) =>
-        o.production_status === "InProcessing" ||
-        o.group_status === "InProcessing"
-    )
+  .filter(
+    (o: any) =>
+      (o.production_status === "InProcessing" ||
+        o.group_status === "InProcessing") &&
+      (!searchOrderId ||
+        o.prod_id.toString().includes(searchOrderId) ||
+        (Array.isArray(o.stage_statuses) &&
+          o.stage_statuses.some((s: any) =>
+            s.task_id?.toString().includes(searchOrderId)
+          )))
+  )
     .sort((a: any, b: any) => {
       if (sortType === "newest") return b.prod_id - a.prod_id;
       if (sortType === "delivery")
@@ -517,7 +530,7 @@ export default function ProdutionManager() {
             type="text"
             value={searchOrderId}
             onChange={(e) => setSearchOrderId(e.target.value)}
-            placeholder="Nhập lệnh sản xuất..."
+            placeholder="Nhập lệnh sản xuất, task id..."
             className="block border rounded-lg px-3 py-2 text-sm w-[180px]"
           />
         </div>
@@ -698,7 +711,7 @@ export default function ProdutionManager() {
                                     }`}
                                 >
                                   {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
-                                  {stage.process_name}
+                                  {stage.process_name} - ID: #{stage.task_id}
                                 </span>
                               );
                             })

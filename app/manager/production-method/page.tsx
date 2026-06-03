@@ -58,7 +58,7 @@ function ProductionMethodContent() {
     queryKey: ["sub-products"],
     queryFn: async () => {
       try {
-        const res = await subProductsApi.getPaged(1, 500, true);
+        const res = await subProductsApi.getPaged(1, 500, true, false);
         return res?.data?.data || [];
       } catch {
         return [];

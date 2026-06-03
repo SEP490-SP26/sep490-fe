@@ -676,12 +676,12 @@ export default function ProductionDetailPage() {
     try {
       setQrLoading(true);
       await tasksApi.finishTask({ token: scannedToken });
-
       setQrToken(null);
+      setQrProcessName("");
       setPopup({
         open: true,
         type: "success",
-        message: "Hoàn thành công đoạn thành công 🎉",
+        message: "Hoàn thành công đoạn thành công",
       });
       setTimeout(async () => {
         setPopup((p) => ({ ...p, open: false }));
@@ -690,11 +690,7 @@ export default function ProductionDetailPage() {
         });
       }, 900);
     } catch (err: any) {
-      setPopup({
-        open: true,
-        type: "error",
-        message: err.message || "Lỗi khi hoàn thành công đoạn",
-      });
+      setPopup({ open: true, type: "error", message: err.message || "Lỗi khi hoàn thành công đoạn" });
     } finally {
       setQrLoading(false);
     }
@@ -1028,7 +1024,7 @@ export default function ProductionDetailPage() {
 
                     <div className="flex flex-col gap-1.5">
                       <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                        {stage.process_name}
+                        Mã công đoạn: #{stage.task_id} - {stage.process_name}
                         <span className="text-gray-400 font-normal text-sm">
                           (Phụ trách: Phòng {stage.process_name})
                         </span>
@@ -1118,10 +1114,11 @@ export default function ProductionDetailPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {/* Input Materials */}
                       <div className="flex flex-col">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+                        <h4 className="font-semibold mb-1 flex items-center gap-2 text-sm text-gray-700">
                           <BsArrowRight className="w-4 h-4 text-orange-500" />
                           Nguyên vật liệu đầu vào
                         </h4>
+                        <p className="text-xs text-gray-400 mb-1">Số lượng NVL đầu vào được ước tính ở hiệu suất sản xuất 100%</p>
                         <div className="border rounded-xl overflow-hidden flex-1">
                           <table className="w-full text-sm">
                             <thead className="bg-orange-50">
@@ -1131,6 +1128,9 @@ export default function ProductionDetailPage() {
                                 </th>
                                 <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
                                   Số lượng ước tính
+                                </th>
+                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">
+                                  Thực tế
                                 </th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">
                                   ĐVT
@@ -1163,6 +1163,9 @@ export default function ProductionDetailPage() {
                                             ? m.estimated_quantity.toFixed(2)
                                             : m.estimated_quantity.toLocaleString("vi-VN")
                                           : m.estimated_quantity}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-right font-semibold">
+                                        {m.actual_quantity || "-"}
                                       </td>
                                       <td className="px-3 py-2.5 text-center text-gray-500">
                                         {m.unit}

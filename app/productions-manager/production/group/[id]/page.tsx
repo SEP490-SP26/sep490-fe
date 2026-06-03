@@ -892,10 +892,17 @@ export default function GroupProductionPage() {
       setQrLoading(true);
       await tasksApi.finishTask({ token: scannedToken });
       setQrToken(null);
-      setPopup({ open: true, type: "success", message: "Hoàn thành công đoạn thành công 🎉" });
+      setQrProcessName("");
+      setPopup({
+        open: true,
+        type: "success",
+        message: "Hoàn thành công đoạn thành công",
+      });
       setTimeout(async () => {
         setPopup((p) => ({ ...p, open: false }));
-        await queryClient.invalidateQueries({ queryKey: ["group-production-detail", id] });
+        await queryClient.invalidateQueries({
+          queryKey: ["group-production-detail", id],
+        });
       }, 900);
     } catch (err: any) {
       setPopup({ open: true, type: "error", message: err.message || "Lỗi khi hoàn thành công đoạn" });
