@@ -96,7 +96,7 @@ export default function ProductionDetail() {
       if (res.data || res.status === 200) {
         showSuccessToast("Xác nhận nhập kho thành công");
         setIsConfirmModalOpen(false);
-        router.push("/warehouse/import-order");
+        router.push("/warehouse/inventory");
       }
     } catch (err: any) {
       showErrorToast(err.response?.data?.message || "Xác nhận nhập kho thất bại");
