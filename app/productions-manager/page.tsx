@@ -205,6 +205,91 @@ function mapOrderToModalDetail(order: any) {
   };
 }
 
+/* =======================
+   Group productions by order_id / list_order_id
+======================= */
+interface ProductionGroup {
+  groupKey: string;
+  orderIds: number[];
+  productions: any[];
+}
+
+function groupProductionsByOrderId(productions: any[]): ProductionGroup[] {
+  // Union-Find to merge order_ids connected via GROUP productions
+  const parent: Record<number, number> = {};
+
+  function find(x: number): number {
+    if (!(x in parent)) parent[x] = x;
+    if (parent[x] !== x) parent[x] = find(parent[x]);
+    return parent[x];
+  }
+
+  function union(a: number, b: number) {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  }
+
+  // Initialize all known order_ids
+  productions.forEach((o) => {
+    if (o.order_id != null) find(o.order_id);
+    if (Array.isArray(o.list_order_id)) {
+      o.list_order_id.forEach((id: number) => find(id));
+    }
+  });
+
+  // Union order_ids connected by GROUP productions (via list_order_id)
+  productions.forEach((o) => {
+    const ids: number[] = Array.isArray(o.list_order_id) ? o.list_order_id : [];
+    if (ids.length > 1) {
+      for (let i = 1; i < ids.length; i++) {
+        union(ids[0], ids[i]);
+      }
+    }
+    // If production has both order_id and list_order_id, union them
+    if (o.order_id != null && ids.length > 0) {
+      union(o.order_id, ids[0]);
+    }
+  });
+
+  // Assign each production to its group
+  const groupMap: Record<string, { orderIds: Set<number>; productions: any[] }> = {};
+
+  productions.forEach((o) => {
+    let gKey: string;
+
+    if (o.order_id != null) {
+      gKey = find(o.order_id).toString();
+    } else if (Array.isArray(o.list_order_id) && o.list_order_id.length > 0) {
+      gKey = find(o.list_order_id[0]).toString();
+    } else {
+      // Standalone production with no order_id and no list_order_id
+      gKey = `standalone_${o.prod_id}`;
+    }
+
+    if (!groupMap[gKey]) {
+      groupMap[gKey] = { orderIds: new Set(), productions: [] };
+    }
+
+    if (o.order_id != null) {
+      groupMap[gKey].orderIds.add(o.order_id);
+    }
+    if (Array.isArray(o.list_order_id)) {
+      o.list_order_id.forEach((id: number) => groupMap[gKey].orderIds.add(id));
+    }
+
+    groupMap[gKey].productions.push(o);
+  });
+
+  return Object.values(groupMap).map((g) => ({
+    groupKey:
+      g.orderIds.size > 0
+        ? Array.from(g.orderIds).sort((a, b) => a - b).join(",")
+        : `standalone`,
+    orderIds: Array.from(g.orderIds).sort((a, b) => a - b),
+    productions: g.productions,
+  }));
+}
+
 export default function ProdutionManager() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -316,7 +401,7 @@ export default function ProdutionManager() {
     updateProductionStage,
   } = useProduction();
 
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   /* ================== TABS ================== */
   const [activeTab, setActiveTab] = useState<"scheduled" | "processing">("scheduled");
@@ -373,12 +458,17 @@ export default function ProdutionManager() {
     const listStageStatuses = o.stage_statuses;
 
     const matchOrder =
-  !searchOrderId ||
-  o.prod_id.toString().includes(searchOrderId) ||
-  (Array.isArray(listStageStatuses) &&
-    listStageStatuses.some((s: any) =>
-      s.task_id?.toString().includes(searchOrderId)
-    ));
+      !searchOrderId ||
+      o.prod_id?.toString().includes(searchOrderId) ||
+      o.order_id?.toString().includes(searchOrderId) ||
+      (Array.isArray(o.list_order_id) &&
+        o.list_order_id.some((id: number) =>
+          id.toString().includes(searchOrderId)
+        )) ||
+      (Array.isArray(listStageStatuses) &&
+        listStageStatuses.some((s: any) =>
+          s.task_id?.toString().includes(searchOrderId)
+        ));
 
     const matchDate =
       !deliveryDate ||
@@ -398,7 +488,12 @@ export default function ProdutionManager() {
       (o.production_status === "InProcessing" ||
         o.group_status === "InProcessing") &&
       (!searchOrderId ||
-        o.prod_id.toString().includes(searchOrderId) ||
+        o.prod_id?.toString().includes(searchOrderId) ||
+        o.order_id?.toString().includes(searchOrderId) ||
+        (Array.isArray(o.list_order_id) &&
+          o.list_order_id.some((id: number) =>
+            id.toString().includes(searchOrderId)
+          )) ||
         (Array.isArray(o.stage_statuses) &&
           o.stage_statuses.some((s: any) =>
             s.task_id?.toString().includes(searchOrderId)
@@ -437,16 +532,20 @@ export default function ProdutionManager() {
       return b.progress_percent - a.progress_percent;
     });
 
-  /* ================== PAGINATION DATA ================== */
-  const scheduledTotalPages = Math.ceil(scheduledList.length / ITEMS_PER_PAGE);
-  const processingTotalPages = Math.ceil(processingList.length / ITEMS_PER_PAGE);
+  /* ================== GROUP BY ORDER_ID / LIST_ORDER_ID ================== */
+  const scheduledGroups = groupProductionsByOrderId(scheduledList);
+  const processingGroups = groupProductionsByOrderId(processingList);
 
-  const scheduledPageData = scheduledList.slice(
+  /* ================== PAGINATION DATA ================== */
+  const scheduledTotalPages = Math.ceil(scheduledGroups.length / ITEMS_PER_PAGE);
+  const processingTotalPages = Math.ceil(processingGroups.length / ITEMS_PER_PAGE);
+
+  const scheduledPageGroups = scheduledGroups.slice(
     (scheduledPage - 1) * ITEMS_PER_PAGE,
     scheduledPage * ITEMS_PER_PAGE
   );
 
-  const processingPageData = processingList.slice(
+  const processingPageGroups = processingGroups.slice(
     (processingPage - 1) * ITEMS_PER_PAGE,
     processingPage * ITEMS_PER_PAGE
   );
@@ -465,10 +564,10 @@ export default function ProdutionManager() {
     return "bg-green-100 text-green-700 border-green-300";
   };
 
-  const toggleOrderDetails = (orderId: string) => {
-    const copy = new Set(expandedOrders);
-    copy.has(orderId) ? copy.delete(orderId) : copy.add(orderId);
-    setExpandedOrders(copy);
+  const toggleGroupCollapse = (groupKey: string) => {
+    const copy = new Set(collapsedGroups);
+    copy.has(groupKey) ? copy.delete(groupKey) : copy.add(groupKey);
+    setCollapsedGroups(copy);
   };
 
   /* ================== SIGNALR ================== */
@@ -594,14 +693,40 @@ export default function ProdutionManager() {
       {/* ================= TAB: LỆNH SẢN XUẤT ================= */}
       {activeTab === "scheduled" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-            {scheduledPageData.length === 0 && (
+          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+            {scheduledPageGroups.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8">
                 Không có lệnh sản xuất nào.
               </p>
             )}
 
-            {scheduledPageData.map((order: any, index: number) => {
+            {scheduledPageGroups.map((group) => {
+              const isGroupExpanded = !collapsedGroups.has(group.groupKey);
+              return (
+                <div key={group.groupKey} className="border border-indigo-100 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupCollapse(group.groupKey)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50/80 to-gray-50/80 hover:from-indigo-100 hover:to-gray-100 transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <BsLayers className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <span className="text-sm font-semibold text-gray-800">
+                        {group.orderIds.length === 0
+                          ? "Lệnh sản xuất độc lập"
+                          : group.orderIds.length === 1
+                            ? `Đơn hàng #${group.orderIds[0]}`
+                            : `Nhóm đơn hàng: ${group.orderIds.map((id: number) => `#${id}`).join(", ")}`}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-white/70 rounded-full px-2 py-0.5 border border-gray-200">
+                        {group.productions.length} lệnh SX
+                      </span>
+                    </div>
+                    <span className={`text-gray-400 transition-transform duration-200 inline-block text-xs ${isGroupExpanded ? "rotate-180" : ""}`}>▼</span>
+                  </button>
+                  {isGroupExpanded && (
+                  <div className="p-3 space-y-3">
+            {group.productions.map((order: any, index: number) => {
               const grouped = isGrouped(order);
 
               const canStart = order.can_start !== false;
@@ -642,13 +767,25 @@ const isNvlAllDone =
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        Lệnh sản xuất:
-                        <span
-                          className={`ml-1 ${grouped ? "text-purple-700" : "text-blue-700"}`}
-                        >
-                          {order.prod_id}
+                      <p className="text-sm font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
+                        <span>
+                          Lệnh sản xuất:
+                          <span
+                            className={`ml-1 ${grouped ? "text-purple-700" : "text-blue-700"}`}
+                          >
+                            {order.prod_id}
+                          </span>
                         </span>
+                        {order.is_priority && (
+                          <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-red-200">
+                            Ưu tiên
+                          </span>
+                        )}
+                        {order.created_at && (new Date().getTime() - new Date(order.created_at).getTime()) < 10 * 60 * 60 * 1000 && (
+                          <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-emerald-200">
+                            Mới tạo
+                          </span>
+                        )}
                       </p>
 
                       <span
@@ -664,20 +801,18 @@ const isNvlAllDone =
                     <div className="flex flex-wrap gap-2 my-1.5">
                       {order.planned_start_date && (
                         <p className="text-xs px-2 py-0.5 rounded-md inline-block border bg-blue-50 text-blue-700 border-blue-200">
-                          Ngày bắt đầu:{" "}
+                          Ngày bắt đầu dự kiến:{" "}
                           {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
                         </p>
-                      )}
-                      {order.planned_end_date && (
-                        <p
+                      )}                      
+                      {order.planned_end_date && (<p
                           className={`text-xs px-2 py-0.5 rounded-md inline-block border ${getDeliveryColor(
                             order.planned_end_date
                           )}`}
                         >
                           Hạn hoàn thành:{" "}
                           {new Date(order.planned_end_date).toLocaleDateString("vi-VN")}
-                        </p>
-                      )}
+                        </p>)}                
                     </div>
 
                     {/* Stage badges */}
@@ -774,6 +909,11 @@ const isNvlAllDone =
                 </div>
               );
             })}
+                  </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -799,13 +939,39 @@ const isNvlAllDone =
       {activeTab === "processing" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
-            {processingPageData.length === 0 && (
+            {processingPageGroups.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 Không có lệnh sản xuất nào đang chạy.
               </p>
             )}
 
-            {processingPageData.map((order: any, index: number) => {
+            {processingPageGroups.map((group) => {
+              const isGroupExpanded = !collapsedGroups.has(group.groupKey);
+              return (
+                <div key={group.groupKey} className="border border-indigo-100 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupCollapse(group.groupKey)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-yellow-50/80 to-gray-50/80 hover:from-yellow-100 hover:to-gray-100 transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <BsLayers className="w-4 h-4 text-yellow-500 shrink-0" />
+                      <span className="text-sm font-semibold text-gray-800">
+                        {group.orderIds.length === 0
+                          ? "Lệnh sản xuất độc lập"
+                          : group.orderIds.length === 1
+                            ? `Đơn hàng #${group.orderIds[0]}`
+                            : `Nhóm đơn hàng: ${group.orderIds.map((id: number) => `#${id}`).join(", ")}`}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-white/70 rounded-full px-2 py-0.5 border border-gray-200">
+                        {group.productions.length} lệnh SX
+                      </span>
+                    </div>
+                    <span className={`text-gray-400 transition-transform duration-200 inline-block text-xs ${isGroupExpanded ? "rotate-180" : ""}`}>▼</span>
+                  </button>
+                  {isGroupExpanded && (
+                  <div className="p-3 space-y-3">
+            {group.productions.map((order: any, index: number) => {
               const grouped = isGrouped(order);
 
               return (
@@ -818,13 +984,25 @@ const isNvlAllDone =
                     }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      Lệnh sản xuất:
-                      <span
-                        className={`ml-1 ${grouped ? "text-purple-600" : "text-yellow-600"}`}
-                      >
-                        {order.prod_id}
+                    <p className="text-sm font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
+                      <span>
+                        Lệnh sản xuất:
+                        <span
+                          className={`ml-1 ${grouped ? "text-purple-600" : "text-yellow-600"}`}
+                        >
+                          {order.prod_id}
+                        </span>
                       </span>
+                      {order.is_priority && (
+                        <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-red-200">
+                          Ưu tiên
+                        </span>
+                      )}
+                      {order.created_at && (new Date().getTime() - new Date(order.created_at).getTime()) < 10 * 60 * 60 * 1000 && (
+                        <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-emerald-200">
+                          Mới tạo
+                        </span>
+                      )}
                     </p>
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold
@@ -839,20 +1017,18 @@ const isNvlAllDone =
                   <div className="flex flex-wrap gap-2 mb-3">
                     {order.planned_start_date && (
                       <p className="text-xs px-2 py-1 rounded-md inline-block border bg-blue-50 text-blue-700 border-blue-200">
-                        Ngày bắt đầu:{" "}
+                        Ngày bắt đầu dự kiến:{" "}
                         {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
                       </p>
                     )}
-                    {order.planned_end_date && (
-                      <p
+                      {order.planned_end_date &&(<p
                         className={`text-xs px-2 py-1 rounded-md inline-block border ${getDeliveryColor(
                           order.planned_end_date
                         )}`}
                       >
                         Hạn hoàn thành:{" "}
                         {new Date(order.planned_end_date).toLocaleDateString("vi-VN")}
-                      </p>
-                    )}
+                      </p>)}
                   </div>
 
                   {grouped ? (
@@ -876,6 +1052,11 @@ const isNvlAllDone =
                     <BsEye className="w-4 h-4" />
                     Xem chi tiết
                   </Link>
+                </div>
+              );
+            })}
+                  </div>
+                  )}
                 </div>
               );
             })}

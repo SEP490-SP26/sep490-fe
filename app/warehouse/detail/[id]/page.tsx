@@ -16,6 +16,7 @@ export default function ProductionDetail() {
   const id = params.id as string;
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const { data: detailData, isPending, error } = useQuery({
     queryKey: ["production-detail", id],
@@ -91,12 +92,14 @@ export default function ProductionDetail() {
   const handleConfirmImporting = async () => {
     try {
       setIsConfirming(true);
-      await requestOrderApi.confirmImporting(Number(id));
-      showSuccessToast("Nhập thành phẩm thành công!");
-      router.push("/warehouse/inventory");
-    } catch (error) {
-      console.error("Error confirming importing:", error);
-      showErrorToast("Có lỗi xảy ra khi nhập kho thành phẩm");
+      const res = await requestOrderApi.confirmImporting(Number(id));
+      if (res.data || res.status === 200) {
+        showSuccessToast("Xác nhận nhập kho thành công");
+        setIsConfirmModalOpen(false);
+        router.push("/warehouse/import-order");
+      }
+    } catch (err: any) {
+      showErrorToast(err.response?.data?.message || "Xác nhận nhập kho thất bại");
     } finally {
       setIsConfirming(false);
     }
@@ -128,7 +131,7 @@ export default function ProductionDetail() {
             <p className="text-gray-500">Mã đơn hàng: {detailData.order_code} • Mã SX: {detailData.production_code}</p>
           </div>
           <button
-            onClick={handleConfirmImporting}
+            onClick={() => setIsConfirmModalOpen(true)}
             disabled={isConfirming || !detailData?.import_recieve_path}
             className="
               bg-green-600 text-white px-6 py-2.5 rounded-lg
@@ -180,16 +183,17 @@ export default function ProductionDetail() {
         </div>
 
         {/* Preview Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col h-full">
+        {/* Preview Card */}
+<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col row-span-2">
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
             <FiFileText className="w-5 h-5 text-indigo-500" />
             Phiếu nhập kho
           </h2>
           {detailData.import_recieve_path ? (
-            <div className="flex-1 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex flex-col items-center justify-center relative group min-h-[250px]">
+            <div className="flex-1 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex flex-col items-center justify-center relative group min-h-[600px]">
               <iframe
                 src={getPreviewUrl(detailData.import_recieve_path)}
-                className="w-full h-full min-h-[250px] object-contain"
+                className="w-full h-full min-h-[600px] object-contain"
                 title="Phiếu nhập kho"
               />
               <button
@@ -208,50 +212,6 @@ export default function ProductionDetail() {
             </div>
           )}
         </div>
-
-        {/* 1. Static Workflow/Stepper */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
-          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">Quy trình nhập kho tiêu chuẩn</h3>
-          <div className="flex-1 flex items-center justify-center w-full">
-            <div className="flex items-center justify-between w-full relative">
-              {/* Đường line chạy ngang nền */}
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-100 z-0"></div>
-
-              {/* Step 1 */}
-              <div className="relative z-10 flex flex-col items-center gap-2 bg-white px-2">
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center border-4 border-white shadow-sm">
-                  <FiSettings className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-medium text-gray-600">Sản xuất</span>
-              </div>
-
-              {/* Step 2 */}
-              <div className="relative z-10 flex flex-col items-center gap-2 bg-white px-2">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border-4 border-white shadow-sm">
-                  <FiFileText className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-medium text-gray-600">Tạo phiếu</span>
-              </div>
-
-              {/* Step 3 */}
-              <div className="relative z-10 flex flex-col items-center gap-2 bg-white px-2">
-                <div className="w-10 h-10 rounded-full bg-yellow-50 text-yellow-600 flex items-center justify-center border-4 border-white shadow-sm">
-                  <BiCheckCircle className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium text-gray-600">Kiểm tra</span>
-              </div>
-
-              {/* Step 4 */}
-              <div className="relative z-10 flex flex-col items-center gap-2 bg-white px-2">
-                <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center border-4 border-white shadow-sm">
-                  <BiPackage className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium text-gray-600">Lưu kho</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* 2. Static Notes / Guidelines */}
         <div className="bg-blue-50/50 rounded-2xl border border-blue-100 p-6 flex flex-col justify-center">
           <div className="flex items-start gap-3">
@@ -295,6 +255,19 @@ export default function ProductionDetail() {
             title="Phiếu nhập kho chi tiết"
           />
         </div>
+      </Modal>
+
+      <Modal
+        title="Xác nhận nhập kho"
+        open={isConfirmModalOpen}
+        onCancel={() => !isConfirming && setIsConfirmModalOpen(false)}
+        onOk={handleConfirmImporting}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        confirmLoading={isConfirming}
+        centered
+      >
+        <p>Bạn có chắc chắn muốn xác nhận nhập kho cho đơn hàng này?</p>
       </Modal>
     </div>
   );
