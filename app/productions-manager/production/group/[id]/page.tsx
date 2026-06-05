@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import TokenQrModal from "@/components/production/TokenQrModal";
+import StageScanLogs from "@/components/production/StageScanLogs";
 import {
   assembleQrReportBody,
   getMaterialsSectionTitle,
@@ -39,6 +40,7 @@ import {
   BsLayers,
   BsCollection,
   BsImage,
+  BsEye,
 } from "react-icons/bs";
 import { BiPackage } from "react-icons/bi";
 
@@ -70,6 +72,8 @@ export interface GroupLog {
   qty_good: number;
   qty_bad?: number;
   report_image_urls?: string[];
+  comment?: string;
+  reason?: string;
 }
 export interface GroupStage {
   task_id: number;
@@ -132,6 +136,7 @@ export interface GroupProductionResponse {
   orders: GroupOrder[];
   stages: GroupStage[];
   previous_stage_context: PreviousStageContext | null;
+  issue_file?: string | null;
 }
 
 /* =======================
@@ -352,13 +357,19 @@ function StageCard({
               <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                 {stage.process_code}
               </span>
-              {/* Badge ảnh nếu có */}
-              {stage.report_image_urls && stage.report_image_urls.length > 0 && (
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-teal-50 text-teal-700 border border-teal-200 flex items-center gap-1">
-                  <BsImage className="w-3 h-3" />
-                  {stage.report_image_urls.length} ảnh
-                </span>
-              )}
+              {(() => {
+                const imageCount =
+                  stage.logs?.reduce(
+                    (sum, log) => sum + (log.report_image_urls?.length ?? 0),
+                    0
+                  ) ?? 0;
+                return imageCount > 0 ? (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-teal-50 text-teal-700 border border-teal-200 flex items-center gap-1">
+                    <BsImage className="w-3 h-3" />
+                    {imageCount} ảnh
+                  </span>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
@@ -506,60 +517,7 @@ function StageCard({
             </div>
           )}
 
-          {/* Scan Logs */}
-          {stage.logs && stage.logs.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                <BsClipboardCheck className="w-4 h-4 text-purple-500" />
-                Lịch sử scan
-              </h4>
-              <div className="border rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-purple-50">
-                    <tr>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Thời gian</th>
-                      <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Số lượng thành phẩm</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stage.logs.map((log, i) => (
-                      <tr key={i} className="border-t">
-                        <td className="px-3 py-2.5">{formatDateTime(log.log_time || log.scanned_at)}</td>
-                        <td className="px-3 py-2.5 text-right text-green-600 font-bold">{log.qty_good}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ========== Stage Report Images ========== */}
-          {stage.report_image_urls && stage.report_image_urls.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                <BsImage className="w-4 h-4 text-teal-500" />
-                Hình ảnh báo cáo công đoạn
-              </h4>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {stage.report_image_urls.map((url, idx) => (
-                  <a
-                    key={idx}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block aspect-square rounded-xl border border-gray-200 overflow-hidden hover:opacity-80 hover:shadow-md transition"
-                  >
-                    <img
-                      src={url}
-                      alt={`stage-report-${idx}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          <StageScanLogs logs={stage.logs} />
 
           {/* ========== Actions ========== */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-end gap-3 pt-4 border-t border-gray-100">
@@ -976,6 +934,51 @@ export default function GroupProductionPage() {
           subValue={`${overallProgress}% tiến độ`}
         />
       </div>
+
+      {/* =================== ISSUE FILE =================== */}
+      {production?.issue_file && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <BsClipboardCheck className="w-4 h-4 text-blue-600" />
+            Phiếu xuất kho
+          </h3>
+          <div>
+            <div
+              className="relative group cursor-pointer rounded-lg overflow-hidden border border-gray-200 bg-gray-50 mb-3 max-w-[400px]"
+              onClick={() => window.open(production.issue_file!, '_blank')}
+            >
+              {production.issue_file.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={`${production.issue_file}#toolbar=0&navpanes=0&scrollbar=0`}
+                  className="w-full h-[250px] border-none pointer-events-none"
+                  title="Phiếu xuất kho PDF Preview"
+                />
+              ) : (
+                <img
+                  src={production.issue_file}
+                  alt="Phiếu xuất kho"
+                  className="w-full h-auto max-h-[250px] object-contain"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/60 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <BsEye className="w-4 h-4" />
+                  Mở trong tab mới
+                </span>
+              </div>
+            </div>
+            <a
+              href={production.issue_file}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
+            >
+              <BsArrowRight className="w-3 h-3" />
+              Mở trong tab mới
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* =================== ORDERS TABLE =================== */}
       {/* <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
