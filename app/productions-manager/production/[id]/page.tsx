@@ -76,6 +76,8 @@ export interface ScanLog {
   qty_good: number;
   qty_bad?: number;
   report_image_urls?: string[];
+  comment: string;
+  reason: string;
 }
 
 export interface ProductionStage {
@@ -1504,57 +1506,111 @@ export default function ProductionDetailPage() {
                       </div>
                     </div>
 
-                    {/* Scan Logs */}
-                    {stage.logs && stage.logs.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                          <BsClipboardCheck className="w-4 h-4 text-purple-500" />
-                          Lịch sử scan
-                        </h4>
-                        <div className="border rounded-xl overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead className="bg-purple-50">
-                              <tr>
-                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
-                                  Thời gian
-                                </th>
-                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                                  Số lượng thành phẩm
-                                </th>
-                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
-                                  Hình ảnh
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {stage.logs.map((log, i) => (
-                                <tr key={i} className="border-t">
-                                  <td className="px-3 py-2.5">
-                                    {formatDateTime(log.log_time || log.scanned_at)}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right text-green-600 font-bold">
-                                    {log.qty_good}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center">
-                                    {log.report_image_urls && log.report_image_urls.length > 0 ? (
-                                      <div className="flex justify-center gap-1 flex-wrap">
-                                        {log.report_image_urls.map((url, idx) => (
-                                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
-                                            <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
-                                          </a>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">—</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
+                   {/* Scan Logs */}
+{stage.logs && stage.logs.length > 0 && (
+  <div>
+    <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
+      <BsClipboardCheck className="w-4 h-4 text-purple-500" />
+      Lịch sử scan
+    </h4>
+
+    <div className="border rounded-xl overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-purple-50">
+          <tr>
+            <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
+              Thời gian
+            </th>
+
+            <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
+              Số lượng thành phẩm
+            </th>
+
+            <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
+              Ghi chú
+            </th>
+
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
+              Hình ảnh
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {stage.logs.map((log, i) => {
+            const images = log.report_image_urls ?? [];
+
+            return (
+              <tr
+                key={i}
+                className="border-t hover:bg-gray-50 transition"
+              >
+                {/* THỜI GIAN */}
+                <td className="px-3 py-2.5 whitespace-nowrap">
+                  {formatDateTime(log.log_time || log.scanned_at)}
+                </td>
+
+                {/* SỐ LƯỢNG */}
+                <td className="px-3 py-2.5 text-right text-green-600 font-bold whitespace-nowrap">
+                  {Number(log.qty_good || 0).toLocaleString("vi-VN")}
+                </td>
+
+                {/* NOTE */}
+                <td className="px-3 py-2.5 text-gray-700 max-w-[240px] break-words">
+                  {log.comment || log.reason ? (
+                    <div className="line-clamp-3">
+                      {log.comment || log.reason}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-xs">—</span>
+                  )}
+                </td>
+
+                {/* HÌNH ẢNH */}
+                <td className="px-3 py-2.5 text-center">
+                  {images.length > 0 ? (
+                    <div className="flex justify-center gap-2 flex-wrap max-w-[140px] mx-auto">
+                      {/* Hiển thị tối đa 2 ảnh */}
+                      {images.slice(0, 2).map((url, idx) => (
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-10 h-10 rounded-lg border border-gray-200 overflow-hidden hover:scale-105 transition shrink-0"
+                        >
+                          <img
+                            src={url}
+                            alt={`report-${idx}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+
+                      {/* Nếu còn ảnh */}
+                      {images.length > 2 && (
+                        <a
+                          href={images[2]}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 hover:bg-gray-200 transition shrink-0"
+                        >
+                          +{images.length - 2}
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-xs">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
                     {/* Last scan info & Actions */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">
