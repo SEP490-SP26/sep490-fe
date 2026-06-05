@@ -973,7 +973,7 @@ function GroupProductionTab() {
       const payload = {
         order_ids: selectedManualOrders.map(o => o.order_id),
         process_codes: manualProcessCodes,
-        is_priority: manualStartDate!.isSameOrAfter(dayjs()) ? true : false,
+        is_priority: true,
         note: manualNote,
       };
       const res = await groupProductionsApi.getPreview(payload);
