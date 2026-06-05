@@ -575,7 +575,7 @@ function ProductionMethodContent() {
               {/* ── 5. Ghi chú Manager ── */}
               <div className={isOrderDisabled ? "opacity-60 pointer-events-none" : ""}>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Ghi chú của Manager (mgr_note)
+                  Ghi chú của Manager
                 </label>
                 <textarea
                   rows={3}
