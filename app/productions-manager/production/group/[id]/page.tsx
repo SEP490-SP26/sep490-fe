@@ -40,6 +40,7 @@ import {
   BsLayers,
   BsCollection,
   BsImage,
+  BsEye,
 } from "react-icons/bs";
 import { BiPackage } from "react-icons/bi";
 
@@ -135,6 +136,7 @@ export interface GroupProductionResponse {
   orders: GroupOrder[];
   stages: GroupStage[];
   previous_stage_context: PreviousStageContext | null;
+  issue_file?: string | null;
 }
 
 /* =======================
@@ -932,6 +934,51 @@ export default function GroupProductionPage() {
           subValue={`${overallProgress}% tiến độ`}
         />
       </div>
+
+      {/* =================== ISSUE FILE =================== */}
+      {production?.issue_file && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <BsClipboardCheck className="w-4 h-4 text-blue-600" />
+            Phiếu xuất kho
+          </h3>
+          <div>
+            <div
+              className="relative group cursor-pointer rounded-lg overflow-hidden border border-gray-200 bg-gray-50 mb-3 max-w-[400px]"
+              onClick={() => window.open(production.issue_file!, '_blank')}
+            >
+              {production.issue_file.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={`${production.issue_file}#toolbar=0&navpanes=0&scrollbar=0`}
+                  className="w-full h-[250px] border-none pointer-events-none"
+                  title="Phiếu xuất kho PDF Preview"
+                />
+              ) : (
+                <img
+                  src={production.issue_file}
+                  alt="Phiếu xuất kho"
+                  className="w-full h-auto max-h-[250px] object-contain"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/60 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <BsEye className="w-4 h-4" />
+                  Mở trong tab mới
+                </span>
+              </div>
+            </div>
+            <a
+              href={production.issue_file}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
+            >
+              <BsArrowRight className="w-3 h-3" />
+              Mở trong tab mới
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* =================== ORDERS TABLE =================== */}
       {/* <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
