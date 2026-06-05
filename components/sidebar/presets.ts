@@ -15,7 +15,7 @@ import { LuLayoutDashboard } from "react-icons/lu";
 import { FaSuitcase, FaUserPlus, FaWarehouse } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 import { NavItem } from "./Sidebar";
-import { TbTruckDelivery } from "react-icons/tb";
+import { TbTruckDelivery, TbPackageExport } from "react-icons/tb";
 
 // Preset cho Designer
 export const designerNavItems: NavItem[] = [
@@ -174,7 +174,7 @@ export const warehouseNavItems: NavItem[] = [
   {
     path: "/export",
     label: "Xuất kho",
-    icon: FaWarehouse,
+    icon: TbPackageExport,
     basePath: "/warehouse",
   },
   {

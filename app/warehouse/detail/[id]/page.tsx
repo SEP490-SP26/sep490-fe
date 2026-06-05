@@ -1,7 +1,7 @@
 "use client";
 
 import { productionsApi } from "@/apiRequests/productions";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { BiArrowBack, BiCube, BiUser, BiCalendar, BiPackage, BiTransferAlt, BiCheckCircle, BiTimeFive, BiRightArrowAlt } from "react-icons/bi";
 import { FiPrinter, FiDroplet, FiSettings, FiFileText } from "react-icons/fi";
@@ -13,6 +13,7 @@ import { showErrorToast, showSuccessToast } from "@/utils/toastService";
 export default function ProductionDetail() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const id = params.id as string;
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -92,14 +93,16 @@ export default function ProductionDetail() {
   const handleConfirmImporting = async () => {
     try {
       setIsConfirming(true);
-      const res = await requestOrderApi.confirmImporting(Number(id));
-      if (res.data || res.status === 200) {
-        showSuccessToast("Xác nhận nhập kho thành công");
-        setIsConfirmModalOpen(false);
-        router.push("/warehouse/inventory");
-      }
+      await requestOrderApi.confirmImporting(Number(id));
+      showSuccessToast("Xác nhận nhập kho thành công");
+      setIsConfirmModalOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["production-detail", id] });
+      await queryClient.invalidateQueries({ queryKey: ["finished-goods"] });
+      await queryClient.invalidateQueries({ queryKey: ["finished-goods-reqs"] });
+      router.push("/warehouse/inventory");
+      router.refresh();
     } catch (err: any) {
-      showErrorToast(err.response?.data?.message || "Xác nhận nhập kho thất bại");
+      showErrorToast(err?.message || "Xác nhận nhập kho thất bại");
     } finally {
       setIsConfirming(false);
     }
