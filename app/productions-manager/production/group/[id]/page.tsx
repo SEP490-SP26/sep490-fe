@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import TokenQrModal from "@/components/production/TokenQrModal";
+import StageScanLogs from "@/components/production/StageScanLogs";
 import {
   assembleQrReportBody,
   getMaterialsSectionTitle,
@@ -70,6 +71,8 @@ export interface GroupLog {
   qty_good: number;
   qty_bad?: number;
   report_image_urls?: string[];
+  comment?: string;
+  reason?: string;
 }
 export interface GroupStage {
   task_id: number;
@@ -352,13 +355,19 @@ function StageCard({
               <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                 {stage.process_code}
               </span>
-              {/* Badge ảnh nếu có */}
-              {stage.report_image_urls && stage.report_image_urls.length > 0 && (
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-teal-50 text-teal-700 border border-teal-200 flex items-center gap-1">
-                  <BsImage className="w-3 h-3" />
-                  {stage.report_image_urls.length} ảnh
-                </span>
-              )}
+              {(() => {
+                const imageCount =
+                  stage.logs?.reduce(
+                    (sum, log) => sum + (log.report_image_urls?.length ?? 0),
+                    0
+                  ) ?? 0;
+                return imageCount > 0 ? (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-teal-50 text-teal-700 border border-teal-200 flex items-center gap-1">
+                    <BsImage className="w-3 h-3" />
+                    {imageCount} ảnh
+                  </span>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
@@ -506,60 +515,7 @@ function StageCard({
             </div>
           )}
 
-          {/* Scan Logs */}
-          {stage.logs && stage.logs.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                <BsClipboardCheck className="w-4 h-4 text-purple-500" />
-                Lịch sử scan
-              </h4>
-              <div className="border rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-purple-50">
-                    <tr>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Thời gian</th>
-                      <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Số lượng thành phẩm</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stage.logs.map((log, i) => (
-                      <tr key={i} className="border-t">
-                        <td className="px-3 py-2.5">{formatDateTime(log.log_time || log.scanned_at)}</td>
-                        <td className="px-3 py-2.5 text-right text-green-600 font-bold">{log.qty_good}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ========== Stage Report Images ========== */}
-          {stage.report_image_urls && stage.report_image_urls.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                <BsImage className="w-4 h-4 text-teal-500" />
-                Hình ảnh báo cáo công đoạn
-              </h4>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {stage.report_image_urls.map((url, idx) => (
-                  <a
-                    key={idx}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block aspect-square rounded-xl border border-gray-200 overflow-hidden hover:opacity-80 hover:shadow-md transition"
-                  >
-                    <img
-                      src={url}
-                      alt={`stage-report-${idx}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          <StageScanLogs logs={stage.logs} />
 
           {/* ========== Actions ========== */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-end gap-3 pt-4 border-t border-gray-100">
