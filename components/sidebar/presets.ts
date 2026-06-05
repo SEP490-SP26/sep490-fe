@@ -89,6 +89,12 @@ export const adminNavItems: NavItem[] = [
     basePath: "/admin",
   },
   {
+    path: "/formula",
+    label: "Công thức",
+    icon: FiSettings,
+    basePath: "/admin",
+  },
+  {
     path: "/production-calendars",
     label: "Cấu hình ngày nghỉ",
     icon: FiCalendar,

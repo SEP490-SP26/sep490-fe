@@ -36,6 +36,7 @@ const { Title } = Typography;
 // Sort types
 type SortField =
   | "order_request_id"
+  | "order_id"
   | "customer_name"
   | "product_name"
   | "quantity"
@@ -190,13 +191,25 @@ export default function ManagerOrdersPage() {
 
   const columns = [
     {
-      title: <SortableHeader field="order_request_id" title="Mã Đơn" />,
+      title: <SortableHeader field="order_request_id" title="Mã YC" />,
       dataIndex: "order_request_id",
       key: "order_request_id",
       width: 100,
       render: (id: number) => (
         <span className="font-mono text-gray-500 text-xs text-nowrap">#{id}</span>
       ),
+    },
+    {
+      hideInTable: allOrders.filter((o) => o.order_id == null).length,
+      title: <SortableHeader field="order_id" title="Mã đơn" />,
+      dataIndex: "order_id",
+      key: "order_id",
+      render: (id: number) => {
+        if (!id) {
+          return <span className="text-gray-400 italic text-xs">Chưa có đơn</span>;
+        }
+        return <span className="font-mono text-gray-500 text-xs text-nowrap">#{id}</span>;
+      },
     },
     {
       title: <SortableHeader field="customer_name" title="Khách Hàng" />,

@@ -18,6 +18,13 @@ interface InventoryItem {
   quantity: number;
 }
 
+export interface CustomerContractItem {
+  order_id: number;
+  order_quote_id: number;
+  order_request_id: number;
+  customer_signed_contract_path: string;
+}
+
 interface ProductionInformationResponse {
   /** ID đơn hàng */
   order_id: number;
@@ -359,4 +366,14 @@ export const productionsApi = {
   /** PUT /api/Productions/confirm-schedule/{prodId} — Manager duyệt lại tiến độ/kế hoạch */
   confirmSchedule: (prodId: number) =>
     http.post(`/api/Productions/confirm-schedule/${prodId}`, {}),
+
+  uploadImportReceiveFile: (order_id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("order_id", order_id.toString());
+    formData.append("file", file);
+    return http.post(`/api/Productions/upload-import-receive-file`, formData);
+  },
+
+  getContractByOrderId: (orderId: number) =>
+    http.get<CustomerContractItem>(`/api/customer-contract/order/${orderId}`),
 };

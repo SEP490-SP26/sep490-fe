@@ -2,9 +2,9 @@
 import { FloatingInputAntd } from "@/components/Input/FloatingInput";
 import { FloatingSelect } from "@/components/Input/FloatingSelect";
 import { Material } from "@/schemaValidations/common.schema";
-import { Checkbox, Col, Form, InputNumber, Row, Select, Tooltip } from "antd";
-import { useEffect } from "react";
 import { ALL_PROCESS_TYPES } from "@/utils/processConstants";
+import { Checkbox, Col, Form, Row, Tooltip } from "antd";
+import { useEffect } from "react";
 
 interface ProductSpecsSectionProps {
   orderId: string | null;
@@ -32,7 +32,7 @@ interface ProductSpecsSectionProps {
   activeTabKey?: string;
 }
 
-import React, { useRef } from "react";
+import { useRef } from "react";
 
 const FORM_TYPE_LABELS: Record<string, string> = {
   "HOP_MAU_1LUOT_DON_GIAN": "Hộp màu 1 lượt đơn giản",

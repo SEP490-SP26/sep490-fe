@@ -18,7 +18,8 @@ import {
 } from "react-icons/bi";
 import { BsCheckCircle, BsExclamationCircle } from "react-icons/bs";
 import { FiMoreVertical } from "react-icons/fi";
-import Loading from "../loading";
+import Loading from "@/app/(overview)/loading";
+
 
 export default function OrderListPage() {
   const router = useRouter();
@@ -73,6 +74,7 @@ export default function OrderListPage() {
     return apiData.orders.map((order: any) => ({
       order_id: order.order_id || order._id || order.order_id,
       code: order.code || order.order_number,
+      request_id: order.request_id || order.request?.request_id,
       customer_name: order.customer_name || order.customer?.name || "Khách lẻ ",
       product_name: order.product_name || order.product?.name,
       product_id: order.product_id || order.product?.order_id,
@@ -252,7 +254,7 @@ export default function OrderListPage() {
   };
 
   if (isPending) {
-    return <Loading text="Đang tải danh sách đơn hàng..." />;
+    return <Loading  />;
   }
 
   if (error) {
@@ -349,6 +351,7 @@ export default function OrderListPage() {
                       <option value="all">Tất cả trạng thái</option>
                       {/* <option value="Pending">Chờ xử lý</option> */}
                       <option value="LayoutPending">Chờ duyệt layout</option>
+                      <option value="Pending">Chờ lên lịch</option>
                       <option value="Scheduled">Đã lên lịch</option>
                       <option value="InProcessing">Đang sản xuất</option>
                       <option value="Finished">Hoàn thành</option>
@@ -499,22 +502,13 @@ export default function OrderListPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-200">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort("created_at")}
-                      className="flex items-center hover:text-gray-700"
-                    >
-                      Ngày tạo
-                      {sortBy === "created_at" &&
-                        (sortOrder === "asc" ? (
-                          <BiChevronUp className="w-4 h-4" />
-                        ) : (
-                          <BiChevronDown className="w-4 h-4" />
-                        ))}
-                    </button>
-                  </th>
+                 
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mã đơn
+                  </th>
+                   
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Mã YC
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <button
@@ -540,6 +534,20 @@ export default function OrderListPage() {
                     >
                       Số lượng
                       {sortBy === "quantity" &&
+                        (sortOrder === "asc" ? (
+                          <BiChevronUp className="w-4 h-4" />
+                        ) : (
+                          <BiChevronDown className="w-4 h-4" />
+                        ))}
+                    </button>
+                  </th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => handleSort("created_at")}
+                      className="flex items-center hover:text-gray-700"
+                    >
+                      Ngày tạo
+                      {sortBy === "created_at" &&
                         (sortOrder === "asc" ? (
                           <BiChevronUp className="w-4 h-4" />
                         ) : (
@@ -588,12 +596,15 @@ export default function OrderListPage() {
                             : ""
                           }`}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(order.created_at)}
-                        </td>
+                       
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {order.code}
+                          </div>
+                        </td>
+                         <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.request_id}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -610,6 +621,9 @@ export default function OrderListPage() {
                           <span className="flex justify-center font-medium">
                             {order.quantity}
                           </span>
+                        </td>
+                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDate(order.created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">

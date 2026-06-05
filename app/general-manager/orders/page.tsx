@@ -1,10 +1,11 @@
 "use client";
 import { orderApi } from "@/apiRequests/order";
 import { Order } from "@/context/ProductionContext";
+import { productionsApi } from "@/apiRequests/productions";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import React, { useMemo, useState } from "react";
-import { Pagination } from "antd";
+import { Pagination, message } from "antd";
 import {
   BiCalendar,
   BiCheckCircle,
@@ -74,6 +75,7 @@ export default function OrderListPage() {
     return apiData.orders.map((order: any) => ({
       order_id: order.order_id || order._id || order.order_id,
       code: order.code || order.order_number,
+      request_id: order.request_id || order.request?.request_id,
       customer_name: order.customer_name || order.customer?.name || "Khách lẻ ",
       product_name: order.product_name || order.product?.name,
       product_id: order.product_id || order.product?.order_id,
@@ -350,6 +352,7 @@ export default function OrderListPage() {
                       <option value="all">Tất cả trạng thái</option>
                       {/* <option value="Pending">Chờ xử lý</option> */}
                       <option value="LayoutPending">Chờ duyệt layout</option>
+                      <option value="Pending">Chờ lên lịch</option>
                       <option value="Scheduled">Đã lên lịch</option>
                       <option value="InProcessing">Đang sản xuất</option>
                       <option value="Finished">Hoàn thành</option>
@@ -500,22 +503,13 @@ export default function OrderListPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-200">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button
-                      onClick={() => handleSort("created_at")}
-                      className="flex items-center hover:text-gray-700"
-                    >
-                      Ngày tạo
-                      {sortBy === "created_at" &&
-                        (sortOrder === "asc" ? (
-                          <BiChevronUp className="w-4 h-4" />
-                        ) : (
-                          <BiChevronDown className="w-4 h-4" />
-                        ))}
-                    </button>
-                  </th>
+                 
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mã đơn
+                  </th>
+                   
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Mã YC
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <button
@@ -541,6 +535,20 @@ export default function OrderListPage() {
                     >
                       Số lượng
                       {sortBy === "quantity" &&
+                        (sortOrder === "asc" ? (
+                          <BiChevronUp className="w-4 h-4" />
+                        ) : (
+                          <BiChevronDown className="w-4 h-4" />
+                        ))}
+                    </button>
+                  </th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => handleSort("created_at")}
+                      className="flex items-center hover:text-gray-700"
+                    >
+                      Ngày tạo
+                      {sortBy === "created_at" &&
                         (sortOrder === "asc" ? (
                           <BiChevronUp className="w-4 h-4" />
                         ) : (
@@ -589,12 +597,15 @@ export default function OrderListPage() {
                             : ""
                           }`}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(order.created_at)}
-                        </td>
+                       
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {order.code}
+                          </div>
+                        </td>
+                         <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.request_id}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -611,6 +622,9 @@ export default function OrderListPage() {
                           <span className="flex justify-center font-medium">
                             {order.quantity}
                           </span>
+                        </td>
+                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDate(order.created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
@@ -730,6 +744,25 @@ export default function OrderListPage() {
                                   Thao tác
                                 </h4>
                                 <div className="space-y-2">
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        const res = await productionsApi.getContractByOrderId(Number(order.order_id));
+                                        if (res.data?.customer_signed_contract_path) {
+                                          window.open(res.data.customer_signed_contract_path, "_blank");
+                                        } else {
+                                          message.warning("Không tìm thấy hợp đồng cho đơn hàng này");
+                                        }
+                                      } catch (error) {
+                                        message.error("Lỗi khi tải hợp đồng");
+                                      }
+                                    }}
+                                    className="w-full bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 text-sm mb-3"
+                                  >
+                                    Xem hợp đồng
+                                  </button>
+
                                   {order.status === "pending" &&
                                     order.can_fulfill === undefined && (
                                       <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
