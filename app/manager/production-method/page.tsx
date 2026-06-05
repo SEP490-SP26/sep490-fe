@@ -220,6 +220,10 @@ function ProductionMethodContent() {
       title: "Mã đơn", dataIndex: "code", key: "code", width: 120,
       render: (t: string) => <span className="font-semibold text-blue-600">{t}</span>,
     },
+    {
+      title: "Mã YC", dataIndex: "request_id", key: "request_id", width: 120,
+      render: (t: string) => <span className="font-semibold text-blue-600">{t}</span>,
+    },
     { title: "Khách hàng", dataIndex: "customer_name", key: "customer_name" },
     { title: "Sản phẩm", dataIndex: "product_name", key: "product_name" },
     {

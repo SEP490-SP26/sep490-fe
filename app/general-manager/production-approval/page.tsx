@@ -1,44 +1,43 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import {
-  Table,
-  Input,
-  Tag,
-  Modal,
-  Spin,
-  message,
-  Tabs,
-  Button,
-  Card,
-  DatePicker,
-  Select,
-  Typography,
-  Descriptions,
-  Divider,
-  Badge,
-} from "antd";
-import {
-  SearchOutlined,
-  ReloadOutlined,
   CheckCircleOutlined,
   InfoCircleOutlined,
-  WarningOutlined,
   PlayCircleOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  Badge,
+  Button,
+  Card,
+  Descriptions,
+  Divider,
+  Input,
+  message,
+  Modal,
+  Select,
+  Spin,
+  Table,
+  Tabs,
+  Tag,
+  Typography
+} from "antd";
 import dayjs from "dayjs";
-import { BiChevronRight } from "react-icons/bi";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import ProductionDetailReadOnly from "../components/ProductionDetailReadOnly";
+dayjs.extend(isSameOrAfter);
 
-import { orderApi } from "@/apiRequests/order";
-import { productionsApi, ProductionReadiness } from "@/apiRequests/productions";
 import {
   groupProductionsApi,
-  IProductionSuggestion,
-  ISuggestedOrder,
+  IProductionSuggestion
 } from "@/apiRequests/groupProductions";
+import { orderApi } from "@/apiRequests/order";
+import { ProductionReadiness, productionsApi } from "@/apiRequests/productions";
 
 const { Title, Text } = Typography;
 
@@ -775,29 +774,59 @@ function GroupProductionTab() {
       key: "batches",
       width: 300,
       render: (_: any, record: IProductionSuggestion) => {
+        const getProcessCounts = (processes?: string[]) => {
+          if (!processes) return [];
+          const counts: Record<string, number> = {};
+          processes.forEach(p => {
+            counts[p] = (counts[p] || 0) + 1;
+          });
+          return Object.entries(counts).map(([code, count]) => ({ code, count }));
+        };
+
         if (!record.batches || record.batches.length === 0) {
           return (
             <div className="flex flex-wrap gap-1">
-              {record.suggest_process?.map(p => <Tag key={p} color="orange">{p}</Tag>)}
+              {getProcessCounts(record.suggest_process).map(({ code, count }) => (
+                <Tag key={code} color="orange">
+                  {code} {count > 1 && `x${count}`}
+                </Tag>
+              ))}
             </div>
           );
         }
+
+        const groupedBatches: { count: number, process_codes: string[], batch_type: string }[] = [];
+        record.batches.forEach(batch => {
+           if (!batch.process_codes) return;
+           const key = batch.process_codes.join('|');
+           const existing = groupedBatches.find(gb => gb.process_codes.join('|') === key);
+           if (existing) {
+             existing.count += 1;
+           } else {
+             groupedBatches.push({
+               count: 1,
+               process_codes: batch.process_codes,
+               batch_type: batch.batch_type
+             });
+           }
+        });
+
         return (
           <div className="flex flex-col gap-2">
-            {record.batches.map((batch, idx) => {
-              const isGroup = batch.batch_type === 'GROUP';
-              const isSplit = batch.batch_type === 'SPLIT';
+            {groupedBatches.map((gb, idx) => {
+              const isGroup = gb.batch_type === 'GROUP';
+              const isSplit = gb.batch_type === 'SPLIT';
               const color = isGroup ? 'green' : isSplit ? 'blue' : 'orange';
-              const label = isGroup ? 'Ghép chung' : isSplit ? 'Tách đơn' : 'Chạy riêng';
-              const dotClass = isGroup ? 'bg-green-500' : isSplit ? 'bg-blue-500' : 'bg-orange-500';
+              
               return (
                 <div key={idx} className="flex flex-col gap-1 p-1.5 border border-gray-200 bg-white rounded shadow-sm">
-                  {/* <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                      <span className={`w-2 h-2 rounded-full ${dotClass}`}></span>
-                      {label}
-                   </div> */}
-                  <div className="flex flex-wrap gap-1">
-                    {idx + 1} {batch.process_codes?.map(p => <> <Tag key={p} color={color} className="m-0">{p}</Tag></>)}
+                  <div className="flex flex-wrap gap-1 items-center">
+                    <span className="font-semibold text-gray-700 mr-1">{gb.count}</span>
+                    {getProcessCounts(gb.process_codes).map(({ code, count }, i) => (
+                      <Tag key={`${code}-${i}`} color={color} className="m-0">
+                        {code} {count > 1 && `x${count}`}
+                      </Tag>
+                    ))}
                   </div>
                 </div>
               );
@@ -861,7 +890,7 @@ function GroupProductionTab() {
         await groupProductionsApi.confirmProduceOrder({
           order_ids: createPayload.order_ids,
           process_codes: createPayload.process_codes,
-          planned_start_date: createPayload.planned_start_date,
+          is_priority: createPayload.is_priority,
           note: createPayload.note,
         });
       }
@@ -944,7 +973,7 @@ function GroupProductionTab() {
       const payload = {
         order_ids: selectedManualOrders.map(o => o.order_id),
         process_codes: manualProcessCodes,
-        planned_start_date: manualStartDate!.format("YYYY-MM-DD"),
+        is_priority: manualStartDate!.isSameOrAfter(dayjs()) ? true : false,
         note: manualNote,
       };
       const res = await groupProductionsApi.getPreview(payload);
@@ -1099,24 +1128,7 @@ function GroupProductionTab() {
                         allowClear
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày dự kiến sản xuất</label>
-                      <DatePicker
-                        className="w-full"
-                        value={manualStartDate}
-                        onChange={setManualStartDate}
-                        format="DD/MM/YYYY"
-                        disabledDate={(current) => {
-                          if (current && current.isBefore(dayjs().startOf("day"), "day")) {
-                            return true;
-                          }
-                          if (maxAllowedStartDate && current && current.isAfter(maxAllowedStartDate, "day")) {
-                            return true;
-                          }
-                          return false;
-                        }}
-                      />
-                    </div>
+                
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
                       <Input.TextArea
@@ -1189,10 +1201,6 @@ function GroupProductionTab() {
               </Descriptions.Item>
             </Descriptions>
 
-            {/* <Divider>Danh sách đơn hàng ({previewData.order_ids.length})</Divider>
-            <div className="flex flex-wrap gap-2 mb-6">
-              {previewData.order_ids.map(id => <Tag key={id} color="purple">ID: {id}</Tag>)}
-            </div> */}
 
             <Divider>Tiến trình dự kiến</Divider>
             <Table

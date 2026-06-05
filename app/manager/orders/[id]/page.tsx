@@ -3,7 +3,7 @@ import { orderApi } from "@/apiRequests/order";
 import { productionsApi } from "@/apiRequests/productions";
 import { FileTextOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Descriptions } from "antd";
+import { Button, message } from "antd";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { BiBook, BiCheckCircle, BiPackage, BiSolidZap } from "react-icons/bi";
@@ -21,6 +21,21 @@ export default function ProductionDetailPage() {
   const router = useRouter();
   const { id } = params;
   const [activeTab, setActiveTab] = useState<"info" | "scheduled" | "material">("info");
+
+  const handleViewContract = async () => {
+    try {
+      if (!id) return;
+      const res = await productionsApi.getContractByOrderId(Number(id));
+      if (res.data?.customer_signed_contract_path) {
+        window.open(res.data.customer_signed_contract_path, "_blank");
+      } else {
+        message.warning("Không tìm thấy hợp đồng cho đơn hàng này");
+      }
+    } catch (error) {
+      console.error("Error fetching contract:", error);
+      message.error("Lỗi khi tải hợp đồng");
+    }
+  };
 
   // const { orders, products, productionSchedules, getProductionStages } =
   //   useProduction();
@@ -535,19 +550,16 @@ export default function ProductionDetailPage() {
                       <div>
                         <div className="font-medium text-sm">Hợp đồng</div>
                         <div className="text-xs text-gray-500">
-                          {apiData.contract_file || "Chưa tải lên"}
+                          {apiData.contract_file || "Xem qua API"}
                         </div>
                       </div>
                     </div>
                     <Button
                       size="small"
-                      type={apiData.contract_file ? "primary" : "default"}
-                      onClick={() =>
-                        apiData.contract_file &&
-                        window.open(apiData.contract_file, "_blank")
-                      }
+                      type="primary"
+                      onClick={handleViewContract}
                     >
-                      {apiData.contract_file ? "Xem" : "N/A"}
+                      Xem hợp đồng
                     </Button>
                   </div>
 

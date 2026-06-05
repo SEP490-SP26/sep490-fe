@@ -44,6 +44,7 @@ const { Title } = Typography;
 // Sort types
 type SortField =
   | "order_request_id"
+  | "order_id"
   | "customer_name"
   | "product_name"
   | "quantity"
@@ -588,9 +589,18 @@ export default function ConsultantOrdersPage() {
 
   const columns = [
     {
-      title: <SortableHeader field="order_request_id" title="Mã Đơn" />,
+      title: <SortableHeader field="order_request_id" title="Mã YC" />,
       dataIndex: "order_request_id",
       key: "order_request_id",
+      width: 100,
+      render: (id: number) => (
+        <span className="font-mono text-gray-500 text-xs">#{id}</span>
+      ),
+    },
+    {
+      title: <SortableHeader field="order_id" title="Mã Đơn" />,
+      dataIndex: "order_id",
+      key: "order_id",
       width: 100,
       render: (id: number) => (
         <span className="font-mono text-gray-500 text-xs">#{id}</span>
@@ -689,7 +699,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost" && col.key !== "order_id")}
           dataSource={pendingOrders}
           rowKey="order_request_id"
           pagination={{
@@ -716,7 +726,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost" && col.key !== "order_id")}
           dataSource={processingOrders}
           rowKey="order_request_id"
           pagination={{
@@ -747,7 +757,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost" && col.key !== "order_id")}
           dataSource={verifiedOrders}
           rowKey="order_request_id"
           pagination={{
@@ -778,7 +788,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost" && col.key !== "order_id")}
           dataSource={waitingConfirmOrders}
           rowKey="order_request_id"
           pagination={{
@@ -811,7 +821,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost" && col.key !== "order_id")}
           dataSource={declinedOrders}
           rowKey="order_request_id"
           pagination={{
@@ -900,7 +910,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost" && col.key !== "order_id")}
           dataSource={rejectedContractOrders}
           rowKey="order_request_id"
           pagination={{
@@ -931,7 +941,7 @@ export default function ConsultantOrdersPage() {
       ),
       children: (
         <Table
-          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
+          columns={columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost" && col.key !== "order_id")}
           dataSource={rejectedOrders}
           rowKey="order_request_id"
           pagination={{

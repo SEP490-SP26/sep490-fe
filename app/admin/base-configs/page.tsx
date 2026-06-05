@@ -5,7 +5,7 @@ import {
   FiSave, FiRefreshCw, FiDollarSign, FiPercent, FiTool,
   FiLayers, FiClock, FiCreditCard, FiGrid, FiEdit3,
   FiChevronDown, FiChevronRight, FiCheckCircle, FiAlertCircle,
-  FiSettings, FiTruck,
+  FiSettings, FiTruck, FiBookOpen,
 } from "react-icons/fi";
 import { baseConfigApi, BaseConfigResponse } from "@/apiRequests/baseConfigs";
 
@@ -315,6 +315,7 @@ export default function BaseConfigsPage() {
     paymentTerms: false,
     planning: false,
     deliveryPayment: false,
+    formulas: false,
   });
 
   const toggleSection = (key: string) =>
@@ -1144,6 +1145,67 @@ export default function BaseConfigsPage() {
                       ${config.deliveryPayment.require_remaining_before_delivery ? "translate-x-6" : "translate-x-1"}`}
                   />
                 </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ════════════════════
+           12. CÔNG THỨC TÍNH TOÁN
+        ═════════════════════ */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <SectionHeader
+            icon={FiBookOpen}
+            title="Công thức tính toán hệ thống"
+            subtitle="Tài liệu tham khảo về các công thức tính toán tự động khi tạo yêu cầu"
+            color="bg-slate-50 text-slate-600"
+            isOpen={openSections.formulas}
+            onToggle={() => toggleSection("formulas")}
+          />
+          {openSections.formulas && (
+            <div className="px-5 pb-5 space-y-4">
+              <div className="bg-slate-50 p-4 rounded-lg text-sm text-gray-700 space-y-3">
+                <div>
+                  <strong className="text-gray-900">1. Số tờ giấy in:</strong>
+                  <p className="mt-1 font-mono text-xs bg-white p-2.5 rounded border border-gray-200">
+                    Số tờ in = Làm tròn lên (Số lượng SP / Số con trên tờ in)<br/>
+                    Tổng số tờ cần xuất = Số tờ in + Bù hao in ấn + Bù hao gia công (Bế, Bồi, Cán...)
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-900">2. Tổng diện tích (m²):</strong>
+                  <p className="mt-1 font-mono text-xs bg-white p-2.5 rounded border border-gray-200">
+                    Diện tích (m²) = Số tờ in × [ Chiều dài tờ in (mm) × Chiều rộng tờ in (mm) / 1.000.000 ]
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-900">3. Chi phí mực in:</strong>
+                  <p className="mt-1 font-mono text-xs bg-white p-2.5 rounded border border-gray-200">
+                    Khối lượng mực (kg) = Diện tích (m²) × Định mức tiêu hao mực (kg/m²)<br />
+                    Chi phí mực = Khối lượng mực (kg) × Đơn giá mực (VNĐ/kg)
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-900">4. Chi phí phủ / cán màng / keo bồi:</strong>
+                  <p className="mt-1 font-mono text-xs bg-white p-2.5 rounded border border-gray-200">
+                    Khối lượng vật tư (kg) = Diện tích (m²) × Định mức tiêu hao (kg/m²)<br />
+                    Chi phí = Khối lượng vật tư (kg) × Đơn giá vật tư (VNĐ/kg)
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-900">5. Chi phí gia công:</strong>
+                  <p className="mt-1 font-mono text-xs bg-white p-2.5 rounded border border-gray-200">
+                    Chi phí công đoạn = Số lượng (hoặc diện tích) × Đơn giá công đoạn
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-gray-900">6. Tổng giá thành:</strong>
+                  <p className="mt-1 font-mono text-xs bg-white p-2.5 rounded border border-gray-200">
+                    Chi phí NVL = Chi phí giấy + Chi phí mực + Chi phí phủ + Chi phí cán + Chi phí keo bồi<br />
+                    Giá thành cơ bản = Chi phí NVL + Tổng chi phí gia công + Chi phí kẽm + Chi phí khuôn + Chi phí thiết kế<br />
+                    Tổng cuối cùng = (Giá thành cơ bản + Phụ thu gấp - Giảm giá) × (1 + %VAT)
+                  </p>
+                </div>
               </div>
             </div>
           )}

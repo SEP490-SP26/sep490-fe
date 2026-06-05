@@ -3,7 +3,7 @@ import http from "@/lib/httpAxios";
 interface GroupProductions {
     "order_ids": number[],
     "process_codes": string[],
-    "planned_start_date": string,
+    "is_priority": boolean,
     "note": string
 }
 
@@ -226,4 +226,6 @@ export const groupProductionsApi = {
     // POST /api/GroupProductions/preview
     getPreview: (body: GroupProductions) =>
         http.post<IPreview>(`/api/GroupProductions/preview`, body),
+
+
 }
