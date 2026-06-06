@@ -178,6 +178,12 @@ export const warehouseNavItems: NavItem[] = [
     basePath: "/warehouse",
   },
   {
+    path: "/export",
+    label: "Xuất kho",
+    icon: FaWarehouse,
+    basePath: "/warehouse",
+  },
+  {
     path: "/stock",
     label: "Tồn kho NVL",
     icon: FiPackage,

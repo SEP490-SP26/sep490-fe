@@ -187,7 +187,7 @@ function isIssueFileUrl(url: string) {
 
 function mapOrderToModalDetail(order: any) {
   const stages = (order.stage_statuses ?? [])
-    .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
+    .filter((s: any) => s.status !== "GroupedWaiting" && s.status !== "Pending" && s.status != null)
     .map((s: any) => ({
       process_name: s.process_name,
       status: s.status,
@@ -205,6 +205,91 @@ function mapOrderToModalDetail(order: any) {
   };
 }
 
+/* =======================
+   Group productions by order_id / list_order_id
+======================= */
+interface ProductionGroup {
+  groupKey: string;
+  orderIds: number[];
+  productions: any[];
+}
+
+function groupProductionsByOrderId(productions: any[]): ProductionGroup[] {
+  // Union-Find to merge order_ids connected via GROUP productions
+  const parent: Record<number, number> = {};
+
+  function find(x: number): number {
+    if (!(x in parent)) parent[x] = x;
+    if (parent[x] !== x) parent[x] = find(parent[x]);
+    return parent[x];
+  }
+
+  function union(a: number, b: number) {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  }
+
+  // Initialize all known order_ids
+  productions.forEach((o) => {
+    if (o.order_id != null) find(o.order_id);
+    if (Array.isArray(o.list_order_id)) {
+      o.list_order_id.forEach((id: number) => find(id));
+    }
+  });
+
+  // Union order_ids connected by GROUP productions (via list_order_id)
+  productions.forEach((o) => {
+    const ids: number[] = Array.isArray(o.list_order_id) ? o.list_order_id : [];
+    if (ids.length > 1) {
+      for (let i = 1; i < ids.length; i++) {
+        union(ids[0], ids[i]);
+      }
+    }
+    // If production has both order_id and list_order_id, union them
+    if (o.order_id != null && ids.length > 0) {
+      union(o.order_id, ids[0]);
+    }
+  });
+
+  // Assign each production to its group
+  const groupMap: Record<string, { orderIds: Set<number>; productions: any[] }> = {};
+
+  productions.forEach((o) => {
+    let gKey: string;
+
+    if (o.order_id != null) {
+      gKey = find(o.order_id).toString();
+    } else if (Array.isArray(o.list_order_id) && o.list_order_id.length > 0) {
+      gKey = find(o.list_order_id[0]).toString();
+    } else {
+      // Standalone production with no order_id and no list_order_id
+      gKey = `standalone_${o.prod_id}`;
+    }
+
+    if (!groupMap[gKey]) {
+      groupMap[gKey] = { orderIds: new Set(), productions: [] };
+    }
+
+    if (o.order_id != null) {
+      groupMap[gKey].orderIds.add(o.order_id);
+    }
+    if (Array.isArray(o.list_order_id)) {
+      o.list_order_id.forEach((id: number) => groupMap[gKey].orderIds.add(id));
+    }
+
+    groupMap[gKey].productions.push(o);
+  });
+
+  return Object.values(groupMap).map((g) => ({
+    groupKey:
+      g.orderIds.size > 0
+        ? Array.from(g.orderIds).sort((a, b) => a - b).join(",")
+        : `standalone`,
+    orderIds: Array.from(g.orderIds).sort((a, b) => a - b),
+    productions: g.productions,
+  }));
+}
+
 export default function ProdutionManager() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -214,25 +299,26 @@ export default function ProdutionManager() {
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
   const [isManualLoading, setIsManualLoading] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; prodId: number | null }>({
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; prodId: number | null, actionType: "start" | "importing" | "start_group" | null, orderId?: string }>({
     open: false,
     prodId: null,
+    actionType: null,
   });
   const [prodDetailForModal, setProdDetailForModal] = useState<any>(null);
   const [isLoadingModalDetail, setIsLoadingModalDetail] = useState(false);
-  const [isConfirmingImport, setIsConfirmingImport] = useState(false);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
 
-  const openConfirmModal = (order: any) => {
+  const openConfirmModal = (order: any, actionType: "start" | "importing" | "start_group" = "importing") => {
     if (modalDismissGuardRef.current) return;
     const prodId = Number(order.prod_id);
-    setConfirmModal({ open: true, prodId });
+    setConfirmModal({ open: true, prodId, actionType, orderId: order.order_id });
     setProdDetailForModal(mapOrderToModalDetail(order));
     setIsLoadingModalDetail(true);
   };
 
   const closeConfirmModal = () => {
     modalDetailFetchSeqRef.current += 1;
-    setConfirmModal({ open: false, prodId: null });
+    setConfirmModal({ open: false, prodId: null, actionType: null });
     setProdDetailForModal(null);
     setIsLoadingModalDetail(false);
     modalDismissGuardRef.current = true;
@@ -274,21 +360,33 @@ export default function ProdutionManager() {
     };
   }, [confirmModal.open, confirmModal.prodId]);
 
-  const handleConfirmMarkImporting = async () => {
+  const handleConfirmAction = async () => {
     const prodId = confirmModal.prodId;
-    if (prodId == null || Number.isNaN(prodId) || isConfirmingImport) return;
+    if (prodId == null || Number.isNaN(prodId) || isConfirmingAction) return;
 
-    setIsConfirmingImport(true);
+    setIsConfirmingAction(true);
     setIsManualLoading(true);
     try {
-      await productionsApi.markImporting(prodId);
-      closeConfirmModal();
-      showSuccessToast(`Đã xác nhận lấy từ bán thành phẩm cho lệnh SX ${prodId}`);
-      queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+      if (confirmModal.actionType === "importing") {
+        await productionsApi.markImporting(prodId);
+        showSuccessToast(`Đã xác nhận lấy từ bán thành phẩm cho lệnh SX ${prodId}`);
+        queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+        closeConfirmModal();
+      } else if (confirmModal.actionType === "start") {
+        await startMutation.mutateAsync({ orderId: confirmModal.orderId as string, prodId: prodId.toString() });
+        closeConfirmModal();
+      } else if (confirmModal.actionType === "start_group") {
+        await productionsApi.startGroupProduction(prodId);
+        showSuccessToast(`Đã bắt đầu sản xuất Lệnh SX ghép ${prodId}`);
+        queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
+        closeConfirmModal();
+      }
     } catch (err: any) {
-      showErrorToast(err.message || "Không thể xác nhận");
+      if (confirmModal.actionType !== "start") {
+        showErrorToast(err.message || "Có lỗi xảy ra");
+      }
     } finally {
-      setIsConfirmingImport(false);
+      setIsConfirmingAction(false);
       setIsManualLoading(false);
     }
   };
@@ -303,41 +401,10 @@ export default function ProdutionManager() {
     updateProductionStage,
   } = useProduction();
 
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   /* ================== TABS ================== */
   const [activeTab, setActiveTab] = useState<"scheduled" | "processing">("scheduled");
-
-  /* ================== SCAN QR ================== */
-  const callApi = async (token: string) => {
-    setIsManualLoading(true);
-    try {
-      const data = await tasksApi.decodeQr({ token });
-      const decodeResult = data.data ?? data;
-      sessionStorage.setItem("qr_decode_result", JSON.stringify(decodeResult));
-      router.push(`/productions-manager/task-detail/${decodeResult.task_id}`);
-    } catch (error: any) {
-      showErrorToast(error.message || "Lỗi khi đọc mã QR");
-    } finally {
-      setIsManualLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
-        if (!bufferRef.current) return;
-        callApi(bufferRef.current);
-        bufferRef.current = "";
-        return;
-      }
-      if (e.key.length === 1) {
-        bufferRef.current += e.key;
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []);
 
   /* ================== PAGINATION ================== */
   const ITEMS_PER_PAGE = 5;
@@ -391,12 +458,17 @@ export default function ProdutionManager() {
     const listStageStatuses = o.stage_statuses;
 
     const matchOrder =
-  !searchOrderId ||
-  o.prod_id.toString().includes(searchOrderId) ||
-  (Array.isArray(listStageStatuses) &&
-    listStageStatuses.some((s: any) =>
-      s.task_id?.toString().includes(searchOrderId)
-    ));
+      !searchOrderId ||
+      o.prod_id?.toString().includes(searchOrderId) ||
+      o.order_id?.toString().includes(searchOrderId) ||
+      (Array.isArray(o.list_order_id) &&
+        o.list_order_id.some((id: number) =>
+          id.toString().includes(searchOrderId)
+        )) ||
+      (Array.isArray(listStageStatuses) &&
+        listStageStatuses.some((s: any) =>
+          s.task_id?.toString().includes(searchOrderId)
+        ));
 
     const matchDate =
       !deliveryDate ||
@@ -416,7 +488,12 @@ export default function ProdutionManager() {
       (o.production_status === "InProcessing" ||
         o.group_status === "InProcessing") &&
       (!searchOrderId ||
-        o.prod_id.toString().includes(searchOrderId) ||
+        o.prod_id?.toString().includes(searchOrderId) ||
+        o.order_id?.toString().includes(searchOrderId) ||
+        (Array.isArray(o.list_order_id) &&
+          o.list_order_id.some((id: number) =>
+            id.toString().includes(searchOrderId)
+          )) ||
         (Array.isArray(o.stage_statuses) &&
           o.stage_statuses.some((s: any) =>
             s.task_id?.toString().includes(searchOrderId)
@@ -455,16 +532,20 @@ export default function ProdutionManager() {
       return b.progress_percent - a.progress_percent;
     });
 
-  /* ================== PAGINATION DATA ================== */
-  const scheduledTotalPages = Math.ceil(scheduledList.length / ITEMS_PER_PAGE);
-  const processingTotalPages = Math.ceil(processingList.length / ITEMS_PER_PAGE);
+  /* ================== GROUP BY ORDER_ID / LIST_ORDER_ID ================== */
+  const scheduledGroups = groupProductionsByOrderId(scheduledList);
+  const processingGroups = groupProductionsByOrderId(processingList);
 
-  const scheduledPageData = scheduledList.slice(
+  /* ================== PAGINATION DATA ================== */
+  const scheduledTotalPages = Math.ceil(scheduledGroups.length / ITEMS_PER_PAGE);
+  const processingTotalPages = Math.ceil(processingGroups.length / ITEMS_PER_PAGE);
+
+  const scheduledPageGroups = scheduledGroups.slice(
     (scheduledPage - 1) * ITEMS_PER_PAGE,
     scheduledPage * ITEMS_PER_PAGE
   );
 
-  const processingPageData = processingList.slice(
+  const processingPageGroups = processingGroups.slice(
     (processingPage - 1) * ITEMS_PER_PAGE,
     processingPage * ITEMS_PER_PAGE
   );
@@ -483,10 +564,10 @@ export default function ProdutionManager() {
     return "bg-green-100 text-green-700 border-green-300";
   };
 
-  const toggleOrderDetails = (orderId: string) => {
-    const copy = new Set(expandedOrders);
-    copy.has(orderId) ? copy.delete(orderId) : copy.add(orderId);
-    setExpandedOrders(copy);
+  const toggleGroupCollapse = (groupKey: string) => {
+    const copy = new Set(collapsedGroups);
+    copy.has(groupKey) ? copy.delete(groupKey) : copy.add(groupKey);
+    setCollapsedGroups(copy);
   };
 
   /* ================== SIGNALR ================== */
@@ -612,26 +693,68 @@ export default function ProdutionManager() {
       {/* ================= TAB: LỆNH SẢN XUẤT ================= */}
       {activeTab === "scheduled" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-            {scheduledPageData.length === 0 && (
+          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+            {scheduledPageGroups.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8">
                 Không có lệnh sản xuất nào.
               </p>
             )}
 
-            {scheduledPageData.map((order: any, index: number) => {
+            {scheduledPageGroups.map((group) => {
+              const isGroupExpanded = !collapsedGroups.has(group.groupKey);
+              return (
+                <div key={group.groupKey} className="border border-indigo-100 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupCollapse(group.groupKey)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50/80 to-gray-50/80 hover:from-indigo-100 hover:to-gray-100 transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <BsLayers className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <span className="text-sm font-semibold text-gray-800">
+                        {group.orderIds.length === 0
+                          ? "Lệnh sản xuất độc lập"
+                          : group.orderIds.length === 1
+                            ? `Đơn hàng #${group.orderIds[0]}`
+                            : `Nhóm đơn hàng: ${group.orderIds.map((id: number) => `#${id}`).join(", ")}`}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-white/70 rounded-full px-2 py-0.5 border border-gray-200">
+                        {group.productions.length} lệnh SX
+                      </span>
+                    </div>
+                    <span className={`text-gray-400 transition-transform duration-200 inline-block text-xs ${isGroupExpanded ? "rotate-180" : ""}`}>▼</span>
+                  </button>
+                  {isGroupExpanded && (
+                  <div className="p-3 space-y-3">
+            {group.productions.map((order: any, index: number) => {
               const grouped = isGrouped(order);
 
               const canStart = order.can_start !== false;
               const isStarting =
                 startMutation.isPending &&
                 startMutation.variables?.prodId === order.prod_id;
-              const isNvlAllDone =
-                order.production_method === "SUB" &&
-                order.stage_statuses?.length > 0 &&
-                order.stage_statuses
-                  .filter((s: any) => s.status !== "GroupedWaiting" && s.status != null)
-                  .every((s: any) => s.status === "Finished");
+              const visibleStages = (order.stage_statuses ?? [])
+  .filter(
+    (s: any) =>
+      s.status !== "GroupedWaiting" &&
+      s.status !== null &&
+      s.status !== undefined
+  )
+  .sort((a: any, b: any) => a.seq_num - b.seq_num);
+
+const currentStageIndex = visibleStages.findIndex(
+  (s: any) => s.is_current === true
+);
+
+const previousStages =
+  currentStageIndex > 0
+    ? visibleStages.slice(0, currentStageIndex)
+    : [];
+
+const isNvlAllDone =
+  order.production_method === "SUB" &&
+  previousStages.length > 0 &&
+  previousStages.every((s: any) => s.status === "Finished");
 
               return (
                 <div
@@ -644,13 +767,25 @@ export default function ProdutionManager() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        Lệnh sản xuất:
-                        <span
-                          className={`ml-1 ${grouped ? "text-purple-700" : "text-blue-700"}`}
-                        >
-                          {order.prod_id}
+                      <p className="text-sm font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
+                        <span>
+                          Lệnh sản xuất:
+                          <span
+                            className={`ml-1 ${grouped ? "text-purple-700" : "text-blue-700"}`}
+                          >
+                            {order.prod_id}
+                          </span>
                         </span>
+                        {order.is_priority && (
+                          <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-red-200">
+                            Ưu tiên
+                          </span>
+                        )}
+                        {order.created_at && (new Date().getTime() - new Date(order.created_at).getTime()) < 10 * 60 * 60 * 1000 && (
+                          <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-emerald-200">
+                            Mới tạo
+                          </span>
+                        )}
                       </p>
 
                       <span
@@ -666,38 +801,24 @@ export default function ProdutionManager() {
                     <div className="flex flex-wrap gap-2 my-1.5">
                       {order.planned_start_date && (
                         <p className="text-xs px-2 py-0.5 rounded-md inline-block border bg-blue-50 text-blue-700 border-blue-200">
-                          Ngày bắt đầu:{" "}
+                          Ngày bắt đầu dự kiến:{" "}
                           {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
                         </p>
-                      )}
-                      {order.delivery_date && (
-                        <p
+                      )}                      
+                      {order.planned_end_date && (<p
                           className={`text-xs px-2 py-0.5 rounded-md inline-block border ${getDeliveryColor(
-                            order.delivery_date
+                            order.planned_end_date
                           )}`}
                         >
                           Hạn hoàn thành:{" "}
-                          {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
-                        </p>
-                      )}
+                          {new Date(order.planned_end_date).toLocaleDateString("vi-VN")}
+                        </p>)}                
                     </div>
 
                     {/* Stage badges */}
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {grouped
-                        ? (order.group_process_codes || "")
-                          .split(",")
-                          .filter(Boolean)
-                          .map((code: string, i: number) => (
-                            <span
-                              key={i}
-                              className="rounded-md border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 font-medium"
-                            >
-                              {code.trim()}
-                            </span>
-                          ))
-                        : order.stage_statuses
-                          ? order.stage_statuses
+                      {order.stage_statuses && order.stage_statuses.length > 0
+                        ? order.stage_statuses
                             .filter((s: any) => s.status !== "GroupedWaiting" && s.status !== null && s.status !== undefined)
                             .map((stage: any, i: number) => {
                               const isFinished = stage.status === "Finished";
@@ -707,7 +828,9 @@ export default function ProdutionManager() {
                                   className={`rounded-md border px-2 py-0.5 text-xs flex items-center gap-1
                                     ${isFinished
                                       ? "bg-green-100 text-green-700 border-green-300"
-                                      : "bg-gray-50 text-gray-600 border-gray-300"
+                                      : grouped 
+                                        ? "bg-purple-50 text-purple-700 border-purple-300" 
+                                        : "bg-gray-50 text-gray-600 border-gray-300"
                                     }`}
                                 >
                                   {isFinished && <BsCheckCircleFill className="w-3 h-3" />}
@@ -715,42 +838,43 @@ export default function ProdutionManager() {
                                 </span>
                               );
                             })
+                        : grouped
+                          ? (order.group_process_codes || "")
+                              .split(",")
+                              .filter(Boolean)
+                              .map((code: string, i: number) => (
+                                <span
+                                  key={i}
+                                  className="rounded-md border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 font-medium"
+                                >
+                                  {code.trim()}
+                                </span>
+                              ))
                           : order.stages?.map((stage: string, i: number) => (
-                            <span
-                              key={i}
-                              className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
-                            >
-                              {stage}
-                            </span>
-                          ))}
+                              <span
+                                key={i}
+                                className="rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
+                              >
+                                {stage}
+                              </span>
+                            ))}
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         if (confirmModal.open || modalDismissGuardRef.current) return;
 
                         if (grouped) {
-                          try {
-                            setIsManualLoading(true);
-                            await productionsApi.startGroupProduction(order.prod_id);
-                            showSuccessToast(`Đã bắt đầu sản xuất Lệnh SX ghép ${order.prod_id}`);
-                            queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
-                          } catch (err: any) {
-                            showErrorToast(err.message || "Không thể bắt đầu sản xuất");
-                          } finally {
-                            setIsManualLoading(false);
-                          }
+                          openConfirmModal(order, "start_group");
                         } else {
                           if (isNvlAllDone) {
-                            openConfirmModal(order);
+                            openConfirmModal(order, "importing");
                           } else {
-                            if (!isStarting)
-                              startMutation.mutate({
-                                orderId: order.order_id,
-                                prodId: order.prod_id,
-                              });
+                            if (!isStarting) {
+                              openConfirmModal(order, "start");
+                            }
                           }
                         }
                       }}
@@ -785,6 +909,11 @@ export default function ProdutionManager() {
                 </div>
               );
             })}
+                  </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -810,13 +939,39 @@ export default function ProdutionManager() {
       {activeTab === "processing" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
-            {processingPageData.length === 0 && (
+            {processingPageGroups.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 Không có lệnh sản xuất nào đang chạy.
               </p>
             )}
 
-            {processingPageData.map((order: any, index: number) => {
+            {processingPageGroups.map((group) => {
+              const isGroupExpanded = !collapsedGroups.has(group.groupKey);
+              return (
+                <div key={group.groupKey} className="border border-indigo-100 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupCollapse(group.groupKey)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-yellow-50/80 to-gray-50/80 hover:from-yellow-100 hover:to-gray-100 transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <BsLayers className="w-4 h-4 text-yellow-500 shrink-0" />
+                      <span className="text-sm font-semibold text-gray-800">
+                        {group.orderIds.length === 0
+                          ? "Lệnh sản xuất độc lập"
+                          : group.orderIds.length === 1
+                            ? `Đơn hàng #${group.orderIds[0]}`
+                            : `Nhóm đơn hàng: ${group.orderIds.map((id: number) => `#${id}`).join(", ")}`}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-white/70 rounded-full px-2 py-0.5 border border-gray-200">
+                        {group.productions.length} lệnh SX
+                      </span>
+                    </div>
+                    <span className={`text-gray-400 transition-transform duration-200 inline-block text-xs ${isGroupExpanded ? "rotate-180" : ""}`}>▼</span>
+                  </button>
+                  {isGroupExpanded && (
+                  <div className="p-3 space-y-3">
+            {group.productions.map((order: any, index: number) => {
               const grouped = isGrouped(order);
 
               return (
@@ -829,13 +984,25 @@ export default function ProdutionManager() {
                     }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      Lệnh sản xuất:
-                      <span
-                        className={`ml-1 ${grouped ? "text-purple-600" : "text-yellow-600"}`}
-                      >
-                        {order.prod_id}
+                    <p className="text-sm font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
+                      <span>
+                        Lệnh sản xuất:
+                        <span
+                          className={`ml-1 ${grouped ? "text-purple-600" : "text-yellow-600"}`}
+                        >
+                          {order.prod_id}
+                        </span>
                       </span>
+                      {order.is_priority && (
+                        <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-red-200">
+                          Ưu tiên
+                        </span>
+                      )}
+                      {order.created_at && (new Date().getTime() - new Date(order.created_at).getTime()) < 10 * 60 * 60 * 1000 && (
+                        <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-bold border border-emerald-200">
+                          Mới tạo
+                        </span>
+                      )}
                     </p>
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold
@@ -850,20 +1017,18 @@ export default function ProdutionManager() {
                   <div className="flex flex-wrap gap-2 mb-3">
                     {order.planned_start_date && (
                       <p className="text-xs px-2 py-1 rounded-md inline-block border bg-blue-50 text-blue-700 border-blue-200">
-                        Ngày bắt đầu:{" "}
+                        Ngày bắt đầu dự kiến:{" "}
                         {new Date(order.planned_start_date).toLocaleDateString("vi-VN")}
                       </p>
                     )}
-                    {order.delivery_date && (
-                      <p
+                      {order.planned_end_date &&(<p
                         className={`text-xs px-2 py-1 rounded-md inline-block border ${getDeliveryColor(
-                          order.delivery_date
+                          order.planned_end_date
                         )}`}
                       >
                         Hạn hoàn thành:{" "}
-                        {new Date(order.delivery_date).toLocaleDateString("vi-VN")}
-                      </p>
-                    )}
+                        {new Date(order.planned_end_date).toLocaleDateString("vi-VN")}
+                      </p>)}
                   </div>
 
                   {grouped ? (
@@ -887,6 +1052,11 @@ export default function ProdutionManager() {
                     <BsEye className="w-4 h-4" />
                     Xem chi tiết
                   </Link>
+                </div>
+              );
+            })}
+                  </div>
+                  )}
                 </div>
               );
             })}
@@ -915,7 +1085,7 @@ export default function ProdutionManager() {
       {confirmModal.open && (() => {
         const detail = prodDetailForModal;
         const finishedStages = detail?.stages?.filter((s: any) => s.status === "Finished") ?? [];
-        const allVisibleStages = detail?.stages?.filter((s: any) => s.status !== "GroupedWaiting" && s.status != null) ?? [];
+        const allVisibleStages = detail?.stages?.filter((s: any) => s.status !== "GroupedWaiting" && s.status != null && s.status !== "Pending") ?? [];
         const nextStage = allVisibleStages.find((s: any) => s.status !== "Finished");
         const lastFinished = finishedStages[finishedStages.length - 1];
 
@@ -945,7 +1115,13 @@ export default function ProdutionManager() {
                   <BiPackage className="w-5 h-5 text-yellow-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800">Xác nhận lấy từ bán thành phẩm</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">
+                    {confirmModal.actionType === "importing" 
+                      ? "Xác nhận lấy từ bán thành phẩm" 
+                      : confirmModal.actionType === "start_group" 
+                        ? "Xác nhận bắt đầu sản xuất (Lệnh ghép)" 
+                        : "Xác nhận bắt đầu sản xuất"}
+                  </h3>
                   {detail && (
                     <p className="text-xs text-gray-500 mt-0.5">
                       Lệnh sản xuất: {detail.prod_id}
@@ -1103,7 +1279,9 @@ export default function ProdutionManager() {
                   </>
                 ) : (
                   <p className="text-sm text-gray-500 text-center py-4">
-                    Xác nhận lệnh sản xuất đã được lấy từ bán thành phẩm
+                    {confirmModal.actionType === "importing"
+                      ? "Xác nhận lệnh sản xuất đã được lấy từ bán thành phẩm"
+                      : "Xác nhận bắt đầu sản xuất"}
                   </p>
                 )}
               </div>
@@ -1114,19 +1292,19 @@ export default function ProdutionManager() {
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => closeConfirmModal()}
-                  disabled={isConfirmingImport}
+                  disabled={isConfirmingAction}
                   className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
                 >
                   Hủy
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleConfirmMarkImporting()}
-                  disabled={isConfirmingImport || confirmModal.prodId == null}
+                  onClick={() => handleConfirmAction()}
+                  disabled={isConfirmingAction || confirmModal.prodId == null}
                   className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-semibold hover:bg-yellow-600 transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <BsCheckCircleFill className="w-3.5 h-3.5" />
-                  {isConfirmingImport ? "Đang xác nhận..." : "Xác nhận"}
+                  {isConfirmingAction ? "Đang xử lý..." : "Xác nhận"}
                 </button>
               </div>
             </div>

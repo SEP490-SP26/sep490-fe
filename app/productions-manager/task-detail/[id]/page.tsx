@@ -22,9 +22,9 @@ import { BiPackage } from "react-icons/bi";
 ======================= */
 export interface DecodeQrMaterial {
   material_id: number;
-  quantity_used: number;
+  mat_quantity_used: number;
   is_stock: boolean;
-  quantity_left: number;
+  mat_quantity_left: number;
   material_code: string | null;
   material_name: string | null;
   unit: string | null;
@@ -442,10 +442,10 @@ useEffect(() => {
                     : MATERIAL_NAME_MAP[mat.material_id] ?? `ID: ${mat.material_id}`}
                 </td>
                 <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                  {fmtNum(mat.quantity_used)}
+                  {fmtNum(mat.mat_quantity_used)}
                 </td>
                 <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
-                  {fmtNum(mat.quantity_left)}
+                  {fmtNum(mat.mat_quantity_left)}
                 </td>
                 <td className="px-3 py-2.5 text-center">
                   <span
@@ -570,7 +570,7 @@ useEffect(() => {
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-gray-500">Số lượng thành phẩm</p>
                 <p className="text-green-700 text-right">
-                  <span className="font-bold text-lg">{fmtNum(out.quantity_good)}</span>{" "}
+                  <span className="font-bold text-lg">{fmtNum(decodeData.qty_good)}</span>{" "}
                   <span className="text-sm">{!isNullText(out.unit) ? out.unit : "sp"}</span>
                 </p>
               </div>
@@ -604,39 +604,60 @@ useEffect(() => {
   </div>
 
   {/* Hình ảnh, ghi chú, action buttons giữ nguyên ... */}
-        {decodeData.report_image_url && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <BsImage className="w-4 h-4 text-teal-600" />
-              Hình ảnh báo cáo
-            </h3>
-            <a
-              href={decodeData.report_image_url}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-32 h-32 rounded-xl border border-gray-200 overflow-hidden hover:opacity-80 hover:shadow-md transition"
-            >
-              <img
-                src={decodeData.report_image_url}
-                alt="Hình ảnh báo cáo"
-                className="w-full h-full object-cover"
-              />
-            </a>
-          </div>
-        )}
+        {/* Hình ảnh báo cáo */}
+<div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+    <BsImage className="w-4 h-4 text-teal-600" />
+    Hình ảnh báo cáo
+  </h3>
+
+  {decodeData.report_image_url ? (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      {decodeData.report_image_url
+        .split(",")
+        .map((url) => url.trim())
+        .filter(Boolean)
+        .map((url, index) => (
+          <a
+            key={index}
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 hover:shadow-lg transition"
+          >
+            <img
+              src={url}
+              alt={`Hình báo cáo ${index + 1}`}
+              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+            />
+
+            {/* overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
+
+            {/* số thứ tự */}
+            <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-md">
+              #{index + 1}
+            </div>
+          </a>
+        ))}
+    </div>
+  ) : (
+    <p className="text-sm text-gray-500 italic">
+      Không có hình ảnh báo cáo
+    </p>
+  )}
+</div>
 
         {/* Ghi chú */}
-        {!isNullText(decodeData.reason) && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <BsClipboardCheck className="w-4 h-4 text-gray-500" />
-              Ghi chú
-            </h3>
-            <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200">
-              {decodeData.reason}
-            </p>
-          </div>
-        )}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <BsClipboardCheck className="w-4 h-4 text-gray-500" />
+            Ghi chú
+          </h3>
+          <p className={`text-sm bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-200 ${!isNullText(decodeData.reason) ? "text-gray-600" : "text-gray-400 italic"}`}>
+            {!isNullText(decodeData.reason) ? decodeData.reason : "Không có ghi chú"}
+          </p>
+        </div>
 
         {/* Action */}
         <div className="flex gap-3 pt-2">

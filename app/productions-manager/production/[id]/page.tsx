@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import TokenQrModal from "@/components/production/TokenQrModal";
+import StageScanLogs from "@/components/production/StageScanLogs";
 import {
   assembleQrReportBody,
   canShowManualToggle,
@@ -76,6 +77,8 @@ export interface ScanLog {
   qty_good: number;
   qty_bad?: number;
   report_image_urls?: string[];
+  comment: string;
+  reason: string;
 }
 
 export interface ProductionStage {
@@ -132,6 +135,7 @@ export interface ProductionResponse {
   planned_start_date: string;
   actual_start_date: string | null;
   stages: ProductionStage[];
+  sub_product_issue_file?: string | null;
 }
 
 /* =======================
@@ -410,67 +414,6 @@ export default function ProductionDetailPage() {
     };
   }, [previewUrls]);
 
-
-  // Global Scanner Detection
-  const handleQrScannedRef = useRef<any>(null);
-
-  useEffect(() => {
-    let buffer = "";
-    let lastKeyTime = 0;
-    let scanTimer: NodeJS.Timeout | null = null;
-
-    const finishScan = () => {
-      const value = buffer.trim();
-
-      if (value.length >= 6 && handleQrScannedRef.current) {
-        handleQrScannedRef.current(value);
-      }
-
-      buffer = "";
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = document.activeElement?.tagName;
-
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-      const now = Date.now();
-
-      // nếu ngắt quãng quá lâu mới reset
-      if (now - lastKeyTime > 200) {
-        buffer = "";
-      }
-
-      lastKeyTime = now;
-
-      if (e.key === "Enter") {
-        e.preventDefault();
-
-        if (scanTimer) clearTimeout(scanTimer);
-
-        finishScan();
-        return;
-      }
-
-      if (e.key.length === 1) {
-        buffer += e.key;
-      }
-
-      // fallback nếu scanner không gửi Enter
-      if (scanTimer) clearTimeout(scanTimer);
-
-      scanTimer = setTimeout(() => {
-        finishScan();
-      }, 300);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      if (scanTimer) clearTimeout(scanTimer);
-    };
-  }, []);
 
   const toggleStage = (processId: number) => {
     setCollapsedStages((prev) => ({
@@ -755,10 +698,7 @@ export default function ProductionDetailPage() {
     }
   };
 
-  // Keep ref updated
-  useEffect(() => {
-    handleQrScannedRef.current = handleQrScanned;
-  }, [handleQrScanned]);
+  // Note: Global scanner logic removed, now handled in layout.tsx
 
   if (isLoading) return <Loading text="Đang tải dữ liệu..." />;
 
@@ -849,9 +789,9 @@ export default function ProductionDetailPage() {
         />
       </div>
 
-      {/* =================== INK TYPES & PRINT FILE =================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4">
+      {/* =================== INK TYPES & PRINT FILE & ISSUE FILE =================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col gap-4 lg:col-span-1">
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <BsPrinter className="w-4 h-4 text-blue-600" />
@@ -896,7 +836,7 @@ export default function ProductionDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 lg:col-span-1">
           <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <BsClipboardCheck className="w-4 h-4 text-blue-600" />
             File in sẵn sàng
@@ -933,6 +873,52 @@ export default function ProductionDetailPage() {
             </div>
           ) : (
             <span className="text-sm text-gray-400">Chưa có file</span>
+          )}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5 lg:col-span-1">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <BsClipboardCheck className="w-4 h-4 text-blue-600" />
+            Phiếu xuất kho
+          </h3>
+          {production?.sub_product_issue_file ? (
+            <div>
+              <div
+                className="relative group cursor-pointer rounded-lg overflow-hidden border border-gray-200 bg-gray-50 mb-3 max-w-[400px]"
+                onClick={() => window.open(production.sub_product_issue_file!, '_blank')}
+              >
+                {production.sub_product_issue_file.toLowerCase().endsWith('.pdf') ? (
+                  <iframe
+                    src={`${production.sub_product_issue_file}#toolbar=0&navpanes=0&scrollbar=0`}
+                    className="w-full h-[250px] border-none pointer-events-none"
+                    title="Phiếu xuất kho PDF Preview"
+                  />
+                ) : (
+                  <img
+                    src={production.sub_product_issue_file}
+                    alt="Phiếu xuất kho"
+                    className="w-full h-auto max-h-[250px] object-contain"
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white bg-black/60 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <BsEye className="w-4 h-4" />
+                    Mở trong tab mới
+                  </span>
+                </div>
+              </div>
+              <a
+                href={production.sub_product_issue_file}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
+              >
+                <BsArrowRight className="w-3 h-3" />
+                Mở trong tab mới
+              </a>
+            </div>
+          ) : (
+            <span className="text-sm text-gray-400">Chưa có phiếu</span>
           )}
         </div>
       </div>
@@ -1218,57 +1204,7 @@ export default function ProductionDetailPage() {
                       </div>
                     </div>
 
-                    {/* Scan Logs */}
-                    {stage.logs && stage.logs.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                          <BsClipboardCheck className="w-4 h-4 text-purple-500" />
-                          Lịch sử scan
-                        </h4>
-                        <div className="border rounded-xl overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead className="bg-purple-50">
-                              <tr>
-                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
-                                  Thời gian
-                                </th>
-                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                                  Số lượng thành phẩm
-                                </th>
-                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
-                                  Hình ảnh
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {stage.logs.map((log, i) => (
-                                <tr key={i} className="border-t">
-                                  <td className="px-3 py-2.5">
-                                    {formatDateTime(log.log_time || log.scanned_at)}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right text-green-600 font-bold">
-                                    {log.qty_good}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center">
-                                    {log.report_image_urls && log.report_image_urls.length > 0 ? (
-                                      <div className="flex justify-center gap-1 flex-wrap">
-                                        {log.report_image_urls.map((url, idx) => (
-                                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
-                                            <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
-                                          </a>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">—</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
+                    <StageScanLogs logs={stage.logs} />
 
                     {/* Last scan info & Actions */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">
@@ -1568,57 +1504,7 @@ export default function ProductionDetailPage() {
                       </div>
                     </div>
 
-                    {/* Scan Logs */}
-                    {stage.logs && stage.logs.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm text-gray-700">
-                          <BsClipboardCheck className="w-4 h-4 text-purple-500" />
-                          Lịch sử scan
-                        </h4>
-                        <div className="border rounded-xl overflow-hidden">
-                          <table className="w-full text-sm">
-                            <thead className="bg-purple-50">
-                              <tr>
-                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">
-                                  Thời gian
-                                </th>
-                                <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">
-                                  Số lượng thành phẩm
-                                </th>
-                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">
-                                  Hình ảnh
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {stage.logs.map((log, i) => (
-                                <tr key={i} className="border-t">
-                                  <td className="px-3 py-2.5">
-                                    {formatDateTime(log.log_time || log.scanned_at)}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right text-green-600 font-bold">
-                                    {log.qty_good}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center">
-                                    {log.report_image_urls && log.report_image_urls.length > 0 ? (
-                                      <div className="flex justify-center gap-1 flex-wrap">
-                                        {log.report_image_urls.map((url, idx) => (
-                                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block w-8 h-8 rounded border border-gray-200 overflow-hidden hover:opacity-80 transition">
-                                            <img src={url} alt={`report-${idx}`} className="w-full h-full object-cover" />
-                                          </a>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">—</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
+                    <StageScanLogs logs={stage.logs} />
 
                     {/* Last scan info & Actions */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 mt-2">

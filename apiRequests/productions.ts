@@ -293,6 +293,8 @@ export interface IProductionProgressItem {
   start_date: string | null;
   end_date: string;                             // ISO Date String
   order_status: 'Scheduled' | string;
+  sub_product_issue_file?: string | null;
+  issue_file?: string | null;
 }
 
 // Interface bọc ngoài cùng đại diện cho Response phân trang trả về từ API
