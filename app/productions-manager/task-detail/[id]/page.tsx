@@ -166,6 +166,16 @@ const MATERIAL_NAME_MAP: Record<number, string> = {
   47: "Màng metalize 12 mic",
 };
 
+const UNIT_MAP: Record<number, string> = {
+  1: "Tờ", 2: "Tờ", 3: "Tờ", 4: "Tờ", 5: "Tờ", 6: "Tờ",
+  7: "kg", 8: "kg", 9: "kg", 10: "kg", 11: "kg", 12: "kg", 13: "kg", 15: "kg",
+  17: "Tờ", 18: "Tờ", 19: "Tờ", 20: "Tờ", 21: "Tờ", 22: "Tờ", 23: "Tờ", 25: "Tờ",
+  26: "bản",
+  27: "kg", 28: "kg", 29: "kg", 30: "kg", 31: "kg", 32: "kg", 33: "kg", 34: "kg",
+  35: "kg", 36: "kg", 37: "kg", 38: "kg", 39: "kg", 40: "kg", 41: "kg", 42: "kg",
+  43: "kg", 44: "kg", 45: "kg", 46: "kg", 47: "kg",
+};
+
 /* =======================
    PAGE
 ======================= */
@@ -173,42 +183,37 @@ export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  // Lấy decode data từ sessionStorage
-  const [decodeData, setDecodeData] =
-  useState<DecodeQrResponse | null>(null);
+  const [decodeData, setDecodeData] = useState<DecodeQrResponse | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
 
-useEffect(() => {
-  setMounted(true);
+    const raw = sessionStorage.getItem("qr_decode_result");
 
-  const raw = sessionStorage.getItem("qr_decode_result");
+    if (!raw) {
+      setDecodeData(null);
+      return;
+    }
 
-  if (!raw) {
-    setDecodeData(null);
-    return;
-  }
+    try {
+      const parsed: DecodeQrResponse = JSON.parse(raw);
 
-  try {
-    const parsed: DecodeQrResponse = JSON.parse(raw);
-
-    if (parsed.task_id?.toString() === id) {
-      setDecodeData(parsed);
-    } else {
+      if (parsed.task_id?.toString() === id) {
+        setDecodeData(parsed);
+      } else {
+        setDecodeData(null);
+      }
+    } catch {
       setDecodeData(null);
     }
-  } catch {
-    setDecodeData(null);
-  }
-}, [id]);
+  }, [id]);
 
-  // State cho stage input materials từ production detail API
   const [stageInputMaterials, setStageInputMaterials] = useState<StageInputMaterial[] | null>(null);
   const [stageName, setStageName] = useState<string | null>(null);
   const [loadingStage, setLoadingStage] = useState(false);
   const [stageError, setStageError] = useState<string | null>(null);
 
-  // Gọi API production detail để lấy input_materials của stage khớp task_id
   useEffect(() => {
     if (!decodeData?.prod_id || !decodeData?.task_id) return;
 
@@ -219,7 +224,6 @@ useEffect(() => {
         const res = await productionsApi.getProductionByProdId(
           decodeData.prod_id.toString()
         );
-        // Unwrap nếu response có wrapper .data
         const detail =
           res && typeof res === "object" && "data" in res && res.data != null
             ? (res as any).data
@@ -234,7 +238,6 @@ useEffect(() => {
           setStageName(matchedStage.task_name ?? matchedStage.process_name);
           setStageInputMaterials(matchedStage.input_materials ?? []);
         } else {
-          // task_id không tìm thấy trong stages (ví dụ grouped production)
           setStageInputMaterials([]);
         }
       } catch (err: any) {
@@ -278,14 +281,12 @@ useEffect(() => {
   };
 
   if (!mounted) {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-sm text-gray-500">
-        Đang tải...
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-sm text-gray-500">Đang tải...</div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   if (!decodeData) {
     return (
@@ -360,295 +361,293 @@ useEffect(() => {
 
       <div className="space-y-5">
 
-  {/* ── 1. NGUYÊN LIỆU ĐẦU VÀO CÔNG ĐOẠN ── */}
-  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-      <BsInboxes className="w-4 h-4 text-indigo-600" />
-      Nguyên liệu đầu vào công đoạn
-      {stageName && (
-        <span className="ml-1 text-m font-bold text-gray-400">- {stageName}</span>
-      )}
-    </h3>
-    {loadingStage ? (
-      <div className="flex items-center gap-2 text-sm text-gray-400 py-3">
-        <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-        Đang tải nguyên liệu đầu vào...
-      </div>
-    ) : stageError ? (
-      <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-        {stageError}
-      </p>
-    ) : (
-      <div className="border rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-indigo-50">
-            <tr>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold text-indigo-600">Tên nguyên liệu</th>
-              <th className="px-3 py-2.5 text-right text-xs font-semibold text-indigo-600">Dự kiến</th>
-              <th className="px-3 py-2.5 text-center text-xs font-semibold text-indigo-600">ĐVT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!stageInputMaterials || stageInputMaterials.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-400">
-                  Không có nguyên liệu đầu vào cho công đoạn này.
-                </td>
-              </tr>
-            ) : (
-              stageInputMaterials.map((mat, i) => (
-                <tr key={i} className="border-t hover:bg-indigo-50/30">
-                  <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
-                  <td className="px-3 py-2.5 text-right font-semibold text-indigo-600">
-                    {fmtQty(mat.estimated_quantity)}
-                  </td>
-                  <td className="px-3 py-2.5 text-center text-gray-500 text-xs">{mat.unit ?? "—"}</td>
-                </tr>
-              ))
+        {/* ── 1. NGUYÊN LIỆU ĐẦU VÀO CÔNG ĐOẠN ── */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <BsInboxes className="w-4 h-4 text-indigo-600" />
+            Nguyên liệu đầu vào công đoạn
+            {stageName && (
+              <span className="ml-1 text-m font-bold text-gray-400">- {stageName}</span>
             )}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </div>
-
-  {/* ── 2. NGUYÊN VẬT LIỆU SỬ DỤNG ── */}
-  {/* Nếu materials[] rỗng → fallback dùng stageInputMaterials */}
-  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-      <BsArrowRight className="w-4 h-4 text-orange-500" />
-      Nguyên vật liệu sử dụng
-    </h3>
-    <div className="border rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-orange-50">
-          <tr>
-            <th className="px-3 py-2.5 text-left text-xs font-semibold text-orange-600">Tên NVL</th>
-            <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">Đã dùng</th>
-            <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">Lượng dư</th>
-            <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">Nhập kho</th>
-            <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">ĐVT</th>
-          </tr>
-        </thead>
-        <tbody>
-          {decodeData.materials.length > 0 ? (
-            decodeData.materials.map((mat, i) => (
-              <tr key={i} className="border-t hover:bg-orange-50/40">
-                <td className="px-3 py-2.5 font-medium text-gray-700">
-                  {!isNullText(mat.material_name)
-                    ? mat.material_name
-                    : !isNullText(mat.material_code)
-                    ? mat.material_code
-                    : MATERIAL_NAME_MAP[mat.material_id] ?? `ID: ${mat.material_id}`}
-                </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                  {fmtNum(mat.mat_quantity_used)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
-                  {fmtNum(mat.mat_quantity_left)}
-                </td>
-                <td className="px-3 py-2.5 text-center">
-                  <span
-                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      mat.is_stock
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    {mat.is_stock ? "Có" : "Không"}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
-                  {!isNullText(mat.unit) ? mat.unit : ""}
-                </td>
-              </tr>
-            ))
-          ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
-            // Fallback: hiển thị từ stageInputMaterials
-            stageInputMaterials.map((mat, i) => (
-              <tr key={i} className="border-t hover:bg-orange-50/40">
-                <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
-                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                  {fmtQty(mat.estimated_quantity)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">0</td>
-                <td className="px-3 py-2.5 text-center">
-                  <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
-                    Không
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
-                  {!isNullText(mat.unit) ? mat.unit : ""}
-                </td>
-              </tr>
-            ))
+          </h3>
+          {loadingStage ? (
+            <div className="flex items-center gap-2 text-sm text-gray-400 py-3">
+              <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              Đang tải nguyên liệu đầu vào...
+            </div>
+          ) : stageError ? (
+            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {stageError}
+            </p>
           ) : (
-            <tr>
-              <td colSpan={4} className="px-3 py-4 text-center text-sm text-gray-400">
-                Không có nguyên vật liệu sử dụng.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  {/* ── 3. BÁN THÀNH PHẨM SỬ DỤNG ── */}
-  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-      <BiPackage className="w-4 h-4 text-purple-600" />
-      Bán thành phẩm sử dụng
-    </h3>
-    <div className="border rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-purple-50">
-          <tr>
-            <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Tên BTP</th>
-            <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Đã dùng</th>
-            <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Lượng dư</th>
-            <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">ĐVT</th>
-          </tr>
-        </thead>
-        <tbody>
-          {decodeData.qr_reference_inputs.length > 0 ? (
-            decodeData.qr_reference_inputs.map((ref, i) => (
-              <tr key={i} className="border-t hover:bg-purple-50/30">
-                <td className="px-3 py-2.5 font-medium text-gray-700">
-                  {!isNullText(ref.input_name) && ref.input_name}{" "}
-                  {!isNullText(ref.input_code) && (
-                    <span className="text-gray-400 text-xs font-normal">({ref.input_code})</span>
+            <div className="border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-indigo-50">
+                  <tr>
+                    <th className="px-3 py-2.5 text-left text-xs font-semibold text-indigo-600">Tên nguyên liệu</th>
+                    <th className="px-3 py-2.5 text-right text-xs font-semibold text-indigo-600">Dự kiến</th>
+                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-indigo-600">ĐVT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!stageInputMaterials || stageInputMaterials.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-400">
+                        Không có nguyên liệu đầu vào cho công đoạn này.
+                      </td>
+                    </tr>
+                  ) : (
+                    stageInputMaterials.map((mat, i) => (
+                      <tr key={i} className="border-t hover:bg-indigo-50/30">
+                        <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-indigo-600">
+                          {fmtQty(mat.estimated_quantity)}
+                        </td>
+                        {/* StageInputMaterial không có material_id → chỉ dùng mat.unit */}
+                        <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                          {!isNullText(mat.unit) ? mat.unit : "—"}
+                        </td>
+                      </tr>
+                    ))
                   )}
-                </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                  {fmtNum(ref.quantity_used)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
-                  {fmtNum(ref.quantity_left)}
-                </td>
-                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
-                  {!isNullText(ref.unit) ? ref.unit : "---"}
-                </td>
-              </tr>
-            ))
-          ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
-            // Fallback: hiển thị từ stageInputMaterials
-            stageInputMaterials.map((mat, i) => (
-              <tr key={i} className="border-t hover:bg-purple-50/30">
-                <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
-                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                  {fmtQty(mat.estimated_quantity)}
-                </td>
-                <td className="px-3 py-2.5 text-right font-semibold text-gray-700">—</td>
-                <td className="px-3 py-2.5 text-center text-gray-500 text-xs">{mat.unit ?? "—"}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={4} className="px-3 py-4 text-center text-sm text-gray-400">
-                Không có bán thành phẩm sử dụng.
-              </td>
-            </tr>
+                </tbody>
+              </table>
+            </div>
           )}
-        </tbody>
-      </table>
-    </div>
-  </div>
+        </div>
 
-  {/* ── 4. THÀNH PHẨM ĐẦU RA ── */}
-  <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-      <BsBoxSeam className="w-4 h-4 text-green-600" />
-      Thành phẩm đầu ra
-    </h3>
-    {decodeData.outputs.length > 0 ? (
-      <div className="space-y-3">
-        {decodeData.outputs.map((out, i) => (
-          <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-4">
-            <p className="font-semibold text-green-800 mb-3">{out.output_name}</p>
-            <div className="bg-white border border-green-200 rounded-lg p-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-gray-500">Số lượng thành phẩm</p>
-                <p className="text-green-700 text-right">
-                  <span className="font-bold text-lg">{fmtNum(decodeData.qty_good)}</span>{" "}
-                  <span className="text-sm">{!isNullText(out.unit) ? out.unit : "sp"}</span>
-                </p>
-              </div>
-            </div>
+        {/* ── 2. NGUYÊN VẬT LIỆU SỬ DỤNG ── */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <BsArrowRight className="w-4 h-4 text-orange-500" />
+            Nguyên vật liệu sử dụng
+          </h3>
+          <div className="border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-orange-50">
+                <tr>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-orange-600">Tên NVL</th>
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">Đã dùng</th>
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-orange-600">Lượng dư</th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">Nhập kho</th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-orange-600">ĐVT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {decodeData.materials.length > 0 ? (
+                  decodeData.materials.map((mat, i) => (
+                    <tr key={i} className="border-t hover:bg-orange-50/40">
+                      <td className="px-3 py-2.5 font-medium text-gray-700">
+                        {!isNullText(mat.material_name)
+                          ? mat.material_name
+                          : !isNullText(mat.material_code)
+                          ? mat.material_code
+                          : MATERIAL_NAME_MAP[mat.material_id] ?? `ID: ${mat.material_id}`}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                        {fmtNum(mat.mat_quantity_used)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
+                        {fmtNum(mat.mat_quantity_left)}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span
+                          className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            mat.is_stock
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {mat.is_stock ? "Có" : "Không"}
+                        </span>
+                      </td>
+                      {/* DecodeQrMaterial có material_id → dùng UNIT_MAP làm fallback */}
+                      <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                        {!isNullText(mat.unit) ? mat.unit : (UNIT_MAP[mat.material_id] ?? "—")}
+                      </td>
+                    </tr>
+                  ))
+                ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
+                  // Fallback: hiển thị từ stageInputMaterials (không có material_id)
+                  stageInputMaterials.map((mat, i) => (
+                    <tr key={i} className="border-t hover:bg-orange-50/40">
+                      <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                        {fmtQty(mat.estimated_quantity)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-gray-700">0</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                          Không
+                        </span>
+                      </td>
+                      {/* StageInputMaterial không có material_id → chỉ dùng mat.unit */}
+                      <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                        {!isNullText(mat.unit) ? mat.unit : "—"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
+                      Không có nguyên vật liệu sử dụng.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
-    ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
-      // Fallback: hiển thị từ stageInputMaterials
-      <div className="space-y-3">
-        {stageInputMaterials.map((mat, i) => (
-          <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-4">
-            <p className="font-semibold text-green-800 mb-3">{mat.name}</p>
-            <div className="bg-white border border-green-200 rounded-lg p-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-gray-500">Số lượng dự kiến</p>
-                <p className="text-green-700 text-right">
-                  <span className="font-bold text-lg">{fmtQty(mat.estimated_quantity)}</span>{" "}
-                  <span className="text-sm">{mat.unit ?? "sp"}</span>
-                </p>
-              </div>
-            </div>
+        </div>
+
+        {/* ── 3. BÁN THÀNH PHẨM SỬ DỤNG ── */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <BiPackage className="w-4 h-4 text-purple-600" />
+            Bán thành phẩm sử dụng
+          </h3>
+          <div className="border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-purple-50">
+                <tr>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-600">Tên BTP</th>
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Đã dùng</th>
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-purple-600">Lượng dư</th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-600">ĐVT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {decodeData.qr_reference_inputs.length > 0 ? (
+                  decodeData.qr_reference_inputs.map((ref, i) => (
+                    <tr key={i} className="border-t hover:bg-purple-50/30">
+                      <td className="px-3 py-2.5 font-medium text-gray-700">
+                        {!isNullText(ref.input_name) && ref.input_name}{" "}
+                        {!isNullText(ref.input_code) && (
+                          <span className="text-gray-400 text-xs font-normal">({ref.input_code})</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                        {fmtNum(ref.quantity_used)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-gray-700">
+                        {fmtNum(ref.quantity_left)}
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                        {!isNullText(ref.unit) ? ref.unit : "---"}
+                      </td>
+                    </tr>
+                  ))
+                ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
+                  // Fallback: hiển thị từ stageInputMaterials (không có material_id)
+                  stageInputMaterials.map((mat, i) => (
+                    <tr key={i} className="border-t hover:bg-purple-50/30">
+                      <td className="px-3 py-2.5 font-medium text-gray-700">{mat.name}</td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
+                        {fmtQty(mat.estimated_quantity)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-gray-700">—</td>
+                      {/* StageInputMaterial không có material_id → chỉ dùng mat.unit */}
+                      <td className="px-3 py-2.5 text-center text-gray-500 text-xs">
+                        {!isNullText(mat.unit) ? mat.unit : "—"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-4 text-center text-sm text-gray-400">
+                      Không có bán thành phẩm sử dụng.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
-    ) : (
-      <p className="text-sm text-gray-400 text-center py-4 border border-dashed border-gray-200 rounded-xl">
-        Không có thành phẩm đầu ra.
-      </p>
-    )}
-  </div>
+        </div>
 
-  {/* Hình ảnh, ghi chú, action buttons giữ nguyên ... */}
-        {/* Hình ảnh báo cáo */}
-<div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-    <BsImage className="w-4 h-4 text-teal-600" />
-    Hình ảnh báo cáo
-  </h3>
-
-  {decodeData.report_image_url ? (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {decodeData.report_image_url
-        .split(",")
-        .map((url) => url.trim())
-        .filter(Boolean)
-        .map((url, index) => (
-          <a
-            key={index}
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 hover:shadow-lg transition"
-          >
-            <img
-              src={url}
-              alt={`Hình báo cáo ${index + 1}`}
-              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-            />
-
-            {/* overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
-
-            {/* số thứ tự */}
-            <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-md">
-              #{index + 1}
+        {/* ── 4. THÀNH PHẨM ĐẦU RA ── */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <BsBoxSeam className="w-4 h-4 text-green-600" />
+            Thành phẩm đầu ra
+          </h3>
+          {decodeData.outputs.length > 0 ? (
+            <div className="space-y-3">
+              {decodeData.outputs.map((out, i) => (
+                <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <p className="font-semibold text-green-800 mb-3">{out.output_name}</p>
+                  <div className="bg-white border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs text-gray-500">Số lượng thành phẩm</p>
+                      <p className="text-green-700 text-right">
+                        <span className="font-bold text-lg">{fmtNum(decodeData.qty_good)}</span>{" "}
+                        <span className="text-sm">{!isNullText(out.unit) ? out.unit : "sp"}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </a>
-        ))}
-    </div>
-  ) : (
-    <p className="text-sm text-gray-500 italic">
-      Không có hình ảnh báo cáo
-    </p>
-  )}
-</div>
+          ) : stageInputMaterials && stageInputMaterials.length > 0 ? (
+            <div className="space-y-3">
+              {stageInputMaterials.map((mat, i) => (
+                <div key={i} className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <p className="font-semibold text-green-800 mb-3">{mat.name}</p>
+                  <div className="bg-white border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs text-gray-500">Số lượng dự kiến</p>
+                      <p className="text-green-700 text-right">
+                        <span className="font-bold text-lg">{fmtQty(mat.estimated_quantity)}</span>{" "}
+                        <span className="text-sm">{mat.unit ?? "sp"}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-4 border border-dashed border-gray-200 rounded-xl">
+              Không có thành phẩm đầu ra.
+            </p>
+          )}
+        </div>
 
-        {/* Ghi chú */}
+        {/* ── 5. HÌNH ẢNH BÁO CÁO ── */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <BsImage className="w-4 h-4 text-teal-600" />
+            Hình ảnh báo cáo
+          </h3>
+          {decodeData.report_image_url ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {decodeData.report_image_url
+                .split(",")
+                .map((url) => url.trim())
+                .filter(Boolean)
+                .map((url, index) => (
+                  <a
+                    key={index}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 hover:shadow-lg transition"
+                  >
+                    <img
+                      src={url}
+                      alt={`Hình báo cáo ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
+                    <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-md">
+                      #{index + 1}
+                    </div>
+                  </a>
+                ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">Không có hình ảnh báo cáo</p>
+          )}
+        </div>
+
+        {/* ── 6. GHI CHÚ ── */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
             <BsClipboardCheck className="w-4 h-4 text-gray-500" />
@@ -659,7 +658,7 @@ useEffect(() => {
           </p>
         </div>
 
-        {/* Action */}
+        {/* ── ACTION ── */}
         <div className="flex gap-3 pt-2">
           <button
             onClick={() => router.back()}
