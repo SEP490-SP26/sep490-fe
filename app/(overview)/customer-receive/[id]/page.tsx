@@ -104,7 +104,7 @@ const handleReceiveOrder = async () => {
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
               Xác Nhận Nhận Hàng
             </h1>
-            <p className="text-gray-500 mt-1">Mã Yêu Cầu: #{requestData.order_request_id} • Trạng thái: {requestData.process_status}</p>
+            <p className="text-gray-500 mt-1">Mã Yêu Cầu: #{requestData.order_request_id} - Mã đơn hàng #{requestData.order_id} • Trạng thái: {requestData.process_status}</p>
           </div>
           <button
             onClick={() => setShowConfirmModal(true)}
