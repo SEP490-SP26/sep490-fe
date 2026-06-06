@@ -265,6 +265,24 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
           },
         },
         {
+          title: "Phương án SX",
+          key: "production_method",
+          width: 120,
+          align: "center",
+          render: (_: any, record: any) => {
+            if (record.production_method === "NVL") {
+              return <Tag color="green">Nguyên vật liệu</Tag>;
+            }
+            if (record.production_method === "SUB") {
+              return <Tag color="blue">Bán thành phẩm</Tag>;
+            }
+            if (record.production_method == null) {
+              return <Tag color="green">Hệ thống tự duyệt</Tag>;
+            }
+            return <Tag>{record.production_method}</Tag>;
+          }
+        },
+        {
           title: "Người duyệt",
           key: "approval_source",
           align: "center" as const,
@@ -1382,6 +1400,24 @@ function TrackOrdersTab({ mode }: { mode: "InProcessing" | "Importing" }) {
           );
         }
         return <span className="text-gray-400 italic">Chưa có</span>;
+      }
+    },
+    {
+      title: "Phương án SX",
+      key: "production_method",
+      width: 120,
+      align: "center",
+      render: (_: any, record: any) => {
+        if (record.production_method === "NVL") {
+          return <Tag color="green">Nguyên vật liệu</Tag>;
+        }
+        if (record.production_method === "SUB") {
+          return <Tag color="blue">Bán thành phẩm</Tag>;
+        }
+        if (record.production_method == null) {
+          return <Tag color="green">Hệ thống tự duyệt</Tag>;
+        }
+        return <Tag>{record.production_method}</Tag>;
       }
     },
     {

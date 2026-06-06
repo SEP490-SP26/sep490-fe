@@ -106,7 +106,8 @@ export default function GeneralManagerDashboard() {
     queryFn: async () => {
       try {
         const response = await orderApi.getList(1, 200);
-        return response?.data || [];
+        const resData = (response as any)?.data || response;
+        return resData?.data || resData || [];
       } catch (error) {
         console.error("Error fetching orders:", error);
         return [];
@@ -120,7 +121,8 @@ export default function GeneralManagerDashboard() {
     queryFn: async () => {
       try {
         const response = await productionsApi.getAllProduction();
-        return response?.data || response || [];
+        const resData = (response as any)?.data || response;
+        return resData?.data || resData || [];
       } catch (error) {
         console.error("Error fetching productions:", error);
         return [];
@@ -135,7 +137,9 @@ export default function GeneralManagerDashboard() {
       try {
         const response = await materialsApi.getListMissingMaterial(1, 100);
         // Filter those needing order (is_buy = false matches app/general-manager/purchase/page.tsx filter)
-        const data = response?.data || response || [];
+        const resData = (response as any)?.data || response;
+        const data = resData?.data || resData || [];
+        if (!Array.isArray(data)) return [];
         return data.filter((m: any) => m.is_buy === false);
       } catch (error) {
         console.error("Error fetching missing materials:", error);
@@ -158,8 +162,12 @@ export default function GeneralManagerDashboard() {
 
   // Normalize Orders
   const orders = useMemo(() => {
-    if (!ordersData) return [];
-    return ordersData.map((order: any) => ({
+    let dataArray = ordersData;
+    if (ordersData && !Array.isArray(ordersData)) {
+      dataArray = (ordersData as any).data || [];
+    }
+    if (!Array.isArray(dataArray)) return [];
+    return dataArray.map((order: any) => ({
       order_id: order.order_id || order._id,
       code: order.code || "ORD-N/A",
       customer_name: order.customer_name || "Khách lẻ",
