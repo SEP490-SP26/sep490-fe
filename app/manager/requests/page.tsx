@@ -280,17 +280,7 @@ export default function ManagerOrdersPage() {
       align: 'right' as const,
       render: (val: number) => val ? <b className="text-green-600 font-mono">{val.toLocaleString()}</b> : <span className="text-gray-400">-</span>
     },
-    {
-      key: "action",
-      align: "center" as const,
-      render: (_: any, record: OrderRequest) => (
-        <Link href={`/manager/request-detail/${record.order_request_id}`}>
-          <button className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-900 text-white rounded hover:bg-blue-800 transition-colors">
-            <EyeOutlined /> Chi Tiết
-          </button>
-        </Link>
-      ),
-    },
+
   ];
 
   const genericTable = (data: OrderRequest[], emptyMsg: string, showHiddenCols: boolean = false) => (

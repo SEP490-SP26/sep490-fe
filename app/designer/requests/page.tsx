@@ -6,9 +6,11 @@ import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
 import { Button, Card, Empty, Input, message, Table, Tag } from "antd";
 import dayjs from "dayjs";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function DesignerRequestsPage() {
+  const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const [allOrders, setAllOrders] = useState<OrderRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,18 +101,7 @@ export default function DesignerRequestsPage() {
       align: "center" as const,
       render: () => <Tag color="green">Đã duyệt (Accept)</Tag>,
     },
-    {
-      title: "Hành Động",
-      key: "action",
-      align: "center" as const,
-      render: (_: any, record: OrderRequest) => (
-        <Link href={`/designer/request-detail/${record.order_request_id}`}>
-          <Button size="small" icon={<EyeOutlined />} type="primary" className="bg-blue-600 hover:bg-blue-700">
-            Xem chi tiết
-          </Button>
-        </Link>
-      ),
-    },
+
   ];
 
   return (
@@ -143,6 +134,10 @@ export default function DesignerRequestsPage() {
           locale={{ emptyText: <Empty description="Không có đơn hàng nào cần thiết kế" /> }}
           bordered
           size="middle"
+          onRow={(record) => ({
+            onClick: () => router.push(`/designer/request-detail/${record.order_request_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
         />
       </Card>
     </div>

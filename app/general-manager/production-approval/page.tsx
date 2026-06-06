@@ -294,18 +294,13 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
             return (
               <div className="flex ">
                 <button
-                  onClick={() => handleOpen(record.order_id || record._id)}
+                  onClick={(e) => { e.stopPropagation(); handleOpen(record.order_id || record._id); }}
                   disabled={record.status === "Importing" || record.status === "Delivered" || record.gm_proposed_method != null}
                   className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
                 >
                   Trình duyệt SX
                 </button>
-                <button
-                  onClick={() => router.push(`/general-manager/orders/${record.order_id}`)}
-                  className="px-3 py-1 ml-2 text-sm font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                >
-                  Xem chi tiết
-                </button>
+
               </div>
             );
           },
@@ -449,6 +444,10 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
           size="middle"
           scroll={{ x: 900 }}
           className="shadow-sm rounded-lg overflow-hidden border border-gray-200"
+          onRow={(record) => ({
+            onClick: () => router.push(`/general-manager/orders/${record.order_id}`),
+            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+          })}
         />
       </div>
 

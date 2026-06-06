@@ -25,6 +25,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const { Title } = Typography;
@@ -41,6 +42,7 @@ type SortField =
 type SortOrder = "asc" | "desc";
 
 export default function ManagerRequestsProcessingPage() {
+    const router = useRouter();
     const [searchText, setSearchText] = useState("");
     const [allOrders, setAllOrders] = useState<OrderRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -262,17 +264,7 @@ export default function ManagerRequestsProcessingPage() {
         //         <Tag color="processing">{status}</Tag>
         //     )
         // },
-        {
-            key: "action",
-            align: "center" as const,
-            render: (_: any, record: OrderRequest) => (
-                <Link href={`/manager/request-detail/${record.order_request_id}`}>
-                    <button className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-900 text-white rounded hover:bg-blue-800 transition-colors">
-                        <EyeOutlined /> Chi tiết
-                    </button>
-                </Link>
-            ),
-        },
+
     ];
 
     return (
@@ -319,6 +311,10 @@ export default function ManagerRequestsProcessingPage() {
                         locale={{ emptyText: <Empty description="Không có yêu cầu nào đang xử lý" /> }}
                         bordered
                         size="middle"
+                        onRow={(record) => ({
+                            onClick: () => router.push(`/manager/request-detail/${record.order_request_id}`),
+                            className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+                        })}
                     />
                 </Spin>
             </Card>
