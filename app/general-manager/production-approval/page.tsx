@@ -38,6 +38,7 @@ import {
 } from "@/apiRequests/groupProductions";
 import { orderApi } from "@/apiRequests/order";
 import { ProductionReadiness, productionsApi } from "@/apiRequests/productions";
+import { Span } from "next/dist/trace";
 
 const { Title, Text } = Typography;
 
@@ -165,8 +166,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
       statusMatch = order.gm_proposed_method != null && order.production_method == null && order.status === "Pending";
     } else {
       // mode === "approved"
-      statusMatch = (order.status === "Scheduled") &&
-        (order.production_approval_flow === "AUTO_SINGLE_OPTION" || order.production_approval_flow === "MANUAL_MANAGER");
+      statusMatch = (order.status === "Scheduled")
     }
 
     const searchMatch =
@@ -275,6 +275,9 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
             if (record.production_approval_flow === "MANUAL_MANAGER") {
               return <Tag color="blue">Manager duyệt</Tag>;
             }
+            if (record.production_approval_flow == null) {
+              return <Tag color="green">Hệ thống tự duyệt</Tag>;
+            }
             return <Tag>{record.production_approval_flow}</Tag>;
           },
         },
@@ -290,19 +293,19 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
             }
             return (
               <div className="flex ">
-              <button
-                onClick={() => handleOpen(record.order_id || record._id)}
-                disabled={record.status === "Importing" || record.status === "Delivered" || record.gm_proposed_method != null}
-                className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
-              >
-                Trình duyệt SX
-              </button>
-              <button
-                onClick={() => router.push(`/general-manager/orders/${record.order_id}`)}
-                className="px-3 py-1 ml-2 text-sm font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-              >
-                Xem chi tiết
-              </button>
+                <button
+                  onClick={() => handleOpen(record.order_id || record._id)}
+                  disabled={record.status === "Importing" || record.status === "Delivered" || record.gm_proposed_method != null}
+                  className="px-3 py-1 text-sm font-medium border border-amber-900 text-amber-900 rounded hover:bg-amber-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400 transition-colors"
+                >
+                  Trình duyệt SX
+                </button>
+                <button
+                  onClick={() => router.push(`/general-manager/orders/${record.order_id}`)}
+                  className="px-3 py-1 ml-2 text-sm font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                >
+                  Xem chi tiết
+                </button>
               </div>
             );
           },
@@ -797,18 +800,18 @@ function GroupProductionTab() {
 
         const groupedBatches: { count: number, process_codes: string[], batch_type: string }[] = [];
         record.batches.forEach(batch => {
-           if (!batch.process_codes) return;
-           const key = batch.process_codes.join('|');
-           const existing = groupedBatches.find(gb => gb.process_codes.join('|') === key);
-           if (existing) {
-             existing.count += 1;
-           } else {
-             groupedBatches.push({
-               count: 1,
-               process_codes: batch.process_codes,
-               batch_type: batch.batch_type
-             });
-           }
+          if (!batch.process_codes) return;
+          const key = batch.process_codes.join('|');
+          const existing = groupedBatches.find(gb => gb.process_codes.join('|') === key);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            groupedBatches.push({
+              count: 1,
+              process_codes: batch.process_codes,
+              batch_type: batch.batch_type
+            });
+          }
         });
 
         return (
@@ -817,7 +820,7 @@ function GroupProductionTab() {
               const isGroup = gb.batch_type === 'GROUP';
               const isSplit = gb.batch_type === 'SPLIT';
               const color = isGroup ? 'green' : isSplit ? 'blue' : 'orange';
-              
+
               return (
                 <div key={idx} className="flex flex-col gap-1 p-1.5 border border-gray-200 bg-white rounded shadow-sm">
                   <div className="flex flex-wrap gap-1 items-center">
@@ -1093,12 +1096,17 @@ function GroupProductionTab() {
           },
           {
             key: "2",
-            label: "Tự chọn đơn hàng & Ghép thủ công",
+            label: "Ghép thủ công",
             children: (
               <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mt-4">
-                <div className="mb-4">
-                  <Title level={4} className="!mb-0 text-gray-800">Tự chọn đơn hàng & Ghép thủ công</Title>
-                  <div className="text-gray-500 text-sm mt-1">Danh sách dưới đây là toàn bộ các đơn hàng có trong các đề xuất ở trên. Bạn có thể tự chọn ra một số đơn hàng để ghép thay vì dùng mặc định theo đề xuất.</div>
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4">
+                    <Title level={4} className="!mb-0 text-gray-800"> Ghép thủ công</Title>
+                    <div className="text-gray-500 text-sm mt-1">Danh sách dưới đây là toàn bộ các đơn hàng có trong các đề xuất ở trên. Bạn có thể tự chọn ra một số đơn hàng để ghép thay vì dùng mặc định theo đề xuất.</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Tag color="blue" className="text-gray-700  font-semibold border border-gray-300 rounded px-2 py-1"><span className="text-lg">ƯU TIÊN</span></Tag>
+                  </div>
                 </div>
 
                 <Table
@@ -1128,7 +1136,7 @@ function GroupProductionTab() {
                         allowClear
                       />
                     </div>
-                
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Ghi chú</label>
                       <Input.TextArea
@@ -1180,6 +1188,7 @@ function GroupProductionTab() {
       >
         {previewData && (
           <div className="py-2 max-h-[70vh] overflow-y-auto pr-2">
+            <Tag color="blue" className="text-md mb-2"> <span className="font-semibold text-lg">NOTE: sau khi xác nhận sẽ tự động tạo phiếu xuất kho nguyên vật liệu và bán thành phẩm</span> </Tag>
             <Descriptions title="Thông tin tổng quan" bordered column={{ xs: 1, sm: 2 }} size="small" className="mb-6">
               <Descriptions.Item label="Ngày bắt đầu">{dayjs(previewData.suggested_planned_start_date).format("DD/MM/YYYY")}</Descriptions.Item>
               <Descriptions.Item label="Ngày kết thúc dự kiến">{dayjs(previewData.estimated_finish_date).format("DD/MM/YYYY")}</Descriptions.Item>
