@@ -165,13 +165,13 @@ export default function InventoryManagement() {
     poPage * ITEMS_PER_PAGE
   );
 
-  const importingRequests = (finishedGoodsRequests?.filter((req: any) => req.process_status === "Importing") || []).filter((req: any) => {
-    if (!finishedGoodSearch) return true;
-    const search = finishedGoodSearch.toLowerCase();
-    const idMatch = req.order_id?.toString().includes(search);
-    const productMatch = req.product_name?.toLowerCase().includes(search);
-    const customerMatch = req.customer_name?.toLowerCase().includes(search);
-    return idMatch || productMatch || customerMatch;
+  const allImportingRequests =
+    finishedGoodsRequests?.filter((req: any) => req.process_status === "Importing") || [];
+
+  const importingRequests = allImportingRequests.filter((req: any) => {
+    if (!finishedGoodSearch.trim()) return true;
+    const search = finishedGoodSearch.trim().toLowerCase();
+    return String(req.order_id ?? "").toLowerCase().includes(search);
   });
   const paginatedImportingRequests = importingRequests.slice(
     (finishedGoodPage - 1) * ITEMS_PER_PAGE,
@@ -504,12 +504,12 @@ export default function InventoryManagement() {
                 type="text"
                 value={finishedGoodSearch}
                 onChange={(e) => { setFinishedGoodSearch(e.target.value); setFinishedGoodPage(1); }}
-                placeholder="🔍 Tìm theo mã đơn, tên sản phẩm..."
+                placeholder="Tìm theo mã đơn hàng..."
                 className="w-full border-2 border-green-200 bg-green-50/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 focus:bg-white transition placeholder:text-gray-400 shadow-sm"
               />
             </div>
           </div>
-          {importingRequests.length === 0 ? (
+          {allImportingRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
               <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4 shadow-sm">
                 <BiPackage className="w-8 h-8" />
@@ -517,6 +517,13 @@ export default function InventoryManagement() {
               <h3 className="text-gray-900 font-medium text-lg mb-1">Chưa có dữ liệu nhập kho</h3>
               <p className="text-gray-500 max-w-sm">
                 Không có đơn thành phẩm nào đang chờ nhập kho.
+              </p>
+            </div>
+          ) : importingRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+              <h3 className="text-gray-900 font-medium text-lg mb-1">Không tìm thấy đơn hàng</h3>
+              <p className="text-gray-500 max-w-sm">
+                Không có đơn nào khớp với mã đơn hàng &quot;{finishedGoodSearch.trim()}&quot;.
               </p>
             </div>
           ) : (

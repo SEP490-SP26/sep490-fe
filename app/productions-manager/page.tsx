@@ -280,14 +280,81 @@ function groupProductionsByOrderId(productions: any[]): ProductionGroup[] {
     groupMap[gKey].productions.push(o);
   });
 
-  return Object.values(groupMap).map((g) => ({
+  const groups = Object.values(groupMap).map((g) => ({
     groupKey:
       g.orderIds.size > 0
         ? Array.from(g.orderIds).sort((a, b) => a - b).join(",")
         : `standalone`,
     orderIds: Array.from(g.orderIds).sort((a, b) => a - b),
-    productions: g.productions,
+    productions: [...g.productions].sort(compareProductions),
   }));
+
+  return groups.sort(compareProductionGroups);
+}
+
+function getProductionSortOrderId(item: any): number {
+  if (item.order_id != null) return item.order_id;
+  if (Array.isArray(item.list_order_id) && item.list_order_id.length > 0) {
+    return Math.max(...item.list_order_id);
+  }
+  return -1;
+}
+
+function compareProductions(a: any, b: any): number {
+  if (a.is_priority && !b.is_priority) return -1;
+  if (!a.is_priority && b.is_priority) return 1;
+
+  const orderDiff = getProductionSortOrderId(b) - getProductionSortOrderId(a);
+  if (orderDiff !== 0) return orderDiff;
+
+  return b.prod_id - a.prod_id;
+}
+
+function compareProductionGroups(a: ProductionGroup, b: ProductionGroup): number {
+  const aHasPriority = a.productions.some((p) => p.is_priority);
+  const bHasPriority = b.productions.some((p) => p.is_priority);
+  if (aHasPriority && !bHasPriority) return -1;
+  if (!aHasPriority && bHasPriority) return 1;
+
+  const aOrderId = a.orderIds.length > 0 ? Math.max(...a.orderIds) : -1;
+  const bOrderId = b.orderIds.length > 0 ? Math.max(...b.orderIds) : -1;
+  if (aOrderId !== bOrderId) return bOrderId - aOrderId;
+
+  const aMaxProdId = Math.max(...a.productions.map((p) => p.prod_id));
+  const bMaxProdId = Math.max(...b.productions.map((p) => p.prod_id));
+  return bMaxProdId - aMaxProdId;
+}
+
+const GROUP_COLOR_THEMES = [
+  { border: "border-blue-300", accent: "border-l-blue-500", header: "from-blue-100 to-blue-50/60", body: "bg-blue-50/60", card: "border-blue-200 bg-blue-50/80", badge: "bg-blue-500", text: "text-blue-800", icon: "text-blue-600", chip: "bg-blue-100 text-blue-800 border-blue-200" },
+  { border: "border-emerald-300", accent: "border-l-emerald-500", header: "from-emerald-100 to-emerald-50/60", body: "bg-emerald-50/60", card: "border-emerald-200 bg-emerald-50/80", badge: "bg-emerald-500", text: "text-emerald-800", icon: "text-emerald-600", chip: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  { border: "border-amber-300", accent: "border-l-amber-500", header: "from-amber-100 to-amber-50/60", body: "bg-amber-50/60", card: "border-amber-200 bg-amber-50/80", badge: "bg-amber-500", text: "text-amber-800", icon: "text-amber-600", chip: "bg-amber-100 text-amber-800 border-amber-200" },
+  { border: "border-rose-300", accent: "border-l-rose-500", header: "from-rose-100 to-rose-50/60", body: "bg-rose-50/60", card: "border-rose-200 bg-rose-50/80", badge: "bg-rose-500", text: "text-rose-800", icon: "text-rose-600", chip: "bg-rose-100 text-rose-800 border-rose-200" },
+  { border: "border-violet-300", accent: "border-l-violet-500", header: "from-violet-100 to-violet-50/60", body: "bg-violet-50/60", card: "border-violet-200 bg-violet-50/80", badge: "bg-violet-500", text: "text-violet-800", icon: "text-violet-600", chip: "bg-violet-100 text-violet-800 border-violet-200" },
+  { border: "border-cyan-300", accent: "border-l-cyan-500", header: "from-cyan-100 to-cyan-50/60", body: "bg-cyan-50/60", card: "border-cyan-200 bg-cyan-50/80", badge: "bg-cyan-500", text: "text-cyan-800", icon: "text-cyan-600", chip: "bg-cyan-100 text-cyan-800 border-cyan-200" },
+  { border: "border-orange-300", accent: "border-l-orange-500", header: "from-orange-100 to-orange-50/60", body: "bg-orange-50/60", card: "border-orange-200 bg-orange-50/80", badge: "bg-orange-500", text: "text-orange-800", icon: "text-orange-600", chip: "bg-orange-100 text-orange-800 border-orange-200" },
+  { border: "border-teal-300", accent: "border-l-teal-500", header: "from-teal-100 to-teal-50/60", body: "bg-teal-50/60", card: "border-teal-200 bg-teal-50/80", badge: "bg-teal-500", text: "text-teal-800", icon: "text-teal-600", chip: "bg-teal-100 text-teal-800 border-teal-200" },
+] as const;
+
+const STANDALONE_GROUP_THEME = {
+  border: "border-gray-200",
+  accent: "border-l-gray-300",
+  header: "from-gray-50 to-white",
+  body: "",
+  card: "border-gray-200 bg-white",
+  badge: "bg-gray-400",
+  text: "text-gray-700",
+  icon: "text-gray-500",
+  chip: "bg-gray-100 text-gray-600 border-gray-200",
+};
+
+function getGroupColorTheme(groupKey: string, linkedToOrder: boolean) {
+  if (!linkedToOrder) return STANDALONE_GROUP_THEME;
+  let hash = 0;
+  for (let i = 0; i < groupKey.length; i++) {
+    hash = (hash * 31 + groupKey.charCodeAt(i)) >>> 0;
+  }
+  return GROUP_COLOR_THEMES[hash % GROUP_COLOR_THEMES.length];
 }
 
 export default function ProdutionManager() {
@@ -417,9 +484,6 @@ export default function ProdutionManager() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [canStartFilter, setCanStartFilter] = useState<"all" | "can" | "cannot">("all");
 
-  /* ================== SORT ================== */
-  const [sortType, setSortType] = useState<"delivery" | "progress" | "newest">("newest");
-
   /* ================== START PRODUCTION ================== */
   const startMutation = useMutation({
     mutationFn: async ({ orderId, prodId }: { orderId: string; prodId: string }) => {
@@ -499,38 +563,12 @@ export default function ProdutionManager() {
             s.task_id?.toString().includes(searchOrderId)
           )))
   )
-    .sort((a: any, b: any) => {
-      if (sortType === "newest") return b.prod_id - a.prod_id;
-      if (sortType === "delivery")
-        return (
-          new Date(a.delivery_date).getTime() -
-          new Date(b.delivery_date).getTime()
-        );
-      return b.progress_percent - a.progress_percent;
-    });
+    .sort(compareProductions);
 
   /* ================== SORT SCHEDULED ================== */
   const scheduledList = filteredScheduled
     .filter((o: any) => o.production_status === "Scheduled" || (!o.production_status && !o.group_status))
-    .sort((a: any, b: any) => {
-      const aCanStart = a.can_start !== false;
-      const bCanStart = b.can_start !== false;
-
-      if (aCanStart && !bCanStart) return -1;
-      if (!aCanStart && bCanStart) return 1;
-
-      if (sortType === "newest") return b.prod_id - a.prod_id;
-      if (sortType === "delivery") {
-        if (!a.delivery_date && !b.delivery_date) return b.prod_id - a.prod_id;
-        if (!a.delivery_date) return 1;
-        if (!b.delivery_date) return -1;
-        return (
-          new Date(a.delivery_date).getTime() -
-          new Date(b.delivery_date).getTime()
-        );
-      }
-      return b.progress_percent - a.progress_percent;
-    });
+    .sort(compareProductions);
 
   /* ================== GROUP BY ORDER_ID / LIST_ORDER_ID ================== */
   const scheduledGroups = groupProductionsByOrderId(scheduledList);
@@ -627,18 +665,6 @@ export default function ProdutionManager() {
             <option value="cannot">Chưa thể bắt đầu</option>
           </select>
         </div>
-        <div>
-          <label className="text-xs text-gray-500">Sắp xếp</label>
-          <select
-            value={sortType}
-            onChange={(e) => setSortType(e.target.value as any)}
-            className="block border rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="newest">Mới nhất</option>
-            <option value="delivery">Hạn hoàn thành</option>
-            <option value="progress">Tiến độ</option>
-          </select>
-        </div>
         <button
           onClick={() => {
             setSearchOrderId("");
@@ -693,39 +719,55 @@ export default function ProdutionManager() {
       {/* ================= TAB: LỆNH SẢN XUẤT ================= */}
       {activeTab === "scheduled" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+          <div className="space-y-6 max-h-[600px] overflow-y-auto pr-1">
             {scheduledPageGroups.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8">
                 Không có lệnh sản xuất nào.
               </p>
             )}
 
-            {scheduledPageGroups.map((group) => {
+            {scheduledPageGroups.map((group, groupIndex) => {
               const isGroupExpanded = !collapsedGroups.has(group.groupKey);
+              const linkedToOrder = group.orderIds.length > 0;
+              const theme = getGroupColorTheme(group.groupKey, linkedToOrder);
               return (
-                <div key={group.groupKey} className="border border-indigo-100 rounded-xl overflow-hidden">
+                <div key={group.groupKey} className={`border-l-4 ${theme.accent} border rounded-xl overflow-hidden shadow-sm ${theme.border}`}>
                   <button
                     type="button"
                     onClick={() => toggleGroupCollapse(group.groupKey)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-50/80 to-gray-50/80 hover:from-indigo-100 hover:to-gray-100 transition cursor-pointer"
+                    className={`w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r ${theme.header} hover:brightness-95 transition cursor-pointer`}
                   >
                     <div className="flex items-center gap-2 flex-wrap">
-                      <BsLayers className="w-4 h-4 text-indigo-500 shrink-0" />
-                      <span className="text-sm font-semibold text-gray-800">
+                      {linkedToOrder && (
+                        <span className={`shrink-0 w-7 h-7 rounded-lg ${theme.badge} text-white text-xs font-bold flex items-center justify-center shadow-sm`}>
+                          {groupIndex + 1}
+                        </span>
+                      )}
+                      <BsLayers className={`w-4 h-4 shrink-0 ${theme.icon}`} />
+                      <span className={`text-sm font-semibold ${theme.text}`}>
                         {group.orderIds.length === 0
                           ? "Lệnh sản xuất độc lập"
                           : group.orderIds.length === 1
                             ? `Đơn hàng #${group.orderIds[0]}`
-                            : `Nhóm đơn hàng: ${group.orderIds.map((id: number) => `#${id}`).join(", ")}`}
+                            : `Nhóm đơn hàng`}
                       </span>
-                      <span className="text-xs text-gray-500 bg-white/70 rounded-full px-2 py-0.5 border border-gray-200">
+                      {linkedToOrder && group.orderIds.length > 1 && (
+                        <div className="flex flex-wrap gap-1">
+                          {group.orderIds.map((id: number) => (
+                            <span key={id} className={`text-xs font-semibold rounded-md px-2 py-0.5 border ${theme.chip}`}>
+                              #{id}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <span className={`text-xs rounded-full px-2 py-0.5 border ${theme.chip}`}>
                         {group.productions.length} lệnh SX
                       </span>
                     </div>
                     <span className={`text-gray-400 transition-transform duration-200 inline-block text-xs ${isGroupExpanded ? "rotate-180" : ""}`}>▼</span>
                   </button>
                   {isGroupExpanded && (
-                  <div className="p-3 space-y-3">
+                  <div className={`p-3 space-y-3 ${theme.body}`}>
             {group.productions.map((order: any, index: number) => {
               const grouped = isGrouped(order);
 
@@ -761,8 +803,10 @@ const isNvlAllDone =
                   key={`${order.prod_id}-${index}`}
                   className={`flex items-start justify-between gap-4 rounded-xl border p-4 shadow-sm hover:shadow-md transition
                     ${grouped
-                      ? "border-purple-200 bg-purple-50/30"
-                      : "border-gray-200 bg-white"
+                      ? "border-purple-300 bg-purple-100/60"
+                      : linkedToOrder
+                        ? theme.card
+                        : "border-gray-200 bg-white"
                     }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -771,7 +815,7 @@ const isNvlAllDone =
                         <span>
                           Lệnh sản xuất:
                           <span
-                            className={`ml-1 ${grouped ? "text-purple-700" : "text-blue-700"}`}
+                            className={`ml-1 ${grouped ? "text-purple-700" : linkedToOrder ? theme.text : "text-blue-700"}`}
                           >
                             {order.prod_id}
                           </span>
@@ -938,39 +982,55 @@ const isNvlAllDone =
       {/* ================= TAB: ĐANG SẢN XUẤT (1 CỘT) ================= */}
       {activeTab === "processing" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+          <div className="space-y-6 max-h-[600px] overflow-y-auto pr-1">
             {processingPageGroups.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 Không có lệnh sản xuất nào đang chạy.
               </p>
             )}
 
-            {processingPageGroups.map((group) => {
+            {processingPageGroups.map((group, groupIndex) => {
               const isGroupExpanded = !collapsedGroups.has(group.groupKey);
+              const linkedToOrder = group.orderIds.length > 0;
+              const theme = getGroupColorTheme(group.groupKey, linkedToOrder);
               return (
-                <div key={group.groupKey} className="border border-indigo-100 rounded-xl overflow-hidden">
+                <div key={group.groupKey} className={`border-l-4 ${theme.accent} border rounded-xl overflow-hidden shadow-sm ${theme.border}`}>
                   <button
                     type="button"
                     onClick={() => toggleGroupCollapse(group.groupKey)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-yellow-50/80 to-gray-50/80 hover:from-yellow-100 hover:to-gray-100 transition cursor-pointer"
+                    className={`w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r ${theme.header} hover:brightness-95 transition cursor-pointer`}
                   >
                     <div className="flex items-center gap-2 flex-wrap">
-                      <BsLayers className="w-4 h-4 text-yellow-500 shrink-0" />
-                      <span className="text-sm font-semibold text-gray-800">
+                      {linkedToOrder && (
+                        <span className={`shrink-0 w-7 h-7 rounded-lg ${theme.badge} text-white text-xs font-bold flex items-center justify-center shadow-sm`}>
+                          {groupIndex + 1}
+                        </span>
+                      )}
+                      <BsLayers className={`w-4 h-4 shrink-0 ${theme.icon}`} />
+                      <span className={`text-sm font-semibold ${theme.text}`}>
                         {group.orderIds.length === 0
                           ? "Lệnh sản xuất độc lập"
                           : group.orderIds.length === 1
                             ? `Đơn hàng #${group.orderIds[0]}`
-                            : `Nhóm đơn hàng: ${group.orderIds.map((id: number) => `#${id}`).join(", ")}`}
+                            : `Nhóm đơn hàng`}
                       </span>
-                      <span className="text-xs text-gray-500 bg-white/70 rounded-full px-2 py-0.5 border border-gray-200">
+                      {linkedToOrder && group.orderIds.length > 1 && (
+                        <div className="flex flex-wrap gap-1">
+                          {group.orderIds.map((id: number) => (
+                            <span key={id} className={`text-xs font-semibold rounded-md px-2 py-0.5 border ${theme.chip}`}>
+                              #{id}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <span className={`text-xs rounded-full px-2 py-0.5 border ${theme.chip}`}>
                         {group.productions.length} lệnh SX
                       </span>
                     </div>
                     <span className={`text-gray-400 transition-transform duration-200 inline-block text-xs ${isGroupExpanded ? "rotate-180" : ""}`}>▼</span>
                   </button>
                   {isGroupExpanded && (
-                  <div className="p-3 space-y-3">
+                  <div className={`p-3 space-y-3 ${theme.body}`}>
             {group.productions.map((order: any, index: number) => {
               const grouped = isGrouped(order);
 
@@ -979,8 +1039,10 @@ const isNvlAllDone =
                   key={`proc-${order.prod_id}-${index}`}
                   className={`rounded-xl border p-4 shadow-sm hover:shadow-md transition
                     ${grouped
-                      ? "border-purple-200 bg-purple-50/30 hover:bg-purple-100/50"
-                      : "border-blue-200 bg-blue-50/50 hover:bg-blue-50"
+                      ? "border-purple-300 bg-purple-100/60 hover:bg-purple-100/70"
+                      : linkedToOrder
+                        ? `${theme.card} hover:brightness-[0.98]`
+                        : "border-blue-200 bg-blue-50/50 hover:bg-blue-50"
                     }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -988,7 +1050,7 @@ const isNvlAllDone =
                       <span>
                         Lệnh sản xuất:
                         <span
-                          className={`ml-1 ${grouped ? "text-purple-600" : "text-yellow-600"}`}
+                          className={`ml-1 ${grouped ? "text-purple-600" : linkedToOrder ? theme.text : "text-yellow-600"}`}
                         >
                           {order.prod_id}
                         </span>
