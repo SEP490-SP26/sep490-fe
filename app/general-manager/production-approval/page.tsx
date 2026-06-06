@@ -1137,12 +1137,12 @@ function GroupProductionTab() {
           },
           {
             key: "2",
-            label: "Ghép thủ công",
+            label: "Lên lịch thủ công",
             children: (
               <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mt-4">
                 <div className="mb-4 flex items-center justify-between">
                   <div className="mb-4">
-                    <Title level={4} className="!mb-0 text-gray-800"> Ghép thủ công</Title>
+                    <Title level={4} className="!mb-0 text-gray-800"> Lên lịch thủ công</Title>
                     <div className="text-gray-500 text-sm mt-1">Danh sách dưới đây là toàn bộ các đơn hàng có trong các đề xuất ở trên. Bạn có thể tự chọn ra một số đơn hàng để ghép thay vì dùng mặc định theo đề xuất.</div>
                   </div>
                   <div className="flex items-center gap-2">
