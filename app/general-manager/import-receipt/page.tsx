@@ -223,7 +223,7 @@ function ImportReceiptContent() {
         const orderId = record.order_id || (record as any)._id;
         const isCreated = createdOrderIds.includes(orderId);
         
-        return record.status === "Importing" && record.import_recieve_path === null && !isCreated ? (
+        return record.status === "Importing" && record.import_recieve_path === null ? (
           // <Popconfirm
           //   title="Tạo phiếu nhập kho"
           //   description="Bạn có chắc chắn muốn tạo phiếu nhập kho cho sản phẩm này không?"
@@ -234,7 +234,7 @@ function ImportReceiptContent() {
           // >
             <button
               type="button"
-              disabled={generateImportMutation.isPending && generateImportMutation.variables === orderId}
+              // disabled={generateImportMutation.isPending && generateImportMutation.variables === orderId}
               className="flex items-center gap-2 px-3 py-1.5 bg-amber-900 text-white rounded-lg hover:bg-amber-800 shadow-sm transition-colors text-sm font-medium disabled:opacity-50"
               onClick={() => generateImportMutation.mutate(orderId)}
             >
@@ -363,7 +363,7 @@ function ImportReceiptContent() {
         {pdfUrl ? (
           <div className="mt-4 rounded-lg overflow-hidden border border-gray-200">
             <iframe
-              src={pdfUrl.endsWith('.pdf') ? `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true` : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(pdfUrl)}`}
+              src={pdfUrl.endsWith('.pdf') ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(pdfUrl)}` : pdfUrl}
               className="w-full h-[60vh] border-0"
               title="Phiếu Nhập Kho"
             />

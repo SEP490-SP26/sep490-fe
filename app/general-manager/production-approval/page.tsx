@@ -988,20 +988,20 @@ function GroupProductionTab() {
     try {
       setIsPreviewLoading(true);
       const isSingleOrder = selectedManualOrders.length === 1;
-      
+
       const payload = {
         order_ids: selectedManualOrders.map(o => o.order_id),
         process_codes: isSingleOrder ? [] : manualProcessCodes,
         is_priority: true,
         note: manualNote,
       };
-      
+
       const res = await groupProductionsApi.getPreview(payload);
       const data = (res as any).data || res;
       setPreviewData(data);
-      
-      setCreatePayload({ 
-        ...payload, 
+
+      setCreatePayload({
+        ...payload,
         is_group: !isSingleOrder,
         single_prod_id: isSingleOrder ? selectedManualOrders[0].single_prod_id : undefined
       });
@@ -1035,6 +1035,24 @@ function GroupProductionTab() {
     },
     { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name" },
     { title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const, render: (v: number) => v?.toLocaleString("vi-VN") },
+    {
+      title: "Phương án sx",
+      key: "production_method",
+      width: 120,
+      align: "center" as const,
+      render: (_: any, record: any) => {
+        if (record.production_method === "NVL") {
+          return <Tag color="green">Nguyên vật liệu</Tag>;
+        }
+        if (record.production_method === "SUB") {
+          return <Tag color="blue">Bán thành phẩm</Tag>;
+        }
+        if (record.production_method == null) {
+          return <Tag color="green">Hệ thống tự duyệt</Tag>;
+        }
+        return <Tag>{record.production_method}</Tag>;
+      }
+    },
     { title: "Ngày giao", dataIndex: "delivery_date", key: "delivery_date", render: (d: string) => d ? new Date(d).toLocaleDateString("vi-VN") : "N/A" },
     {
       title: "Công đoạn", dataIndex: "production_process", key: "production_process", render: (p: string) => (
