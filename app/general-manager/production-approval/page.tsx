@@ -286,7 +286,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
     ...(mode === "pending"
       ? [
         {
-          title: "Thao tác", key: "action", width: 250, align: "center" as const,
+          title: "Thao tác", key: "action", width: 180, align: "center" as const,
           render: (_: any, record: any) => {
             if (record.proposed_production_method != null) {
               return null;
@@ -970,6 +970,33 @@ function GroupProductionTab() {
   }, [maxAllowedStartDate]);
 
   const handlePreviewManual = async () => {
+    if (selectedManualOrders.length === 1) {
+      const singleOrder = selectedManualOrders[0];
+      if (!singleOrder.single_prod_id) {
+        message.error("Không tìm thấy mã lệnh sản xuất của đơn này.");
+        return;
+      }
+      Modal.confirm({
+        title: 'Xác nhận tạo lệnh sản xuất riêng',
+        content: `Bạn có chắc chắn muốn tách đơn ${singleOrder.order_code || singleOrder.code} ra sản xuất ưu tiên?`,
+        okButtonProps: { className: "bg-blue-600 hover:bg-blue-700" },
+        onOk: async () => {
+          try {
+            await productionsApi.confirmSchedule(singleOrder.single_prod_id);
+            message.success("Đã tạo lệnh sản xuất thành công!");
+            setSelectedManualOrders([]);
+            setManualNote("");
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } catch (error: any) {
+            message.error(error?.response?.data?.message || error.message || "Có lỗi xảy ra.");
+          }
+        }
+      });
+      return;
+    }
+
     try {
       setIsPreviewLoading(true);
       const payload = {
@@ -1157,10 +1184,10 @@ function GroupProductionTab() {
                       icon={<PlayCircleOutlined />}
                       onClick={handlePreviewManual}
                       loading={isPreviewLoading}
-                      disabled={selectedManualOrders.length < 1 || !manualStartDate || manualProcessCodes.length === 0}
+                      disabled={selectedManualOrders.length < 1 || !manualStartDate || (selectedManualOrders.length > 1 && manualProcessCodes.length === 0)}
                       className="bg-blue-600 hover:bg-blue-700 border-none px-8"
                     >
-                      Xem trước & Tạo
+                      {selectedManualOrders.length === 1 ? "Xác nhận & Tạo" : "Xem trước & Tạo"}
                     </Button>
                   </div>
                 </Card>
