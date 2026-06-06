@@ -985,45 +985,26 @@ function GroupProductionTab() {
   }, [maxAllowedStartDate]);
 
   const handlePreviewManual = async () => {
-    if (selectedManualOrders.length === 1) {
-      const singleOrder = selectedManualOrders[0];
-      if (!singleOrder.single_prod_id) {
-        message.error("Không tìm thấy mã lệnh sản xuất của đơn này.");
-        return;
-      }
-      Modal.confirm({
-        title: 'Xác nhận tạo lệnh sản xuất riêng',
-        content: `Bạn có chắc chắn muốn tách đơn ${singleOrder.order_code || singleOrder.code} ra sản xuất ưu tiên?`,
-        okButtonProps: { className: "bg-blue-600 hover:bg-blue-700" },
-        onOk: async () => {
-          try {
-            await productionsApi.confirmSchedule(singleOrder.single_prod_id);
-            message.success("Đã tạo lệnh sản xuất thành công!");
-            setSelectedManualOrders([]);
-            setManualNote("");
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          } catch (error: any) {
-            message.error(error?.response?.data?.message || error.message || "Có lỗi xảy ra.");
-          }
-        }
-      });
-      return;
-    }
-
     try {
       setIsPreviewLoading(true);
+      const isSingleOrder = selectedManualOrders.length === 1;
+      
       const payload = {
         order_ids: selectedManualOrders.map(o => o.order_id),
-        process_codes: manualProcessCodes,
+        process_codes: isSingleOrder ? [] : manualProcessCodes,
         is_priority: true,
         note: manualNote,
       };
+      
       const res = await groupProductionsApi.getPreview(payload);
       const data = (res as any).data || res;
       setPreviewData(data);
-      setCreatePayload({ ...payload, is_group: true });
+      
+      setCreatePayload({ 
+        ...payload, 
+        is_group: !isSingleOrder,
+        single_prod_id: isSingleOrder ? selectedManualOrders[0].single_prod_id : undefined
+      });
       setIsReviewModalOpen(true);
     } catch (error: any) {
       message.error(error?.response?.data?.message || error.message || "Lỗi khi lấy thông tin preview.");
@@ -1175,6 +1156,7 @@ function GroupProductionTab() {
                         onChange={setManualProcessCodes}
                         options={ALLOWED_PROCESS_CODES}
                         allowClear
+                        disabled={selectedManualOrders.length === 1}
                       />
                     </div>
 
@@ -1202,7 +1184,7 @@ function GroupProductionTab() {
                       disabled={selectedManualOrders.length < 1 || !manualStartDate || (selectedManualOrders.length > 1 && manualProcessCodes.length === 0)}
                       className="bg-blue-600 hover:bg-blue-700 border-none px-8"
                     >
-                      {selectedManualOrders.length === 1 ? "Xác nhận & Tạo" : "Xem trước & Tạo"}
+                      Xem trước & Tạo
                     </Button>
                   </div>
                 </Card>
