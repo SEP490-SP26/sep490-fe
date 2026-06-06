@@ -238,13 +238,13 @@ export default function Dashboard() {
         });
 
         connection.on("update-ui", (data) => {
-          console.log("update-ui", data);
+
 
           fetchData();
         });
 
         connection.on("consultantCreateRequest", (data) => {
-          console.log("consultantCreateRequest", data);
+
 
           fetchData();
         });

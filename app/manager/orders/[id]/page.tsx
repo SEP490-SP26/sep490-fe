@@ -51,7 +51,6 @@ export default function ProductionDetailPage() {
         throw new Error("Order ID is required");
       }
       const response = await orderApi.getDetail(id.toString());
-      console.log("API Response:", response);
       return response;
     },
     enabled: !!id,
@@ -81,14 +80,11 @@ export default function ProductionDetailPage() {
     enabled: !!id,
   });
 
-  console.log("production", productionSchedules);
 
   // Xử lý loading state
   if (isPending) {
     return <Loading text="Đang tải thông tin đơn hàng..." />;
   }
-
-  console.log("data api", apiData);
 
   // Xử lý error state
   // if (error) {

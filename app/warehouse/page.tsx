@@ -127,7 +127,6 @@ export default function ProductionScheduling() {
     },
     initialData: [],
   });
-  console.log("poData", scheduledOrder);
 
   // Đơn hàng sẵn sàng để lên lịch (có thể sản xuất và chưa được lên lịch)
   const readyOrders = orders.filter(

@@ -54,9 +54,6 @@ export default function OrderListPage() {
     queryFn: async () => {
       try {
         const response = await orderApi.getList(1, 100);
-        console.log("API Response:", response);
-        console.log("Response data:", response.data);
-
         return {
           orders: response.data || [],
           products: [],

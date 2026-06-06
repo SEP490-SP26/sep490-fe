@@ -91,9 +91,6 @@ export default function LoginPage() {
       setIsLoading(true);
       setError("");
 
-      console.log("Form data:", data);
-      console.log("Login method:", loginMethod);
-
       // Tạo payload đúng format backend mong đợi
       // Giả sử backend mong đợi cả 2 field username và email (một trong hai có thể null)
       const payload = {
@@ -102,12 +99,10 @@ export default function LoginPage() {
         password: data.password,
       };
 
-      console.log("Sending payload:", payload);
 
       // Gửi request
       const response = await authApiRequest.login(payload);
 
-      console.log("Response:", response); //
 
       const { jwt, role_id, user_id, full_name } = response;
 
@@ -241,7 +236,6 @@ export default function LoginPage() {
         full_name: decoded.name,
       });
 
-      console.log(role_id);
       //Redirect giống login thường
       switch (role_id) {
         case 1:

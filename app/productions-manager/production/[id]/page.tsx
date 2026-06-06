@@ -536,7 +536,6 @@ export default function ProductionDetailPage() {
       setQtyBadValue("0");
       setUserToggleManual(false);
     } catch (err: any) {
-      console.log("Fetch qr-prepare error:", err);
       setPopup({
         open: true,
         type: "error",

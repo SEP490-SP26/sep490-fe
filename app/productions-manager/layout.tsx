@@ -29,7 +29,6 @@ export default function ProductionsManagerLayout({
   };
 
 const handleNavigate = (id: number, status?: string | null) => {
-  console.log(id, status);
   if (!status) return;
   switch (status.toLowerCase()) {
     case "active":

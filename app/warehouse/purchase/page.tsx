@@ -108,7 +108,6 @@ export default function PurchaseManagement() {
     queryFn: async () => {
       try {
         const response = await supplierApi.getList(1, 100);
-        // console.log("Response supplier data:", response.data);
         return response.data;
       } catch (error) {
         console.error("Error fetching orders:", error);
@@ -125,7 +124,6 @@ export default function PurchaseManagement() {
     queryFn: async () => {
       try {
         const response = await purchasesApi.getList(1, 100);
-        // console.log("Response po data:", response.data);
         return response.data;
       } catch (error) {
         console.error("Error fetching purchase orders:", error);
@@ -133,14 +131,12 @@ export default function PurchaseManagement() {
       }
     },
   });
-  // console.log("poData", poData);
 
   const { data: allMaterials = [], isPending: allMaterialLoading, refetch: refetchAllMaterials } = useQuery({
     queryKey: ["all-materials"],
     queryFn: async () => {
       try {
         const response = await materialsApi.getAll();
-        // console.log("Response miss data:", response.data);
         //Chì lấy is_buy = false
         return response.data.filter((m: any) => m.is_buy === false);
       } catch (error) {
@@ -156,7 +152,6 @@ export default function PurchaseManagement() {
     queryFn: async () => {
       try {
         const response = await materialsApi.getListMissingMaterial(1, 100);
-        // console.log("Response miss data:", response.data);
         //Chì lấy is_buy = false
         return response.data.filter((m: any) => m.is_buy === false);
       } catch (error) {
@@ -280,7 +275,6 @@ export default function PurchaseManagement() {
         const response = await supplierApi.getByMaterialId(
           quotePopupMaterial.material_id.toString()
         );
-        console.log("Response suppliers by material id:", response);
 
         // Đảm bảo luôn có return
         return response || [];
@@ -293,7 +287,6 @@ export default function PurchaseManagement() {
     // staleTime: 5 * 60 * 1000,
   });
 
-  console.log("supplier by material", suppliers);
 
   if (materialLoading) {
     return (
@@ -305,7 +298,6 @@ export default function PurchaseManagement() {
     );
   }
 
-  // console.log("missing data", missing_materials);
 
   // Xử lý tạo đơn hàng với nhiều vật tư
   const handleCreateBulkPO = async () => {
@@ -335,7 +327,7 @@ export default function PurchaseManagement() {
 
     try {
       const response = await purchasesApi.createPO(requestBody);
-      // console.log("Create PO response:", response);
+
 
       if (
         response
@@ -1301,10 +1293,7 @@ export default function PurchaseManagement() {
                           ],
                         };
 
-                        console.log(
-                          "Create PO (Direct) payload:",
-                          JSON.stringify(payload, null, 2)
-                        );
+
 
                         await purchasesApi.createPO(payload);
 

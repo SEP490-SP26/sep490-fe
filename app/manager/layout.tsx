@@ -120,7 +120,6 @@ export default function LayoutManager({
         onLogout={handleLogout}
         onItemClick={(item) => {
           // Xử lý khi click vào item
-          console.log("Item clicked:", item.label);
         }}
       />
 

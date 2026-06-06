@@ -36,7 +36,6 @@ export default function ProductionDetailPage() {
         throw new Error("Order ID is required");
       }
       const response = await orderApi.getDetail(id.toString());
-      console.log("API Response:", response);
       return response;
     },
     enabled: !!id,
@@ -66,36 +65,12 @@ export default function ProductionDetailPage() {
     enabled: !!id,
   });
 
-  console.log("production", productionSchedules);
 
   // Xử lý loading state
   if (isPending) {
     return <Loading />;
   }
 
-  console.log("data api", apiData);
-
-  // Xử lý error state
-  // if (error) {
-  //   return (
-  //     <div className="flex flex-col items-center justify-center h-64">
-  //       <div className="text-red-500 text-lg mb-2">
-  //         Lỗi khi tải thông tin đơn hàng
-  //       </div>
-  //       <button
-  //         onClick={() => router.refresh()}
-  //         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-  //       >
-  //         Thử lại
-  //       </button>
-  //     </div>
-  //   );
-  // }
-
-  // const apiData = orders.find((o) => o.order_id === order_id);
-  // const schedule = productionSchedules.find((s) => s.order_id === order_id);
-  // const product = products.find((p) => p.id === apiData?.product_id);
-  // const stages = getProductionStages(order_id as string);
 
   if (!apiData) {
     return (

@@ -126,14 +126,12 @@ export default function ProductionDetailPage() {
     }
 
     try {
-      console.log('taskId ', selectedTaskId);
       const response = await tasksApi.createQRByStageId({
         task_id: selectedTaskId,
         ttl_minutes: 120,
         qty_good: goodVal,
       });
-      console.log('response ', response);
-      console.log('response.token ', response.token);
+
       if (response && response.token) {
         // Response có token ngay ở top level
         setQrToken(response.token);
@@ -174,7 +172,6 @@ export default function ProductionDetailPage() {
         const token = barcodeBuffer.current;
         if (token.length > 10) { // Simple validation for minimum length
           try {
-            console.log("Scanned Token:", token);
             showInfoToast("Đang xử lý mã quét...");
             const response = await tasksApi.finishTask({ token });
             if (response) {
@@ -270,9 +267,6 @@ export default function ProductionDetailPage() {
     },
     enabled: !!id,
   });
-
-
-  console.log("production", productionSchedules);
 
   const productionStages = [
     {

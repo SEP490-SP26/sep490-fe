@@ -309,7 +309,6 @@ export default function ProductionDetailPage() {
 
     const defaultQty = Number(stage.output_product?.quantity || 0);
 
-    console.log(qtyOverride);
     if(qtyOverride !== undefined && qtyOverride < 0)
     {
       setPopup({
@@ -348,7 +347,6 @@ export default function ProductionDetailPage() {
   const handleQrScanned = async (scannedToken: string) => {
     try {
       setQrLoading(true);
-      console.log(scannedToken);
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/Tasks/finish`,
         {

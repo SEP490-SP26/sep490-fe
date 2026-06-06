@@ -94,8 +94,7 @@ export default function LayoutConsultant({
         navItems={[...consultantNavItems]}
         onLogout={handleLogout}
         onItemClick={(item) => {
-          // Xử lý khi click vào item
-          console.log("Item clicked:", item.label);
+
         }}
       />
 

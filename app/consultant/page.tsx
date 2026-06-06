@@ -1793,8 +1793,6 @@ function ConsultantForm() {
           } else if (res && (res as any).data && (res as any).data.estimate_id) {
             setSavedEstimateId((res as any).data.estimate_id);
           }
-
-          console.log(res);
         } catch (costError) {
           console.error("Error saving cost breakdown in adjust price:", costError);
         }
@@ -1813,7 +1811,6 @@ function ConsultantForm() {
 
   const handleManualCalculate = () => {
     const values = form.getFieldsValue();
-    console.log(values);
     const { paper_code, quantity, length, width, height, product_type } = values;
     if (!paper_code || !quantity || !length || !width || !height || !product_type) {
       message.warning("Vui lòng nhập đầy đủ: Loại giấy, Số lượng, Kích thước, Loại sản phẩm.");

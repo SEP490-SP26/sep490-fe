@@ -1097,7 +1097,6 @@ export default function GuestOrderPage() {
                                     const { file, onSuccess, onError } = options;
                                     try {
                                       const response: any = await uploadApi.uploadFile([file as any]);
-                                      console.log("Upload response:", response);
 
                                       let uploadedUrl = "";
                                       if (Array.isArray(response) && response[0]?.url) {

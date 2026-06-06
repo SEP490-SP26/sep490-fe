@@ -98,7 +98,6 @@ export default function CustomerHistoryPage() {
 
     setLoading(true)
     try {
-      console.log('phone', phone, 'otp', otp, 'page', page, 'type', type)
       const response = await lookupsApi.getHistory(phone, otp, page, 5)
 
       // Lưu phone và otp đã xác thực vào sessionStorage

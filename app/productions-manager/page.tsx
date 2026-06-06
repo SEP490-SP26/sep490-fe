@@ -613,7 +613,6 @@ export default function ProdutionManager() {
     let conn: any;
     const events = [...PRODUCTION_MANAGER_SIGNALR_EVENTS];
     const handler = () => {
-      console.log("🔥 nhận event SignalR cập nhật UI");
       queryClient.invalidateQueries({ queryKey: ["scheduledOrders"] });
       queryClient.invalidateQueries({ queryKey: ["production-detail"] });
       queryClient.invalidateQueries({ queryKey: ["group-production-detail"] });
