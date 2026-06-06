@@ -283,24 +283,35 @@ export default function ManagerOrdersPage() {
 
   ];
 
-  const genericTable = (data: OrderRequest[], emptyMsg: string, showHiddenCols: boolean = false) => (
-    <Table
-      columns={showHiddenCols ? columns : columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost")}
-      dataSource={data}
-      rowKey="order_request_id"
-      pagination={{
-        pageSize: 10,
-        showTotal: (total) => `Tổng ${total} đơn`,
-      }}
-      locale={{ emptyText: <Empty description={emptyMsg} /> }}
-      bordered
-      size="middle"
-      onRow={(record) => ({
-        onClick: () => router.push(`/manager/request-detail/${record.order_request_id}`),
-        className: 'cursor-pointer hover:bg-slate-50 transition-colors',
-      })}
-    />
-  );
+  const genericTable = (data: OrderRequest[], emptyMsg: string, showHiddenCols: boolean = false) => {
+    let finalColumns = showHiddenCols 
+      ? columns 
+      : columns.filter((col) => col.key !== "deposit_amount" && col.key !== "final_cost");
+
+    const hasOrderId = data.some(item => item.order_id != null);
+    if (!hasOrderId) {
+      finalColumns = finalColumns.filter((col) => col.key !== "order_id");
+    }
+
+    return (
+      <Table
+        columns={finalColumns}
+        dataSource={data}
+        rowKey="order_request_id"
+        pagination={{
+          pageSize: 10,
+          showTotal: (total) => `Tổng ${total} đơn`,
+        }}
+        locale={{ emptyText: <Empty description={emptyMsg} /> }}
+        bordered
+        size="middle"
+        onRow={(record) => ({
+          onClick: () => router.push(`/manager/request-detail/${record.order_request_id}`),
+          className: 'cursor-pointer hover:bg-slate-50 transition-colors',
+        })}
+      />
+    );
+  };
 
   const tabItems = [
     {

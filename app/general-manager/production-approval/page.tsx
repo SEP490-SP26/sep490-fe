@@ -229,10 +229,7 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
       title: "Số lượng", dataIndex: "quantity", key: "quantity", align: "right" as const,
       render: (val: number) => <span className="font-medium">{val?.toLocaleString("vi-VN")}</span>,
     },
-    // {
-    //   title: "Trạng thái", dataIndex: "status", key: "status",
-    //   render: (status: string) => getStatusTag(status),
-    // },
+
     {
       title: "Ngày giao dự kiến", dataIndex: "delivery_date", key: "delivery_date",
       render: (_: any, record: any) => (
@@ -265,10 +262,10 @@ function ProductionApprovalContent({ mode = "pending" }: { mode?: "pending" | "w
           },
         },
         {
-          title: "Phương án SX",
+          title: "Phương án sx",
           key: "production_method",
           width: 120,
-          align: "center",
+          align: "center" as const,
           render: (_: any, record: any) => {
             if (record.production_method === "NVL") {
               return <Tag color="green">Nguyên vật liệu</Tag>;
@@ -1403,10 +1400,10 @@ function TrackOrdersTab({ mode }: { mode: "InProcessing" | "Importing" }) {
       }
     },
     {
-      title: "Phương án SX",
+      title: "Phương án sx",
       key: "production_method",
       width: 120,
-      align: "center",
+      align: "center" as const,
       render: (_: any, record: any) => {
         if (record.production_method === "NVL") {
           return <Tag color="green">Nguyên vật liệu</Tag>;
@@ -1432,6 +1429,7 @@ function TrackOrdersTab({ mode }: { mode: "InProcessing" | "Importing" }) {
         </div>
       )
     },
+
     {
       title: 'Thao tác',
       key: 'action',
